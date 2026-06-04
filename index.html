@@ -695,9 +695,54 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
 <!-- ══ RISKS ══════════════════════════════ -->
 <div id="p-risks" class="page content">
-  <div class="sec-title">مصفوفة المخاطر البيانية</div>
-  <div class="card"><div class="card-body"><canvas id="riskChart" style="display:block;width:100%"></canvas></div></div>
-  <script>(function(){function draw(){var c=document.getElementById('riskChart');if(!c)return;var W=c.parentElement.clientWidth-32||580;if(W<100){setTimeout(draw,400);return;}c.width=W;c.height=200;var ctx=c.getContext('2d'),pl=40,pr=10,pt=10,pb=30,gW=W-pl-pr,gH=c.height-pt-pb;[{x:0,y:0,w:.33,h:.33,c:'rgba(39,174,96,.15)'},{x:.33,y:0,w:.34,h:.33,c:'rgba(241,196,15,.15)'},{x:.67,y:0,w:.33,h:.33,c:'rgba(230,126,34,.15)'},{x:0,y:.33,w:.33,h:.34,c:'rgba(241,196,15,.15)'},{x:.33,y:.33,w:.34,h:.34,c:'rgba(230,126,34,.15)'},{x:.67,y:.33,w:.33,h:.34,c:'rgba(192,57,43,.2)'},{x:0,y:.67,w:.33,h:.33,c:'rgba(230,126,34,.15)'},{x:.33,y:.67,w:.34,h:.33,c:'rgba(192,57,43,.2)'},{x:.67,y:.67,w:.33,h:.33,c:'rgba(192,57,43,.3)'}].forEach(function(z){ctx.fillStyle=z.c;ctx.fillRect(pl+z.x*gW,pt+z.y*gH,z.w*gW,z.h*gH);});ctx.strokeStyle='#ccc';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pl,pt);ctx.lineTo(pl,pt+gH);ctx.lineTo(pl+gW,pt+gH);ctx.stroke();[{n:'سيولة',x:.78,y:.82,c:'#C0392B'},{n:'سيبراني',x:.55,y:.62,c:'#E67E22'},{n:'امتثال',x:.82,y:.52,c:'#E67E22'},{n:'عمليات',x:.32,y:.42,c:'#F1C40F'},{n:'سمعة',x:.18,y:.22,c:'#27AE60'}].forEach(function(r){var rx=pl+r.x*gW,ry=pt+(1-r.y)*gH;ctx.beginPath();ctx.arc(rx,ry,8,0,Math.PI*2);ctx.fillStyle=r.c+'BB';ctx.fill();ctx.strokeStyle=r.c;ctx.lineWidth=2;ctx.stroke();ctx.fillStyle='#222';ctx.font='bold 8px Arial';ctx.textAlign='center';ctx.fillText(r.n,rx,ry-11);});}if(document.readyState==='complete')setTimeout(draw,300);else window.addEventListener('load',function(){setTimeout(draw,300);});})()</script>
+  <div class="sec-title">📊 مصفوفة المخاطر — الاحتمالية vs التأثير</div>
+  <div class="card">
+    <div class="card-body">
+      <!-- مصفوفة المخاطر كجدول مرئي -->
+      <div style="display:grid;grid-template-columns:40px repeat(3,1fr);grid-template-rows:repeat(3,1fr) 40px;gap:4px;height:280px;direction:ltr">
+        <!-- Row 3: عالي التأثير -->
+        <div style="display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--gray3);writing-mode:vertical-rl;transform:rotate(180deg)">عالي</div>
+        <div style="background:#FDE8E8;border-radius:8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px;padding:6px;border:1px solid #E8A0A0">
+        </div>
+        <div style="background:#FDE8E8;border-radius:8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px;padding:6px;border:1px solid #E8A0A0">
+          <div style="background:#C0392B;color:#fff;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;white-space:nowrap">سيولة مالية</div>
+        </div>
+        <div style="background:#FDE8E8;border-radius:8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px;padding:6px;border:1px solid #C0392B">
+          <div style="background:#C0392B;color:#fff;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;white-space:nowrap">امتثال تنظيمي</div>
+        </div>
+        <!-- Row 2: متوسط التأثير -->
+        <div style="display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--gray3);writing-mode:vertical-rl;transform:rotate(180deg)">متوسط</div>
+        <div style="background:#FEF3E2;border-radius:8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px;padding:6px;border:1px solid #F0C070">
+          <div style="background:#E67E22;color:#fff;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;white-space:nowrap">عمليات</div>
+        </div>
+        <div style="background:#FEF3E2;border-radius:8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px;padding:6px;border:1px solid #F0C070">
+          <div style="background:#E67E22;color:#fff;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;white-space:nowrap">أمن سيبراني</div>
+        </div>
+        <div style="background:#FDE8E8;border-radius:8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px;padding:6px;border:1px solid #C0392B">
+        </div>
+        <!-- Row 1: منخفض التأثير -->
+        <div style="display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--gray3);writing-mode:vertical-rl;transform:rotate(180deg)">منخفض</div>
+        <div style="background:#E8F8EF;border-radius:8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px;padding:6px;border:1px solid #A0D8B0">
+          <div style="background:#27AE60;color:#fff;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;white-space:nowrap">سمعة</div>
+        </div>
+        <div style="background:#E8F8EF;border-radius:8px;border:1px solid #A0D8B0"></div>
+        <div style="background:#FEF3E2;border-radius:8px;border:1px solid #F0C070"></div>
+        <!-- Row labels bottom -->
+        <div></div>
+        <div style="text-align:center;font-size:9px;color:var(--gray3);padding-top:4px">منخفض</div>
+        <div style="text-align:center;font-size:9px;color:var(--gray3);padding-top:4px">متوسط</div>
+        <div style="text-align:center;font-size:9px;color:var(--gray3);padding-top:4px">عالي</div>
+      </div>
+      <div style="text-align:center;font-size:10px;color:var(--gray3);margin-top:6px">← الاحتمالية →</div>
+      <!-- مفتاح الألوان -->
+      <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap;justify-content:center">
+        <span style="font-size:11px;display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:50%;background:#C0392B;display:inline-block"></span>خطر عالٍ جداً</span>
+        <span style="font-size:11px;display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:50%;background:#E67E22;display:inline-block"></span>خطر عالٍ</span>
+        <span style="font-size:11px;display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:50%;background:#F1C40F;display:inline-block"></span>خطر متوسط</span>
+        <span style="font-size:11px;display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:50%;background:#27AE60;display:inline-block"></span>خطر منخفض</span>
+      </div>
+    </div>
+  </div>
 
   <div class="sec-title">⚠️ سجل المخاطر المؤسسية</div>
   <div class="risk-grid">
@@ -733,6 +778,33 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
         <div class="alert-item"><div class="a-dot gold"></div><div><div class="a-text">مراجعة سياسة تضارب المصالح للأعضاء</div><div class="a-time">مطلوب أغسطس 2026</div></div></div>
         <div class="alert-item"><div class="a-dot green"></div><div><div class="a-text">تجديد شهادة SSL — تلقائي</div><div class="a-time">سبتمبر 2026</div></div></div>
       </div>
+    </div>
+  </div>
+
+  <div class="sec-title" style="margin-top:20px">📋 سجل الالتزام</div>
+  <div class="card">
+    <div class="card-body" style="padding:0;overflow-x:auto">
+      <table class="tbl" style="min-width:700px">
+        <thead>
+          <tr>
+            <th>المتطلب التنظيمي</th>
+            <th>الجهة التنظيمية</th>
+            <th>القسم المطلوب</th>
+            <th style="text-align:center">الخطورة</th>
+            <th>المخالفة المترتبة</th>
+            <th>الموعد</th>
+            <th style="text-align:center">الحالة</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>تطبيق لائحة حوكمة الشركات</td><td>هيئة السوق المالية</td><td>مجلس الإدارة</td><td style="text-align:center"><span class="badge urgent">عالية جداً</span></td><td>غرامة 500,000 ريال + إيقاف</td><td>مستمر</td><td style="text-align:center"><span class="badge done">ملتزم ✅</span></td></tr>
+          <tr><td>الإفصاح الدوري للمساهمين</td><td>هيئة السوق المالية</td><td>الإدارة المالية</td><td style="text-align:center"><span class="badge urgent">عالية</span></td><td>غرامة 100,000 ريال + تعليق</td><td>ربع سنوي</td><td style="text-align:center"><span class="badge done">ملتزم ✅</span></td></tr>
+          <tr><td>تحديث سياسة حماية البيانات PDPL</td><td>الهيئة السعودية للبيانات</td><td>تقنية المعلومات</td><td style="text-align:center"><span class="badge urgent">عالية</span></td><td>غرامة تصل 5,000,000 ريال</td><td>30 أبريل 2026</td><td style="text-align:center"><span class="badge pending">جارٍ</span></td></tr>
+          <tr><td>اختبار الاختراق الدوري ECC</td><td>هيئة الأمن السيبراني</td><td>تقنية المعلومات</td><td style="text-align:center"><span class="badge gold">متوسطة</span></td><td>تحذير رسمي وإلزام بالتصحيح</td><td>يونيو 2026</td><td style="text-align:center"><span class="badge gold">مجدول</span></td></tr>
+          <tr><td>تجديد السجل التجاري</td><td>وزارة التجارة</td><td>الإدارة القانونية</td><td style="text-align:center"><span class="badge urgent">عالية جداً</span></td><td>إيقاف النشاط + غرامة يومية</td><td>ديسمبر 2026</td><td style="text-align:center"><span class="badge done">ملتزم ✅</span></td></tr>
+          <tr><td>مكافحة غسيل الأموال AML</td><td>وزارة المالية</td><td>الإدارة المالية</td><td style="text-align:center"><span class="badge urgent">عالية جداً</span></td><td>عقوبات جنائية + إيقاف الحسابات</td><td>مستمر</td><td style="text-align:center"><span class="badge done">ملتزم ✅</span></td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </div>
@@ -883,23 +955,29 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
           <th style="text-align:center;font-size:10px">لجنة الترشيحات</th>
         </tr></thead>
         <tbody>
-          <tr style="background:#EAF0F8"><td colspan="7" style="font-weight:800;color:var(--primary);font-size:11px;padding:8px 14px;letter-spacing:0.3px">الاجتماعات والمحاضر</td></tr>
-          <tr><td>دعوة اجتماع مجلس الإدارة</td><td style="text-align:center">✅</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">✅</td></tr>
-          <tr><td>تحديد جدول أعمال الاجتماع</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">🔵</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">✅</td></tr>
-          <tr><td>اعتماد المحاضر الرسمية</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
-          <tr><td>إعداد ورفع المحاضر</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">✅</td></tr>
-          <tr style="background:#EAF0F8"><td colspan="7" style="font-weight:800;color:var(--primary);font-size:11px;padding:8px 14px;letter-spacing:0.3px">القرارات والتصويت</td></tr>
-          <tr><td>التصويت على قرارات المجلس</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
-          <tr><td>التصويت في اجتماعات اللجان</td><td style="text-align:center">—</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
-          <tr><td>حق النقض (Veto)</td><td style="text-align:center">✅</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
-          <tr style="background:#EAF0F8"><td colspan="7" style="font-weight:800;color:var(--primary);font-size:11px;padding:8px 14px;letter-spacing:0.3px">المالية والعقود</td></tr>
-          <tr><td>اعتماد ميزانية الشركة</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td></tr>
-          <tr><td>التوقيع على العقود +500K</td><td style="text-align:center">✅</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
-          <tr><td>التوقيع على العقود -500K</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">—</td></tr>
-          <tr style="background:#EAF0F8"><td colspan="7" style="font-weight:800;color:var(--primary);font-size:11px;padding:8px 14px;letter-spacing:0.3px">الوثائق والتقارير</td></tr>
-          <tr><td>الاطلاع على التقارير المالية</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">✅</td><td style="text-align:center">—</td></tr>
-          <tr><td>رفع وثائق للمنصة</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td></tr>
-          <tr><td>حذف وثائق من المنصة</td><td style="text-align:center">✅</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">🔵</td></tr>
+          <tr style="background:#EAF0F8"><td colspan="8" style="font-weight:800;color:var(--primary);font-size:11px;padding:8px 14px">قرارات الجمعية العامة</td></tr>
+          <tr><td>تعديل النظام الأساسي</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+          <tr><td>تعيين مراجع الحسابات</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td></tr>
+          <tr><td>تعيين مجلس الإدارة</td><td style="text-align:center">✅</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">🔵</td></tr>
+          <tr><td>توزيع الأرباح</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+          <tr><td>تعديل رأس المال</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+          <tr><td>تجنيب احتياطات إضافية</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+          <tr style="background:#EAF0F8"><td colspan="8" style="font-weight:800;color:var(--primary);font-size:11px;padding:8px 14px">قرارات مجلس الإدارة</td></tr>
+          <tr><td>اعتماد الخطة السنوية</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+          <tr><td>اعتماد سياسات الشركة</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+          <tr><td>اعتماد الهيكل التنظيمي</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+          <tr><td>اعتماد مصفوفة الصلاحيات</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+          <tr><td>اعتماد مؤشرات الأداء</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+          <tr><td>اعتماد دليل الموارد البشرية</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+          <tr><td>اعتماد سياسة المخاطر المالية</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">—</td></tr>
+          <tr style="background:#EAF0F8"><td colspan="8" style="font-weight:800;color:var(--primary);font-size:11px;padding:8px 14px">المالية والعقود</td></tr>
+          <tr><td>فتح حسابات بنكية</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+          <tr><td>توقيع العقود +500K</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+          <tr><td>توقيع العقود -500K</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+          <tr style="background:#EAF0F8"><td colspan="8" style="font-weight:800;color:var(--primary);font-size:11px;padding:8px 14px">الوثائق والتقارير</td></tr>
+          <tr><td>الاطلاع على التقارير المالية</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">🔵</td><td style="text-align:center">✅</td><td style="text-align:center">—</td></tr>
+          <tr><td>رفع وثائق للمنصة</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td></tr>
+          <tr><td>حذف وثائق من المنصة</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
         </tbody>
       </table>
     </div>
