@@ -2105,12 +2105,10 @@ async function logout(){
   document.getElementById("loginScreen").style.display = "flex";
 }
 
-function showApp(){
+async function showApp(){
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("appWrapper").style.display = "block";
-  loadMembers();
-  loadMeetingsAll();
-  loadCurrentUserProfile();
+  await loadCurrentUserProfile();
 }
 
 async function checkSession(){
