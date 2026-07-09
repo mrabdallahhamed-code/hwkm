@@ -1039,6 +1039,13 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       </table>
     </div>
   </div>
+
+  <div class="card" style="margin-top:20px" id="policyReviewCard">
+    <div class="card-head"><span class="card-title">🗳️ سياسات تحتاج رأي المجلس</span></div>
+    <div class="card-body" id="policyReviewBody" style="padding:14px">
+      <div style="text-align:center;color:var(--gray3);font-size:12px">جارِ التحميل...</div>
+    </div>
+  </div>
 </div>
 
 <!-- ══ ARCHIVE ════════════════════════════ -->
@@ -2532,6 +2539,83 @@ async function loadPolicies(){
     });
   });
   tbody.innerHTML = rows;
+  loadPolicyReviewSection();
+}
+
+/* ══════════ BOARD MEMBER REVIEW ON POLICIES AT "مرفوعة لمجلس الإدارة" STAGE ══════════ */
+async function loadPolicyReviewSection(){
+  const card = document.getElementById("policyReviewCard");
+  const box = document.getElementById("policyReviewBody");
+  if(!box || !card) return;
+  const role = getCurrentRole();
+  if(role === 'مساهم'){ card.style.display = "none"; return; }
+  card.style.display = "block";
+
+  const pending = policiesCache.filter(p => p.status === "مرفوعة لمجلس الإدارة");
+  if(pending.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px">لا توجد سياسات بانتظار رأي المجلس حاليًا.</div>'; return; }
+
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+  const ids = pending.map(p=>p.id);
+  const { data: reviews } = await sb.from("policy_reviews").select("*").in("policy_id", ids);
+  const reviewsByPolicy = {};
+  (reviews||[]).forEach(rv => {
+    if(!reviewsByPolicy[rv.policy_id]) reviewsByPolicy[rv.policy_id] = [];
+    reviewsByPolicy[rv.policy_id].push(rv);
+  });
+
+  box.innerHTML = pending.map(p => {
+    const revs = reviewsByPolicy[p.id] || [];
+    const yes = revs.filter(v=>v.decision==="موافق").length;
+    const no = revs.filter(v=>v.decision==="معارض").length;
+    const abst = revs.filter(v=>v.decision==="متحفظ").length;
+    const mine = myEmail ? revs.find(v => v.reviewer_email === myEmail) : null;
+    return `<div style="border:1px solid var(--gray1);border-radius:10px;padding:12px;margin-bottom:12px">
+      <div style="font-weight:800;font-size:13px;color:var(--dark)">${p.policy_name||""}</div>
+      <div style="font-size:11px;color:var(--gray3);margin:4px 0 8px">${p.category||""} · ${p.policy_type||""}</div>
+      <div style="font-size:11px;color:var(--gray3);margin-bottom:8px">آراء الأعضاء حتى الآن: <span style="color:var(--green)">✅ ${yes}</span> · <span style="color:var(--red)">❌ ${no}</span> · <span style="color:var(--orange)">⚠️ ${abst}</span></div>
+      <textarea id="policy-review-notes-${p.id}" placeholder="ملاحظاتك (اختياري)" style="width:100%;border:1px solid var(--gray1);border-radius:8px;padding:8px;font-family:'Tajawal',sans-serif;font-size:12px;resize:none;margin-bottom:8px" rows="2">${mine ? (mine.notes||"") : ""}</textarea>
+      <div style="display:flex;gap:6px">
+        <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer;font-weight:${mine&&mine.decision==='موافق'?'900':'600'}" onclick="submitPolicyReview(${p.id},'موافق')">✅ موافقة</button>
+        <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer;font-weight:${mine&&mine.decision==='معارض'?'900':'600'}" onclick="submitPolicyReview(${p.id},'معارض')">❌ معارض</button>
+        <button class="btn-xs" style="background:#FEF3E2;color:var(--orange);border:none;border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer;font-weight:${mine&&mine.decision==='متحفظ'?'900':'600'}" onclick="submitPolicyReview(${p.id},'متحفظ')">⚠️ تحفظ</button>
+      </div>
+      ${mine ? `<div style="font-size:10.5px;color:var(--gray3);margin-top:6px">رأيك المسجّل حاليًا: ${mine.decision}</div>` : ""}
+    </div>`;
+  }).join("");
+}
+
+async function submitPolicyReview(policyId, decision){
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+  if(!myEmail){ alert("تعذّر تحديد هويتك، الرجاء تسجيل الدخول من جديد"); return; }
+  const reviewer_name = currentUserProfile ? (currentUserProfile.full_name || myEmail) : myEmail;
+  const notesEl = document.getElementById("policy-review-notes-"+policyId);
+  const notes = notesEl ? notesEl.value.trim() : "";
+
+  await sb.from("policy_reviews").delete().eq("policy_id", policyId).eq("reviewer_email", myEmail);
+  const { error } = await sb.from("policy_reviews").insert([{
+    policy_id: policyId, reviewer_email: myEmail, reviewer_name, decision, notes, company_id: currentCompanyId
+  }]);
+  if(error){ alert("تعذّر حفظ رأيك: " + error.message); return; }
+
+  await recomputePolicyStage(policyId);
+  loadPolicies();
+}
+
+/* If every board member who reviewed approved unanimously, auto-advance the policy to the
+   next stage. Any single objection or reservation keeps it pending at the same stage. */
+async function recomputePolicyStage(policyId){
+  const { data: revs, error } = await sb.from("policy_reviews").select("*").eq("policy_id", policyId);
+  if(error || !revs || revs.length===0) return;
+  const allApprove = revs.every(v => v.decision === "موافق");
+  if(!allApprove) return; // stays at "مرفوعة لمجلس الإدارة" until unanimous approval
+  const p = policiesCache.find(x => x.id === policyId);
+  if(!p) return;
+  const idx = POLICY_STAGES.indexOf(p.status);
+  if(idx === -1 || idx >= POLICY_STAGES.length-1) return;
+  const nextStatus = POLICY_STAGES[idx+1];
+  await sb.from("policies").update({ status: nextStatus }).eq("id", policyId);
 }
 
 async function deletePolicy(id){
