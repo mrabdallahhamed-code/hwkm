@@ -2721,47 +2721,38 @@ function renderOrgTree(rows){
     }
   });
   roots.sort((a,b) => (a.level ?? 99) - (b.level ?? 99) || a.id - b.id);
+  Object.keys(childrenOf).forEach(k => childrenOf[k].sort((a,b) => (a.level ?? 99) - (b.level ?? 99) || a.id - b.id));
 
-  // BFS: group every node into its generation/depth so each generation renders as one row
-  const depths = [];
-  let frontier = roots.map(r => ({ node: r, parentTitle: null }));
-  let depth = 0;
-  const seen = new Set();
-  while(frontier.length){
-    depths[depth] = frontier;
-    const next = [];
-    frontier.forEach(({node}) => {
-      if(seen.has(node.position_title)) return;
-      seen.add(node.position_title);
-      (childrenOf[node.position_title] || []).forEach(child => {
-        next.push({ node: child, parentTitle: node.position_title });
-      });
-    });
-    frontier = next;
-    depth++;
-    if(depth > 12) break; // safety guard against accidental circular parenting
-  }
-
-  function box(s, small){
+  function box(s, depth){
+    const small = depth > 0;
     const pad = small ? "8px 12px" : "10px 20px";
     const fs = small ? "11px" : "13px";
-    return `<div style="text-align:center"><div style="display:inline-block;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;border-radius:10px;padding:${pad};font-size:${fs};font-weight:800;box-shadow:0 2px 8px rgba(26,58,107,0.25);min-width:120px">
+    return `<div style="display:inline-block;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;border-radius:10px;padding:${pad};font-size:${fs};font-weight:800;box-shadow:0 2px 8px rgba(26,58,107,0.25);min-width:120px;white-space:nowrap">
       ${s.position_title||""}<br><span style="font-size:10px;font-weight:600;opacity:0.9">${s.holder_name||"شاغر"}</span>
-    </div></div>`;
+    </div>`;
   }
 
-  if(depths.length===0) return '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">تعذّر رسم الهيكل — تحقق من ربط "يتبع لـ" لكل منصب.</div>';
-
-  let html = "";
-  depths.forEach((rowItems, i) => {
-    html += `<div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-bottom:6px">`;
-    rowItems.forEach(({node}) => { html += box(node, i>0); });
-    html += `</div>`;
-    if(i < depths.length-1){
-      html += `<div style="display:flex;justify-content:center"><div style="width:2px;height:22px;background:var(--gray2)"></div></div>`;
+  // Each node renders as its OWN column: its box on top, then (if it has children) a short
+  // connector line and a horizontal row containing each child's own column. Because every
+  // child is a self-contained column, siblings naturally line up side-by-side while each
+  // one's own subordinates stay directly beneath it — a real branching org chart, not a
+  // flat "everyone at this generation in one row" list.
+  function renderNode(s, depth){
+    const kids = childrenOf[s.position_title] || [];
+    let html = `<div style="display:flex;flex-direction:column;align-items:center">`;
+    html += box(s, depth);
+    if(kids.length){
+      html += `<div style="width:2px;height:20px;background:var(--gray2)"></div>`;
+      html += `<div style="display:flex;flex-direction:row;align-items:flex-start;gap:20px">`;
+      kids.forEach(k => { html += `<div style="display:flex;flex-direction:column;align-items:center">${renderNode(k, depth+1)}</div>`; });
+      html += `</div>`;
     }
-  });
-  return html;
+    html += `</div>`;
+    return html;
+  }
+
+  if(roots.length===0) return '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">تعذّر رسم الهيكل — تحقق من ربط "يتبع لـ" لكل منصب.</div>';
+  return `<div style="display:flex;justify-content:center;gap:40px;align-items:flex-start">${roots.map(r => renderNode(r, 0)).join("")}</div>`;
 }
 
 function editStructure(id){
