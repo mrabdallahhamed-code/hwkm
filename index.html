@@ -2669,12 +2669,7 @@ function populateParentPositionSelect(preselect){
   const options = ['<option value="">— بدون (أعلى مستوى في الهيكل) —</option>']
     .concat(structureCache.map(s => `<option value="${(s.position_title||"").replace(/"/g,'&quot;')}">${s.position_title||""}</option>`));
   sel.innerHTML = options.join("");
-  if(preselect !== undefined){
-    sel.value = preselect || "";
-  } else if(structureCache.length){
-    // Default: chain under the last-added position
-    sel.value = structureCache[structureCache.length-1].position_title || "";
-  }
+  sel.value = preselect || "";
 }
 
 async function loadStructure(){
@@ -2692,14 +2687,25 @@ async function loadStructure(){
 
   tbody.innerHTML = structureCache.map(s => `<tr>
     <td>${s.position_title||""}</td><td>${s.holder_name||"—"}</td><td>${s.parent_position||"—"}</td><td>${orgLevelLabel(s.level)}</td>
-    <td><button class="btn-xs primary" onclick="editStructure(${s.id})">✏️ تعديل</button></td>
+    <td>
+      <button class="btn-xs primary" onclick="editStructure(${s.id})">✏️ تعديل</button>
+      <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;margin-right:4px" onclick="deletePosition(${s.id})">🗑️ حذف</button>
+    </td>
   </tr>`).join("");
 
   if(chartWrap) chartWrap.innerHTML = renderOrgTree(structureCache);
 }
 
+async function deletePosition(id){
+  if(!confirm("حذف هذا المنصب سيفصله عن الهيكل. المناصب التابعة له ستحتاج إعادة ربط يدويًا. متابعة؟")) return;
+  const { error } = await sb.from("org_structure").delete().eq("id", id);
+  if(error){ alert("تعذّر الحذف: " + error.message); return; }
+  loadStructure();
+}
+
 /* Build a real parent → child tree from parent_position text-matching, and render it as
-   a connected, indented hierarchy (RTL: children indent to the right of their parent). */
+   a classic top-down org chart: the CEO/root at the top, each generation of subordinates
+   in its own centered row below, connected with simple vertical lines — not a stacked list. */
 function renderOrgTree(rows){
   const byTitle = {};
   rows.forEach(r => { if(r.position_title) byTitle[r.position_title] = r; });
@@ -2714,25 +2720,48 @@ function renderOrgTree(rows){
       roots.push(r);
     }
   });
+  roots.sort((a,b) => (a.level ?? 99) - (b.level ?? 99) || a.id - b.id);
 
-  function nodeBox(s){
-    return `<div style="display:inline-block;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;border-radius:10px;padding:9px 16px;font-size:12px;font-weight:800;box-shadow:0 2px 8px rgba(26,58,107,0.25)">
+  // BFS: group every node into its generation/depth so each generation renders as one row
+  const depths = [];
+  let frontier = roots.map(r => ({ node: r, parentTitle: null }));
+  let depth = 0;
+  const seen = new Set();
+  while(frontier.length){
+    depths[depth] = frontier;
+    const next = [];
+    frontier.forEach(({node}) => {
+      if(seen.has(node.position_title)) return;
+      seen.add(node.position_title);
+      (childrenOf[node.position_title] || []).forEach(child => {
+        next.push({ node: child, parentTitle: node.position_title });
+      });
+    });
+    frontier = next;
+    depth++;
+    if(depth > 12) break; // safety guard against accidental circular parenting
+  }
+
+  function box(s, small){
+    const pad = small ? "8px 12px" : "10px 20px";
+    const fs = small ? "11px" : "13px";
+    return `<div style="text-align:center"><div style="display:inline-block;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;border-radius:10px;padding:${pad};font-size:${fs};font-weight:800;box-shadow:0 2px 8px rgba(26,58,107,0.25);min-width:120px">
       ${s.position_title||""}<br><span style="font-size:10px;font-weight:600;opacity:0.9">${s.holder_name||"شاغر"}</span>
-    </div>`;
+    </div></div>`;
   }
-  function renderNode(s){
-    const kids = childrenOf[s.position_title] || [];
-    let html = `<div style="margin-bottom:10px">${nodeBox(s)}`;
-    if(kids.length){
-      html += `<div style="border-right:2px solid var(--gray1);margin-right:22px;padding-right:20px;margin-top:10px;padding-top:2px">`;
-      kids.forEach(k => { html += renderNode(k); });
-      html += `</div>`;
-    }
+
+  if(depths.length===0) return '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">تعذّر رسم الهيكل — تحقق من ربط "يتبع لـ" لكل منصب.</div>';
+
+  let html = "";
+  depths.forEach((rowItems, i) => {
+    html += `<div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-bottom:6px">`;
+    rowItems.forEach(({node}) => { html += box(node, i>0); });
     html += `</div>`;
-    return html;
-  }
-  if(roots.length===0) return '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">تعذّر رسم الهيكل — تحقق من ربط "يتبع لـ" لكل منصب.</div>';
-  return roots.map(r => renderNode(r)).join("");
+    if(i < depths.length-1){
+      html += `<div style="display:flex;justify-content:center"><div style="width:2px;height:22px;background:var(--gray2)"></div></div>`;
+    }
+  });
+  return html;
 }
 
 function editStructure(id){
