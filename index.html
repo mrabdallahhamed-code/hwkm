@@ -587,8 +587,8 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="sidebar-footer">
     <div class="user-chip" style="justify-content:space-between">
       <div style="display:flex;align-items:center;gap:10px">
-        <div class="user-av">م</div>
-        <div><div class="user-name">عبدالله حامد</div><div class="user-role">رئيس مجلس الإدارة</div></div>
+        <div class="user-av" id="sidebarUserAv">م</div>
+        <div><div class="user-name" id="sidebarUserName">مستخدم</div><div class="user-role" id="sidebarUserRole">—</div></div>
       </div>
       <button onclick="logout()" title="تسجيل الخروج" style="background:none;border:none;color:var(--gray2);cursor:pointer;font-size:16px">⏻</button>
     </div>
@@ -2032,6 +2032,14 @@ function applyRolePermissions(){
   const isShareholder = role === 'مساهم';
   const isAdmin = role === 'مدير النظام';
 
+  const nameEl = document.getElementById('sidebarUserName');
+  const roleEl = document.getElementById('sidebarUserRole');
+  const avEl = document.getElementById('sidebarUserAv');
+  const displayName = currentUserProfile ? (currentUserProfile.full_name || currentUserProfile.email || "مستخدم") : "مستخدم";
+  if(nameEl) nameEl.textContent = displayName;
+  if(roleEl) roleEl.textContent = role;
+  if(avEl) avEl.textContent = displayName.trim().charAt(0) || "م";
+
   document.getElementById('adminNavGroup').style.display = isAdmin ? 'block' : 'none';
 
   document.querySelectorAll('.nav-item').forEach(item=>{
@@ -2191,6 +2199,12 @@ async function logout(){
   const sharesEl = document.getElementById('gm-shares-count');
   if(nameEl){ nameEl.value = ""; nameEl.disabled = false; nameEl.style.background = ""; }
   if(sharesEl){ sharesEl.value = ""; sharesEl.disabled = false; sharesEl.style.background = ""; }
+  const sName = document.getElementById('sidebarUserName');
+  const sRole = document.getElementById('sidebarUserRole');
+  const sAv = document.getElementById('sidebarUserAv');
+  if(sName) sName.textContent = "مستخدم";
+  if(sRole) sRole.textContent = "—";
+  if(sAv) sAv.textContent = "م";
   document.getElementById("appWrapper").style.display = "none";
   document.getElementById("loginScreen").style.display = "flex";
 }
