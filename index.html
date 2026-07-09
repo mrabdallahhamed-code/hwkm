@@ -495,6 +495,21 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <div class="lg-name">حوكم</div>
     </div>
     <div class="login-msg" id="loginMsg"></div>
+    <div class="login-field" id="signupTypeField" style="display:none">
+      <label>نوع الحساب</label>
+      <select class="fs" id="signupAccountType" style="width:100%;padding:11px 12px;border-radius:8px;border:1.5px solid var(--gray1);font-family:'Tajawal',sans-serif;font-size:13px" onchange="toggleShareholderFields()">
+        <option value="عضو">عضو مجلس إدارة / موظف</option>
+        <option value="مساهم">مساهم</option>
+      </select>
+    </div>
+    <div class="login-field" id="signupNameField" style="display:none">
+      <label>الاسم الكامل</label>
+      <input class="fi" id="signupFullName" placeholder="الاسم الثلاثي" />
+    </div>
+    <div class="login-field" id="signupSharesField" style="display:none">
+      <label>عدد الأسهم</label>
+      <input class="fi" id="signupShares" type="number" placeholder="مثال: 500" />
+    </div>
     <div class="login-field">
       <label>البريد الإلكتروني</label>
       <input type="email" id="loginEmail" placeholder="name@example.com" />
@@ -1203,6 +1218,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="card">
     <div class="card-head"><span class="card-title">الجمعية العامة العادية — شركة أسس الأنظمة الجديدة</span><span class="badge info">2026</span></div>
     <div class="card-body">
+      <div id="companyCapitalInfo" style="font-size:11px;color:var(--gray3);background:var(--offwhite);border-radius:8px;padding:8px 12px;margin-bottom:12px">جارِ التحميل...</div>
       <div class="row2" style="margin-bottom:14px">
         <div class="fg"><label style="font-size:11px;font-weight:700;color:var(--gray3)">اسم المساهم</label><input class="fi" id="gm-shareholder-name" placeholder="مثال: عبدالله حامد محمد" /></div>
         <div class="fg"><label style="font-size:11px;font-weight:700;color:var(--gray3)">عدد الأسهم</label><input class="fi" id="gm-shares-count" type="number" placeholder="مثال: 500" /></div>
@@ -1218,13 +1234,13 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     </div>
   </div>
 
-  <div class="sec-title" style="margin-top:20px">📊 نتائج التصويت الكاملة (بعدد الأسهم)</div>
+  <div class="sec-title" style="margin-top:20px">📊 نتائج التصويت الكاملة</div>
   <div class="card">
-    <div class="card-body" style="padding:0">
-      <table class="tbl">
-        <thead><tr><th>البند</th><th style="text-align:center">موافق</th><th style="text-align:center">معارض</th><th style="text-align:center">ممتنع</th></tr></thead>
+    <div class="card-body" style="padding:0;overflow-x:auto">
+      <table class="tbl" style="min-width:820px" id="voteResultsTable">
+        <thead><tr><th>البند</th><th style="text-align:center">عدد المساهمين المصوّتين</th><th style="text-align:center">نسبتهم من رأس المال</th><th style="text-align:center">نسبة الموافقة</th><th style="text-align:center">نسبة المعارضة</th><th style="text-align:center">نسبة الامتناع</th></tr></thead>
         <tbody id="voteResultsTbody">
-          <tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+          <tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
       </table>
     </div>
@@ -1235,14 +1251,18 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="generateVoteReport()">🖨️ تحميل تقرير PDF شامل</button>
   </div>
   <div class="card">
-    <div class="card-body" style="padding:0">
-      <table class="tbl">
-        <thead><tr><th>اسم المساهم</th><th style="text-align:center">عدد الأسهم</th><th style="text-align:center">موافق</th><th style="text-align:center">معارض</th><th style="text-align:center">ممتنع</th></tr></thead>
+    <div class="card-body" style="padding:0;overflow-x:auto">
+      <table class="tbl" style="min-width:900px" id="shareholdersTable">
+        <thead><tr><th>اسم المساهم</th><th style="text-align:center">عدد أسهمه</th><th style="text-align:center">نسبته من إجمالي أسهم الشركة</th><th style="text-align:center">موافق</th><th style="text-align:center">معارض</th><th style="text-align:center">ممتنع</th></tr></thead>
         <tbody id="shareholdersTbody">
-          <tr><td colspan="5" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+          <tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
+        <tfoot id="shareholdersTfoot"></tfoot>
       </table>
     </div>
+  </div>
+  <div class="card" style="margin-top:10px">
+    <div class="card-body" id="votingCapitalSummary" style="font-size:12px;color:var(--gray3)">جارِ التحميل...</div>
   </div>
 
   <div class="sec-title" style="margin-top:20px">📚 سجل جلسات التصويت السابقة</div>
@@ -1849,6 +1869,7 @@ function downloadBtn(url){
 }
 
 let authMode = "login"; // "login" | "signup"
+let currentUserProfile = null;
 
 function toggleAuthMode(){
   authMode = (authMode === "login") ? "signup" : "login";
@@ -1856,7 +1877,16 @@ function toggleAuthMode(){
   document.getElementById("authSwitch").innerHTML = authMode === "login"
     ? 'ليس لديك حساب؟ <b>إنشاء حساب جديد</b>'
     : 'لديك حساب بالفعل؟ <b>تسجيل الدخول</b>';
+  document.getElementById("signupTypeField").style.display = authMode === "signup" ? "block" : "none";
+  document.getElementById("signupNameField").style.display = authMode === "signup" ? "block" : "none";
+  if(authMode === "signup"){ toggleShareholderFields(); }
+  else { document.getElementById("signupSharesField").style.display = "none"; }
   hideLoginMsg();
+}
+
+function toggleShareholderFields(){
+  const type = document.getElementById("signupAccountType").value;
+  document.getElementById("signupSharesField").style.display = (authMode==="signup" && type==="مساهم") ? "block" : "none";
 }
 
 function showLoginMsg(text, ok){
@@ -1880,16 +1910,49 @@ async function handleAuth(){
     if(error){ showLoginMsg("خطأ: " + error.message, false); return; }
     showApp();
   } else {
+    const account_type = document.getElementById("signupAccountType").value;
+    const full_name = document.getElementById("signupFullName").value.trim();
+    const shares_count = document.getElementById("signupShares").value ? Number(document.getElementById("signupShares").value) : null;
+    if(!full_name){ showLoginMsg("الرجاء إدخال الاسم الكامل", false); return; }
+    if(account_type === "مساهم" && !shares_count){ showLoginMsg("الرجاء إدخال عدد الأسهم", false); return; }
+
     const { error } = await sb.auth.signUp({ email, password });
     if(error){ showLoginMsg("خطأ: " + error.message, false); return; }
+
+    await sb.from("user_profiles").insert([{ email, account_type, full_name, shares_count }]);
+
     showLoginMsg("تم إنشاء الحساب. يمكنك تسجيل الدخول الآن (أو تحقق من بريدك للتفعيل)", true);
     authMode = "login";
     document.getElementById("loginBtn").textContent = "تسجيل الدخول";
+    document.getElementById("signupTypeField").style.display = "none";
+    document.getElementById("signupNameField").style.display = "none";
+    document.getElementById("signupSharesField").style.display = "none";
+  }
+}
+
+async function loadCurrentUserProfile(){
+  const { data: userData } = await sb.auth.getUser();
+  const email = userData && userData.user ? userData.user.email : null;
+  if(!email) return;
+  const { data } = await sb.from("user_profiles").select("*").eq("email", email).maybeSingle();
+  currentUserProfile = data || null;
+  if(currentUserProfile){
+    const nameEl = document.getElementById('gm-shareholder-name');
+    const sharesEl = document.getElementById('gm-shares-count');
+    if(nameEl && currentUserProfile.account_type === "مساهم"){
+      nameEl.value = currentUserProfile.full_name || "";
+      sharesEl.value = currentUserProfile.shares_count || "";
+      nameEl.disabled = true;
+      sharesEl.disabled = true;
+      nameEl.style.background = "var(--gray1)";
+      sharesEl.style.background = "var(--gray1)";
+    }
   }
 }
 
 async function logout(){
   await sb.auth.signOut();
+  currentUserProfile = null;
   document.getElementById("appWrapper").style.display = "none";
   document.getElementById("loginScreen").style.display = "flex";
 }
@@ -1899,6 +1962,7 @@ function showApp(){
   document.getElementById("appWrapper").style.display = "block";
   loadMembers();
   loadMeetingsAll();
+  loadCurrentUserProfile();
 }
 
 async function checkSession(){
@@ -2420,6 +2484,19 @@ async function savePermission(){
 }
 
 /* ══════════ VOTES ══════════ */
+let companySettings = { total_capital: null, total_shares: null };
+async function loadCompanySettings(){
+  const { data, error } = await sb.from("company_settings").select("*").eq("id",1).single();
+  if(!error && data) companySettings = data;
+  const info = document.getElementById("companyCapitalInfo");
+  if(info){
+    const cap = companySettings.total_capital ? Number(companySettings.total_capital).toLocaleString("ar-SA") + " ريال" : "—";
+    const sh = companySettings.total_shares ? Number(companySettings.total_shares).toLocaleString("ar-SA") : "—";
+    info.innerHTML = `🏢 رأس مال الشركة: <b>${cap}</b> &nbsp;·&nbsp; إجمالي عدد أسهم الشركة: <b>${sh}</b>`;
+  }
+}
+function pct(n, d){ return d ? ((n/d)*100).toFixed(1)+"%" : "0%"; }
+
 async function loadVotes(){
   const tbody = document.getElementById("votesTbody");
   if(tbody){
@@ -2432,58 +2509,90 @@ async function loadVotes(){
       </tr>`).join("");
     }
   }
+  await loadCompanySettings();
   loadVoteResults();
   loadShareholdersSummary();
 }
 
-/* Aggregated results per agenda item, weighted by shares */
+/* Aggregated results per agenda item, weighted by shares & percentage of capital */
 async function loadVoteResults(){
   const tbody = document.getElementById("voteResultsTbody");
   if(!tbody) return;
   const { data, error } = await sb.from("votes").select("*").not("shareholder_name","is",null);
-  if(error){ tbody.innerHTML = errorRowHTML(4, error.message); return; }
+  if(error){ tbody.innerHTML = errorRowHTML(6, error.message); return; }
   const rows = data || [];
-  if(rows.length===0){ tbody.innerHTML = emptyRowHTML(4, "لا توجد أصوات مسجّلة من المساهمين بعد."); return; }
+  if(rows.length===0){ tbody.innerHTML = emptyRowHTML(6, "لا توجد أصوات مسجّلة من المساهمين بعد."); return; }
+  const totalShares = Number(companySettings.total_shares) || 0;
   const byTopic = {};
   rows.forEach(v => {
     const t = v.topic || "—";
-    if(!byTopic[t]) byTopic[t] = { yes:0, no:0, abs:0 };
+    if(!byTopic[t]) byTopic[t] = { yes:0, no:0, abs:0, voters:0 };
     const shares = Number(v.shares_count)||0;
+    byTopic[t].voters += 1;
     if(v.result==="موافق") byTopic[t].yes += shares;
     else if(v.result==="معارض") byTopic[t].no += shares;
     else if(v.result==="ممتنع") byTopic[t].abs += shares;
   });
-  tbody.innerHTML = Object.keys(byTopic).map(t => `<tr>
-    <td>${t}</td>
-    <td style="text-align:center;color:var(--green);font-weight:700">${byTopic[t].yes}</td>
-    <td style="text-align:center;color:var(--red);font-weight:700">${byTopic[t].no}</td>
-    <td style="text-align:center;color:var(--orange);font-weight:700">${byTopic[t].abs}</td>
-  </tr>`).join("");
+  tbody.innerHTML = Object.keys(byTopic).map(t => {
+    const d = byTopic[t];
+    const votedShares = d.yes + d.no + d.abs;
+    return `<tr>
+      <td>${t}</td>
+      <td style="text-align:center">${d.voters}</td>
+      <td style="text-align:center">${pct(votedShares, totalShares)}</td>
+      <td style="text-align:center;color:var(--green);font-weight:700">${pct(d.yes, votedShares)}</td>
+      <td style="text-align:center;color:var(--red);font-weight:700">${pct(d.no, votedShares)}</td>
+      <td style="text-align:center;color:var(--orange);font-weight:700">${pct(d.abs, votedShares)}</td>
+    </tr>`;
+  }).join("");
 }
 
-/* Summary table per shareholder: how many items voted in each category */
+/* Summary table per shareholder: how many items voted in each category + share of capital */
 async function loadShareholdersSummary(){
   const tbody = document.getElementById("shareholdersTbody");
+  const tfoot = document.getElementById("shareholdersTfoot");
+  const summaryBox = document.getElementById("votingCapitalSummary");
   if(!tbody) return;
   const { data, error } = await sb.from("votes").select("*").not("shareholder_name","is",null);
-  if(error){ tbody.innerHTML = errorRowHTML(5, error.message); return; }
+  if(error){ tbody.innerHTML = errorRowHTML(6, error.message); return; }
   const rows = data || [];
-  if(rows.length===0){ tbody.innerHTML = emptyRowHTML(5, "لا يوجد مساهمون صوّتوا بعد."); return; }
+  if(rows.length===0){
+    tbody.innerHTML = emptyRowHTML(6, "لا يوجد مساهمون صوّتوا بعد.");
+    if(tfoot) tfoot.innerHTML = "";
+    if(summaryBox) summaryBox.textContent = "لا يوجد مساهمون صوّتوا بعد.";
+    return;
+  }
+  const totalShares = Number(companySettings.total_shares) || 0;
   const byShareholder = {};
   rows.forEach(v => {
     const key = (v.shareholder_name||"—") + "||" + (v.shares_count||0);
-    if(!byShareholder[key]) byShareholder[key] = { name:v.shareholder_name||"—", shares:v.shares_count||0, yes:0, no:0, abs:0 };
+    if(!byShareholder[key]) byShareholder[key] = { name:v.shareholder_name||"—", shares:Number(v.shares_count)||0, yes:0, no:0, abs:0 };
     if(v.result==="موافق") byShareholder[key].yes++;
     else if(v.result==="معارض") byShareholder[key].no++;
     else if(v.result==="ممتنع") byShareholder[key].abs++;
   });
-  tbody.innerHTML = Object.values(byShareholder).map(s => `<tr>
+  const list = Object.values(byShareholder);
+  tbody.innerHTML = list.map(s => `<tr>
     <td>${s.name}</td>
     <td style="text-align:center">${s.shares}</td>
+    <td style="text-align:center">${pct(s.shares, totalShares)}</td>
     <td style="text-align:center;color:var(--green)">${s.yes} بند</td>
     <td style="text-align:center;color:var(--red)">${s.no} بند</td>
     <td style="text-align:center;color:var(--orange)">${s.abs} بند</td>
   </tr>`).join("");
+
+  const totalVotedShares = list.reduce((sum,s)=>sum+s.shares,0);
+  if(tfoot){
+    tfoot.innerHTML = `<tr style="background:#EAF0F8;font-weight:800">
+      <td>الإجمالي (${list.length} مساهم)</td>
+      <td style="text-align:center">${totalVotedShares}</td>
+      <td style="text-align:center">${pct(totalVotedShares, totalShares)}</td>
+      <td colspan="3" style="text-align:center;font-size:11px;color:var(--gray3)">مجموع مشاركتهم من رأس المال</td>
+    </tr>`;
+  }
+  if(summaryBox){
+    summaryBox.innerHTML = `👥 إجمالي المساهمين المصوّتين: <b>${list.length}</b> &nbsp;·&nbsp; إجمالي الأسهم المشاركة بالتصويت: <b>${totalVotedShares}</b> &nbsp;·&nbsp; ما نسبته: <b>${pct(totalVotedShares, totalShares)}</b> من إجمالي رأس مال الشركة`;
+  }
 }
 
 async function saveVote(){
@@ -2786,38 +2895,31 @@ function vote(type){const msg=document.getElementById("vote-msg");const labels={
 async function generateVoteReport(){
   const w = window.open("", "_blank");
   if(w){ w.document.write('<html dir="rtl"><body style="font-family:sans-serif;padding:30px">جارِ تجهيز التقرير...</body></html>'); w.document.close(); }
-  const { data, error } = await sb.from("votes").select("*").not("shareholder_name","is",null);
-  if(error){ alert("تعذّر توليد التقرير: " + error.message); if(w) w.close(); return; }
+  await loadVotes();
+  const resultsTable = document.getElementById("voteResultsTable");
+  const shareholdersTable = document.getElementById("shareholdersTable");
+  const summaryText = document.getElementById("votingCapitalSummary");
   if(!w){ alert("المتصفح منع فتح نافذة التقرير — الرجاء السماح بالنوافذ المنبثقة (Pop-ups) لهذا الموقع ثم المحاولة مرة أخرى."); return; }
-  const rows = data || [];
-  const byShareholder = {};
-  rows.forEach(v => {
-    const key = (v.shareholder_name||"—") + "||" + (v.shares_count||0);
-    if(!byShareholder[key]) byShareholder[key] = { name:v.shareholder_name||"—", shares:v.shares_count||0, yes:0, no:0, abs:0 };
-    if(v.result==="موافق") byShareholder[key].yes++;
-    else if(v.result==="معارض") byShareholder[key].no++;
-    else if(v.result==="ممتنع") byShareholder[key].abs++;
-  });
   const dateNow = new Date().toLocaleDateString("ar-SA");
 
   w.document.open();
   w.document.write(`
-    <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>تقرير المساهمين المصوّتين</title>
+    <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>تقرير نتائج التصويت الشامل</title>
     <style>
       body{font-family:'Tajawal',Arial,sans-serif;padding:30px;color:#0D2447}
-      h1{color:#1A3A6B;font-size:20px;border-bottom:3px solid #D4AF37;padding-bottom:10px}
-      table{width:100%;border-collapse:collapse;margin-top:14px}
-      th,td{border:1px solid #ccc;padding:8px;text-align:right;font-size:13px}
+      h1{color:#1A3A6B;font-size:19px;border-bottom:3px solid #D4AF37;padding-bottom:10px}
+      h2{color:#1A3A6B;font-size:15px;margin-top:26px}
+      table{width:100%;border-collapse:collapse;margin-top:10px}
+      th,td{border:1px solid #ccc;padding:6px 8px;text-align:right;font-size:11.5px}
       th{background:#EAF0F8}
     </style></head><body>
-    <h1>🧾 تقرير المساهمين المصوّتين — منصة حوكم</h1>
+    <h1>🧾 تقرير نتائج التصويت الإلكتروني الشامل — منصة حوكم</h1>
     <p>تاريخ التقرير: ${dateNow}</p>
-    <table>
-      <thead><tr><th>اسم المساهم</th><th>عدد الأسهم</th><th>موافق</th><th>معارض</th><th>ممتنع</th></tr></thead>
-      <tbody>
-        ${Object.values(byShareholder).length ? Object.values(byShareholder).map(s=>`<tr><td>${s.name}</td><td>${s.shares}</td><td>${s.yes} بند</td><td>${s.no} بند</td><td>${s.abs} بند</td></tr>`).join("") : '<tr><td colspan="5" style="text-align:center;color:#C0392B">لا يوجد مساهمون صوّتوا بعد.</td></tr>'}
-      </tbody>
-    </table>
+    ${summaryText ? '<p>'+summaryText.textContent+'</p>' : ''}
+    <h2>📊 نتائج التصويت حسب البند</h2>
+    ${resultsTable ? resultsTable.outerHTML : '<p>لا توجد بيانات.</p>'}
+    <h2>🧾 المساهمون المصوّتون</h2>
+    ${shareholdersTable ? shareholdersTable.outerHTML : '<p>لا توجد بيانات.</p>'}
     <script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>
     </body></html>
   `);
