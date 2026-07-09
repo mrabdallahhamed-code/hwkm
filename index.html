@@ -1115,7 +1115,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <span>🔑 مصفوفة الصلاحيات</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openM('m-perm-holder')">+ إضافة صاحب صلاحية</button>
-      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-perm-item')">+ إضافة بند</button>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openPermItemModal()">+ إضافة بند</button>
     </div>
   </div>
   <div class="card">
@@ -1813,7 +1813,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <div class="modal-bg" id="m-perm-item">
   <div class="modal">
     <div class="modal-title">➕ إضافة بند صلاحية</div>
-    <div class="fg"><label>نص البند</label><input class="fi" id="mpi-name" placeholder="مثال: اعتماد الميزانية السنوية" /></div>
+    <div class="fg"><label>نص البند</label><input class="fi" id="mpi-name" placeholder="مثال: تعديل عقد التأسيس" /></div>
     <div class="fg"><label>الفئة</label>
       <select class="fs" id="mpi-category">
         <option>الصلاحيات الاستراتيجية والتنظيمية</option>
@@ -1821,6 +1821,12 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
         <option>الصلاحيات المالية والاستثمارية</option>
         <option>الصلاحيات التشغيلية</option>
       </select>
+    </div>
+    <div class="fg">
+      <label>تحديد الصلاحية لكل جهة (اختياري — تقدر تضيف أكثر من جهة)</label>
+      <datalist id="permHolderNames"></datalist>
+      <div id="mpi-assignments"></div>
+      <button type="button" class="btn btn-ghost" style="font-size:11px;padding:5px 12px;margin-top:6px" onclick="addPermAssignmentRow()">+ إضافة جهة أخرى</button>
     </div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-perm-item')">إلغاء</button><button class="btn btn-gold" onclick="savePermItem()">✅ إضافة</button></div>
   </div>
@@ -2057,6 +2063,7 @@ function isPageAllowed(pageId, role){
 function isMutatingOnclick(val){
   if(!val) return false;
   return /^openM\(\s*'m-/.test(val)
+    || /^openPermItemModal\(/.test(val)
     || /^edit[A-Z]/.test(val)
     || /^delete[A-Z]/.test(val)
     || /^saveCompany/.test(val)
@@ -2991,12 +2998,71 @@ async function deletePermHolder(id){
   loadPermissionsMatrix();
 }
 
+function openPermItemModal(){
+  const container = document.getElementById("mpi-assignments");
+  container.innerHTML = "";
+  addPermAssignmentRow();
+  const dl = document.getElementById("permHolderNames");
+  dl.innerHTML = permHoldersCache.map(h => `<option value="${(h.name||"").replace(/"/g,'&quot;')}">`).join("");
+  document.getElementById("mpi-name").value = "";
+  openM("m-perm-item");
+}
+
+function addPermAssignmentRow(){
+  const container = document.getElementById("mpi-assignments");
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex;gap:6px;margin-top:6px";
+  row.innerHTML = `
+    <input list="permHolderNames" class="fi perm-assign-holder" placeholder="الجهة (مثال: الرئيس التنفيذي)" style="flex:2">
+    <select class="fs perm-assign-code" style="flex:1">
+      <option value="">—</option>
+      <option value="ت">ت — توصية</option>
+      <option value="ع">ع — اعتماد</option>
+      <option value="م">م — مراجعة</option>
+    </select>
+    <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px">✕</button>
+  `;
+  container.appendChild(row);
+}
+
+async function findOrCreateHolder(name){
+  const existing = permHoldersCache.find(h => (h.name||"").trim() === name);
+  if(existing) return existing.id;
+  const { data, error } = await sb.from("permission_holders")
+    .insert([{ name, company_id: currentCompanyId, sort_order: permHoldersCache.length }])
+    .select().single();
+  if(error){ throw error; }
+  permHoldersCache.push(data);
+  return data.id;
+}
+
 async function savePermItem(){
   const item_name = document.getElementById("mpi-name").value.trim();
   if(!item_name){ alert("الرجاء إدخال نص البند"); return; }
   const category = document.getElementById("mpi-category").value;
-  const { error } = await sb.from("permission_items").insert([{ item_name, category, company_id: currentCompanyId, sort_order: permItemsCache.length }]);
+
+  const { data: newItem, error } = await sb.from("permission_items")
+    .insert([{ item_name, category, company_id: currentCompanyId, sort_order: permItemsCache.length }])
+    .select().single();
   if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+
+  // Apply any holder/code assignments entered inline for this new item
+  const rows = document.querySelectorAll("#mpi-assignments > div");
+  for(const row of rows){
+    const holderName = row.querySelector(".perm-assign-holder").value.trim();
+    const code = row.querySelector(".perm-assign-code").value;
+    if(!holderName || !code) continue;
+    try{
+      const holderId = await findOrCreateHolder(holderName);
+      await sb.from("permission_cells").upsert(
+        [{ item_id: newItem.id, holder_id: holderId, code, company_id: currentCompanyId }],
+        { onConflict: 'item_id,holder_id' }
+      );
+    }catch(e){
+      alert("تعذّر حفظ صلاحية الجهة \""+holderName+"\": " + e.message);
+    }
+  }
+
   document.getElementById("mpi-name").value = "";
   closeM("m-perm-item");
   loadPermissionsMatrix();
