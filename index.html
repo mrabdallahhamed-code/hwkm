@@ -1079,28 +1079,17 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <div id="p-structure" class="page content">
   <div class="sec-title">🌳 الهيكل التنظيمي للشركة</div>
   <div class="card" style="margin-bottom:18px">
-    <div class="card-head"><span class="card-title">شركة أسس الأنظمة الجديدة</span><span class="badge info">آخر تحديث: يناير 2026</span></div>
+    <div class="card-head"><span class="card-title">شركة أسس الأنظمة الجديدة</span><span class="badge info">هيكل تفاعلي</span></div>
     <div class="card-body">
       <div style="overflow-x:auto">
-        <div style="min-width:700px;padding:10px 0">
-          <!-- GA -->
-          <div style="display:flex;justify-content:center"><div style="text-align:center"><div style="background:#7B2FC9;color:#fff;border-radius:10px;padding:10px 28px;font-size:13px;font-weight:800;display:inline-block">الجمعية العامة<br><span style="font-size:10px;opacity:0.8">المساهمون</span></div></div></div>
-          <div style="display:flex;justify-content:center"><div style="width:2px;height:26px;background:var(--gray2)"></div></div>
-          <div style="display:flex;justify-content:center"><div style="text-align:center"><div style="background:var(--primary);color:#fff;border-radius:10px;padding:10px 24px;font-size:13px;font-weight:800;display:inline-block">مجلس الإدارة<br><span style="font-size:10px;opacity:0.8">5 أعضاء</span></div></div></div>
-          <div style="display:flex;justify-content:center"><div style="width:2px;height:26px;background:var(--gray2)"></div></div>
-          <div style="display:flex;justify-content:center"><div style="text-align:center"><div style="background:var(--accent);color:#fff;border-radius:10px;padding:10px 24px;font-size:13px;font-weight:800;display:inline-block">الرئيس التنفيذي<br><span style="font-size:10px;opacity:0.85">عبدالله حامد</span></div></div></div>
-          <div style="display:flex;justify-content:center"><div style="width:2px;height:24px;background:var(--gray2)"></div></div>
-          <div style="display:flex;justify-content:center"><div style="width:82%;height:2px;background:var(--gray2);position:relative"><div style="position:absolute;top:0;left:0;width:2px;height:20px;background:var(--gray2)"></div><div style="position:absolute;top:0;left:25%;width:2px;height:20px;background:var(--gray2)"></div><div style="position:absolute;top:0;left:50%;width:2px;height:20px;background:var(--gray2)"></div><div style="position:absolute;top:0;right:0;width:2px;height:20px;background:var(--gray2)"></div></div></div>
-          <div style="display:flex;justify-content:center;gap:12px;margin-top:20px;flex-wrap:wrap"><div style="text-align:center"><div style="background:var(--offwhite);border:2px solid var(--primary);border-radius:10px;padding:10px 12px;font-size:11px;font-weight:700;color:var(--dark);min-width:140px">نائب الرئيس للمالية<br><span style="font-size:10px;color:var(--gray3)">أحمد خلف</span></div></div><div style="text-align:center"><div style="background:var(--offwhite);border:2px solid var(--primary);border-radius:10px;padding:10px 12px;font-size:11px;font-weight:700;color:var(--dark);min-width:140px">نائب الرئيس للعمليات<br><span style="font-size:10px;color:var(--gray3)">قيد التعيين</span></div></div><div style="text-align:center"><div style="background:var(--offwhite);border:2px solid var(--primary);border-radius:10px;padding:10px 12px;font-size:11px;font-weight:700;color:var(--dark);min-width:140px">نائب الرئيس للموارد البشرية<br><span style="font-size:10px;color:var(--gray3)">ريم حمدان</span></div></div><div style="text-align:center"><div style="background:var(--offwhite);border:2px solid var(--primary);border-radius:10px;padding:10px 12px;font-size:11px;font-weight:700;color:var(--dark);min-width:140px">نائب الرئيس للخدمات المشتركة<br><span style="font-size:10px;color:var(--gray3)">قيد التعيين</span></div></div></div>
-          <div id="dynamicOrgChart" style="margin-top:10px"></div>
-          </div>
-</div>
-</div>
-</div>
+        <div id="orgTreeContainer" style="min-width:700px;padding:10px 0">جارِ التحميل...</div>
+      </div>
+    </div>
+  </div>
 
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
     <span>🌳 دليل المناصب التنظيمية</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mst-id').value='';document.getElementById('mst-title-h').textContent='🌳 إضافة منصب في الهيكل التنظيمي';openM('m-structure')">+ إضافة منصب</button>
+    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mst-id').value='';document.getElementById('mst-title-h').textContent='🌳 إضافة منصب في الهيكل التنظيمي';populateParentPositionSelect();openM('m-structure')">+ إضافة منصب</button>
   </div>
   <div class="card">
     <div class="card-body" style="padding:0">
@@ -1755,7 +1744,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="fg"><label>النوع</label><input class="fi" id="mp-type" placeholder="مثال: رئيسية / أعضاء المجلس / مالية" /></div>
     <div class="row2"><div class="fg"><label>تاريخ الاعتماد</label><input type="date" class="fi" id="mp-approval"/></div><div class="fg"><label>موعد المراجعة</label><input type="date" class="fi" id="mp-review"/></div></div>
     <div class="fg"><label>الحالة</label><select class="fs" id="mp-status"><option>معتمدة</option><option>تجديد مطلوب</option><option>قيد المراجعة</option></select></div>
-    <div class="fg"><label>الفئة</label><select class="fs" id="mp-category"><option>سياسات رئيسية</option><option>لوائح داخلية</option></select></div>
+    <div class="fg"><label>الفئة</label><select class="fs" id="mp-category"><option>سياسات المجلس</option><option>سياسات داخلية</option></select></div>
     <div class="fg"><label>ملف السياسة (PDF/Word)</label><input type="file" class="fi" id="mp-file" /></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-policy')">إلغاء</button><button class="btn btn-gold" onclick="savePolicy()">✅ حفظ السياسة</button></div>
   </div>
@@ -1819,7 +1808,11 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <input type="hidden" id="mst-id" value="" />
     <div class="fg"><label>المنصب</label><input class="fi" id="mst-title" placeholder="مثال: مدير إدارة المخاطر" /></div>
     <div class="fg"><label>اسم شاغل المنصب</label><input class="fi" id="mst-holder" placeholder="مثال: خالد العتيبي" /></div>
-    <div class="fg"><label>يتبع لـ (المنصب الأعلى)</label><input class="fi" id="mst-parent" placeholder="مثال: الرئيس التنفيذي" /></div>
+    <div class="fg"><label>يتبع لـ (المنصب الأعلى)</label>
+      <select class="fs" id="mst-parent">
+        <option value="">— بدون (أعلى مستوى في الهيكل) —</option>
+      </select>
+    </div>
     <div class="fg"><label>المستوى التنظيمي</label>
       <select class="fs" id="mst-level">
         <option value="1">1 — الجمعية العامة</option>
@@ -2485,23 +2478,36 @@ async function loadPolicies(){
     if(s === "تجديد مطلوب") return '<span class="badge pending">تجديد مطلوب</span>';
     return '<span class="badge info">'+ (s || "—") +'</span>';
   };
-  let rows = "";
-  let lastCategory = null;
+  // Group all policies by category first, regardless of insertion order, so rows of the
+  // same category always sit together under one header instead of being interleaved.
+  const categoryOrder = ["سياسات المجلس", "سياسات داخلية"];
+  const groups = {};
   data.forEach(p => {
-    const cat = p.category || "سياسات رئيسية";
-    if(cat !== lastCategory){
-      rows += `<tr style="background:#EAF0F8"><td colspan="7" style="font-weight:800;color:var(--primary);font-size:11px;padding:8px 14px">${cat}</td></tr>`;
-      lastCategory = cat;
-    }
-    rows += `<tr>
-      <td>${p.policy_name || ""}</td>
-      <td>${p.policy_type || "—"}</td>
-      <td>${p.approval_date || "—"}</td>
-      <td>${p.review_date || "—"}</td>
-      <td>${statusBadge(p.status)}</td>
-      <td>${downloadBtn(p.file_url)}</td>
-      <td><button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="deletePolicy(${p.id})">🗑️ حذف</button></td>
-    </tr>`;
+    const cat = p.category || "سياسات داخلية";
+    if(!groups[cat]) groups[cat] = [];
+    groups[cat].push(p);
+  });
+  const allCats = Object.keys(groups).sort((a,b)=>{
+    const ia = categoryOrder.indexOf(a), ib = categoryOrder.indexOf(b);
+    if(ia===-1 && ib===-1) return a.localeCompare(b,'ar');
+    if(ia===-1) return 1;
+    if(ib===-1) return -1;
+    return ia-ib;
+  });
+  let rows = "";
+  allCats.forEach(cat => {
+    rows += `<tr style="background:#EAF0F8"><td colspan="7" style="font-weight:800;color:var(--primary);font-size:11px;padding:8px 14px">${cat}</td></tr>`;
+    groups[cat].forEach(p => {
+      rows += `<tr>
+        <td>${p.policy_name || ""}</td>
+        <td>${p.policy_type || "—"}</td>
+        <td>${p.approval_date || "—"}</td>
+        <td>${p.review_date || "—"}</td>
+        <td>${statusBadge(p.status)}</td>
+        <td>${downloadBtn(p.file_url)}</td>
+        <td><button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="deletePolicy(${p.id})">🗑️ حذف</button></td>
+      </tr>`;
+    });
   });
   tbody.innerHTML = rows;
 }
@@ -2655,46 +2661,80 @@ function orgLevelLabel(lvl){
   return orgLevelLabels[lvl] ? `${lvl} — ${orgLevelLabels[lvl]}` : `مستوى ${lvl}`;
 }
 
+/* Fill the "يتبع لـ" dropdown with every existing position, defaulting to the most
+   recently added one so a new position naturally chains under the previous one. */
+function populateParentPositionSelect(preselect){
+  const sel = document.getElementById("mst-parent");
+  if(!sel) return;
+  const options = ['<option value="">— بدون (أعلى مستوى في الهيكل) —</option>']
+    .concat(structureCache.map(s => `<option value="${(s.position_title||"").replace(/"/g,'&quot;')}">${s.position_title||""}</option>`));
+  sel.innerHTML = options.join("");
+  if(preselect !== undefined){
+    sel.value = preselect || "";
+  } else if(structureCache.length){
+    // Default: chain under the last-added position
+    sel.value = structureCache[structureCache.length-1].position_title || "";
+  }
+}
+
 async function loadStructure(){
   const tbody = document.getElementById("structureTbody");
-  const chartWrap = document.getElementById("dynamicOrgChart");
+  const chartWrap = document.getElementById("orgTreeContainer");
   if(!tbody) return;
-  const { data, error } = await sb.from("org_structure").select("*").eq("company_id", currentCompanyId).order("level",{ascending:true});
-  if(error){ tbody.innerHTML = errorRowHTML(5, error.message); return; }
-  if(!data || data.length===0){
+  const { data, error } = await sb.from("org_structure").select("*").eq("company_id", currentCompanyId).order("id",{ascending:true});
+  if(error){ tbody.innerHTML = errorRowHTML(5, error.message); if(chartWrap) chartWrap.innerHTML = ""; return; }
+  structureCache = data || [];
+  if(structureCache.length===0){
     tbody.innerHTML = emptyRowHTML(5, 'لا توجد بيانات بعد. اضغط "+ إضافة منصب" للبدء.');
-    if(chartWrap) chartWrap.innerHTML = "";
+    if(chartWrap) chartWrap.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:30px">لا يوجد هيكل تنظيمي بعد. اضغط "+ إضافة منصب" لبدء بناء الهيكل.</div>';
     return;
   }
-  structureCache = data;
-  tbody.innerHTML = data.map(s => `<tr>
+
+  tbody.innerHTML = structureCache.map(s => `<tr>
     <td>${s.position_title||""}</td><td>${s.holder_name||"—"}</td><td>${s.parent_position||"—"}</td><td>${orgLevelLabel(s.level)}</td>
     <td><button class="btn-xs primary" onclick="editStructure(${s.id})">✏️ تعديل</button></td>
   </tr>`).join("");
 
-  // Render newly added positions visually, grouped by level, below the main chart
-  if(chartWrap){
-    const byLevel = {};
-    data.forEach(s => {
-      const lvl = s.level ?? 99;
-      if(!byLevel[lvl]) byLevel[lvl] = [];
-      byLevel[lvl].push(s);
-    });
-    const levels = Object.keys(byLevel).sort((a,b)=>a-b);
-    let html = '<div style="text-align:center;font-size:11px;font-weight:800;color:var(--primary);margin:16px 0 4px;padding-top:14px;border-top:2px dashed var(--gray1)">🌳 مناصب إضافية من دليل الهيكل التنظيمي</div>';
-    levels.forEach((lvl, idx) => {
-      const label = orgLevelLabels[lvl] || (lvl==="99" ? "غير محدد" : ("مستوى "+lvl));
-      html += `<div style="display:flex;justify-content:center"><div style="width:2px;height:18px;background:var(--gray2)"></div></div>`;
-      html += `<div style="text-align:center;font-size:9.5px;color:var(--gray3);margin-bottom:4px">${label}</div>`;
-      html += `<div style="display:flex;justify-content:center;gap:10px;margin-bottom:6px;flex-wrap:wrap">`;
-      byLevel[lvl].forEach(s => {
-        html += `<div style="text-align:center"><div style="background:linear-gradient(135deg,var(--gold),var(--gold3));color:var(--dark);border-radius:10px;padding:9px 14px;font-size:11px;font-weight:800;display:inline-block;min-width:130px;box-shadow:0 2px 8px rgba(212,175,55,0.3)">${s.position_title||""}<br><span style="font-size:10px;font-weight:600;opacity:0.85">${s.holder_name||"شاغر"}</span></div>${s.parent_position?`<div style="font-size:9px;color:var(--gray3);margin-top:3px">يتبع: ${s.parent_position}</div>`:""}</div>`;
-      });
-      html += `</div>`;
-    });
-    chartWrap.innerHTML = html;
-  }
+  if(chartWrap) chartWrap.innerHTML = renderOrgTree(structureCache);
 }
+
+/* Build a real parent → child tree from parent_position text-matching, and render it as
+   a connected, indented hierarchy (RTL: children indent to the right of their parent). */
+function renderOrgTree(rows){
+  const byTitle = {};
+  rows.forEach(r => { if(r.position_title) byTitle[r.position_title] = r; });
+  const childrenOf = {};
+  const roots = [];
+  rows.forEach(r => {
+    const p = r.parent_position && byTitle[r.parent_position] ? r.parent_position : null;
+    if(p){
+      if(!childrenOf[p]) childrenOf[p] = [];
+      childrenOf[p].push(r);
+    } else {
+      roots.push(r);
+    }
+  });
+
+  function nodeBox(s){
+    return `<div style="display:inline-block;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;border-radius:10px;padding:9px 16px;font-size:12px;font-weight:800;box-shadow:0 2px 8px rgba(26,58,107,0.25)">
+      ${s.position_title||""}<br><span style="font-size:10px;font-weight:600;opacity:0.9">${s.holder_name||"شاغر"}</span>
+    </div>`;
+  }
+  function renderNode(s){
+    const kids = childrenOf[s.position_title] || [];
+    let html = `<div style="margin-bottom:10px">${nodeBox(s)}`;
+    if(kids.length){
+      html += `<div style="border-right:2px solid var(--gray1);margin-right:22px;padding-right:20px;margin-top:10px;padding-top:2px">`;
+      kids.forEach(k => { html += renderNode(k); });
+      html += `</div>`;
+    }
+    html += `</div>`;
+    return html;
+  }
+  if(roots.length===0) return '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">تعذّر رسم الهيكل — تحقق من ربط "يتبع لـ" لكل منصب.</div>';
+  return roots.map(r => renderNode(r)).join("");
+}
+
 function editStructure(id){
   const s = structureCache.find(x => x.id === id);
   if(!s) return;
@@ -2702,7 +2742,7 @@ function editStructure(id){
   document.getElementById("mst-title-h").textContent = "✏️ تعديل منصب";
   document.getElementById("mst-title").value = s.position_title || "";
   document.getElementById("mst-holder").value = s.holder_name || "";
-  document.getElementById("mst-parent").value = s.parent_position || "";
+  populateParentPositionSelect(s.parent_position || "");
   document.getElementById("mst-level").value = s.level ?? "";
   openM("m-structure");
 }
