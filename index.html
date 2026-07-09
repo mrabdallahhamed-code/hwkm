@@ -1700,6 +1700,19 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
+<!-- ══ RESTRICTED ACCESS PLACEHOLDER ══════ -->
+<div id="p-restricted" class="page content">
+  <div style="display:flex;align-items:center;justify-content:center;min-height:60vh">
+    <div class="card" style="max-width:380px;text-align:center;padding:10px">
+      <div class="card-body">
+        <div style="font-size:44px;margin-bottom:10px">🔒</div>
+        <div style="font-size:16px;font-weight:800;color:var(--dark);margin-bottom:6px" id="restrictedTitle">هذا القسم غير متاح</div>
+        <div style="font-size:12.5px;color:var(--gray3);line-height:1.8">صلاحيتك الحالية (<b id="restrictedRole">—</b>) لا تسمح بعرض محتوى هذا القسم.<br>تواصل مع مدير النظام إذا كنت تحتاج وصولًا إضافيًا.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 </main>
 
 <!-- MODALS -->
@@ -2030,7 +2043,6 @@ function getCurrentRole(){
 function applyRolePermissions(){
   const role = getCurrentRole();
   const isShareholder = role === 'مساهم';
-  const isAdmin = role === 'مدير النظام';
 
   const nameEl = document.getElementById('sidebarUserName');
   const roleEl = document.getElementById('sidebarUserRole');
@@ -2040,23 +2052,19 @@ function applyRolePermissions(){
   if(roleEl) roleEl.textContent = role;
   if(avEl) avEl.textContent = displayName.trim().charAt(0) || "م";
 
-  document.getElementById('adminNavGroup').style.display = isAdmin ? 'block' : 'none';
-
-  document.querySelectorAll('.nav-item').forEach(item=>{
-    const onclick = item.getAttribute('onclick') || '';
-    const m = onclick.match(/go\('([a-zA-Z]+)'/);
-    const pageId = m ? m[1] : null;
-    if(!pageId) return;
-    if(isShareholder && !SHAREHOLDER_PAGES.includes(pageId)){
-      item.style.display = 'none';
-    } else {
-      item.style.display = '';
-    }
-  });
+  // Sidebar always shows every item/group for every role — access is enforced per-page in go()
+  document.getElementById('adminNavGroup').style.display = 'block';
+  document.querySelectorAll('.nav-item').forEach(item=>{ item.style.display = ''; });
 
   if(isShareholder){
     go('agm');
   }
+}
+
+function isPageAllowed(pageId, role){
+  if(pageId === 'users') return role === 'مدير النظام';
+  if(role === 'مساهم') return SHAREHOLDER_PAGES.includes(pageId);
+  return true;
 }
 
 async function loadUsers(){
@@ -2972,13 +2980,20 @@ const titles={
 };
 
 function go(id, el){
-  if(currentUserProfile && getCurrentRole()==='مساهم' && !SHAREHOLDER_PAGES.includes(id)){
-    id = 'agm'; el = null;
-  }
+  const role = currentUserProfile ? getCurrentRole() : null;
+  const blocked = role && !isPageAllowed(id, role);
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  const pg=document.getElementById('p-'+id);
-  if(pg) pg.classList.add('active');
+  if(blocked){
+    const rp = document.getElementById('p-restricted');
+    if(rp) rp.classList.add('active');
+    const t0 = titles[id] ? titles[id][0] : id;
+    document.getElementById('restrictedTitle').textContent = t0 + ' — غير متاح';
+    document.getElementById('restrictedRole').textContent = role;
+  } else {
+    const pg=document.getElementById('p-'+id);
+    if(pg) pg.classList.add('active');
+  }
   if(el) el.classList.add('active');
   else document.querySelectorAll('.nav-item').forEach(n=>{
     if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes("'"+id+"'")) n.classList.add('active');
@@ -2987,6 +3002,7 @@ function go(id, el){
   document.getElementById('ptitle').textContent=t[0];
   document.getElementById('psub').textContent=t[1];
   closeSidebar();
+  if(blocked) return;
   if(id==='members') loadMembers();
   if(id==='governance') loadPolicies();
   if(id==='meetings' || id==='committees' || id==='agm') loadMeetingsAll();
