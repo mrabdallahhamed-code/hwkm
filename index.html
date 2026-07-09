@@ -579,6 +579,11 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="nav-item" onclick="go('consultants',this)"><span class="ni-icon">💼</span><span class="ni-text">الاستشارات</span></div>
   </div>
 
+  <div class="nav-group" id="adminNavGroup" style="display:none">
+    <div class="nav-group-label">الإدارة</div>
+    <div class="nav-item" onclick="go('users',this)"><span class="ni-icon">🛡️</span><span class="ni-text">إدارة الصلاحيات</span></div>
+  </div>
+
   <div class="sidebar-footer">
     <div class="user-chip" style="justify-content:space-between">
       <div style="display:flex;align-items:center;gap:10px">
@@ -1671,6 +1676,30 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
+<!-- ══ USER MANAGEMENT (admin only) ══════ -->
+<div id="p-users" class="page content">
+  <div class="sec-title">🛡️ إدارة الصلاحيات</div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">المستخدمون المسجّلون</span></div>
+    <div class="card-body" style="padding:0">
+      <table class="tbl">
+        <thead><tr><th>الاسم</th><th>البريد الإلكتروني</th><th>نوع الحساب</th><th>الدور / الصلاحية</th></tr></thead>
+        <tbody id="usersTbody">
+          <tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div class="card-body" style="font-size:11.5px;color:var(--gray3);line-height:1.9">
+      <b>مرجع الأدوار:</b><br>
+      🛡️ مدير النظام / رئيس المجلس / سكرتير المجلس — صلاحية كاملة على كل الأقسام.<br>
+      👤 عضو مجلس — يشاهد كل صفحات عمليات المجلس، بدون إضافة أو تعديل أو حذف.<br>
+      💰 مساهم — الجمعيات العامة، التصويت الإلكتروني، والتوقيع الإلكتروني فقط.
+    </div>
+  </div>
+</div>
+
 </main>
 
 <!-- MODALS -->
@@ -1987,9 +2016,69 @@ async function loadCurrentUserProfile(){
     sharesEl.style.background = "var(--gray1)";
   }
   await loadCompanies(currentUserProfile ? currentUserProfile.company_id : null);
+  applyRolePermissions();
 }
 
-/* ══════════ COMPANIES (multi-tenant) ══════════ */
+/* ══════════ ROLES & PERMISSIONS ══════════ */
+const FULL_ACCESS_ROLES = ['مدير النظام','رئيس مجلس','سكرتير المجلس'];
+const SHAREHOLDER_PAGES = ['agm','voting','signing'];
+
+function getCurrentRole(){
+  return currentUserProfile ? (currentUserProfile.role || 'عضو مجلس') : 'عضو مجلس';
+}
+
+function applyRolePermissions(){
+  const role = getCurrentRole();
+  const isShareholder = role === 'مساهم';
+  const isAdmin = role === 'مدير النظام';
+
+  document.getElementById('adminNavGroup').style.display = isAdmin ? 'block' : 'none';
+
+  document.querySelectorAll('.nav-item').forEach(item=>{
+    const onclick = item.getAttribute('onclick') || '';
+    const m = onclick.match(/go\('([a-zA-Z]+)'/);
+    const pageId = m ? m[1] : null;
+    if(!pageId) return;
+    if(isShareholder && !SHAREHOLDER_PAGES.includes(pageId)){
+      item.style.display = 'none';
+    } else {
+      item.style.display = '';
+    }
+  });
+
+  if(isShareholder){
+    go('agm');
+  }
+}
+
+async function loadUsers(){
+  const tbody = document.getElementById("usersTbody");
+  if(!tbody) return;
+  if(getCurrentRole() !== 'مدير النظام'){
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--red);font-size:12px;padding:14px">هذه الصفحة متاحة لمدير النظام فقط</td></tr>';
+    return;
+  }
+  const { data, error } = await sb.from("user_profiles").select("*").order("id",{ascending:true});
+  if(error){ tbody.innerHTML = errorRowHTML(4, error.message); return; }
+  if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(4, "لا يوجد مستخدمون مسجّلون بعد."); return; }
+  const roles = ['مدير النظام','رئيس مجلس','سكرتير المجلس','عضو مجلس','مساهم'];
+  tbody.innerHTML = data.map(u => `<tr>
+    <td>${u.full_name||"—"}</td>
+    <td>${u.email||"—"}</td>
+    <td>${u.account_type||"—"}</td>
+    <td>
+      <select onchange="updateUserRole(${u.id}, this.value)" style="font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid var(--gray1)">
+        ${roles.map(r=>`<option ${u.role===r?"selected":""}>${r}</option>`).join("")}
+      </select>
+    </td>
+  </tr>`).join("");
+}
+
+async function updateUserRole(id, role){
+  const { error } = await sb.from("user_profiles").update({ role }).eq("id", id);
+  if(error){ alert("تعذّر التحديث: " + error.message); return; }
+  loadUsers();
+}
 async function loadCompanies(preferredCompanyId){
   const sel = document.getElementById("companySwitcher");
   const { data, error } = await sb.from("companies").select("*").order("id",{ascending:true});
@@ -2029,6 +2118,7 @@ function reloadCurrentPageData(){
   if(id==='appoint') loadAppointRequests();
   if(id==='reports') updateReportsCompanyInfo();
   if(id==='archive') loadArchive();
+  if(id==='users') loadUsers();
 }
 
 function updateReportsCompanyInfo(){
@@ -2847,6 +2937,7 @@ async function savePerf(){
 
 const titles={
   dashboard:['لوحة التحكم الرئيسية','نظرة شاملة على حوكمة الشركة — مارس 2026'],
+  users:['إدارة الصلاحيات','التحكم بأدوار وصلاحيات المستخدمين'],
   meetings:['اجتماعات مجلس الإدارة','إدارة الاجتماعات والمحاضر والقرارات'],
   members:['أعضاء مجلس الإدارة','ملفات الأعضاء وسجل الحضور والمؤهلات'],
   risks:['إدارة المخاطر المؤسسية','سجل المخاطر وخطط المعالجة والمتابعة'],
@@ -2867,6 +2958,9 @@ const titles={
 };
 
 function go(id, el){
+  if(currentUserProfile && getCurrentRole()==='مساهم' && !SHAREHOLDER_PAGES.includes(id)){
+    id = 'agm'; el = null;
+  }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const pg=document.getElementById('p-'+id);
@@ -2895,6 +2989,7 @@ function go(id, el){
   if(id==='appoint') loadAppointRequests();
   if(id==='reports') updateReportsCompanyInfo();
   if(id==='archive') loadArchive();
+  if(id==='users') loadUsers();
 }
 function openM(id){document.getElementById(id).classList.add('open');}
 function closeM(id){document.getElementById(id).classList.remove('open');}
