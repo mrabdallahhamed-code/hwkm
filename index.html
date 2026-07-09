@@ -1429,21 +1429,6 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <div id="p-appoint" class="page content">
   <div class="sec-title">➕ طلب تعيين عضو مجلس أو عضو لجنة</div>
 
-  <!-- Existing requests table -->
-  <div class="card" style="margin-bottom:22px">
-    <div class="card-head"><span class="card-title">📋 الطلبات السابقة</span></div>
-    <div class="card-body" style="padding:0">
-      <table class="tbl">
-        <thead><tr><th>المرشح</th><th>المنصب المقترح</th><th>مقدم الطلب</th><th>التاريخ</th><th>الحالة</th></tr></thead>
-        <tbody>
-          <tr><td>خالد المطيري</td><td>عضو لجنة التدقيق</td><td>رئيس المجلس</td><td>يناير 2026</td><td><span class="badge done">مُعتمد ✅</span></td></tr>
-          <tr><td>هند الشمري</td><td>عضو مجلس إدارة مستقل</td><td>لجنة الترشيحات</td><td>نوفمبر 2025</td><td><span class="badge pending">قيد المراجعة</span></td></tr>
-          <tr><td>محمد الدوسري</td><td>عضو لجنة المخاطر</td><td>رئيس المجلس</td><td>أكتوبر 2025</td><td><span class="badge urgent">مرفوض</span></td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
   <!-- New requests submitted through the platform -->
   <div class="card" style="margin-bottom:22px">
     <div class="card-head"><span class="card-title">📥 الطلبات الجديدة المُقدَّمة</span></div>
@@ -1454,6 +1439,14 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
           <tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- Board member review panel -->
+  <div class="card" style="margin-bottom:22px" id="reviewSectionCard">
+    <div class="card-head"><span class="card-title">🗳️ طلبات تحتاج رأيك</span></div>
+    <div class="card-body" id="reviewSectionBody" style="padding:14px">
+      <div style="text-align:center;color:var(--gray3);font-size:12px">جارِ التحميل...</div>
     </div>
   </div>
 
@@ -2199,7 +2192,7 @@ function reloadCurrentPageData(){
   if(id==='audit') loadAudit();
   if(id==='consultants') loadConsultants();
   if(id==='perf') loadPerf();
-  if(id==='appoint') loadAppointRequests();
+  if(id==='appoint'){ loadAppointRequests(); loadReviewSection(); }
   if(id==='reports') updateReportsCompanyInfo();
   if(id==='archive') loadArchive();
   if(id==='users') loadUsers();
@@ -3196,7 +3189,7 @@ function go(id, el){
   if(id==='audit') loadAudit();
   if(id==='consultants') loadConsultants();
   if(id==='perf') loadPerf();
-  if(id==='appoint') loadAppointRequests();
+  if(id==='appoint'){ loadAppointRequests(); loadReviewSection(); }
   if(id==='reports') updateReportsCompanyInfo();
   if(id==='archive') loadArchive();
   if(id==='users') loadUsers();
@@ -3250,27 +3243,120 @@ async function loadAppointRequests(){
     if(s === "مرفوض") return '<span class="badge urgent">مرفوض</span>';
     return '<span class="badge info">'+(s||"—")+'</span>';
   };
-  tbody.innerHTML = data.map(r => `<tr>
-    <td>${r.candidate_name||""}</td>
-    <td>${r.request_type||"—"}</td>
-    <td>${r.proposed_position||"—"}</td>
-    <td>${r.specialization||"—"}</td>
-    <td>${r.created_at ? new Date(r.created_at).toLocaleDateString("ar-SA") : "—"}</td>
-    <td>
-      <select onchange="updateRequestStatus(${r.id}, this.value)" style="font-size:11px;padding:3px 6px;border-radius:6px;border:1px solid var(--gray1)">
-        <option ${r.status==="جديد"?"selected":""}>جديد</option>
-        <option ${r.status==="محال إلى مجلس الإدارة"?"selected":""}>محال إلى مجلس الإدارة</option>
-        <option ${r.status==="معتمد"?"selected":""}>معتمد</option>
-        <option ${r.status==="مرفوض"?"selected":""}>مرفوض</option>
-      </select>
-    </td>
-  </tr>`).join("");
+  // Group requests by type (عضو مجلس / عضو لجنة ...) so each category's requests sit together
+  const groups = {};
+  data.forEach(r => {
+    const cat = r.request_type || "أخرى";
+    if(!groups[cat]) groups[cat] = [];
+    groups[cat].push(r);
+  });
+  let rows = "";
+  Object.keys(groups).forEach(cat => {
+    rows += `<tr style="background:#EAF0F8"><td colspan="6" style="font-weight:800;color:var(--primary);font-size:11px;padding:8px 14px">${cat}</td></tr>`;
+    groups[cat].forEach(r => {
+      rows += `<tr>
+        <td>${r.candidate_name||""}</td>
+        <td>${r.request_type||"—"}</td>
+        <td>${r.proposed_position||"—"}</td>
+        <td>${r.specialization||"—"}</td>
+        <td>${r.created_at ? new Date(r.created_at).toLocaleDateString("ar-SA") : "—"}</td>
+        <td>
+          <select onchange="updateRequestStatus(${r.id}, this.value)" style="font-size:11px;padding:3px 6px;border-radius:6px;border:1px solid var(--gray1)">
+            <option ${r.status==="جديد"?"selected":""}>جديد</option>
+            <option ${r.status==="محال إلى مجلس الإدارة"?"selected":""}>محال إلى مجلس الإدارة</option>
+            <option ${r.status==="معتمد"?"selected":""}>معتمد</option>
+            <option ${r.status==="مرفوض"?"selected":""}>مرفوض</option>
+          </select>
+        </td>
+      </tr>`;
+    });
+  });
+  tbody.innerHTML = rows;
 }
 
 async function updateRequestStatus(id, status){
   const { error } = await sb.from("appoint_requests").update({ status }).eq("id", id);
   if(error){ alert("تعذّر التحديث: " + error.message); return; }
   loadAppointRequests();
+}
+
+/* ══════════ BOARD MEMBER REVIEW ON APPOINTMENT REQUESTS ══════════ */
+async function loadReviewSection(){
+  const box = document.getElementById("reviewSectionBody");
+  if(!box) return;
+  const role = getCurrentRole();
+  if(role === 'مساهم'){ box.innerHTML = ""; document.getElementById("reviewSectionCard").style.display = "none"; return; }
+  document.getElementById("reviewSectionCard").style.display = "block";
+
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+
+  const { data: requests, error: reqErr } = await sb.from("appoint_requests")
+    .select("*").eq("company_id", currentCompanyId)
+    .not("status", "in", "(معتمد,مرفوض)")
+    .order("id", { ascending: false });
+  if(reqErr){ box.innerHTML = '<div style="color:var(--red);font-size:12px">تعذّر التحميل: '+reqErr.message+'</div>'; return; }
+  if(!requests || requests.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px">لا توجد طلبات معلّقة تحتاج رأيك حاليًا.</div>'; return; }
+
+  const { data: reviews } = await sb.from("appoint_request_reviews").select("*").eq("company_id", currentCompanyId);
+  const reviewsByRequest = {};
+  (reviews||[]).forEach(rv => {
+    if(!reviewsByRequest[rv.request_id]) reviewsByRequest[rv.request_id] = [];
+    reviewsByRequest[rv.request_id].push(rv);
+  });
+
+  box.innerHTML = requests.map(r => {
+    const revs = reviewsByRequest[r.id] || [];
+    const yes = revs.filter(v=>v.decision==="موافق").length;
+    const no = revs.filter(v=>v.decision==="معارض").length;
+    const abst = revs.filter(v=>v.decision==="متحفظ").length;
+    const mine = myEmail ? revs.find(v => v.reviewer_email === myEmail) : null;
+    return `<div style="border:1px solid var(--gray1);border-radius:10px;padding:12px;margin-bottom:12px">
+      <div style="font-weight:800;font-size:13px;color:var(--dark)">${r.candidate_name||""} — ${r.proposed_position||r.request_type||""}</div>
+      <div style="font-size:11px;color:var(--gray3);margin:4px 0 8px">${r.request_type||""} · ${r.justification?('"'+r.justification+'"'):''}</div>
+      <div style="font-size:11px;color:var(--gray3);margin-bottom:8px">آراء الأعضاء حتى الآن: <span style="color:var(--green)">✅ ${yes}</span> · <span style="color:var(--red)">❌ ${no}</span> · <span style="color:var(--orange)">⚠️ ${abst}</span></div>
+      <textarea id="review-notes-${r.id}" placeholder="ملاحظاتك (اختياري)" style="width:100%;border:1px solid var(--gray1);border-radius:8px;padding:8px;font-family:'Tajawal',sans-serif;font-size:12px;resize:none;margin-bottom:8px" rows="2">${mine ? (mine.notes||"") : ""}</textarea>
+      <div style="display:flex;gap:6px">
+        <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer;font-weight:${mine&&mine.decision==='موافق'?'900':'600'}" onclick="submitReview(${r.id},'موافق')">✅ موافق</button>
+        <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer;font-weight:${mine&&mine.decision==='معارض'?'900':'600'}" onclick="submitReview(${r.id},'معارض')">❌ معارض</button>
+        <button class="btn-xs" style="background:#FEF3E2;color:var(--orange);border:none;border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer;font-weight:${mine&&mine.decision==='متحفظ'?'900':'600'}" onclick="submitReview(${r.id},'متحفظ')">⚠️ متحفظ</button>
+      </div>
+      ${mine ? `<div style="font-size:10.5px;color:var(--gray3);margin-top:6px">رأيك المسجّل حاليًا: ${mine.decision}</div>` : ""}
+    </div>`;
+  }).join("");
+}
+
+async function submitReview(requestId, decision){
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+  if(!myEmail){ alert("تعذّر تحديد هويتك، الرجاء تسجيل الدخول من جديد"); return; }
+  const reviewer_name = currentUserProfile ? (currentUserProfile.full_name || myEmail) : myEmail;
+  const notesEl = document.getElementById("review-notes-"+requestId);
+  const notes = notesEl ? notesEl.value.trim() : "";
+
+  // Replace any previous review by this reviewer on this request
+  await sb.from("appoint_request_reviews").delete().eq("request_id", requestId).eq("reviewer_email", myEmail);
+  const { error } = await sb.from("appoint_request_reviews").insert([{
+    request_id: requestId, reviewer_email: myEmail, reviewer_name, decision, notes, company_id: currentCompanyId
+  }]);
+  if(error){ alert("تعذّر حفظ رأيك: " + error.message); return; }
+
+  await recomputeRequestStatus(requestId);
+  loadReviewSection();
+  loadAppointRequests();
+}
+
+/* Auto-advance the request's overall status based on all board members' submitted opinions */
+async function recomputeRequestStatus(requestId){
+  const { data: revs, error } = await sb.from("appoint_request_reviews").select("*").eq("request_id", requestId);
+  if(error || !revs || revs.length===0) return;
+  const hasReject = revs.some(v => v.decision === "معارض");
+  const allApprove = revs.every(v => v.decision === "موافق");
+  let newStatus;
+  if(hasReject) newStatus = "مرفوض";
+  else if(allApprove) newStatus = "معتمد";
+  else newStatus = "محال إلى مجلس الإدارة";
+  await sb.from("appoint_requests").update({ status: newStatus }).eq("id", requestId);
 }
 async function voteItem(btn, topic, result){
   const nameEl = document.getElementById('gm-shareholder-name');
