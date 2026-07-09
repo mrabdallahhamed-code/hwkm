@@ -904,12 +904,12 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
     <span>🆕 وثائق مضافة (من قاعدة البيانات)</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-signing')">+ إضافة وثيقة</button>
+    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-signing')">+ توقيع جديد</button>
   </div>
   <div class="card">
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>الوثيقة</th><th>النوع</th><th>الموقّعون</th><th>متوقف عند</th><th>الحالة</th><th>الموعد</th></tr></thead>
+        <thead><tr><th>الوثيقة</th><th>النوع</th><th>الموقّعون</th><th>متوقف عند</th><th>الحالة</th><th>الموعد</th><th>الملف</th></tr></thead>
         <tbody id="signingTbody">
           <tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
@@ -1008,7 +1008,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="card">
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>السياسة</th><th>النوع</th><th>تاريخ الاعتماد</th><th>موعد المراجعة</th><th>الحالة</th></tr></thead>
+        <thead><tr><th>السياسة</th><th>النوع</th><th>تاريخ الاعتماد</th><th>موعد المراجعة</th><th>الحالة</th><th>الملف</th></tr></thead>
         <tbody id="policiesTbody">
           <tr><td colspan="5" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
@@ -1131,7 +1131,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="card">
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>الصلاحية</th><th>الفئة</th><th>الجهة</th><th>المستوى</th></tr></thead>
+        <thead><tr><th>الصلاحية</th><th>الفئة</th><th>الجهة</th><th>المستوى</th><th>الملف</th></tr></thead>
         <tbody id="permissionsTbody">
           <tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
@@ -1619,6 +1619,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="row2"><div class="fg"><label>التاريخ</label><input type="date" class="fi" id="mt-date"/></div><div class="fg"><label>الوقت</label><input type="time" class="fi" id="mt-time"/></div></div>
     <div class="fg"><label>طريقة الانعقاد</label><select class="fs" id="mt-method"><option>عن بُعد (Zoom)</option><option>عن بُعد (Teams)</option><option>حضوري</option><option>هجين</option></select></div>
     <div class="fg"><label>ملاحظات</label><textarea class="fta" id="mt-notes" rows="2" placeholder="أجندة مختصرة أو ملاحظات إضافية..."></textarea></div>
+    <div class="fg"><label>الوثائق الداعمة (اختياري)</label><input type="file" class="fi" id="mt-file" /></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-meeting')">إلغاء</button><button class="btn btn-gold" onclick="saveMeeting()">✅ حفظ الاجتماع</button></div>
   </div>
 </div>
@@ -1650,6 +1651,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="row2"><div class="fg"><label>تاريخ الاعتماد</label><input type="date" class="fi" id="mp-approval"/></div><div class="fg"><label>موعد المراجعة</label><input type="date" class="fi" id="mp-review"/></div></div>
     <div class="fg"><label>الحالة</label><select class="fs" id="mp-status"><option>معتمدة</option><option>تجديد مطلوب</option><option>قيد المراجعة</option></select></div>
     <div class="fg"><label>الفئة</label><select class="fs" id="mp-category"><option>سياسات رئيسية</option><option>لوائح داخلية</option></select></div>
+    <div class="fg"><label>ملف السياسة (PDF/Word)</label><input type="file" class="fi" id="mp-file" /></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-policy')">إلغاء</button><button class="btn btn-gold" onclick="savePolicy()">✅ حفظ السياسة</button></div>
   </div>
 </div>
@@ -1689,6 +1691,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="fg"><label>متوقف عند</label><input class="fi" id="ms-pending" placeholder="اسم العضو (اختياري)" /></div>
     <div class="fg"><label>الحالة</label><select class="fs" id="ms-status"><option>قيد التوقيع</option><option>انتظار</option><option>مكتمل</option></select></div>
     <div class="fg"><label>الموعد</label><input type="date" class="fi" id="ms-duedate"/></div>
+    <div class="fg"><label>رفع الملف (بعد التوقيع أو قبله)</label><input type="file" class="fi" id="ms-file" /></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-signing')">إلغاء</button><button class="btn btn-gold" onclick="saveSigning()">✅ حفظ الوثيقة</button></div>
   </div>
 </div>
@@ -1725,6 +1728,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="fg"><label>الفئة</label><input class="fi" id="mpm-category" placeholder="مثال: المالية والعقود" /></div>
     <div class="fg"><label>الجهة / الدور</label><input class="fi" id="mpm-role" placeholder="مثال: مجلس الإدارة" /></div>
     <div class="fg"><label>المستوى</label><select class="fs" id="mpm-level"><option>كامل</option><option>جزئي</option><option>لا يوجد</option></select></div>
+    <div class="fg"><label>ملف (اختياري)</label><input type="file" class="fi" id="mpm-file" /></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-permission')">إلغاء</button><button class="btn btn-gold" onclick="savePermission()">✅ حفظ الصلاحية</button></div>
   </div>
 </div>
@@ -1783,6 +1787,23 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 const SUPABASE_URL = "https://omddnkofsdtwfjkxdktt.supabase.co";
 const SUPABASE_KEY = "sb_publishable_SbHWC7JAuyvXypZyJeiWkg_I9Y4gjbj";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ══════════ FILE UPLOAD HELPER ══════════ */
+async function uploadFile(inputEl, folder){
+  const file = inputEl.files && inputEl.files[0];
+  if(!file) return null;
+  const safeName = Date.now() + "_" + file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const path = folder + "/" + safeName;
+  const { error } = await sb.storage.from("documents").upload(path, file);
+  if(error){ alert("تعذّر رفع الملف: " + error.message); return null; }
+  const { data } = sb.storage.from("documents").getPublicUrl(path);
+  return data.publicUrl;
+}
+function downloadBtn(url){
+  return url
+    ? `<a class="btn-xs primary" href="${url}" target="_blank" rel="noopener">📥 تحميل</a>`
+    : `<button class="btn-xs primary" disabled style="opacity:0.5;cursor:not-allowed">📥 لا يوجد ملف</button>`;
+}
 
 let authMode = "login"; // "login" | "signup"
 
@@ -1938,7 +1959,7 @@ function renderMeetingRow(m){
     <td>${m.meeting_time || "—"}</td>
     <td>${m.method || "—"}</td>
     <td>${m.notes || "—"}</td>
-    <td><button class="btn-xs primary" disabled title="سيتم تفعيله بعد إعداد تخزين الملفات" style="opacity:0.5;cursor:not-allowed">📎 تحميل الوثائق</button></td>
+    <td>${downloadBtn(m.file_url)}</td>
   </tr>`;
 }
 
@@ -1975,11 +1996,15 @@ async function saveMeeting(){
   const notes = document.getElementById("mt-notes").value.trim();
   if(!title){ alert("الرجاء إدخال عنوان الاجتماع"); return; }
 
-  const { error } = await sb.from("meetings").insert([{ title, meeting_type, meeting_date, meeting_time, method, notes }]);
+  const fileInput = document.getElementById("mt-file");
+  const file_url = await uploadFile(fileInput, "meetings");
+
+  const { error } = await sb.from("meetings").insert([{ title, meeting_type, meeting_date, meeting_time, method, notes, file_url }]);
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
 
   document.getElementById("mt-title").value = "";
   document.getElementById("mt-notes").value = "";
+  fileInput.value = "";
   closeM("m-meeting");
   loadMeetingsAll();
   alert("تم حفظ الاجتماع بنجاح ✅ — ستجده في صفحته المخصصة حسب النوع");
@@ -1990,11 +2015,11 @@ async function loadPolicies(){
   const tbody = document.getElementById("policiesTbody");
   const { data, error } = await sb.from("policies").select("*").order("id", { ascending: true });
   if(error){
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--red);font-size:12px;padding:14px">تعذّر تحميل السياسات: '+error.message+'</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--red);font-size:12px;padding:14px">تعذّر تحميل السياسات: '+error.message+'</td></tr>';
     return;
   }
   if(!data || data.length === 0){
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد سياسات بعد. اضغط "+ إضافة سياسة" للبدء.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد سياسات بعد. اضغط "+ إضافة سياسة" للبدء.</td></tr>';
     return;
   }
   const statusBadge = (s) => {
@@ -2007,7 +2032,7 @@ async function loadPolicies(){
   data.forEach(p => {
     const cat = p.category || "سياسات رئيسية";
     if(cat !== lastCategory){
-      rows += `<tr style="background:#EAF0F8"><td colspan="5" style="font-weight:800;color:var(--primary);font-size:11px;padding:8px 14px">${cat}</td></tr>`;
+      rows += `<tr style="background:#EAF0F8"><td colspan="6" style="font-weight:800;color:var(--primary);font-size:11px;padding:8px 14px">${cat}</td></tr>`;
       lastCategory = cat;
     }
     rows += `<tr>
@@ -2016,6 +2041,7 @@ async function loadPolicies(){
       <td>${p.approval_date || "—"}</td>
       <td>${p.review_date || "—"}</td>
       <td>${statusBadge(p.status)}</td>
+      <td>${downloadBtn(p.file_url)}</td>
     </tr>`;
   });
   tbody.innerHTML = rows;
@@ -2030,13 +2056,17 @@ async function savePolicy(){
   const category = document.getElementById("mp-category").value;
   if(!policy_name){ alert("الرجاء إدخال اسم السياسة"); return; }
 
-  const { error } = await sb.from("policies").insert([{ policy_name, policy_type, approval_date, review_date, status, category }]);
+  const fileInput = document.getElementById("mp-file");
+  const file_url = await uploadFile(fileInput, "policies");
+
+  const { error } = await sb.from("policies").insert([{ policy_name, policy_type, approval_date, review_date, status, category, file_url }]);
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
 
   document.getElementById("mp-name").value = "";
   document.getElementById("mp-type").value = "";
   document.getElementById("mp-approval").value = "";
   document.getElementById("mp-review").value = "";
+  fileInput.value = "";
   closeM("m-policy");
   loadPolicies();
 }
@@ -2103,12 +2133,13 @@ async function loadSigning(){
   const tbody = document.getElementById("signingTbody");
   if(!tbody) return;
   const { data, error } = await sb.from("signing_documents").select("*").order("id",{ascending:false});
-  if(error){ tbody.innerHTML = errorRowHTML(6, error.message); return; }
-  if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(6, 'لا توجد بيانات بعد. اضغط "+ إضافة وثيقة" للبدء.'); return; }
+  if(error){ tbody.innerHTML = errorRowHTML(7, error.message); return; }
+  if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(7, 'لا توجد بيانات بعد. اضغط "+ توقيع جديد" للبدء.'); return; }
   tbody.innerHTML = data.map(s => `<tr>
     <td>${s.document_name||""}</td><td>${s.doc_type||"—"}</td>
     <td>${(s.signers_done??"0")+"/"+(s.signers_total??"0")+" وقّعوا"}</td>
     <td>${s.pending_with||"—"}</td><td>${s.status||"—"}</td><td>${s.due_date||"—"}</td>
+    <td>${downloadBtn(s.file_url)}</td>
   </tr>`).join("");
 }
 async function saveSigning(){
@@ -2120,9 +2151,11 @@ async function saveSigning(){
   const pending_with = document.getElementById("ms-pending").value.trim();
   const status = document.getElementById("ms-status").value;
   const due_date = document.getElementById("ms-duedate").value || null;
-  const { error } = await sb.from("signing_documents").insert([{ document_name, doc_type, signers_total, signers_done, pending_with, status, due_date }]);
+  const fileInput = document.getElementById("ms-file");
+  const file_url = await uploadFile(fileInput, "signing");
+  const { error } = await sb.from("signing_documents").insert([{ document_name, doc_type, signers_total, signers_done, pending_with, status, due_date, file_url }]);
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
-  document.getElementById("ms-name").value=""; document.getElementById("ms-type").value=""; document.getElementById("ms-total").value=""; document.getElementById("ms-done").value=""; document.getElementById("ms-pending").value=""; document.getElementById("ms-duedate").value="";
+  document.getElementById("ms-name").value=""; document.getElementById("ms-type").value=""; document.getElementById("ms-total").value=""; document.getElementById("ms-done").value=""; document.getElementById("ms-pending").value=""; document.getElementById("ms-duedate").value=""; fileInput.value="";
   closeM("m-signing"); loadSigning();
 }
 
@@ -2196,10 +2229,11 @@ async function loadPermissions(){
   const tbody = document.getElementById("permissionsTbody");
   if(!tbody) return;
   const { data, error } = await sb.from("permissions_matrix").select("*").order("id",{ascending:false});
-  if(error){ tbody.innerHTML = errorRowHTML(4, error.message); return; }
-  if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(4, 'لا توجد بيانات بعد. اضغط "+ إضافة صلاحية" للبدء.'); return; }
+  if(error){ tbody.innerHTML = errorRowHTML(5, error.message); return; }
+  if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(5, 'لا توجد بيانات بعد. اضغط "+ إضافة صلاحية" للبدء.'); return; }
   tbody.innerHTML = data.map(p => `<tr>
     <td>${p.permission_name||""}</td><td>${p.category||"—"}</td><td>${p.role||"—"}</td><td>${p.access_level||"—"}</td>
+    <td>${downloadBtn(p.file_url)}</td>
   </tr>`).join("");
 }
 async function savePermission(){
@@ -2208,9 +2242,11 @@ async function savePermission(){
   const category = document.getElementById("mpm-category").value.trim();
   const role = document.getElementById("mpm-role").value.trim();
   const access_level = document.getElementById("mpm-level").value;
-  const { error } = await sb.from("permissions_matrix").insert([{ permission_name, category, role, access_level }]);
+  const fileInput = document.getElementById("mpm-file");
+  const file_url = await uploadFile(fileInput, "permissions");
+  const { error } = await sb.from("permissions_matrix").insert([{ permission_name, category, role, access_level, file_url }]);
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
-  document.getElementById("mpm-name").value=""; document.getElementById("mpm-category").value=""; document.getElementById("mpm-role").value="";
+  document.getElementById("mpm-name").value=""; document.getElementById("mpm-category").value=""; document.getElementById("mpm-role").value=""; fileInput.value="";
   closeM("m-permission"); loadPermissions();
 }
 
