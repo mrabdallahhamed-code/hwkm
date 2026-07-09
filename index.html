@@ -1027,7 +1027,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <div id="p-governance" class="page content">
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
     <span>🏛️ السياسات والحوكمة</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-policy')">+ إضافة سياسة</button>
+    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mp-id').value='';document.getElementById('mp-title-h').textContent='🏛️ إضافة سياسة جديدة';document.getElementById('mp-name').value='';document.getElementById('mp-type').value='';document.getElementById('mp-approval').value='';document.getElementById('mp-review').value='';openM('m-policy')">+ إضافة سياسة</button>
   </div>
   <div class="card">
     <div class="card-body" style="padding:0">
@@ -1739,12 +1739,29 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <!-- Add policy modal -->
 <div class="modal-bg" id="m-policy">
   <div class="modal">
-    <div class="modal-title">🏛️ إضافة سياسة جديدة</div>
+    <div class="modal-title" id="mp-title-h">🏛️ إضافة سياسة جديدة</div>
+    <input type="hidden" id="mp-id" value="" />
     <div class="fg"><label>اسم السياسة</label><input class="fi" id="mp-name" placeholder="مثال: سياسة إدارة المخاطر" /></div>
     <div class="fg"><label>النوع</label><input class="fi" id="mp-type" placeholder="مثال: رئيسية / أعضاء المجلس / مالية" /></div>
     <div class="row2"><div class="fg"><label>تاريخ الاعتماد</label><input type="date" class="fi" id="mp-approval"/></div><div class="fg"><label>موعد المراجعة</label><input type="date" class="fi" id="mp-review"/></div></div>
-    <div class="fg"><label>الحالة</label><select class="fs" id="mp-status"><option>معتمدة</option><option>تجديد مطلوب</option><option>قيد المراجعة</option></select></div>
-    <div class="fg"><label>الفئة</label><select class="fs" id="mp-category"><option>سياسات المجلس</option><option>سياسات داخلية</option></select></div>
+    <div class="fg"><label>حالة الاعتماد (مسار الموافقة)</label>
+      <select class="fs" id="mp-status">
+        <option>مسودة</option>
+        <option>معتمدة من لجنة الحوكمة</option>
+        <option>مرفوعة لمجلس الإدارة</option>
+        <option>مرفوعة للجمعية العامة</option>
+        <option>معتمدة نهائيًا</option>
+        <option>تجديد مطلوب</option>
+      </select>
+    </div>
+    <div class="fg"><label>الفئة</label><select class="fs" id="mp-category">
+      <option>سياسات الجمعية</option>
+      <option>سياسات المجلس</option>
+      <option>سياسات اللجان</option>
+      <option>لوائح المجلس</option>
+      <option>لوائح اللجان</option>
+      <option>لوائح داخلية</option>
+    </select></div>
     <div class="fg"><label>ملف السياسة (PDF/Word)</label><input type="file" class="fi" id="mp-file" /></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-policy')">إلغاء</button><button class="btn btn-gold" onclick="savePolicy()">✅ حفظ السياسة</button></div>
   </div>
@@ -2462,6 +2479,9 @@ async function saveMeeting(){
 }
 
 /* ══════════ POLICIES (governance) ══════════ */
+let policiesCache = [];
+const POLICY_STAGES = ["مسودة", "معتمدة من لجنة الحوكمة", "مرفوعة لمجلس الإدارة", "مرفوعة للجمعية العامة", "معتمدة نهائيًا"];
+
 async function loadPolicies(){
   const tbody = document.getElementById("policiesTbody");
   const { data, error } = await sb.from("policies").select("*").eq("company_id", currentCompanyId).order("id", { ascending: true });
@@ -2469,21 +2489,23 @@ async function loadPolicies(){
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--red);font-size:12px;padding:14px">تعذّر تحميل السياسات: '+error.message+'</td></tr>';
     return;
   }
-  if(!data || data.length === 0){
+  policiesCache = data || [];
+  if(policiesCache.length === 0){
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد سياسات بعد. اضغط "+ إضافة سياسة" للبدء.</td></tr>';
     return;
   }
   const statusBadge = (s) => {
-    if(s === "معتمدة") return '<span class="badge done">معتمدة</span>';
-    if(s === "تجديد مطلوب") return '<span class="badge pending">تجديد مطلوب</span>';
-    return '<span class="badge info">'+ (s || "—") +'</span>';
+    if(s === "معتمدة نهائيًا") return '<span class="badge done">معتمدة نهائيًا ✅</span>';
+    if(s === "تجديد مطلوب") return '<span class="badge urgent">تجديد مطلوب</span>';
+    if(s === "مسودة") return '<span class="badge pending">مسودة</span>';
+    return '<span class="badge info">'+ (s || "مسودة") +'</span>';
   };
   // Group all policies by category first, regardless of insertion order, so rows of the
   // same category always sit together under one header instead of being interleaved.
-  const categoryOrder = ["سياسات المجلس", "سياسات داخلية"];
+  const categoryOrder = ["سياسات الجمعية", "سياسات المجلس", "سياسات اللجان", "لوائح المجلس", "لوائح اللجان", "لوائح داخلية"];
   const groups = {};
-  data.forEach(p => {
-    const cat = p.category || "سياسات داخلية";
+  policiesCache.forEach(p => {
+    const cat = p.category || "لوائح داخلية";
     if(!groups[cat]) groups[cat] = [];
     groups[cat].push(p);
   });
@@ -2498,14 +2520,21 @@ async function loadPolicies(){
   allCats.forEach(cat => {
     rows += `<tr style="background:#EAF0F8"><td colspan="7" style="font-weight:800;color:var(--primary);font-size:11px;padding:8px 14px">${cat}</td></tr>`;
     groups[cat].forEach(p => {
+      const stageIdx = POLICY_STAGES.indexOf(p.status);
+      const nextBtn = (stageIdx >= 0 && stageIdx < POLICY_STAGES.length-1)
+        ? `<button class="btn-xs primary" style="margin-inline-end:4px" onclick="advancePolicyStage(${p.id})" title="نقل للمرحلة التالية: ${POLICY_STAGES[stageIdx+1]}">⏩ ${POLICY_STAGES[stageIdx+1]}</button>`
+        : "";
       rows += `<tr>
         <td>${p.policy_name || ""}</td>
         <td>${p.policy_type || "—"}</td>
         <td>${p.approval_date || "—"}</td>
         <td>${p.review_date || "—"}</td>
-        <td>${statusBadge(p.status)}</td>
+        <td>${statusBadge(p.status)}${nextBtn ? "<br>"+nextBtn : ""}</td>
         <td>${downloadBtn(p.file_url)}</td>
-        <td><button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="deletePolicy(${p.id})">🗑️ حذف</button></td>
+        <td>
+          <button class="btn-xs primary" onclick="editPolicy(${p.id})">✏️ تعديل</button>
+          <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;margin-right:4px" onclick="deletePolicy(${p.id})">🗑️ حذف</button>
+        </td>
       </tr>`;
     });
   });
@@ -2519,7 +2548,33 @@ async function deletePolicy(id){
   loadPolicies();
 }
 
+async function advancePolicyStage(id){
+  const p = policiesCache.find(x => x.id === id);
+  if(!p) return;
+  const idx = POLICY_STAGES.indexOf(p.status);
+  if(idx === -1 || idx >= POLICY_STAGES.length-1) return;
+  const nextStatus = POLICY_STAGES[idx+1];
+  const { error } = await sb.from("policies").update({ status: nextStatus }).eq("id", id);
+  if(error){ alert("تعذّر تحديث الحالة: " + error.message); return; }
+  loadPolicies();
+}
+
+function editPolicy(id){
+  const p = policiesCache.find(x => x.id === id);
+  if(!p) return;
+  document.getElementById("mp-id").value = p.id;
+  document.getElementById("mp-title-h").textContent = "✏️ تعديل السياسة";
+  document.getElementById("mp-name").value = p.policy_name || "";
+  document.getElementById("mp-type").value = p.policy_type || "";
+  document.getElementById("mp-approval").value = p.approval_date || "";
+  document.getElementById("mp-review").value = p.review_date || "";
+  document.getElementById("mp-status").value = p.status || "مسودة";
+  document.getElementById("mp-category").value = p.category || "لوائح داخلية";
+  openM("m-policy");
+}
+
 async function savePolicy(){
+  const id = document.getElementById("mp-id").value;
   const policy_name = document.getElementById("mp-name").value.trim();
   const policy_type = document.getElementById("mp-type").value.trim();
   const approval_date = document.getElementById("mp-approval").value || null;
@@ -2531,9 +2586,16 @@ async function savePolicy(){
   const fileInput = document.getElementById("mp-file");
   const file_url = await uploadFile(fileInput, "policies");
 
-  const { error } = await sb.from("policies").insert([{ policy_name, policy_type, approval_date, review_date, status, category, file_url, company_id: currentCompanyId }]);
+  const payload = { policy_name, policy_type, approval_date, review_date, status, category, company_id: currentCompanyId };
+  if(file_url) payload.file_url = file_url;
+
+  const { error } = id
+    ? await sb.from("policies").update(payload).eq("id", id)
+    : await sb.from("policies").insert([payload]);
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
 
+  document.getElementById("mp-id").value = "";
+  document.getElementById("mp-title-h").textContent = "🏛️ إضافة سياسة جديدة";
   document.getElementById("mp-name").value = "";
   document.getElementById("mp-type").value = "";
   document.getElementById("mp-approval").value = "";
