@@ -1111,70 +1111,27 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 </div>
 
 <div id="p-permissions" class="page content">
-  <div class="sec-title">🔑 مصفوفة الصلاحيات</div>
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span>🔑 مصفوفة الصلاحيات</span>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openM('m-perm-holder')">+ إضافة صاحب صلاحية</button>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-perm-item')">+ إضافة بند</button>
+    </div>
+  </div>
   <div class="card">
-    <div class="card-head"><span class="card-title">صلاحيات الأدوار والمناصب</span><span class="badge info">محدّثة يناير 2026</span></div>
     <div class="card-body" style="padding:0;overflow-x:auto">
-      <table class="tbl" style="min-width:800px" id="permMainTable">
-        <thead><tr>
-          <th>الصلاحية</th>
-          <th style="text-align:center;font-size:10px">الجمعية العامة</th>
-          <th style="text-align:center;font-size:10px">مجلس الإدارة</th>
-          <th style="text-align:center;font-size:10px">الرئيس التنفيذي</th>
-          <th style="text-align:center;font-size:10px">نواب الرئيس</th>
-          <th style="text-align:center;font-size:10px">المدير المختص</th>
-          <th style="text-align:center;font-size:10px">لجنة المراجعة</th>
-          <th style="text-align:center;font-size:10px">لجنة الترشيحات</th>
-        </tr></thead>
-        <tbody id="permMainTbody">
-          <tr style="background:#EAF0F8"><td colspan="8" style="font-weight:800;color:var(--primary);font-size:11px;padding:8px 14px">قرارات الجمعية العامة</td></tr>
-          <tr><td>تعديل النظام الأساسي</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
-          <tr><td>تعيين مراجع الحسابات</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td></tr>
-          <tr><td>تعيين مجلس الإدارة</td><td style="text-align:center">✅</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">🔵</td></tr>
-          <tr><td>توزيع الأرباح</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
-          <tr><td>تعديل رأس المال</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
-          <tr><td>تجنيب احتياطات إضافية</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
-          <tr style="background:#EAF0F8"><td colspan="8" style="font-weight:800;color:var(--primary);font-size:11px;padding:8px 14px">قرارات مجلس الإدارة</td></tr>
-          <tr><td>اعتماد الخطة السنوية</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
-          <tr><td>اعتماد سياسات الشركة</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
-          <tr><td>اعتماد الهيكل التنظيمي</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
-          <tr><td>اعتماد مصفوفة الصلاحيات</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
-          <tr><td>اعتماد مؤشرات الأداء</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
-          <tr><td>اعتماد دليل الموارد البشرية</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
-          <tr><td>اعتماد سياسة المخاطر المالية</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">—</td></tr>
-          <tr style="background:#EAF0F8"><td colspan="8" style="font-weight:800;color:var(--primary);font-size:11px;padding:8px 14px">المالية والعقود</td></tr>
-          <tr><td>فتح حسابات بنكية</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
-          <tr><td>توقيع العقود +500K</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
-          <tr><td>توقيع العقود -500K</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
-          <tr style="background:#EAF0F8"><td colspan="8" style="font-weight:800;color:var(--primary);font-size:11px;padding:8px 14px">الوثائق والتقارير</td></tr>
-          <tr><td>الاطلاع على التقارير المالية</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">🔵</td><td style="text-align:center">✅</td><td style="text-align:center">—</td></tr>
-          <tr><td>رفع وثائق للمنصة</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">🔵</td><td style="text-align:center">🔵</td><td style="text-align:center">—</td></tr>
-          <tr><td>حذف وثائق من المنصة</td><td style="text-align:center">—</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+      <table class="tbl" style="min-width:800px" id="permMatrixTable">
+        <thead id="permMatrixThead"></thead>
+        <tbody id="permMatrixTbody">
+          <tr><td colspan="2" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
       </table>
     </div>
     <div style="padding:12px 18px;border-top:1px solid var(--gray1);display:flex;gap:20px;font-size:11px;color:var(--gray3)">
-      <span>✅ صلاحية كاملة</span>
-      <span>🔵 صلاحية جزئية / مشروطة</span>
-      <span>— لا صلاحية</span>
-    </div>
-  </div>
-
-  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
-    <span>🔑 سجل الصلاحيات التفصيلي</span>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="generatePermissionsReport()">🖨️ تحميل تقرير PDF</button>
-      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-permission')">+ إضافة صلاحية</button>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-body" style="padding:0">
-      <table class="tbl">
-        <thead><tr><th>الصلاحية</th><th>الفئة</th><th>الجهة</th><th>المستوى</th><th>الملف</th></tr></thead>
-        <tbody id="permissionsTbody">
-          <tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
-        </tbody>
-      </table>
+      <span><b>ت</b> = توصية</span>
+      <span><b>ع</b> = اعتماد</span>
+      <span><b>م</b> = مراجعة</span>
+      <span>فارغ = لا صلاحية</span>
     </div>
   </div>
 </div>
@@ -1845,15 +1802,27 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 </div>
 
 <!-- Add permission modal -->
-<div class="modal-bg" id="m-permission">
+<div class="modal-bg" id="m-perm-holder">
   <div class="modal">
-    <div class="modal-title">🔑 إضافة صلاحية</div>
-    <div class="fg"><label>اسم الصلاحية</label><input class="fi" id="mpm-name" placeholder="مثال: اعتماد الميزانية التشغيلية" /></div>
-    <div class="fg"><label>الفئة</label><input class="fi" id="mpm-category" placeholder="مثال: المالية والعقود" /></div>
-    <div class="fg"><label>الجهة / الدور</label><input class="fi" id="mpm-role" placeholder="مثال: مجلس الإدارة" /></div>
-    <div class="fg"><label>المستوى</label><select class="fs" id="mpm-level"><option>كامل</option><option>جزئي</option><option>لا يوجد</option></select></div>
-    <div class="fg"><label>ملف (اختياري)</label><input type="file" class="fi" id="mpm-file" /></div>
-    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-permission')">إلغاء</button><button class="btn btn-gold" onclick="savePermission()">✅ حفظ الصلاحية</button></div>
+    <div class="modal-title">➕ إضافة صاحب صلاحية</div>
+    <div class="fg"><label>الاسم (مثال: مدير المالية، لجنة الاستثمار...)</label><input class="fi" id="mph-name" placeholder="مثال: لجنة الاستثمار" /></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-perm-holder')">إلغاء</button><button class="btn btn-gold" onclick="savePermHolder()">✅ إضافة</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-perm-item">
+  <div class="modal">
+    <div class="modal-title">➕ إضافة بند صلاحية</div>
+    <div class="fg"><label>نص البند</label><input class="fi" id="mpi-name" placeholder="مثال: اعتماد الميزانية السنوية" /></div>
+    <div class="fg"><label>الفئة</label>
+      <select class="fs" id="mpi-category">
+        <option>الصلاحيات الاستراتيجية والتنظيمية</option>
+        <option>الصلاحيات المتعلقة بالموارد البشرية</option>
+        <option>الصلاحيات المالية والاستثمارية</option>
+        <option>الصلاحيات التشغيلية</option>
+      </select>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-perm-item')">إلغاء</button><button class="btn btn-gold" onclick="savePermItem()">✅ إضافة</button></div>
   </div>
 </div>
 
@@ -2098,7 +2067,8 @@ function isMutatingOnchange(val){
   return /^uploadFile\(/.test(val)
     || /^uploadMeetingFile\(/.test(val)
     || /^updateUserRole\(/.test(val)
-    || /^updateRequestStatus\(/.test(val);
+    || /^updateRequestStatus\(/.test(val)
+    || /^savePermCell\(/.test(val);
 }
 
 function restrictMutatingButtons(){
@@ -2194,7 +2164,7 @@ function reloadCurrentPageData(){
   if(id==='signing') loadSigning();
   if(id==='committees') loadCommittees();
   if(id==='structure') loadStructure();
-  if(id==='permissions') loadPermissions();
+  if(id==='permissions') loadPermissionsMatrix();
   if(id==='voting') loadVotes();
   if(id==='audit') loadAudit();
   if(id==='consultants') loadConsultants();
@@ -2923,79 +2893,126 @@ async function saveStructure(){
   closeM("m-structure"); loadStructure();
 }
 
-/* ══════════ PERMISSIONS MATRIX ══════════ */
-async function loadPermissions(){
-  const tbody = document.getElementById("permissionsTbody");
-  const mainTbody = document.getElementById("permMainTbody");
+/* ══════════ PERMISSIONS MATRIX (flexible, company-editable) ══════════ */
+const PERM_CATEGORY_ORDER = [
+  "الصلاحيات الاستراتيجية والتنظيمية",
+  "الصلاحيات المتعلقة بالموارد البشرية",
+  "الصلاحيات المالية والاستثمارية",
+  "الصلاحيات التشغيلية"
+];
+let permHoldersCache = [];
+let permItemsCache = [];
+let permCellsCache = {}; // key: itemId+'-'+holderId -> code
+
+async function loadPermissionsMatrix(){
+  const thead = document.getElementById("permMatrixThead");
+  const tbody = document.getElementById("permMatrixTbody");
   if(!tbody) return;
-  const { data, error } = await sb.from("permissions_matrix").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
-  if(error){ tbody.innerHTML = errorRowHTML(5, error.message); return; }
 
-  // Remove any previously-appended dynamic rows from the main matrix table before re-adding
-  if(mainTbody){
-    mainTbody.querySelectorAll('tr[data-dynamic-permission]').forEach(r => r.remove());
+  const [{ data: holders, error: hErr }, { data: items, error: iErr }] = await Promise.all([
+    sb.from("permission_holders").select("*").eq("company_id", currentCompanyId).order("sort_order",{ascending:true}).order("id",{ascending:true}),
+    sb.from("permission_items").select("*").eq("company_id", currentCompanyId).order("sort_order",{ascending:true}).order("id",{ascending:true})
+  ]);
+  if(hErr || iErr){ tbody.innerHTML = errorRowHTML(2, (hErr||iErr).message); return; }
+  permHoldersCache = holders || [];
+  permItemsCache = items || [];
+
+  if(permHoldersCache.length===0 || permItemsCache.length===0){
+    thead.innerHTML = "<tr><th>البند</th></tr>";
+    tbody.innerHTML = emptyRowHTML(1, 'أضف "صاحب صلاحية" (عمود) و"بند" (صف) واحد على الأقل لبدء بناء المصفوفة.');
+    return;
   }
 
-  if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(5, 'لا توجد بيانات بعد. اضغط "+ إضافة صلاحية" للبدء.'); return; }
+  const itemIds = permItemsCache.map(i=>i.id);
+  const { data: cells, error: cErr } = await sb.from("permission_cells").select("*").in("item_id", itemIds);
+  if(cErr){ tbody.innerHTML = errorRowHTML(2, cErr.message); return; }
+  permCellsCache = {};
+  (cells||[]).forEach(c => { permCellsCache[c.item_id+'-'+c.holder_id] = c.code; });
 
-  tbody.innerHTML = data.map(p => `<tr>
-    <td>${p.permission_name||""}</td><td>${p.category||"—"}</td><td>${p.role||"—"}</td><td>${p.access_level||"—"}</td>
-    <td>${downloadBtn(p.file_url)}</td>
-  </tr>`).join("");
+  // Header row: item column + one column per holder (with a small delete-column button)
+  thead.innerHTML = '<tr><th>البند</th>' + permHoldersCache.map(h =>
+    `<th style="text-align:center;font-size:10.5px">${h.name}<br><button style="background:none;border:none;color:var(--red);cursor:pointer;font-size:10px" onclick="deletePermHolder(${h.id})" title="حذف هذا العمود">✕ حذف</button></th>`
+  ).join('') + '</tr>';
 
-  // Also merge each permission into the main displayed matrix as a unified row
-  if(mainTbody){
-    const levelIcon = (l) => l==="كامل" ? "✅" : l==="جزئي" ? "🔵" : "—";
-    const extraRows = data.map(p => `<tr data-dynamic-permission="1">
-      <td>${p.permission_name||""}</td>
-      <td colspan="7" style="text-align:right;font-size:11px;color:var(--gray3)">
-        ${levelIcon(p.access_level)} ${p.access_level||"—"} — الجهة: ${p.role||"—"} ${p.category?(" — الفئة: "+p.category):""}
-      </td>
-    </tr>`).join("");
-    mainTbody.insertAdjacentHTML('beforeend',
-      '<tr data-dynamic-permission="1" style="background:#EAF0F8"><td colspan="8" style="font-weight:800;color:var(--primary);font-size:11px;padding:8px 14px">صلاحيات إضافية مُسجّلة</td></tr>' + extraRows
-    );
-  }
+  // Group items by category, preserving a sensible fixed category order
+  const groups = {};
+  permItemsCache.forEach(it => {
+    const cat = it.category || "الصلاحيات التشغيلية";
+    if(!groups[cat]) groups[cat] = [];
+    groups[cat].push(it);
+  });
+  const cats = Object.keys(groups).sort((a,b)=>{
+    const ia = PERM_CATEGORY_ORDER.indexOf(a), ib = PERM_CATEGORY_ORDER.indexOf(b);
+    if(ia===-1 && ib===-1) return a.localeCompare(b,'ar');
+    if(ia===-1) return 1;
+    if(ib===-1) return -1;
+    return ia-ib;
+  });
+
+  const colCount = permHoldersCache.length + 1;
+  let rows = "";
+  cats.forEach(cat => {
+    rows += `<tr style="background:#EAF0F8"><td colspan="${colCount}" style="font-weight:800;color:var(--primary);font-size:11px;padding:8px 14px">${cat}</td></tr>`;
+    groups[cat].forEach(it => {
+      rows += `<tr>
+        <td>${it.item_name||""} <button style="background:none;border:none;color:var(--red);cursor:pointer;font-size:10px" onclick="deletePermItem(${it.id})" title="حذف هذا البند">✕</button></td>`;
+      permHoldersCache.forEach(h => {
+        const key = it.id+'-'+h.id;
+        const code = permCellsCache[key] || "";
+        rows += `<td style="text-align:center;padding:4px">
+          <select onchange="savePermCell(${it.id},${h.id},this.value)" style="font-size:12px;font-weight:800;text-align:center;padding:3px 4px;border-radius:6px;border:1px solid var(--gray1);width:48px">
+            <option value="" ${code===""?"selected":""}> </option>
+            <option value="ت" ${code==="ت"?"selected":""}>ت</option>
+            <option value="ع" ${code==="ع"?"selected":""}>ع</option>
+            <option value="م" ${code==="م"?"selected":""}>م</option>
+          </select>
+        </td>`;
+      });
+      rows += `</tr>`;
+    });
+  });
+  tbody.innerHTML = rows;
 }
 
-async function generatePermissionsReport(){
-  const w = window.open("", "_blank");
-  if(w){ w.document.write('<html dir="rtl"><body style="font-family:sans-serif;padding:30px">جارِ تجهيز التقرير...</body></html>'); w.document.close(); }
-  await loadPermissions();
-  const table = document.getElementById("permMainTable");
-  const dateNow = new Date().toLocaleDateString("ar-SA");
-  if(!w){ alert("المتصفح منع فتح نافذة التقرير — الرجاء السماح بالنوافذ المنبثقة (Pop-ups) لهذا الموقع ثم المحاولة مرة أخرى."); return; }
-  w.document.open();
-  w.document.write(`
-    <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>تقرير مصفوفة الصلاحيات</title>
-    <style>
-      body{font-family:'Tajawal',Arial,sans-serif;padding:30px;color:#0D2447}
-      h1{color:#1A3A6B;font-size:20px;border-bottom:3px solid #D4AF37;padding-bottom:10px}
-      table{width:100%;border-collapse:collapse;margin-top:14px}
-      th,td{border:1px solid #ccc;padding:6px 8px;text-align:right;font-size:11.5px}
-      th{background:#EAF0F8}
-    </style></head><body>
-    <h1>🔑 تقرير مصفوفة الصلاحيات الكاملة — منصة حوكم</h1>
-    <p>تاريخ التقرير: ${dateNow}</p>
-    ${table ? table.outerHTML : '<p style="color:#C0392B">تعذّر تحميل جدول الصلاحيات.</p>'}
-    <script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>
-    </body></html>
-  `);
-  w.document.close();
+async function savePermHolder(){
+  const name = document.getElementById("mph-name").value.trim();
+  if(!name){ alert("الرجاء إدخال الاسم"); return; }
+  const { error } = await sb.from("permission_holders").insert([{ name, company_id: currentCompanyId, sort_order: permHoldersCache.length }]);
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  document.getElementById("mph-name").value = "";
+  closeM("m-perm-holder");
+  loadPermissionsMatrix();
 }
 
-async function savePermission(){
-  const permission_name = document.getElementById("mpm-name").value.trim();
-  if(!permission_name){ alert("الرجاء إدخال اسم الصلاحية"); return; }
-  const category = document.getElementById("mpm-category").value.trim();
-  const role = document.getElementById("mpm-role").value.trim();
-  const access_level = document.getElementById("mpm-level").value;
-  const fileInput = document.getElementById("mpm-file");
-  const file_url = await uploadFile(fileInput, "permissions");
-  const { error } = await sb.from("permissions_matrix").insert([{ permission_name, category, role, access_level, file_url, company_id: currentCompanyId }]);
-  if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
-  document.getElementById("mpm-name").value=""; document.getElementById("mpm-category").value=""; document.getElementById("mpm-role").value=""; fileInput.value="";
-  closeM("m-permission"); loadPermissions();
+async function deletePermHolder(id){
+  if(!confirm("حذف هذا العمود سيحذف كل قيمه بالمصفوفة. متابعة؟")) return;
+  const { error } = await sb.from("permission_holders").delete().eq("id", id);
+  if(error){ alert("تعذّر الحذف: " + error.message); return; }
+  loadPermissionsMatrix();
+}
+
+async function savePermItem(){
+  const item_name = document.getElementById("mpi-name").value.trim();
+  if(!item_name){ alert("الرجاء إدخال نص البند"); return; }
+  const category = document.getElementById("mpi-category").value;
+  const { error } = await sb.from("permission_items").insert([{ item_name, category, company_id: currentCompanyId, sort_order: permItemsCache.length }]);
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  document.getElementById("mpi-name").value = "";
+  closeM("m-perm-item");
+  loadPermissionsMatrix();
+}
+
+async function deletePermItem(id){
+  if(!confirm("حذف هذا البند نهائيًا. متابعة؟")) return;
+  const { error } = await sb.from("permission_items").delete().eq("id", id);
+  if(error){ alert("تعذّر الحذف: " + error.message); return; }
+  loadPermissionsMatrix();
+}
+
+async function savePermCell(itemId, holderId, code){
+  const { error } = await sb.from("permission_cells")
+    .upsert([{ item_id: itemId, holder_id: holderId, code, company_id: currentCompanyId }], { onConflict: 'item_id,holder_id' });
+  if(error){ alert("تعذّر الحفظ: " + error.message); }
 }
 
 /* ══════════ VOTES ══════════ */
@@ -3268,7 +3285,7 @@ function go(id, el){
   if(id==='signing') loadSigning();
   if(id==='committees') loadCommittees();
   if(id==='structure') loadStructure();
-  if(id==='permissions') loadPermissions();
+  if(id==='permissions') loadPermissionsMatrix();
   if(id==='voting') loadVotes();
   if(id==='audit') loadAudit();
   if(id==='consultants') loadConsultants();
