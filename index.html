@@ -1998,7 +1998,11 @@ async function handleAuth(){
     const { error } = await sb.auth.signUp({ email, password });
     if(error){ showLoginMsg("خطأ: " + error.message, false); return; }
 
-    await sb.from("user_profiles").insert([{ email, account_type, full_name, shares_count }]);
+    const { error: profileError } = await sb.from("user_profiles").insert([{ email, account_type, full_name, shares_count }]);
+    if(profileError){
+      showLoginMsg("تم إنشاء حساب الدخول، لكن تعذّر حفظ بياناتك الشخصية: " + profileError.message + " — تواصل مع مدير النظام.", false);
+      return;
+    }
 
     showLoginMsg("تم إنشاء الحساب. يمكنك تسجيل الدخول الآن (أو تحقق من بريدك للتفعيل)", true);
     authMode = "login";
