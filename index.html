@@ -2492,7 +2492,7 @@ async function generateVoteReport(){
         ${rows.map(r=>`<tr><td>${r.topic||""}</td><td>${r.result||""}</td><td>${r.vote_date||""}</td></tr>`).join("")}
       </tbody>
     </table>
-    <script>window.onload=function(){setTimeout(function(){window.print()},300)}</script>
+    <script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>
     </body></html>
   `);
   w.document.close();
