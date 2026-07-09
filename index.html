@@ -1080,7 +1080,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="card">
     <div class="card-head"><span class="card-title">صلاحيات الأدوار والمناصب</span><span class="badge info">محدّثة يناير 2026</span></div>
     <div class="card-body" style="padding:0;overflow-x:auto">
-      <table class="tbl" style="min-width:800px">
+      <table class="tbl" style="min-width:800px" id="permMainTable">
         <thead><tr>
           <th>الصلاحية</th>
           <th style="text-align:center;font-size:10px">الجمعية العامة</th>
@@ -1203,49 +1203,63 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="card">
     <div class="card-head"><span class="card-title">الجمعية العامة العادية — شركة أسس الأنظمة الجديدة</span><span class="badge info">2026</span></div>
     <div class="card-body">
-      <div style="font-size:12px;color:var(--gray3);margin-bottom:12px">المساهم: <span style="color:var(--dark);font-weight:800">شركة أسس الأنظمة الجديدة</span></div>
+      <div class="row2" style="margin-bottom:14px">
+        <div class="fg"><label style="font-size:11px;font-weight:700;color:var(--gray3)">اسم المساهم</label><input class="fi" id="gm-shareholder-name" placeholder="مثال: عبدالله حامد محمد" /></div>
+        <div class="fg"><label style="font-size:11px;font-weight:700;color:var(--gray3)">عدد الأسهم</label><input class="fi" id="gm-shares-count" type="number" placeholder="مثال: 500" /></div>
+      </div>
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
         <div style="background:var(--offwhite);border-radius:10px;padding:12px;border-right:4px solid var(--primary)"><div style="font-size:11px;font-weight:800;color:var(--primary);margin-bottom:2px">البند الاول</div><div style="font-size:13px;font-weight:700;margin-bottom:6px">اعتماد الميزانية للسنة المالية 2025</div><div style="display:flex;gap:6px"><button class="btn btn-primary" onclick="voteItem(this,'اعتماد الميزانية للسنة المالية 2025','موافق')" style="font-size:11px;padding:4px 12px">موافق</button><button class="btn btn-ghost" onclick="voteItem(this,'اعتماد الميزانية للسنة المالية 2025','معارض')" style="font-size:11px;padding:4px 12px;border:1px solid var(--red);color:var(--red)">معارض</button><button class="btn btn-ghost" onclick="voteItem(this,'اعتماد الميزانية للسنة المالية 2025','ممتنع')" style="font-size:11px;padding:4px 12px">ممتنع</button></div></div>
         <div style="background:var(--offwhite);border-radius:10px;padding:12px;border-right:4px solid var(--primary)"><div style="font-size:11px;font-weight:800;color:var(--primary);margin-bottom:2px">البند الثاني</div><div style="font-size:13px;font-weight:700;margin-bottom:6px">ابراء ذمة مجلس الادارة عن العام 2025</div><div style="display:flex;gap:6px"><button class="btn btn-primary" onclick="voteItem(this,'ابراء ذمة مجلس الادارة عن العام 2025','موافق')" style="font-size:11px;padding:4px 12px">موافق</button><button class="btn btn-ghost" onclick="voteItem(this,'ابراء ذمة مجلس الادارة عن العام 2025','معارض')" style="font-size:11px;padding:4px 12px;border:1px solid var(--red);color:var(--red)">معارض</button><button class="btn btn-ghost" onclick="voteItem(this,'ابراء ذمة مجلس الادارة عن العام 2025','ممتنع')" style="font-size:11px;padding:4px 12px">ممتنع</button></div></div>
         <div style="background:var(--offwhite);border-radius:10px;padding:12px;border-right:4px solid var(--primary)"><div style="font-size:11px;font-weight:800;color:var(--primary);margin-bottom:2px">البند الثالث</div><div style="font-size:13px;font-weight:700;margin-bottom:6px">اقرار تقرير مجلس الادارة لعام 2025</div><div style="display:flex;gap:6px"><button class="btn btn-primary" onclick="voteItem(this,'اقرار تقرير مجلس الادارة لعام 2025','موافق')" style="font-size:11px;padding:4px 12px">موافق</button><button class="btn btn-ghost" onclick="voteItem(this,'اقرار تقرير مجلس الادارة لعام 2025','معارض')" style="font-size:11px;padding:4px 12px;border:1px solid var(--red);color:var(--red)">معارض</button><button class="btn btn-ghost" onclick="voteItem(this,'اقرار تقرير مجلس الادارة لعام 2025','ممتنع')" style="font-size:11px;padding:4px 12px">ممتنع</button></div></div>
         <div style="background:var(--offwhite);border-radius:10px;padding:12px;border-right:4px solid var(--primary)"><div style="font-size:11px;font-weight:800;color:var(--primary);margin-bottom:2px">البند الرابع</div><div style="font-size:13px;font-weight:700;margin-bottom:6px">تعيين مكتب KPMG مراجع حسابات عن العام 2026</div><div style="display:flex;gap:6px"><button class="btn btn-primary" onclick="voteItem(this,'تعيين مكتب KPMG مراجع حسابات عن العام 2026','موافق')" style="font-size:11px;padding:4px 12px">موافق</button><button class="btn btn-ghost" onclick="voteItem(this,'تعيين مكتب KPMG مراجع حسابات عن العام 2026','معارض')" style="font-size:11px;padding:4px 12px;border:1px solid var(--red);color:var(--red)">معارض</button><button class="btn btn-ghost" onclick="voteItem(this,'تعيين مكتب KPMG مراجع حسابات عن العام 2026','ممتنع')" style="font-size:11px;padding:4px 12px">ممتنع</button></div></div>
       </div>
-      <div style="background:var(--offwhite);border-radius:10px;padding:12px;margin-bottom:8px">
-        <div style="font-size:11px;font-weight:700;color:var(--gray3);margin-bottom:8px">نتائج التصويت:</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <div style="text-align:center;background:#E8F8EF;border-radius:8px;padding:8px 14px;flex:1"><div style="font-size:22px;font-weight:900;color:var(--green)">4</div><div style="font-size:10px;color:var(--green)">موافق</div></div>
-          <div style="text-align:center;background:#FDE8E8;border-radius:8px;padding:8px 14px;flex:1"><div style="font-size:22px;font-weight:900;color:var(--red)">0</div><div style="font-size:10px;color:var(--red)">معارض</div></div>
-          <div style="text-align:center;background:#FEF3E2;border-radius:8px;padding:8px 14px;flex:1"><div style="font-size:22px;font-weight:900;color:var(--orange)">0</div><div style="font-size:10px;color:var(--orange)">ممتنع</div></div>
-        </div>
-      </div>
-      <div id="vote-msg" style="display:none;padding:8px 12px;background:#E8F8EF;border-radius:8px;font-size:12px;font-weight:700;color:var(--green)">تم تسجيل تصويتك</div>
+      <div id="vote-msg" style="display:none;padding:8px 12px;background:#E8F8EF;border-radius:8px;font-size:12px;font-weight:700;color:var(--green);margin-bottom:10px">تم تسجيل تصويتك</div>
+      <button class="btn btn-gold" style="width:100%" onclick="generateShareholderVotePDF()">📄 تحميل ملف PDF بنتيجة تصويتي</button>
     </div>
   </div>
-  <div class="sec-title" style="margin-top:20px">سجل جلسات التصويت السابقة</div>
+
+  <div class="sec-title" style="margin-top:20px">📊 نتائج التصويت الكاملة (بعدد الأسهم)</div>
+  <div class="card">
+    <div class="card-body" style="padding:0">
+      <table class="tbl">
+        <thead><tr><th>البند</th><th style="text-align:center">موافق</th><th style="text-align:center">معارض</th><th style="text-align:center">ممتنع</th></tr></thead>
+        <tbody id="voteResultsTbody">
+          <tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
+    <span>🧾 جدول المساهمين المصوتين</span>
+    <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="generateVoteReport()">🖨️ تحميل تقرير PDF شامل</button>
+  </div>
+  <div class="card">
+    <div class="card-body" style="padding:0">
+      <table class="tbl">
+        <thead><tr><th>اسم المساهم</th><th style="text-align:center">عدد الأسهم</th><th style="text-align:center">موافق</th><th style="text-align:center">معارض</th><th style="text-align:center">ممتنع</th></tr></thead>
+        <tbody id="shareholdersTbody">
+          <tr><td colspan="5" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="sec-title" style="margin-top:20px">📚 سجل جلسات التصويت السابقة</div>
   <div class="card"><div class="card-body" style="padding:0"><table class="tbl"><thead><tr><th>الجلسة</th><th>التاريخ</th><th>عدد البنود</th><th>نسبة الموافقة</th><th>الحالة</th></tr></thead><tbody><tr><td>الجمعية العامة العادية 2025</td><td>20 ابريل 2025</td><td>6 بنود</td><td>100%</td><td><span class="badge done">مكتمل</span></td></tr><tr><td>جمعية عامة غير عادية</td><td>10 اكتوبر 2024</td><td>3 بنود</td><td>85%</td><td><span class="badge done">مكتمل</span></td></tr><tr><td>الجمعية العامة العادية 2024</td><td>15 ابريل 2024</td><td>7 بنود</td><td>100%</td><td><span class="badge done">مكتمل</span></td></tr></tbody></table></div></div>
 
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
-    <span>🗳️ سجل قرارات التصويت</span>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="generateVoteReport()">🖨️ تحميل تقرير PDF</button>
-      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-vote')">+ إضافة قرار</button>
-    </div>
+    <span>🗳️ سجل قرارات التصويت (إدارة يدوية)</span>
+    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-vote')">+ إضافة قرار</button>
   </div>
   <div class="card">
-    <div class="card-body">
-      <div id="voteTally" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
-        <div style="text-align:center;background:#E8F8EF;border-radius:8px;padding:8px 14px;flex:1"><div style="font-size:22px;font-weight:900;color:var(--green)" id="voteYesCount">0</div><div style="font-size:10px;color:var(--green)">موافق (<span id="voteYesPct">0%</span>)</div></div>
-        <div style="text-align:center;background:#FDE8E8;border-radius:8px;padding:8px 14px;flex:1"><div style="font-size:22px;font-weight:900;color:var(--red)" id="voteNoCount">0</div><div style="font-size:10px;color:var(--red)">معارض (<span id="voteNoPct">0%</span>)</div></div>
-        <div style="text-align:center;background:#FEF3E2;border-radius:8px;padding:8px 14px;flex:1"><div style="font-size:22px;font-weight:900;color:var(--orange)" id="voteAbsCount">0</div><div style="font-size:10px;color:var(--orange)">ممتنع (<span id="voteAbsPct">0%</span>)</div></div>
-      </div>
-      <div style="padding:0">
+    <div class="card-body" style="padding:0">
       <table class="tbl">
         <thead><tr><th>الموضوع</th><th>النتيجة</th><th>تاريخ التصويت</th></tr></thead>
         <tbody id="votesTbody">
           <tr><td colspan="3" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
       </table>
-      </div>
     </div>
   </div>
 </div>
@@ -2368,9 +2382,8 @@ async function loadPermissions(){
 async function generatePermissionsReport(){
   const w = window.open("", "_blank");
   if(w){ w.document.write('<html dir="rtl"><body style="font-family:sans-serif;padding:30px">جارِ تجهيز التقرير...</body></html>'); w.document.close(); }
-  const { data, error } = await sb.from("permissions_matrix").select("*").order("id",{ascending:true});
-  if(error){ alert("تعذّر توليد التقرير: " + error.message); if(w) w.close(); return; }
-  const rows = data || [];
+  await loadPermissions();
+  const table = document.getElementById("permMainTable");
   const dateNow = new Date().toLocaleDateString("ar-SA");
   if(!w){ alert("المتصفح منع فتح نافذة التقرير — الرجاء السماح بالنوافذ المنبثقة (Pop-ups) لهذا الموقع ثم المحاولة مرة أخرى."); return; }
   w.document.open();
@@ -2380,18 +2393,12 @@ async function generatePermissionsReport(){
       body{font-family:'Tajawal',Arial,sans-serif;padding:30px;color:#0D2447}
       h1{color:#1A3A6B;font-size:20px;border-bottom:3px solid #D4AF37;padding-bottom:10px}
       table{width:100%;border-collapse:collapse;margin-top:14px}
-      th,td{border:1px solid #ccc;padding:8px;text-align:right;font-size:13px}
+      th,td{border:1px solid #ccc;padding:6px 8px;text-align:right;font-size:11.5px}
       th{background:#EAF0F8}
     </style></head><body>
-    <h1>🔑 تقرير مصفوفة الصلاحيات — منصة حوكم</h1>
+    <h1>🔑 تقرير مصفوفة الصلاحيات الكاملة — منصة حوكم</h1>
     <p>تاريخ التقرير: ${dateNow}</p>
-    ${rows.length===0 ? '<p style="color:#C0392B">لا توجد صلاحيات مسجّلة بعد.</p>' : `
-    <table>
-      <thead><tr><th>الصلاحية</th><th>الفئة</th><th>الجهة</th><th>المستوى</th></tr></thead>
-      <tbody>
-        ${rows.map(r=>`<tr><td>${r.permission_name||""}</td><td>${r.category||"—"}</td><td>${r.role||"—"}</td><td>${r.access_level||"—"}</td></tr>`).join("")}
-      </tbody>
-    </table>`}
+    ${table ? table.outerHTML : '<p style="color:#C0392B">تعذّر تحميل جدول الصلاحيات.</p>'}
     <script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>
     </body></html>
   `);
@@ -2415,25 +2422,70 @@ async function savePermission(){
 /* ══════════ VOTES ══════════ */
 async function loadVotes(){
   const tbody = document.getElementById("votesTbody");
+  if(tbody){
+    const { data, error } = await sb.from("votes").select("*").order("id",{ascending:false});
+    if(error){ tbody.innerHTML = errorRowHTML(3, error.message); }
+    else if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(3, 'لا توجد بيانات بعد.'); }
+    else {
+      tbody.innerHTML = data.map(v => `<tr>
+        <td>${v.topic||""}</td><td>${v.result||"—"}</td><td>${v.vote_date||"—"}</td>
+      </tr>`).join("");
+    }
+  }
+  loadVoteResults();
+  loadShareholdersSummary();
+}
+
+/* Aggregated results per agenda item, weighted by shares */
+async function loadVoteResults(){
+  const tbody = document.getElementById("voteResultsTbody");
   if(!tbody) return;
-  const { data, error } = await sb.from("votes").select("*").order("id",{ascending:false});
-  if(error){ tbody.innerHTML = errorRowHTML(3, error.message); return; }
-
-  const yes = (data||[]).filter(v=>v.result==="موافق").length;
-  const no = (data||[]).filter(v=>v.result==="معارض").length;
-  const abs = (data||[]).filter(v=>v.result==="ممتنع").length;
-  const total = yes+no+abs;
-  const pct = n => total ? Math.round((n/total)*100)+"%" : "0%";
-  const yesEl=document.getElementById("voteYesCount"), noEl=document.getElementById("voteNoCount"), absEl=document.getElementById("voteAbsCount");
-  if(yesEl){ yesEl.textContent = yes; document.getElementById("voteYesPct").textContent = pct(yes); }
-  if(noEl){ noEl.textContent = no; document.getElementById("voteNoPct").textContent = pct(no); }
-  if(absEl){ absEl.textContent = abs; document.getElementById("voteAbsPct").textContent = pct(abs); }
-
-  if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(3, 'لا توجد بيانات بعد. اضغط "+ إضافة قرار" للبدء.'); return; }
-  tbody.innerHTML = data.map(v => `<tr>
-    <td>${v.topic||""}</td><td>${v.result||"—"}</td><td>${v.vote_date||"—"}</td>
+  const { data, error } = await sb.from("votes").select("*").not("shareholder_name","is",null);
+  if(error){ tbody.innerHTML = errorRowHTML(4, error.message); return; }
+  const rows = data || [];
+  if(rows.length===0){ tbody.innerHTML = emptyRowHTML(4, "لا توجد أصوات مسجّلة من المساهمين بعد."); return; }
+  const byTopic = {};
+  rows.forEach(v => {
+    const t = v.topic || "—";
+    if(!byTopic[t]) byTopic[t] = { yes:0, no:0, abs:0 };
+    const shares = Number(v.shares_count)||0;
+    if(v.result==="موافق") byTopic[t].yes += shares;
+    else if(v.result==="معارض") byTopic[t].no += shares;
+    else if(v.result==="ممتنع") byTopic[t].abs += shares;
+  });
+  tbody.innerHTML = Object.keys(byTopic).map(t => `<tr>
+    <td>${t}</td>
+    <td style="text-align:center;color:var(--green);font-weight:700">${byTopic[t].yes}</td>
+    <td style="text-align:center;color:var(--red);font-weight:700">${byTopic[t].no}</td>
+    <td style="text-align:center;color:var(--orange);font-weight:700">${byTopic[t].abs}</td>
   </tr>`).join("");
 }
+
+/* Summary table per shareholder: how many items voted in each category */
+async function loadShareholdersSummary(){
+  const tbody = document.getElementById("shareholdersTbody");
+  if(!tbody) return;
+  const { data, error } = await sb.from("votes").select("*").not("shareholder_name","is",null);
+  if(error){ tbody.innerHTML = errorRowHTML(5, error.message); return; }
+  const rows = data || [];
+  if(rows.length===0){ tbody.innerHTML = emptyRowHTML(5, "لا يوجد مساهمون صوّتوا بعد."); return; }
+  const byShareholder = {};
+  rows.forEach(v => {
+    const key = (v.shareholder_name||"—") + "||" + (v.shares_count||0);
+    if(!byShareholder[key]) byShareholder[key] = { name:v.shareholder_name||"—", shares:v.shares_count||0, yes:0, no:0, abs:0 };
+    if(v.result==="موافق") byShareholder[key].yes++;
+    else if(v.result==="معارض") byShareholder[key].no++;
+    else if(v.result==="ممتنع") byShareholder[key].abs++;
+  });
+  tbody.innerHTML = Object.values(byShareholder).map(s => `<tr>
+    <td>${s.name}</td>
+    <td style="text-align:center">${s.shares}</td>
+    <td style="text-align:center;color:var(--green)">${s.yes} بند</td>
+    <td style="text-align:center;color:var(--red)">${s.no} بند</td>
+    <td style="text-align:center;color:var(--orange)">${s.abs} بند</td>
+  </tr>`).join("");
+}
+
 async function saveVote(){
   const topic = document.getElementById("mv-topic").value.trim();
   if(!topic){ alert("الرجاء إدخال موضوع القرار"); return; }
@@ -2655,6 +2707,14 @@ async function updateRequestStatus(id, status){
   loadAppointRequests();
 }
 async function voteItem(btn, topic, result){
+  const nameEl = document.getElementById('gm-shareholder-name');
+  const sharesEl = document.getElementById('gm-shares-count');
+  const shareholder_name = nameEl ? nameEl.value.trim() : "";
+  const shares_count = sharesEl && sharesEl.value ? Number(sharesEl.value) : null;
+  if(!shareholder_name || !shares_count){
+    alert("الرجاء إدخال اسم المساهم وعدد الأسهم قبل التصويت");
+    return;
+  }
   var par=btn.parentElement;
   par.querySelectorAll('button').forEach(function(b){b.style.opacity='0.4';});
   btn.style.opacity='1';btn.style.fontWeight='800';
@@ -2669,51 +2729,93 @@ async function voteItem(btn, topic, result){
   }
   if(topic && result){
     const vote_date = new Date().toISOString().slice(0,10);
-    const { error } = await sb.from("votes").insert([{ topic, result, vote_date }]);
+    // Replace any previous vote by this shareholder on the same topic
+    await sb.from("votes").delete().eq("topic", topic).eq("shareholder_name", shareholder_name);
+    const { error } = await sb.from("votes").insert([{ topic, result, vote_date, shareholder_name, shares_count }]);
     if(error){ alert("تعذّر تسجيل التصويت في القاعدة: " + error.message); return; }
     loadVotes();
   }
 }
-function vote(type){const msg=document.getElementById("vote-msg");const labels={"yes":"✅ تم تسجيل تصويتك: موافق","no":"❌ تم تسجيل تصويتك: معارض","abs":"🔵 تم تسجيل تصويتك: ممتنع"};msg.textContent=labels[type]||"تم التسجيل";msg.style.display="block";if(type==="no"){msg.style.background="#FDE8E8";msg.style.color="var(--red)";}else if(type==="abs"){msg.style.background="#FEF3E2";msg.style.color="var(--orange)";}else{msg.style.background="#E8F8EF";msg.style.color="var(--green)";}};
 
-/* ══════════ VOTE PDF REPORT ══════════ */
-async function generateVoteReport(){
+/* Personalized PDF for the shareholder currently filling the form */
+async function generateShareholderVotePDF(){
+  const nameEl = document.getElementById('gm-shareholder-name');
+  const sharesEl = document.getElementById('gm-shares-count');
+  const shareholder_name = nameEl ? nameEl.value.trim() : "";
+  const shares_count = sharesEl ? sharesEl.value : "";
+  if(!shareholder_name){ alert("الرجاء إدخال اسم المساهم أولاً"); return; }
+
   const w = window.open("", "_blank");
-  if(w){ w.document.write('<html dir="rtl"><body style="font-family:sans-serif;padding:30px">جارِ تجهيز التقرير...</body></html>'); w.document.close(); }
-  const { data, error } = await sb.from("votes").select("*").order("id",{ascending:true});
-  if(error){ alert("تعذّر توليد التقرير: " + error.message); if(w) w.close(); return; }
-  if(!w){ alert("المتصفح منع فتح نافذة التقرير — الرجاء السماح بالنوافذ المنبثقة (Pop-ups) لهذا الموقع ثم المحاولة مرة أخرى."); return; }
+  if(w){ w.document.write('<html dir="rtl"><body style="font-family:sans-serif;padding:30px">جارِ تجهيز الملف...</body></html>'); w.document.close(); }
+  const { data, error } = await sb.from("votes").select("*").eq("shareholder_name", shareholder_name).order("id",{ascending:true});
+  if(error){ alert("تعذّر توليد الملف: " + error.message); if(w) w.close(); return; }
+  if(!w){ alert("المتصفح منع فتح نافذة الملف — الرجاء السماح بالنوافذ المنبثقة (Pop-ups) ثم المحاولة مرة أخرى."); return; }
   const rows = data || [];
-  const yes = rows.filter(v=>v.result==="موافق").length;
-  const no = rows.filter(v=>v.result==="معارض").length;
-  const abs = rows.filter(v=>v.result==="ممتنع").length;
-  const total = yes+no+abs;
-  const pct = n => total ? Math.round((n/total)*100)+"%" : "0%";
   const dateNow = new Date().toLocaleDateString("ar-SA");
 
   w.document.open();
   w.document.write(`
-    <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>تقرير نتائج التصويت</title>
+    <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>نتيجة تصويت — ${shareholder_name}</title>
     <style>
       body{font-family:'Tajawal',Arial,sans-serif;padding:30px;color:#0D2447}
-      h1{color:#1A3A6B;font-size:20px;border-bottom:3px solid #D4AF37;padding-bottom:10px}
-      .summary{display:flex;gap:14px;margin:20px 0}
-      .box{flex:1;text-align:center;border-radius:8px;padding:14px}
+      h1{color:#1A3A6B;font-size:19px;border-bottom:3px solid #D4AF37;padding-bottom:10px}
       table{width:100%;border-collapse:collapse;margin-top:14px}
       th,td{border:1px solid #ccc;padding:8px;text-align:right;font-size:13px}
       th{background:#EAF0F8}
     </style></head><body>
-    <h1>🗳️ تقرير نتائج التصويت الإلكتروني — منصة حوكم</h1>
-    <p>تاريخ التقرير: ${dateNow}</p>
-    <div class="summary">
-      <div class="box" style="background:#E8F8EF"><div style="font-size:24px;font-weight:900;color:#1A8A44">${yes}</div><div>موافق (${pct(yes)})</div></div>
-      <div class="box" style="background:#FDE8E8"><div style="font-size:24px;font-weight:900;color:#C0392B">${no}</div><div>معارض (${pct(no)})</div></div>
-      <div class="box" style="background:#FEF3E2"><div style="font-size:24px;font-weight:900;color:#C55A11">${abs}</div><div>ممتنع (${pct(abs)})</div></div>
-    </div>
+    <h1>🗳️ نتيجة تصويت مساهم — الجمعية العامة العادية</h1>
+    <p><b>اسم المساهم:</b> ${shareholder_name}</p>
+    <p><b>عدد الأسهم:</b> ${shares_count || "—"}</p>
+    <p><b>تاريخ الإصدار:</b> ${dateNow}</p>
+    ${rows.length===0 ? '<p style="color:#C0392B">لم يتم تسجيل أي تصويت بعد لهذا المساهم.</p>' : `
     <table>
-      <thead><tr><th>الموضوع</th><th>النتيجة</th><th>التاريخ</th></tr></thead>
+      <thead><tr><th>البند</th><th>نتيجة تصويته</th></tr></thead>
       <tbody>
-        ${rows.length ? rows.map(r=>`<tr><td>${r.topic||""}</td><td>${r.result||""}</td><td>${r.vote_date||""}</td></tr>`).join("") : '<tr><td colspan="3" style="text-align:center;color:#C0392B">لا توجد قرارات تصويت مسجّلة بعد.</td></tr>'}
+        ${rows.map(r=>`<tr><td>${r.topic||""}</td><td>${r.result||""}</td></tr>`).join("")}
+      </tbody>
+    </table>`}
+    <script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>
+    </body></html>
+  `);
+  w.document.close();
+}
+
+function vote(type){const msg=document.getElementById("vote-msg");const labels={"yes":"✅ تم تسجيل تصويتك: موافق","no":"❌ تم تسجيل تصويتك: معارض","abs":"🔵 تم تسجيل تصويتك: ممتنع"};msg.textContent=labels[type]||"تم التسجيل";msg.style.display="block";if(type==="no"){msg.style.background="#FDE8E8";msg.style.color="var(--red)";}else if(type==="abs"){msg.style.background="#FEF3E2";msg.style.color="var(--orange)";}else{msg.style.background="#E8F8EF";msg.style.color="var(--green)";}};
+
+/* ══════════ VOTE PDF REPORT (all shareholders) ══════════ */
+async function generateVoteReport(){
+  const w = window.open("", "_blank");
+  if(w){ w.document.write('<html dir="rtl"><body style="font-family:sans-serif;padding:30px">جارِ تجهيز التقرير...</body></html>'); w.document.close(); }
+  const { data, error } = await sb.from("votes").select("*").not("shareholder_name","is",null);
+  if(error){ alert("تعذّر توليد التقرير: " + error.message); if(w) w.close(); return; }
+  if(!w){ alert("المتصفح منع فتح نافذة التقرير — الرجاء السماح بالنوافذ المنبثقة (Pop-ups) لهذا الموقع ثم المحاولة مرة أخرى."); return; }
+  const rows = data || [];
+  const byShareholder = {};
+  rows.forEach(v => {
+    const key = (v.shareholder_name||"—") + "||" + (v.shares_count||0);
+    if(!byShareholder[key]) byShareholder[key] = { name:v.shareholder_name||"—", shares:v.shares_count||0, yes:0, no:0, abs:0 };
+    if(v.result==="موافق") byShareholder[key].yes++;
+    else if(v.result==="معارض") byShareholder[key].no++;
+    else if(v.result==="ممتنع") byShareholder[key].abs++;
+  });
+  const dateNow = new Date().toLocaleDateString("ar-SA");
+
+  w.document.open();
+  w.document.write(`
+    <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>تقرير المساهمين المصوّتين</title>
+    <style>
+      body{font-family:'Tajawal',Arial,sans-serif;padding:30px;color:#0D2447}
+      h1{color:#1A3A6B;font-size:20px;border-bottom:3px solid #D4AF37;padding-bottom:10px}
+      table{width:100%;border-collapse:collapse;margin-top:14px}
+      th,td{border:1px solid #ccc;padding:8px;text-align:right;font-size:13px}
+      th{background:#EAF0F8}
+    </style></head><body>
+    <h1>🧾 تقرير المساهمين المصوّتين — منصة حوكم</h1>
+    <p>تاريخ التقرير: ${dateNow}</p>
+    <table>
+      <thead><tr><th>اسم المساهم</th><th>عدد الأسهم</th><th>موافق</th><th>معارض</th><th>ممتنع</th></tr></thead>
+      <tbody>
+        ${Object.values(byShareholder).length ? Object.values(byShareholder).map(s=>`<tr><td>${s.name}</td><td>${s.shares}</td><td>${s.yes} بند</td><td>${s.no} بند</td><td>${s.abs} بند</td></tr>`).join("") : '<tr><td colspan="5" style="text-align:center;color:#C0392B">لا يوجد مساهمون صوّتوا بعد.</td></tr>'}
       </tbody>
     </table>
     <script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>
