@@ -2063,12 +2063,67 @@ function applyRolePermissions(){
   if(isShareholder){
     go('agm');
   }
+
+  restrictMutatingButtons();
+  startMutationGuard();
 }
 
 function isPageAllowed(pageId, role){
   if(pageId === 'users') return role === 'مدير النظام';
   if(role === 'مساهم') return SHAREHOLDER_PAGES.includes(pageId);
   return true;
+}
+
+/* ══════════ VIEW-ONLY ENFORCEMENT (عضو مجلس) ══════════ */
+function isMutatingOnclick(val){
+  if(!val) return false;
+  return /^openM\(\s*'m-/.test(val)
+    || /^edit[A-Z]/.test(val)
+    || /^delete[A-Z]/.test(val)
+    || /^voteItem\(/.test(val)
+    || /^saveCompany/.test(val)
+    || /^switchCompany/.test(val);
+}
+function isMutatingOnchange(val){
+  if(!val) return false;
+  return /^uploadFile\(/.test(val)
+    || /^uploadMeetingFile\(/.test(val)
+    || /^updateUserRole\(/.test(val)
+    || /^updateRequestStatus\(/.test(val);
+}
+
+function restrictMutatingButtons(){
+  const restricted = FULL_ACCESS_ROLES.indexOf(getCurrentRole()) === -1 && getCurrentRole() !== 'مساهم';
+  // Reset first (in case role changed to a full-access one after a prior restriction pass)
+  document.querySelectorAll('[data-role-hidden="1"]').forEach(el=>{
+    el.style.display = '';
+    el.removeAttribute('data-role-hidden');
+  });
+  if(!restricted) return;
+
+  document.querySelectorAll('[onclick]').forEach(el=>{
+    if(isMutatingOnclick(el.getAttribute('onclick'))){
+      el.style.display = 'none';
+      el.setAttribute('data-role-hidden','1');
+    }
+  });
+  document.querySelectorAll('input[onchange], select[onchange]').forEach(el=>{
+    if(isMutatingOnchange(el.getAttribute('onchange'))){
+      const target = el.closest('label') || el;
+      target.style.display = 'none';
+      target.setAttribute('data-role-hidden','1');
+    }
+  });
+}
+
+let mutationGuardStarted = false;
+function startMutationGuard(){
+  if(mutationGuardStarted) return;
+  mutationGuardStarted = true;
+  const main = document.querySelector('.main');
+  if(!main) return;
+  const observer = new MutationObserver(()=>{ restrictMutatingButtons(); });
+  observer.observe(main, { childList: true, subtree: true });
 }
 
 async function loadUsers(){
