@@ -2975,8 +2975,12 @@ async function openAGMDetailModal(id){
 
   document.getElementById("agmView-files").innerHTML =
     fileRowWide(m.id,'invitation_file_url',m.invitation_file_url,'📨 دعوة الجمعية') +
-    fileRowWide(m.id,'minutes_file_url',m.minutes_file_url,'📋 محضر الجمعية') +
+    fileRowWide(m.id,'minutes_file_url',m.minutes_file_url,'📋 محضر الجمعية (رفع يدوي)') +
     `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
+      <div style="font-size:13px;font-weight:800;color:var(--dark)">📝 توليد محضر الجمعية تلقائيًا (Word)</div>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateAGMMinutesDoc(${m.id})">📝 توليد Word</button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
       <div style="font-size:13px;font-weight:800;color:var(--dark)">🧾 محضر كشف الحضور (تلقائي من التصويت)</div>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateAttendanceSheet(${m.id})">🖨️ توليد PDF</button>
     </div>
@@ -5776,6 +5780,97 @@ async function generateAttendanceSheet(meetingId){
 }
 
 /* PDF 2: Vote counting minutes (محضر فرز الأصوات), scoped to one AGM meeting */
+/* Generates an official AGM minutes document as a Word-compatible file (.doc), built from
+   the meeting's real data: agenda items and their live vote results, attendee participation,
+   and signature lines — no manual typing required. */
+async function generateAGMMinutesDoc(meetingId){
+  const { data: m, error: mErr } = await sb.from("meetings").select("*").eq("id", meetingId).single();
+  if(mErr || !m){ alert("تعذّر تحميل بيانات الجمعية"); return; }
+
+  const [{ data: topics }, { data: votes }, { list: attendees }] = await Promise.all([
+    sb.from("vote_topics").select("*").eq("meeting_id", meetingId).order("sort_order",{ascending:true}).order("id",{ascending:true}),
+    sb.from("votes").select("*").eq("meeting_id", meetingId).not("shareholder_name","is",null),
+    getAttendeesList(meetingId)
+  ]);
+
+  const totalAttendeeShares = attendees.reduce((s,x)=>s+x.shares,0);
+  const totalShares = Number(companySettings.total_shares) || 0;
+  const byTopic = {};
+  (votes||[]).forEach(v => {
+    const t = v.topic || "—";
+    if(!byTopic[t]) byTopic[t] = { yes:0, no:0, abs:0 };
+    const shares = Number(v.shares_count)||0;
+    if(v.result==="موافق") byTopic[t].yes += shares;
+    else if(v.result==="معارض") byTopic[t].no += shares;
+    else if(v.result==="ممتنع") byTopic[t].abs += shares;
+  });
+
+  const companyName = document.getElementById("reportCompanyName1")?.textContent || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "الشركة";
+  const dateNow = new Date().toLocaleDateString("ar-SA");
+
+  const topicsHtml = (topics||[]).map((t,i) => {
+    const d = byTopic[t.topic_text] || { yes:0, no:0, abs:0 };
+    const voted = d.yes + d.no + d.abs;
+    const result = voted===0 ? "لم يُصوَّت عليه بعد" : (d.yes >= d.no && d.yes >= d.abs ? "تمت الموافقة ✅" : "لم تتم الموافقة ❌");
+    return `<p><b>البند ${i+1}:</b> ${t.topic_text}</p>
+      <p style="margin-right:20px">نسبة الموافقة: ${pct(d.yes,voted)} — نسبة المعارضة: ${pct(d.no,voted)} — نسبة الامتناع: ${pct(d.abs,voted)}<br>
+      <b>القرار: ${result}</b></p>`;
+  }).join("") || "<p>لم تُضَف بنود لهذه الجمعية.</p>";
+
+  const html = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+    <head><meta charset="UTF-8"><title>محضر الجمعية</title>
+    <style>
+      body{font-family:'Tajawal',Arial,sans-serif;direction:rtl;text-align:right;line-height:1.9;font-size:13px;color:#0D2447}
+      h1{text-align:center;color:#1A3A6B;font-size:19px;border-bottom:2px solid #D4AF37;padding-bottom:8px}
+      h2{color:#1A3A6B;font-size:15px;margin-top:20px}
+      table{width:100%;border-collapse:collapse;margin-top:8px}
+      th,td{border:1px solid #999;padding:6px 8px;font-size:12px}
+      th{background:#EAF0F8}
+      .sig{margin-top:50px}
+      .sig table td{border:none;text-align:center;padding-top:40px;border-top:1px solid #333}
+    </style></head>
+    <body>
+      <h1>محضر اجتماع ${m.title||"الجمعية العامة"}</h1>
+      <p><b>الشركة:</b> ${companyName}</p>
+      <p><b>التاريخ:</b> ${m.meeting_date||"—"} ${m.meeting_time?(' — الساعة '+m.meeting_time):''}</p>
+      <p><b>طريقة الانعقاد:</b> ${m.method||"—"}</p>
+      ${m.notes ? `<p><b>ملاحظات:</b> ${m.notes}</p>` : ""}
+
+      <h2>أولاً: نصاب الحضور</h2>
+      <p>عدد المساهمين الحاضرين: <b>${attendees.length}</b> — إجمالي الأسهم الحاضرة: <b>${totalAttendeeShares}</b>
+      ${totalShares ? ` — ما نسبته <b>${pct(totalAttendeeShares, totalShares)}</b> من إجمالي رأس مال الشركة` : ""}.</p>
+
+      <h2>ثانياً: بنود جدول الأعمال ونتائج التصويت</h2>
+      ${topicsHtml}
+
+      <h2>ثالثاً: خاتمة</h2>
+      <p>وبعد استكمال بنود جدول الأعمال، اختُتم الاجتماع بتاريخ ${dateNow}.</p>
+
+      <div class="sig">
+        <table>
+          <tr>
+            <td>رئيس الجمعية</td>
+            <td>أمين السر</td>
+            <td>مراقب الحسابات</td>
+          </tr>
+        </table>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `محضر ${m.title||'الجمعية العامة'}.doc`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 async function generateVoteMinutesPDF(meetingId){
   const mid = meetingId || currentVotingMeetingId;
   if(!mid){ alert("تعذّر تحديد الجمعية"); return; }
