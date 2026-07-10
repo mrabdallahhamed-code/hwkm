@@ -1226,10 +1226,9 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <!-- Annual report card -->
   <div class="card" style="margin-bottom:18px">
     <div class="card-head">
-      <span class="card-title">📋 تقرير مجلس الإدارة السنوي — 2025</span>
+      <span class="card-title">📋 تقرير مجلس الإدارة السنوي — <span id="reportYear"></span></span>
       <div style="display:flex;gap:8px">
-        <span class="badge done">معتمد</span>
-        <button class="btn-xs gold">📄 تحميل PDF</button>
+        <button class="btn-xs gold" onclick="generateAnnualReportPDF()">📄 تحميل PDF</button>
       </div>
     </div>
     <div class="card-body">
@@ -1238,58 +1237,49 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
         <!-- Report header -->
         <div style="background:var(--primary);color:#fff;padding:24px 28px;text-align:center">
           <div style="font-size:11px;letter-spacing:2px;color:rgba(255,255,255,0.65);margin-bottom:8px">المملكة العربية السعودية</div>
-          <div style="font-size:20px;font-weight:900;color:var(--gold3);margin-bottom:4px" id="reportCompanyName1">شركة أسس الأنظمة الجديدة</div>
+          <div style="font-size:20px;font-weight:900;color:var(--gold3);margin-bottom:4px" id="reportCompanyName1">—</div>
           <div style="font-size:15px;font-weight:700;margin-top:10px">تقرير مجلس الإدارة السنوي</div>
-          <div style="font-size:13px;color:rgba(255,255,255,0.7);margin-top:4px">للسنة المالية المنتهية في 31 ديسمبر 2025</div>
+          <div style="font-size:13px;color:rgba(255,255,255,0.7);margin-top:4px" id="reportPeriodLine">—</div>
         </div>
         <!-- Report body -->
         <div style="padding:24px 28px;background:#fff">
-          <!-- Summary stats -->
+          <!-- Summary stats (real, computed) -->
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px">
-            <div style="background:var(--offwhite);border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--primary)">8</div><div style="font-size:10px;color:var(--gray3)">اجتماعات المجلس</div></div>
-            <div style="background:var(--offwhite);border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--green)">47</div><div style="font-size:10px;color:var(--gray3)">قراراً صادراً</div></div>
-            <div style="background:var(--offwhite);border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--gold)">98%</div><div style="font-size:10px;color:var(--gray3)">نسبة الامتثال</div></div>
-            <div style="background:var(--offwhite);border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--teal)">4</div><div style="font-size:10px;color:var(--gray3)">لجان نشطة</div></div>
+            <div style="background:var(--offwhite);border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--primary)" id="rep-kpi-meetings">—</div><div style="font-size:10px;color:var(--gray3)">اجتماعات المجلس هذا العام</div></div>
+            <div style="background:var(--offwhite);border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--green)" id="rep-kpi-decisions">—</div><div style="font-size:10px;color:var(--gray3)">قراراً موقّعًا هذا العام</div></div>
+            <div style="background:var(--offwhite);border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--gold)" id="rep-kpi-compliance">—</div><div style="font-size:10px;color:var(--gray3)">نسبة الامتثال</div></div>
+            <div style="background:var(--offwhite);border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--teal)" id="rep-kpi-committees">—</div><div style="font-size:10px;color:var(--gray3)">لجان نشطة</div></div>
           </div>
 
           <div style="font-size:14px;font-weight:800;color:var(--dark);margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--gray1)">أولاً: رسالة رئيس مجلس الإدارة</div>
-          <p style="font-size:12px;color:var(--gray3);line-height:1.8;margin-bottom:16px">يسعدنا أن نقدم التقرير السنوي لمجلس إدارة <span id="reportCompanyName2">شركة أسس الأنظمة الجديدة</span> للسنة المالية 2025م، والذي يعكس مسيرة نمو متواصلة وأداءً مؤسسياً متميزاً في ظل بيئة أعمال تنافسية. وقد حرص المجلس خلال هذا العام على تعزيز منظومة الحوكمة المؤسسية والارتقاء بمعايير الشفافية والإفصاح بما يتوافق مع رؤية المملكة 2030 ومتطلبات الجهات التنظيمية.</p>
+          <p style="font-size:12px;color:var(--gray3);line-height:1.8;margin-bottom:16px">يسعدنا أن نقدم التقرير السنوي لمجلس إدارة <span id="reportCompanyName2">—</span> للسنة المالية <span id="reportYear2"></span>م، والذي يعكس مسيرة الشركة في تعزيز منظومة الحوكمة المؤسسية والارتقاء بمعايير الشفافية والإفصاح بما يتوافق مع رؤية المملكة 2030 ومتطلبات الجهات التنظيمية.</p>
 
-          <div style="font-size:14px;font-weight:800;color:var(--dark);margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--gray1)">ثانياً: أبرز إنجازات عام 2025</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
-            <div style="background:#E8F0FB;border-radius:8px;padding:10px 14px;font-size:12px;color:var(--primary);font-weight:600">✅ إطلاق استراتيجية الشركة 2025-2028</div>
-            <div style="background:#E8F8EF;border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green);font-weight:600">✅ تحقيق نمو 24% في الإيرادات</div>
-            <div style="background:#FDF5DC;border-radius:8px;padding:10px 14px;font-size:12px;color:var(--gold);font-weight:600">✅ الحصول على تقييم AAA للحوكمة</div>
-            <div style="background:#E8F0FB;border-radius:8px;padding:10px 14px;font-size:12px;color:var(--primary);font-weight:600">✅ تشكيل لجنة الاستراتيجية والتطوير</div>
+          <div style="font-size:14px;font-weight:800;color:var(--dark);margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--gray1)">ثانياً: أبرز القرارات الصادرة هذا العام</div>
+          <div id="rep-decisions-list" style="margin-bottom:16px">
+            <div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div>
           </div>
 
-          <div style="font-size:14px;font-weight:800;color:var(--dark);margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--gray1)">ثالثاً: حضور أعضاء المجلس 2025</div>
-          <div class="comp-item"><div class="comp-head"><span class="comp-name">عبدالله حامد — رئيس المجلس</span><span class="comp-pct">100%</span></div><div class="comp-track"><div class="comp-fill" style="width:100%"></div></div></div>
-          <div class="comp-item"><div class="comp-head"><span class="comp-name">سلطان السبيعي</span><span class="comp-pct">88%</span></div><div class="comp-track"><div class="comp-fill" style="width:88%"></div></div></div>
-          <div class="comp-item"><div class="comp-head"><span class="comp-name">حسين التميمي</span><span class="comp-pct">75%</span></div><div class="comp-track"><div class="comp-fill" style="width:75%"></div></div></div>
-          <div class="comp-item"><div class="comp-head"><span class="comp-name">أحمد الروقي</span><span class="comp-pct">100%</span></div><div class="comp-track"><div class="comp-fill" style="width:100%"></div></div></div>
+          <div style="font-size:14px;font-weight:800;color:var(--dark);margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--gray1)">ثالثاً: أعضاء مجلس الإدارة</div>
+          <div id="rep-members-list" style="margin-bottom:16px">
+            <div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div>
+          </div>
 
-          <div style="margin-top:20px;padding:14px;background:var(--offwhite);border-radius:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:gap">
-            <div style="font-size:12px;color:var(--gray3)">اعتمد هذا التقرير بتاريخ 20 يناير 2026</div>
-            <div style="font-size:12px;font-weight:700;color:var(--primary)">عبدالله حامد — رئيس مجلس الإدارة ✍️</div>
+          <div style="margin-top:20px;padding:14px;background:var(--offwhite);border-radius:8px;font-size:11px;color:var(--gray3);text-align:center">
+            تقرير مولّد تلقائيًا من بيانات المنصة الحقيقية بتاريخ <span id="reportGenDate"></span>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Other reports -->
+  <!-- Other reports — real live summaries linking to each governance area -->
   <div class="sec-title">📚 تقارير الحوكمة الأخرى</div>
   <div class="card">
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>التقرير</th><th>النوع</th><th>الفترة</th><th>الحالة</th><th>إجراء</th></tr></thead>
-        <tbody>
-          <tr><td>تقرير الامتثال التنظيمي الربعي</td><td>امتثال</td><td>Q4 2025</td><td><span class="badge done">معتمد</span></td><td><button class="btn-xs primary">📄 عرض</button></td></tr>
-          <tr><td>تقرير تقييم أداء المجلس 2025</td><td>تقييم</td><td>2025</td><td><span class="badge done">معتمد</span></td><td><button class="btn-xs primary">📄 عرض</button></td></tr>
-          <tr><td>تقرير إدارة المخاطر السنوي</td><td>مخاطر</td><td>2025</td><td><span class="badge done">معتمد</span></td><td><button class="btn-xs primary">📄 عرض</button></td></tr>
-          <tr><td>تقرير الحوكمة للجمعية العامة 2025</td><td>جمعية</td><td>2025</td><td><span class="badge done">معتمد</span></td><td><button class="btn-xs primary">📄 عرض</button></td></tr>
-          <tr><td>تقرير الاستدامة المؤسسية 2025</td><td>استدامة</td><td>2025</td><td><span class="badge pending">قيد الإعداد</span></td><td><button class="btn-xs gold">✏️ تعديل</button></td></tr>
+        <thead><tr><th>التقرير</th><th>النوع</th><th>ملخص حالي</th><th>الحالة</th><th>إجراء</th></tr></thead>
+        <tbody id="rep-other-tbody">
+          <tr><td colspan="5" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
       </table>
     </div>
@@ -2209,19 +2199,111 @@ function reloadCurrentPageData(){
   if(id==='consultants') loadConsultants();
   if(id==='perf') loadPerf();
   if(id==='appoint'){ loadAppointRequests(); loadReviewSection(); }
-  if(id==='reports') updateReportsCompanyInfo();
+  if(id==='reports') loadReportsPage();
   if(id==='archive') loadArchive();
   if(id==='users') loadUsers();
   if(id==='dashboard') loadDashboard();
 }
 
-function updateReportsCompanyInfo(){
+async function loadReportsPage(){
   const list = document.getElementById("companySwitcher");
   const name = list && list.selectedOptions.length ? list.selectedOptions[0].textContent : "الشركة";
-  const el1 = document.getElementById("reportCompanyName1");
-  const el2 = document.getElementById("reportCompanyName2");
-  if(el1) el1.textContent = name;
-  if(el2) el2.textContent = name;
+  setText("reportCompanyName1", name);
+  setText("reportCompanyName2", name);
+
+  const currentYear = new Date().getFullYear();
+  setText("reportYear", currentYear);
+  setText("reportYear2", currentYear);
+  setText("reportPeriodLine", `للسنة المالية المنتهية في 31 ديسمبر ${currentYear}`);
+  setText("reportGenDate", new Date().toLocaleDateString("ar-SA"));
+
+  const [meetingsRes, signingRes, complianceRes, committeesRes, membersRes, risksRes, perfRes] = await Promise.all([
+    sb.from("meetings").select("*").eq("company_id", currentCompanyId),
+    sb.from("signing_documents").select("*").eq("company_id", currentCompanyId),
+    sb.from("compliance_items").select("*").eq("company_id", currentCompanyId),
+    sb.from("committees").select("*").eq("company_id", currentCompanyId),
+    sb.from("board_members").select("*").eq("company_id", currentCompanyId),
+    sb.from("risks").select("*").eq("company_id", currentCompanyId),
+    sb.from("performance_evaluations").select("*").eq("company_id", currentCompanyId)
+  ]);
+  const meetings = meetingsRes.data || [];
+  const signingDocs = signingRes.data || [];
+  const compliance = complianceRes.data || [];
+  const committeesData = committeesRes.data || [];
+  const members = membersRes.data || [];
+  const risks = risksRes.data || [];
+  const perfEvals = perfRes.data || [];
+
+  const boardMeetingsThisYear = meetings.filter(m => (m.meeting_type==="اجتماع مجلس الإدارة الدوري"||m.meeting_type==="اجتماع طارئ") && m.meeting_date && new Date(m.meeting_date).getFullYear()===currentYear);
+  const decisionsThisYear = signingDocs.filter(d => d.status==="مكتمل" && d.created_at && new Date(d.created_at).getFullYear()===currentYear);
+  const compliancePct = compliance.length ? Math.round((compliance.filter(c=>c.status==="ملتزم").length/compliance.length)*100) : null;
+
+  setText("rep-kpi-meetings", boardMeetingsThisYear.length);
+  setText("rep-kpi-decisions", decisionsThisYear.length);
+  setText("rep-kpi-compliance", compliancePct!=null ? compliancePct+"%" : "—");
+  setText("rep-kpi-committees", committeesData.length);
+
+  // Decisions list
+  const decBox = document.getElementById("rep-decisions-list");
+  if(decBox){
+    const topDecisions = decisionsThisYear.sort((a,b)=> new Date(b.created_at)-new Date(a.created_at)).slice(0,6);
+    decBox.innerHTML = topDecisions.length
+      ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+        topDecisions.map(d => `<div style="background:#E8F8EF;border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green);font-weight:600">✅ ${d.document_name}</div>`).join("") +
+        '</div>'
+      : '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا توجد قرارات موقّعة مكتملة هذا العام بعد.</div>';
+  }
+
+  // Members list (roster — no attendance tracking exists in the platform yet)
+  const memBox = document.getElementById("rep-members-list");
+  if(memBox){
+    memBox.innerHTML = members.length
+      ? members.map(m => `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray1);font-size:12.5px">
+          <span style="font-weight:700">${m.name||""}</span>
+          <span style="color:var(--gray3)">${m.position||"—"}</span>
+        </div>`).join("")
+      : '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا يوجد أعضاء مسجّلون بعد.</div>';
+  }
+
+  // Other governance reports — live summaries linking to real pages
+  const otherBox = document.getElementById("rep-other-tbody");
+  if(otherBox){
+    const completedPerf = perfEvals.filter(p=>p.status==="مكتمل").length;
+    const openRisks = risks.filter(r=>r.status==="مراقبة"||r.status==="متابعة").length;
+    const agmCount = meetings.filter(m=>m.meeting_type==="الجمعية العامة").length;
+    const rows = [
+      { title:"تقرير الامتثال التنظيمي", type:"امتثال", summary: compliance.length ? `${compliance.filter(c=>c.status==="ملتزم").length} من ${compliance.length} بندًا ملتزم` : "لا توجد بيانات", ok: compliancePct===100, page:"compliance" },
+      { title:"تقرير تقييم أداء المجلس", type:"تقييم", summary: perfEvals.length ? `${completedPerf} تقييم مكتمل من ${perfEvals.length}` : "لا توجد بيانات", ok: perfEvals.length>0 && completedPerf===perfEvals.length, page:"perf" },
+      { title:"تقرير إدارة المخاطر", type:"مخاطر", summary: risks.length ? `${openRisks} خطر مفتوح من ${risks.length}` : "لا توجد بيانات", ok: openRisks===0, page:"risks" },
+      { title:"تقرير الحوكمة للجمعية العامة", type:"جمعية", summary: agmCount ? `${agmCount} جمعية مسجّلة` : "لا توجد بيانات", ok: agmCount>0, page:"agm" },
+      { title:"تقرير السياسات والحوكمة", type:"سياسات", summary: "عرض كل السياسات ومراحل اعتمادها", ok: null, page:"governance" }
+    ];
+    otherBox.innerHTML = rows.map(r => {
+      const badge = r.ok===null ? '<span class="badge info">مرجع</span>' : (r.ok ? '<span class="badge done">جيد ✅</span>' : '<span class="badge pending">يحتاج متابعة</span>');
+      return `<tr>
+        <td>${r.title}</td><td>${r.type}</td><td style="font-size:12px;color:var(--gray3)">${r.summary}</td>
+        <td>${badge}</td>
+        <td><button class="btn-xs primary" onclick="go('${r.page}',null)">📄 عرض التفاصيل</button></td>
+      </tr>`;
+    }).join("");
+  }
+}
+
+async function generateAnnualReportPDF(){
+  const w = window.open("", "_blank");
+  if(w){ w.document.write('<html dir="rtl"><body style="font-family:sans-serif;padding:30px">جارِ تجهيز التقرير...</body></html>'); w.document.close(); }
+  await loadReportsPage();
+  const reportCard = document.querySelector("#p-reports .card-body > div");
+  if(!w){ alert("المتصفح منع فتح نافذة التقرير — الرجاء السماح بالنوافذ المنبثقة ثم المحاولة مرة أخرى."); return; }
+  w.document.open();
+  w.document.write(`
+    <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>تقرير مجلس الإدارة السنوي</title>
+    <style>body{font-family:'Tajawal',Arial,sans-serif;margin:0}</style></head><body>
+    ${reportCard ? reportCard.outerHTML : '<p style="padding:30px">تعذّر تجهيز التقرير.</p>'}
+    <script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>
+    </body></html>
+  `);
+  w.document.close();
 }
 
 /* ══════════ ARCHIVE ══════════ */
@@ -4787,7 +4869,7 @@ function go(id, el){
   if(id==='consultants') loadConsultants();
   if(id==='perf') loadPerf();
   if(id==='appoint'){ loadAppointRequests(); loadReviewSection(); }
-  if(id==='reports') updateReportsCompanyInfo();
+  if(id==='reports') loadReportsPage();
   if(id==='archive') loadArchive();
   if(id==='users') loadUsers();
 }
