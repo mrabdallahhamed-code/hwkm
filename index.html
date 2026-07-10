@@ -825,7 +825,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <div id="p-committees" class="page content">
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
     <span>🏛️ اللجان المتخصصة</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mcm-id').value='';document.getElementById('mcm-title-h').textContent='📋 إضافة لجنة';document.getElementById('mcm-name').value='';document.getElementById('mcm-chairman').value='';document.getElementById('mcm-appointment-date').value='';document.getElementById('mcm-scope').value='';openM('m-committee')">+ إضافة لجنة</button>
+    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openNewCommitteeModal()">+ إضافة لجنة</button>
   </div>
   <div id="committeesCards" class="two-col">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
@@ -1361,6 +1361,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="modal">
     <div class="modal-title">📅 إضافة اجتماع جديد</div>
     <div class="fg"><label>نوع الاجتماع</label><select class="fs" id="mt-type" onchange="toggleVotingDatesFields()"><option>اجتماع مجلس الإدارة الدوري</option><option>اجتماع طارئ</option><option>اجتماع لجنة</option><option>الجمعية العامة</option></select></div>
+    <div class="fg" id="mt-committee-field" style="display:none"><label>اللجنة</label><select class="fs" id="mt-committee-id"><option value="">— اختر اللجنة —</option></select></div>
     <div class="fg"><label>عنوان الاجتماع</label><input class="fi" id="mt-title" placeholder="مثال: اجتماع مجلس الإدارة — Q2 2026" /></div>
     <div class="row2"><div class="fg"><label>التاريخ</label><input type="date" class="fi" id="mt-date"/></div><div class="fg"><label>الوقت</label><input type="time" class="fi" id="mt-time"/></div></div>
     <div class="fg"><label>طريقة الانعقاد</label><select class="fs" id="mt-method"><option>عن بُعد (Zoom)</option><option>عن بُعد (Teams)</option><option>حضوري</option><option>هجين</option></select></div>
@@ -1371,6 +1372,11 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
         <div class="fg"><label style="font-size:11px">بداية التصويت</label><input type="datetime-local" class="fi" id="mt-voting-start"/></div>
         <div class="fg"><label style="font-size:11px">نهاية التصويت</label><input type="datetime-local" class="fi" id="mt-voting-end"/></div>
       </div>
+      <div class="row2">
+        <div class="fg"><label style="font-size:11px">نوع الجمعية</label><select class="fs" id="mt-agm-type"><option>عادية</option><option>غير عادية</option></select></div>
+        <div class="fg"><label style="font-size:11px">رقم الدعوة</label><select class="fs" id="mt-call-number"><option value="1">الاجتماع الأول</option><option value="2">الاجتماع الثاني</option><option value="3">الاجتماع الثالث</option></select></div>
+      </div>
+      <p style="font-size:10.5px;color:var(--gray3)">النصاب المطلوب يُحسب تلقائيًا حسب نوع الجمعية ورقم الدعوة، طبقًا لنظام الشركات.</p>
     </div>
     <div class="fg"><label>الوثائق الداعمة (اختياري)</label><input type="file" class="fi" id="mt-file" /></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-meeting')">إلغاء</button><button class="btn btn-gold" onclick="saveMeeting()">✅ حفظ الاجتماع</button></div>
@@ -1495,6 +1501,12 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <div class="fg"><label>فئة اللجنة</label><select class="fs" id="mcm-category"><option>لجنة رئيسية</option><option>لجنة متخصصة</option></select></div>
     </div>
     <div class="fg"><label>الاختصاص</label><textarea class="fta" id="mcm-scope" rows="2" placeholder="وصف مختصر لاختصاص اللجنة"></textarea></div>
+    <div class="fg">
+      <label>أعضاء اللجنة (لحساب النصاب بدقة)</label>
+      <div id="mcm-members-list" style="max-height:160px;overflow-y:auto;border:1px solid var(--gray1);border-radius:8px;padding:8px">
+        <div style="font-size:11px;color:var(--gray3)">جارِ التحميل...</div>
+      </div>
+    </div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-committee')">إلغاء</button><button class="btn btn-gold" onclick="saveCommittee()">✅ حفظ اللجنة</button></div>
   </div>
 </div>
@@ -1580,6 +1592,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <div style="font-weight:800;font-size:12.5px;color:var(--dark);margin-bottom:8px">👥 تسجيل الحضور</div>
       <div id="mdView-attendance"></div>
       <button class="btn-xs primary" style="margin-top:8px;width:100%" onclick="saveMeetingAttendance()">💾 حفظ الحضور</button>
+      <div id="mdView-quorum" style="margin-top:10px"></div>
     </div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-meeting-view')">إغلاق</button></div>
   </div>
@@ -1597,7 +1610,12 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
         <div class="fg"><label style="font-size:11px">بداية التصويت</label><input type="datetime-local" class="fi" id="agmView-voting-start"/></div>
         <div class="fg"><label style="font-size:11px">نهاية التصويت</label><input type="datetime-local" class="fi" id="agmView-voting-end"/></div>
       </div>
-      <button class="btn-xs primary" style="margin-top:6px" onclick="saveAGMVotingDates()">💾 حفظ المواعيد</button>
+      <div class="row2">
+        <div class="fg"><label style="font-size:11px">نوع الجمعية</label><select class="fs" id="agmView-agm-type"><option>عادية</option><option>غير عادية</option></select></div>
+        <div class="fg"><label style="font-size:11px">رقم الدعوة</label><select class="fs" id="agmView-call-number"><option value="1">الاجتماع الأول</option><option value="2">الاجتماع الثاني</option><option value="3">الاجتماع الثالث</option></select></div>
+      </div>
+      <button class="btn-xs primary" style="margin-top:6px" onclick="saveAGMVotingDates()">💾 حفظ المواعيد والنوع</button>
+      <div id="agmView-quorum" style="margin-top:10px"></div>
     </div>
 
     <div style="margin-top:16px">
@@ -1936,6 +1954,7 @@ function isMutatingOnclick(val){
     || /^addAGMTopic\(/.test(val)
     || /^saveAGMVotingDates\(/.test(val)
     || /^saveMeetingAttendance\(/.test(val)
+    || /^openNewCommitteeModal\(/.test(val)
     || /^edit[A-Z]/.test(val)
     || /^delete[A-Z]/.test(val)
     || /^saveCompany/.test(val)
@@ -2767,7 +2786,11 @@ function openMeetingDetailModal(id){
   document.getElementById("mdView-files").innerHTML =
     fileRowWide(m.id,'agenda_file_url',m.agenda_file_url,'📄 جدول الأعمال') +
     fileRowWide(m.id,'invitation_file_url',m.invitation_file_url,'📨 الدعوة') +
-    fileRowWide(m.id,'minutes_file_url',m.minutes_file_url,'📋 المحضر');
+    fileRowWide(m.id,'minutes_file_url',m.minutes_file_url,'📋 المحضر (رفع يدوي)') +
+    `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
+      <div style="font-size:13px;font-weight:800;color:var(--dark)">📝 توليد المحضر تلقائيًا (Word)</div>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateMeetingMinutesDoc(${m.id})">📝 توليد Word</button>
+    </div>`;
   currentAttendanceMeetingId = id;
   loadMeetingAttendanceSection(id);
   openM("m-meeting-view");
@@ -2779,11 +2802,27 @@ async function loadMeetingAttendanceSection(meetingId){
   if(!box) return;
   box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:11px;padding:8px">جارِ التحميل...</div>';
 
-  const [{ data: members, error: memErr }, { data: existing }] = await Promise.all([
-    sb.from("board_members").select("*").eq("company_id", currentCompanyId).order("id",{ascending:true}),
-    sb.from("meeting_attendance").select("*").eq("meeting_id", meetingId)
-  ]);
-  if(memErr || !members || members.length===0){
+  const { data: meetingRow } = await sb.from("meetings").select("committee_id").eq("id", meetingId).single();
+  const committeeId = meetingRow ? meetingRow.committee_id : null;
+
+  let members;
+  if(committeeId){
+    // Committee meeting: quorum only counts that specific committee's own members
+    const { data: links } = await sb.from("committee_members").select("member_id").eq("committee_id", committeeId);
+    const memberIds = (links||[]).map(l => l.member_id);
+    if(memberIds.length===0){
+      box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:11px;padding:8px">هذه اللجنة ما لها أعضاء محددون بعد. حدّدهم من صفحة "اللجان المتخصصة" أولًا.</div>';
+      return;
+    }
+    const { data } = await sb.from("board_members").select("*").in("id", memberIds).order("id",{ascending:true});
+    members = data;
+  } else {
+    const { data } = await sb.from("board_members").select("*").eq("company_id", currentCompanyId).order("id",{ascending:true});
+    members = data;
+  }
+
+  const { data: existing } = await sb.from("meeting_attendance").select("*").eq("meeting_id", meetingId);
+  if(!members || members.length===0){
     box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:11px;padding:8px">لا يوجد أعضاء مسجّلون بصفحة "أعضاء مجلس الإدارة" بعد.</div>';
     return;
   }
@@ -2800,6 +2839,27 @@ async function loadMeetingAttendanceSection(meetingId){
       </select>
     </div>`;
   }).join("");
+
+  renderBoardQuorumWidget(members, existing||[]);
+}
+
+/* Board meeting quorum is headcount-based (present members ÷ total members), unlike AGM
+   quorum which is share-based — per the majority rule in the Companies Law / bylaws. */
+async function renderBoardQuorumWidget(members, attendanceRecords){
+  const box = document.getElementById("mdView-quorum");
+  if(!box) return;
+  if(!attendanceRecords || attendanceRecords.length===0){ box.innerHTML = ""; return; }
+
+  const { data: company } = await sb.from("companies").select("*").eq("id", currentCompanyId).single();
+  const threshold = Number(company?.board_quorum_percentage ?? 50);
+  const presentCount = attendanceRecords.filter(a => a.status === "حاضر").length;
+  const totalCount = members.length;
+  const pctPresent = totalCount ? (presentCount/totalCount)*100 : 0;
+  const met = pctPresent >= threshold;
+
+  box.innerHTML = `<div style="padding:10px;border-radius:8px;background:${met?'#E8F8EF':'#FDE8E8'};font-size:12px;font-weight:700;color:${met?'var(--green)':'var(--red)'}">
+    ${met ? '✅' : '❌'} النصاب المطلوب: ${threshold}% (${Math.ceil(totalCount*threshold/100)} من ${totalCount}) — الحاضرون: ${presentCount}/${totalCount} (${pctPresent.toFixed(0)}%) ${met ? '— تحقق النصاب' : '— لم يتحقق النصاب'}
+  </div>`;
 }
 
 async function saveMeetingAttendance(){
@@ -2815,6 +2875,7 @@ async function saveMeetingAttendance(){
     await sb.from("meeting_attendance").insert([{ meeting_id: meetingId, member_id: m.id, status: sel.value, company_id: currentCompanyId }]);
   }
   alert("تم حفظ الحضور ✅");
+  loadMeetingAttendanceSection(meetingId);
 }
 
 /* Real per-member attendance % — reused by both performance evaluation and governance reports */
@@ -2972,6 +3033,9 @@ async function openAGMDetailModal(id){
 
   document.getElementById("agmView-voting-start").value = isoToDatetimeLocal(m.voting_start);
   document.getElementById("agmView-voting-end").value = isoToDatetimeLocal(m.voting_end);
+  document.getElementById("agmView-agm-type").value = m.agm_type || "عادية";
+  document.getElementById("agmView-call-number").value = String(m.call_number || 1);
+  renderAGMQuorumWidget(id);
 
   document.getElementById("agmView-files").innerHTML =
     fileRowWide(m.id,'invitation_file_url',m.invitation_file_url,'📨 دعوة الجمعية') +
@@ -3076,10 +3140,53 @@ async function saveAGMVotingDates(){
   const endRaw = document.getElementById("agmView-voting-end").value;
   const voting_start = startRaw ? new Date(startRaw).toISOString() : null;
   const voting_end = endRaw ? new Date(endRaw).toISOString() : null;
-  const { error } = await sb.from("meetings").update({ voting_start, voting_end }).eq("id", currentAGMModalMeetingId);
+  const agm_type = document.getElementById("agmView-agm-type").value;
+  const call_number = Number(document.getElementById("agmView-call-number").value);
+  const { error } = await sb.from("meetings").update({ voting_start, voting_end, agm_type, call_number }).eq("id", currentAGMModalMeetingId);
   if(error){ alert("تعذّر حفظ المواعيد: " + error.message); return; }
-  alert("تم حفظ مواعيد التصويت ✅");
-  loadMeetingsAll();
+  alert("تم حفظ المواعيد والنوع ✅");
+  await loadMeetingsAll();
+  renderAGMQuorumWidget(currentAGMModalMeetingId);
+}
+
+/* Determines the legally-required quorum % for this specific AGM sitting (ordinary/
+   extraordinary × 1st/2nd/3rd call), per the Saudi Companies Law defaults — each
+   configurable per company in case the Articles of Association set different thresholds. */
+function getAGMQuorumThreshold(company, agmType, callNumber){
+  if(agmType === "غير عادية"){
+    if(callNumber===1) return Number(company.agm_extraordinary_quorum_1 ?? 50);
+    if(callNumber===2) return Number(company.agm_extraordinary_quorum_2 ?? 25);
+    return Number(company.agm_extraordinary_quorum_3 ?? 0);
+  }
+  if(callNumber===1) return Number(company.agm_ordinary_quorum_1 ?? 25);
+  return Number(company.agm_ordinary_quorum_2 ?? 0);
+}
+
+async function renderAGMQuorumWidget(meetingId){
+  const box = document.getElementById("agmView-quorum");
+  if(!box) return;
+  const [{ data: m }, { data: votes }, { data: company }] = await Promise.all([
+    sb.from("meetings").select("*").eq("id", meetingId).single(),
+    sb.from("votes").select("*").eq("meeting_id", meetingId).not("shareholder_name","is",null),
+    sb.from("companies").select("*").eq("id", currentCompanyId).single()
+  ]);
+  if(!m || !company){ box.innerHTML = ""; return; }
+
+  const totalShares = Number(company.total_shares) || 0;
+  const byShareholder = {};
+  (votes||[]).forEach(v => {
+    const key = v.shareholder_name;
+    if(!byShareholder[key]) byShareholder[key] = { shares:0, lastId:v.id };
+    if(v.id >= byShareholder[key].lastId){ byShareholder[key].shares = Number(v.shares_count)||0; byShareholder[key].lastId = v.id; }
+  });
+  const attendingShares = Object.values(byShareholder).reduce((s,x)=>s+x.shares,0);
+  const attendancePct = totalShares ? (attendingShares/totalShares)*100 : 0;
+  const threshold = getAGMQuorumThreshold(company, m.agm_type||"عادية", m.call_number||1);
+  const met = attendancePct >= threshold;
+
+  box.innerHTML = `<div style="padding:10px;border-radius:8px;background:${met?'#E8F8EF':'#FDE8E8'};font-size:12px;font-weight:700;color:${met?'var(--green)':'var(--red)'}">
+    ${met ? '✅' : '❌'} النصاب المطلوب: ${threshold}% — الحضور الحالي: ${attendancePct.toFixed(1)}% ${met ? '(تحقق النصاب)' : '(لم يتحقق بعد)'}
+  </div>`;
 }
 
 function goToAGMVoting(){
@@ -3089,10 +3196,20 @@ function goToAGMVoting(){
   go('voting');
 }
 
-function toggleVotingDatesFields(){
+async function toggleVotingDatesFields(){
   const type = document.getElementById("mt-type").value;
   const box = document.getElementById("mt-voting-dates");
   if(box) box.style.display = (type === "الجمعية العامة") ? "block" : "none";
+
+  const committeeField = document.getElementById("mt-committee-field");
+  if(committeeField){
+    committeeField.style.display = (type === "اجتماع لجنة") ? "block" : "none";
+    if(type === "اجتماع لجنة"){
+      const sel = document.getElementById("mt-committee-id");
+      const { data } = await sb.from("committees").select("*").eq("company_id", currentCompanyId).order("id",{ascending:true});
+      sel.innerHTML = '<option value="">— اختر اللجنة —</option>' + (data||[]).map(c => `<option value="${c.id}">${c.committee_name}</option>`).join("");
+    }
+  }
 }
 
 /* ══════════ COMMITTEE MEETINGS (same card + detail pattern as board meetings) ══════════ */
@@ -3160,11 +3277,14 @@ async function saveMeeting(){
   const votingEndRaw = document.getElementById("mt-voting-end").value;
   const voting_start = votingStartRaw ? new Date(votingStartRaw).toISOString() : null;
   const voting_end = votingEndRaw ? new Date(votingEndRaw).toISOString() : null;
+  const agm_type = document.getElementById("mt-agm-type").value;
+  const call_number = Number(document.getElementById("mt-call-number").value);
+  const committee_id = document.getElementById("mt-committee-id").value ? Number(document.getElementById("mt-committee-id").value) : null;
 
   const fileInput = document.getElementById("mt-file");
   const file_url = await uploadFile(fileInput, "meetings");
 
-  const { error } = await sb.from("meetings").insert([{ title, meeting_type, meeting_date, meeting_time, method, notes, file_url, voting_start, voting_end, company_id: currentCompanyId }]);
+  const { error } = await sb.from("meetings").insert([{ title, meeting_type, meeting_date, meeting_time, method, notes, file_url, voting_start, voting_end, agm_type, call_number, committee_id, company_id: currentCompanyId }]);
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
 
   document.getElementById("mt-title").value = "";
@@ -4040,9 +4160,15 @@ async function loadCommittees(){
   committeesCache = data || [];
   if(committeesCache.length===0){ wrap.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد بيانات بعد. اضغط "+ إضافة لجنة" للبدء.</div>'; return; }
 
+  const ids = committeesCache.map(c=>c.id);
+  const { data: allLinks } = ids.length ? await sb.from("committee_members").select("*").in("committee_id", ids) : { data: [] };
+  const countByCommittee = {};
+  (allLinks||[]).forEach(l => { countByCommittee[l.committee_id] = (countByCommittee[l.committee_id]||0) + 1; });
+
   const catColors = { "لجنة رئيسية": "var(--primary)", "لجنة متخصصة": "#8B2FC9" };
   wrap.innerHTML = committeesCache.map(c => {
     const color = catColors[c.category] || "var(--gray3)";
+    const memberCount = countByCommittee[c.id] || 0;
     return `<div class="card" style="margin-bottom:16px;border-right:4px solid ${color}">
       <div class="card-body">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
@@ -4054,6 +4180,7 @@ async function loadCommittees(){
         </div>
         <div style="font-size:14px;font-weight:800;color:var(--dark);margin-bottom:8px">${c.committee_name||""}</div>
         <div style="font-size:12px;color:var(--gray3);margin-bottom:4px">👤 رئيس اللجنة: <b style="color:var(--dark)">${c.chairman_name||"—"}</b></div>
+        <div style="font-size:12px;color:var(--gray3);margin-bottom:4px">👥 عدد الأعضاء المحددين: <b style="color:var(--dark)">${memberCount}</b></div>
         <div style="font-size:12px;color:var(--gray3);margin-bottom:8px">📅 تاريخ التعيين: ${c.appointment_date||"—"}</div>
         ${c.scope ? `<div style="font-size:11.5px;color:var(--gray3);background:var(--offwhite);border-radius:8px;padding:8px">${c.scope}</div>` : ""}
       </div>
@@ -4070,8 +4197,39 @@ function editCommittee(id){
   document.getElementById("mcm-appointment-date").value = c.appointment_date || "";
   document.getElementById("mcm-category").value = c.category || "لجنة رئيسية";
   document.getElementById("mcm-scope").value = c.scope || "";
+  renderCommitteeMembersCheckboxes(id);
   openM("m-committee");
 }
+
+async function openNewCommitteeModal(){
+  document.getElementById("mcm-id").value = "";
+  document.getElementById("mcm-title-h").textContent = "📋 إضافة لجنة";
+  document.getElementById("mcm-name").value = "";
+  document.getElementById("mcm-chairman").value = "";
+  document.getElementById("mcm-appointment-date").value = "";
+  document.getElementById("mcm-scope").value = "";
+  await renderCommitteeMembersCheckboxes(null);
+  openM("m-committee");
+}
+
+async function renderCommitteeMembersCheckboxes(committeeId){
+  const box = document.getElementById("mcm-members-list");
+  if(!box) return;
+  box.innerHTML = '<div style="font-size:11px;color:var(--gray3)">جارِ التحميل...</div>';
+  const { data: allMembers } = await sb.from("board_members").select("*").eq("company_id", currentCompanyId).order("id",{ascending:true});
+  let selectedIds = [];
+  if(committeeId){
+    const { data: links } = await sb.from("committee_members").select("member_id").eq("committee_id", committeeId);
+    selectedIds = (links||[]).map(l => l.member_id);
+  }
+  if(!allMembers || allMembers.length===0){ box.innerHTML = '<div style="font-size:11px;color:var(--gray3)">لا يوجد أعضاء مسجّلون بصفحة "أعضاء مجلس الإدارة" بعد.</div>'; return; }
+  box.innerHTML = allMembers.map(m => `
+    <label style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:12px;cursor:pointer">
+      <input type="checkbox" class="mcm-member-cb" value="${m.id}" ${selectedIds.includes(m.id)?"checked":""}>
+      ${m.name||""}
+    </label>`).join("");
+}
+
 async function deleteCommittee(id){
   if(!confirm("هل أنت متأكد من حذف هذه اللجنة نهائيًا؟")) return;
   const { error } = await sb.from("committees").delete().eq("id", id);
@@ -4087,10 +4245,24 @@ async function saveCommittee(){
   const category = document.getElementById("mcm-category").value;
   const scope = document.getElementById("mcm-scope").value.trim();
   const payload = { committee_name, chairman_name, appointment_date, category, scope, company_id: currentCompanyId };
-  const { error } = id
-    ? await sb.from("committees").update(payload).eq("id", id)
-    : await sb.from("committees").insert([payload]);
-  if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
+
+  let committeeId = id;
+  if(id){
+    const { error } = await sb.from("committees").update(payload).eq("id", id);
+    if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
+  } else {
+    const { data, error } = await sb.from("committees").insert([payload]).select().single();
+    if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
+    committeeId = data.id;
+  }
+
+  // Sync selected members: clear old links then insert the currently-checked ones
+  const checkedIds = Array.from(document.querySelectorAll(".mcm-member-cb:checked")).map(cb => Number(cb.value));
+  await sb.from("committee_members").delete().eq("committee_id", committeeId);
+  if(checkedIds.length){
+    await sb.from("committee_members").insert(checkedIds.map(mid => ({ committee_id: committeeId, member_id: mid, company_id: currentCompanyId })));
+  }
+
   document.getElementById("mcm-id").value = "";
   document.getElementById("mcm-title-h").textContent = "📋 إضافة لجنة";
   document.getElementById("mcm-name").value=""; document.getElementById("mcm-chairman").value=""; document.getElementById("mcm-appointment-date").value=""; document.getElementById("mcm-scope").value="";
@@ -5783,18 +5955,117 @@ async function generateAttendanceSheet(meetingId){
 /* Generates an official AGM minutes document as a Word-compatible file (.doc), built from
    the meeting's real data: agenda items and their live vote results, attendee participation,
    and signature lines — no manual typing required. */
+/* Generates an official board/committee meeting minutes document as a Word-compatible
+   file, built from the meeting's real attendance records and computed quorum — using the
+   correct member set (whole board, or the specific committee if this meeting belongs to one). */
+async function generateMeetingMinutesDoc(meetingId){
+  const { data: m, error: mErr } = await sb.from("meetings").select("*").eq("id", meetingId).single();
+  if(mErr || !m){ alert("تعذّر تحميل بيانات الاجتماع"); return; }
+
+  const { data: company } = await sb.from("companies").select("*").eq("id", currentCompanyId).single();
+  let members, scopeLabel = "مجلس الإدارة";
+  if(m.committee_id){
+    const { data: committee } = await sb.from("committees").select("*").eq("id", m.committee_id).single();
+    scopeLabel = committee ? committee.committee_name : "اللجنة";
+    const { data: links } = await sb.from("committee_members").select("member_id").eq("committee_id", m.committee_id);
+    const memberIds = (links||[]).map(l => l.member_id);
+    const { data } = memberIds.length ? await sb.from("board_members").select("*").in("id", memberIds) : { data: [] };
+    members = data || [];
+  } else {
+    const { data } = await sb.from("board_members").select("*").eq("company_id", currentCompanyId);
+    members = data || [];
+  }
+
+  const { data: attendance } = await sb.from("meeting_attendance").select("*").eq("meeting_id", meetingId);
+  const byMember = {};
+  (attendance||[]).forEach(a => { byMember[a.member_id] = a.status; });
+  const presentCount = (attendance||[]).filter(a => a.status === "حاضر").length;
+  const totalCount = members.length;
+  const pctPresent = totalCount ? (presentCount/totalCount)*100 : 0;
+  const threshold = Number(company?.board_quorum_percentage ?? 50);
+  const quorumMet = pctPresent >= threshold;
+
+  const companyName = document.getElementById("reportCompanyName1")?.textContent || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "الشركة";
+  const dateNow = new Date().toLocaleDateString("ar-SA");
+
+  const attendanceRows = members.map((mem,i) => `<tr><td>${i+1}</td><td>${mem.name||""}</td><td>${mem.position||"—"}</td><td>${byMember[mem.id]||"لم يُسجَّل"}</td></tr>`).join("")
+    || '<tr><td colspan="4">لا يوجد أعضاء مسجّلون.</td></tr>';
+
+  const html = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+    <head><meta charset="UTF-8"><title>محضر اجتماع</title>
+    <style>
+      body{font-family:'Tajawal',Arial,sans-serif;direction:rtl;text-align:right;line-height:1.9;font-size:13px;color:#0D2447}
+      h1{text-align:center;color:#1A3A6B;font-size:19px;border-bottom:2px solid #D4AF37;padding-bottom:8px}
+      h2{color:#1A3A6B;font-size:15px;margin-top:20px}
+      table{width:100%;border-collapse:collapse;margin-top:8px}
+      th,td{border:1px solid #999;padding:6px 8px;font-size:12px}
+      th{background:#EAF0F8}
+      .sig{margin-top:50px}
+      .sig table td{border:none;text-align:center;padding-top:40px;border-top:1px solid #333}
+    </style></head>
+    <body>
+      <h1>محضر اجتماع ${scopeLabel}</h1>
+      <p><b>الشركة:</b> ${companyName}</p>
+      <p><b>عنوان الاجتماع:</b> ${m.title||"—"}</p>
+      <p><b>النوع:</b> ${m.meeting_type||"—"}</p>
+      <p><b>التاريخ:</b> ${m.meeting_date||"—"} ${m.meeting_time?(' — الساعة '+m.meeting_time):''}</p>
+      <p><b>طريقة الانعقاد:</b> ${m.method||"—"}</p>
+
+      <h2>أولاً: الحضور والنصاب</h2>
+      <p>النصاب المطلوب: <b>${threshold}%</b> (${Math.ceil(totalCount*threshold/100)} من ${totalCount}) — الحاضرون فعليًا: <b>${presentCount}/${totalCount}</b> (${pctPresent.toFixed(0)}%)</p>
+      <p><b>${quorumMet ? "✅ تحقق النصاب اللازم لصحة انعقاد الاجتماع وصدور قراراته." : "❌ لم يتحقق النصاب اللازم — لا يجوز اتخاذ قرارات ملزمة في هذا الاجتماع."}</b></p>
+      <table>
+        <thead><tr><th>#</th><th>الاسم</th><th>المنصب</th><th>الحالة</th></tr></thead>
+        <tbody>${attendanceRows}</tbody>
+      </table>
+
+      <h2>ثانياً: جدول الأعمال والمناقشات</h2>
+      <p>${m.notes ? m.notes : "لم تُسجَّل ملاحظات أو بنود جدول أعمال لهذا الاجتماع."}</p>
+
+      <h2>ثالثاً: خاتمة</h2>
+      <p>وبعد استكمال بنود جدول الأعمال، اختُتم الاجتماع بتاريخ ${dateNow}.</p>
+
+      <div class="sig">
+        <table>
+          <tr>
+            <td>رئيس الاجتماع</td>
+            <td>أمين السر</td>
+          </tr>
+        </table>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `محضر ${m.title||scopeLabel}.doc`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 async function generateAGMMinutesDoc(meetingId){
   const { data: m, error: mErr } = await sb.from("meetings").select("*").eq("id", meetingId).single();
   if(mErr || !m){ alert("تعذّر تحميل بيانات الجمعية"); return; }
 
-  const [{ data: topics }, { data: votes }, { list: attendees }] = await Promise.all([
+  const [{ data: topics }, { data: votes }, { list: attendees }, { data: company }] = await Promise.all([
     sb.from("vote_topics").select("*").eq("meeting_id", meetingId).order("sort_order",{ascending:true}).order("id",{ascending:true}),
     sb.from("votes").select("*").eq("meeting_id", meetingId).not("shareholder_name","is",null),
-    getAttendeesList(meetingId)
+    getAttendeesList(meetingId),
+    sb.from("companies").select("*").eq("id", currentCompanyId).single()
   ]);
 
   const totalAttendeeShares = attendees.reduce((s,x)=>s+x.shares,0);
-  const totalShares = Number(companySettings.total_shares) || 0;
+  const totalShares = Number(company?.total_shares) || 0;
+  const attendancePct = totalShares ? (totalAttendeeShares/totalShares)*100 : 0;
+  const quorumThreshold = getAGMQuorumThreshold(company||{}, m.agm_type||"عادية", m.call_number||1);
+  const quorumMet = attendancePct >= quorumThreshold;
+  const callLabel = { 1:"الأول", 2:"الثاني", 3:"الثالث" }[m.call_number||1] || "الأول";
   const byTopic = {};
   (votes||[]).forEach(v => {
     const t = v.topic || "—";
@@ -5838,8 +6109,10 @@ async function generateAGMMinutesDoc(meetingId){
       ${m.notes ? `<p><b>ملاحظات:</b> ${m.notes}</p>` : ""}
 
       <h2>أولاً: نصاب الحضور</h2>
+      <p>الاجتماع: <b>${callLabel}</b> (${m.agm_type||"عادية"}) — النصاب النظامي المطلوب: <b>${quorumThreshold}%</b></p>
       <p>عدد المساهمين الحاضرين: <b>${attendees.length}</b> — إجمالي الأسهم الحاضرة: <b>${totalAttendeeShares}</b>
-      ${totalShares ? ` — ما نسبته <b>${pct(totalAttendeeShares, totalShares)}</b> من إجمالي رأس مال الشركة` : ""}.</p>
+      ${totalShares ? ` — ما نسبته <b>${attendancePct.toFixed(1)}%</b> من إجمالي رأس مال الشركة` : ""}.</p>
+      <p><b>${quorumMet ? "✅ تحقق النصاب اللازم لصحة انعقاد الاجتماع." : "❌ لم يتحقق النصاب اللازم — الانعقاد غير صحيح نظامًا ما لم يكن هذا الاجتماع ثانيًا/ثالثًا لا يشترط له حد أدنى."}</b></p>
 
       <h2>ثانياً: بنود جدول الأعمال ونتائج التصويت</h2>
       ${topicsHtml}
