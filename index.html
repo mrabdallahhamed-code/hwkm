@@ -1082,6 +1082,13 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
   <!-- Final results — visible to مدير النظام only -->
   <div id="perfResultsSection" style="display:none">
+    <div class="sec-title">👥 نسبة الحضور الفعلية (من سجلات الاجتماعات الحقيقية)</div>
+    <div class="card" style="margin-bottom:18px">
+      <div class="card-body" id="perfAttendanceWidget">
+        <div style="text-align:center;color:var(--gray3);font-size:12px">جارِ التحميل...</div>
+      </div>
+    </div>
+
     <div class="sec-title">📐 سجل تقييمات الأداء (النتائج النهائية والمفتوحة)</div>
     <div id="perfResultsCards"></div>
 
@@ -1776,6 +1783,11 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="modal-title" id="mdView-title">تفاصيل الاجتماع</div>
     <div style="font-size:12px;color:var(--gray3);margin-bottom:16px" id="mdView-meta"></div>
     <div id="mdView-files"></div>
+    <div style="margin-top:16px">
+      <div style="font-weight:800;font-size:12.5px;color:var(--dark);margin-bottom:8px">👥 تسجيل الحضور</div>
+      <div id="mdView-attendance"></div>
+      <button class="btn-xs primary" style="margin-top:8px;width:100%" onclick="saveMeetingAttendance()">💾 حفظ الحضور</button>
+    </div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-meeting-view')">إغلاق</button></div>
   </div>
 </div>
@@ -2085,6 +2097,7 @@ function isMutatingOnclick(val){
     || /^linkMeetingToSigningDoc\(/.test(val)
     || /^addAGMTopic\(/.test(val)
     || /^saveAGMVotingDates\(/.test(val)
+    || /^saveMeetingAttendance\(/.test(val)
     || /^edit[A-Z]/.test(val)
     || /^delete[A-Z]/.test(val)
     || /^saveCompany/.test(val)
@@ -2257,12 +2270,17 @@ async function loadReportsPage(){
   // Members list (roster — no attendance tracking exists in the platform yet)
   const memBox = document.getElementById("rep-members-list");
   if(memBox){
-    memBox.innerHTML = members.length
-      ? members.map(m => `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray1);font-size:12.5px">
-          <span style="font-weight:700">${m.name||""}</span>
-          <span style="color:var(--gray3)">${m.position||"—"}</span>
-        </div>`).join("")
-      : '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا يوجد أعضاء مسجّلون بعد.</div>';
+    if(members.length === 0){
+      memBox.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا يوجد أعضاء مسجّلون بعد.</div>';
+    } else {
+      const attendancePcts = await computeAttendancePercentages();
+      const pctByName = {};
+      attendancePcts.forEach(p => { pctByName[p.name] = p.pct; });
+      memBox.innerHTML = members.map(m => {
+        const pct = pctByName[m.name];
+        return `<div class="comp-item"><div class="comp-head"><span class="comp-name">${m.name||""} <span style="font-size:10px;color:var(--gray3)">(${m.position||"—"})</span></span><span class="comp-pct">${pct!=null ? pct+"%" : "لا توجد بيانات"}</span></div><div class="comp-track"><div class="comp-fill" style="width:${pct!=null?pct:0}%"></div></div></div>`;
+      }).join("");
+    }
   }
 
   // Other governance reports — live summaries linking to real pages
@@ -2802,6 +2820,7 @@ function fileRowWide(id, field, url, label){
   </div>`;
 }
 
+let currentAttendanceMeetingId = null;
 function openMeetingDetailModal(id){
   const m = allMeetingsCache.find(x => x.id === id);
   if(!m) return;
@@ -2813,7 +2832,72 @@ function openMeetingDetailModal(id){
     fileRowWide(m.id,'agenda_file_url',m.agenda_file_url,'📄 جدول الأعمال') +
     fileRowWide(m.id,'invitation_file_url',m.invitation_file_url,'📨 الدعوة') +
     fileRowWide(m.id,'minutes_file_url',m.minutes_file_url,'📋 المحضر');
+  currentAttendanceMeetingId = id;
+  loadMeetingAttendanceSection(id);
   openM("m-meeting-view");
+}
+
+const ATTEND_STATUSES = ["حاضر","غائب","اعتذر"];
+async function loadMeetingAttendanceSection(meetingId){
+  const box = document.getElementById("mdView-attendance");
+  if(!box) return;
+  box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:11px;padding:8px">جارِ التحميل...</div>';
+
+  const [{ data: members, error: memErr }, { data: existing }] = await Promise.all([
+    sb.from("board_members").select("*").eq("company_id", currentCompanyId).order("id",{ascending:true}),
+    sb.from("meeting_attendance").select("*").eq("meeting_id", meetingId)
+  ]);
+  if(memErr || !members || members.length===0){
+    box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:11px;padding:8px">لا يوجد أعضاء مسجّلون بصفحة "أعضاء مجلس الإدارة" بعد.</div>';
+    return;
+  }
+  const byMember = {};
+  (existing||[]).forEach(a => { byMember[a.member_id] = a.status; });
+
+  box.innerHTML = members.map(m => {
+    const current = byMember[m.id] || "";
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gray1)">
+      <span style="font-size:12px;font-weight:600">${m.name||""}</span>
+      <select id="att-${m.id}" style="font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid var(--gray1)">
+        <option value="" ${!current?"selected":""}>—</option>
+        ${ATTEND_STATUSES.map(s => `<option value="${s}" ${current===s?"selected":""}>${s}</option>`).join("")}
+      </select>
+    </div>`;
+  }).join("");
+}
+
+async function saveMeetingAttendance(){
+  const meetingId = currentAttendanceMeetingId;
+  if(!meetingId) return;
+  const { data: members } = await sb.from("board_members").select("id").eq("company_id", currentCompanyId);
+  if(!members) return;
+
+  for(const m of members){
+    const sel = document.getElementById("att-"+m.id);
+    if(!sel || !sel.value) continue;
+    await sb.from("meeting_attendance").delete().eq("meeting_id", meetingId).eq("member_id", m.id);
+    await sb.from("meeting_attendance").insert([{ meeting_id: meetingId, member_id: m.id, status: sel.value, company_id: currentCompanyId }]);
+  }
+  alert("تم حفظ الحضور ✅");
+}
+
+/* Real per-member attendance % — reused by both performance evaluation and governance reports */
+async function computeAttendancePercentages(){
+  const [{ data: members }, { data: attendance }] = await Promise.all([
+    sb.from("board_members").select("*").eq("company_id", currentCompanyId),
+    sb.from("meeting_attendance").select("*").eq("company_id", currentCompanyId)
+  ]);
+  const byMember = {};
+  (members||[]).forEach(m => { byMember[m.id] = { name: m.name, position: m.position, total: 0, present: 0 }; });
+  (attendance||[]).forEach(a => {
+    if(!byMember[a.member_id]) return;
+    byMember[a.member_id].total += 1;
+    if(a.status === "حاضر") byMember[a.member_id].present += 1;
+  });
+  return Object.values(byMember).map(m => ({
+    ...m,
+    pct: m.total ? Math.round((m.present/m.total)*100) : null
+  }));
 }
 
 function renderUpcomingMeetingCards(boardMeetings){
@@ -4618,6 +4702,18 @@ async function saveConsultant(){
 let perfCache = [];
 const PERF_SCORE_LABELS = {1:"ضعيف",2:"مقبول",3:"جيد",4:"جيد جدًا",5:"ممتاز"};
 
+async function loadPerfAttendanceWidget(){
+  const box = document.getElementById("perfAttendanceWidget");
+  if(!box) return;
+  const pcts = await computeAttendancePercentages();
+  const tracked = pcts.filter(p => p.pct !== null);
+  if(tracked.length === 0){
+    box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px">لا توجد سجلات حضور مسجّلة بعد. سجّل الحضور من تفاصيل أي اجتماع مجلس.</div>';
+    return;
+  }
+  box.innerHTML = tracked.map(p => `<div class="comp-item"><div class="comp-head"><span class="comp-name">${p.name} <span style="font-size:10px;color:var(--gray3)">(${p.position||""})</span></span><span class="comp-pct">${p.pct}%</span></div><div class="comp-track"><div class="comp-fill" style="width:${p.pct}%"></div></div></div>`).join("");
+}
+
 async function loadPerf(){
   const resultsSection = document.getElementById("perfResultsSection");
   const isAdmin = PERF_RESULTS_ROLES.includes(getCurrentRole());
@@ -4626,6 +4722,7 @@ async function loadPerf(){
   loadPerfReviewSection();
 
   if(!isAdmin) return; // Only authorized governance roles load/see the results
+  loadPerfAttendanceWidget();
   const tbody = document.getElementById("perfTbody");
   const cardsWrap = document.getElementById("perfResultsCards");
   if(!tbody) return;
