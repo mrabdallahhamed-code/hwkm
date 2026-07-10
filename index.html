@@ -1002,15 +1002,8 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <span>🏛️ السياسات والحوكمة</span>
     <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mp-id').value='';document.getElementById('mp-title-h').textContent='🏛️ إضافة سياسة جديدة';document.getElementById('mp-name').value='';document.getElementById('mp-type').value='';document.getElementById('mp-approval').value='';document.getElementById('mp-review').value='';openM('m-policy')">+ إضافة سياسة</button>
   </div>
-  <div class="card">
-    <div class="card-body" style="padding:0">
-      <table class="tbl">
-        <thead><tr><th>السياسة</th><th>النوع</th><th>تاريخ الاعتماد</th><th>موعد المراجعة</th><th>الحالة</th><th>الملف</th><th>إجراء</th></tr></thead>
-        <tbody id="policiesTbody">
-          <tr><td colspan="5" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
-        </tbody>
-      </table>
-    </div>
+  <div id="policiesCards">
+    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
   </div>
 
   <div class="card" style="margin-top:20px" id="policyReviewCard">
@@ -2771,16 +2764,43 @@ async function recomputeMeetingRequestStatus(requestId){
 let policiesCache = [];
 const POLICY_STAGES = ["مسودة", "معتمدة من لجنة الحوكمة", "مرفوعة لمجلس الإدارة", "مرفوعة للجمعية العامة", "معتمدة نهائيًا"];
 
+const POLICY_CATEGORY_ICONS = {
+  "سياسات الجمعية": "📜",
+  "سياسات المجلس": "🏛️",
+  "سياسات اللجان": "👥",
+  "لوائح المجلس": "📋",
+  "لوائح اللجان": "📑",
+  "لوائح داخلية": "🗂️"
+};
+
+function policyStageStepper(status){
+  const idx = POLICY_STAGES.indexOf(status);
+  const currentIdx = idx === -1 ? 0 : idx;
+  return `<div style="display:flex;align-items:center;margin:10px 0">
+    ${POLICY_STAGES.map((stage, i) => {
+      const done = i < currentIdx;
+      const active = i === currentIdx;
+      const dotColor = done ? "var(--green)" : active ? "var(--primary)" : "var(--gray1)";
+      const lineColor = i < currentIdx ? "var(--green)" : "var(--gray1)";
+      return `<div style="display:flex;align-items:center;flex:${i<POLICY_STAGES.length-1?'1':'0'}">
+        <div title="${stage}" style="width:${active?'14px':'10px'};height:${active?'14px':'10px'};border-radius:50%;background:${dotColor};${active?'box-shadow:0 0 0 4px rgba(26,58,107,0.15)':''};flex-shrink:0"></div>
+        ${i<POLICY_STAGES.length-1 ? `<div style="flex:1;height:3px;background:${lineColor};margin:0 2px"></div>` : ""}
+      </div>`;
+    }).join("")}
+  </div>
+  <div style="font-size:10px;color:var(--gray3);text-align:center;font-weight:700">${status||"مسودة"}</div>`;
+}
+
 async function loadPolicies(){
-  const tbody = document.getElementById("policiesTbody");
+  const wrap = document.getElementById("policiesCards");
   const { data, error } = await sb.from("policies").select("*").eq("company_id", currentCompanyId).order("id", { ascending: true });
   if(error){
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--red);font-size:12px;padding:14px">تعذّر تحميل السياسات: '+error.message+'</td></tr>';
+    wrap.innerHTML = '<div style="text-align:center;color:var(--red);font-size:12px;padding:14px">تعذّر تحميل السياسات: '+error.message+'</div>';
     return;
   }
   policiesCache = data || [];
   if(policiesCache.length === 0){
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد سياسات بعد. اضغط "+ إضافة سياسة" للبدء.</td></tr>';
+    wrap.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد سياسات بعد. اضغط "+ إضافة سياسة" للبدء.</div>';
     return;
   }
   const statusBadge = (s) => {
@@ -2789,7 +2809,7 @@ async function loadPolicies(){
     if(s === "مسودة") return '<span class="badge pending">مسودة</span>';
     return '<span class="badge info">'+ (s || "مسودة") +'</span>';
   };
-  // Group all policies by category first, regardless of insertion order, so rows of the
+  // Group all policies by category first, regardless of insertion order, so cards of the
   // same category always sit together under one header instead of being interleaved.
   const categoryOrder = ["سياسات الجمعية", "سياسات المجلس", "سياسات اللجان", "لوائح المجلس", "لوائح اللجان", "لوائح داخلية"];
   const groups = {};
@@ -2805,29 +2825,48 @@ async function loadPolicies(){
     if(ib===-1) return -1;
     return ia-ib;
   });
-  let rows = "";
+
+  let html = "";
   allCats.forEach(cat => {
-    rows += `<tr style="background:#EAF0F8"><td colspan="7" style="font-weight:800;color:var(--primary);font-size:11px;padding:8px 14px">${cat}</td></tr>`;
+    const icon = POLICY_CATEGORY_ICONS[cat] || "📁";
+    html += `<div style="display:flex;align-items:center;gap:8px;margin:22px 0 12px">
+      <span style="font-size:16px">${icon}</span>
+      <span style="font-weight:900;font-size:14px;color:var(--primary)">${cat}</span>
+      <span style="flex:1;height:1px;background:var(--gray1)"></span>
+    </div>
+    <div class="two-col">`;
+
     groups[cat].forEach(p => {
       const stageIdx = POLICY_STAGES.indexOf(p.status);
       const nextBtn = (stageIdx >= 0 && stageIdx < POLICY_STAGES.length-1)
-        ? `<button class="btn-xs primary" style="margin-inline-end:4px" onclick="advancePolicyStage(${p.id})" title="نقل للمرحلة التالية: ${POLICY_STAGES[stageIdx+1]}">⏩ ${POLICY_STAGES[stageIdx+1]}</button>`
+        ? `<button class="btn-xs primary" style="width:100%;margin-top:8px" onclick="advancePolicyStage(${p.id})">⏩ نقل إلى: ${POLICY_STAGES[stageIdx+1]}</button>`
         : "";
-      rows += `<tr>
-        <td>${p.policy_name || ""}</td>
-        <td>${p.policy_type || "—"}</td>
-        <td>${p.approval_date || "—"}</td>
-        <td>${p.review_date || "—"}</td>
-        <td>${statusBadge(p.status)}${nextBtn ? "<br>"+nextBtn : ""}</td>
-        <td>${downloadBtn(p.file_url)}</td>
-        <td>
-          <button class="btn-xs primary" onclick="editPolicy(${p.id})">✏️ تعديل</button>
-          <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;margin-right:4px" onclick="deletePolicy(${p.id})">🗑️ حذف</button>
-        </td>
-      </tr>`;
+      html += `<div class="card" style="margin-bottom:16px">
+        <div class="card-body">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+            <div>
+              <div style="font-weight:800;font-size:13.5px;color:var(--dark)">${p.policy_name||""}</div>
+              <div style="font-size:11px;color:var(--gray3);margin-top:2px">${p.policy_type||"—"}</div>
+            </div>
+            ${statusBadge(p.status)}
+          </div>
+          ${policyStageStepper(p.status)}
+          <div style="font-size:11px;color:var(--gray3);display:flex;gap:14px;margin-top:6px">
+            <span>📅 اعتماد: ${p.approval_date||"—"}</span>
+            <span>🔁 مراجعة: ${p.review_date||"—"}</span>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:10px;align-items:center">
+            ${downloadBtn(p.file_url)}
+            <button class="btn-xs primary" onclick="editPolicy(${p.id})">✏️ تعديل</button>
+            <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="deletePolicy(${p.id})">🗑️ حذف</button>
+          </div>
+          ${nextBtn}
+        </div>
+      </div>`;
     });
+    html += `</div>`;
   });
-  tbody.innerHTML = rows;
+  wrap.innerHTML = html;
   loadPolicyReviewSection();
 }
 
