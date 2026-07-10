@@ -956,40 +956,23 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
 <!-- ══ AGM ════════════════════════════════ -->
 <div id="p-agm" class="page content">
-  <div class="sec-title">🤝 الجمعيات العامة</div>
-  <div class="card" style="margin-bottom:18px">
-    <div class="card-head"><span class="card-title">الجمعية العامة العادية 2026</span><span class="badge gold">قيد التحضير</span></div>
-    <div class="card-body">
-      <div class="meet-item">
-        <div class="meet-dt"><div class="meet-day">15</div><div class="meet-mon">أبريل</div></div>
-        <div class="meet-info">
-          <div class="meet-name">الجمعية العامة العادية — السنة المالية 2025</div>
-          <div class="meet-meta">📍 قاعة المؤتمرات الكبرى · 11:00 ص · مفتوح للمساهمين</div>
-          <div class="meet-meta" style="margin-top:4px">📋 جدول الأعمال: 8 بنود · الإفصاح — الأرباح — انتخاب الأعضاء</div>
-        </div>
-        <div style="display:flex;gap:5px;flex-direction:column"><button class="btn-xs gold">دعوة الاجتماع</button><button class="btn-xs primary">وثائق الاجتماع</button></div>
-      </div>
-    </div>
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span>🤝 الجمعيات العامة</span>
+    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mt-type').value='الجمعية العامة';openM('m-meeting')">+ جمعية عامة جديدة</button>
   </div>
-  <div class="sec-title">📚 سجل الجمعيات السابقة</div>
+
+  <div class="sec-title" style="margin-top:16px">📅 الجمعيات القادمة</div>
+  <div class="meet-cards" id="upcomingAGMCards">
+    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
+  </div>
+
+  <div class="sec-title" style="margin-top:20px">📚 سجل الجمعيات السابقة</div>
   <div class="card">
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>الجمعية</th><th>التاريخ</th><th>الحضور</th><th>القرارات</th><th>دعوة الاجتماع</th><th>وثائق الاجتماع</th><th>الحالة</th></tr></thead>
-        <tbody>
-          <tr><td>الجمعية العامة العادية 2025</td><td>20 أبريل 2025</td><td>78% من المساهمين</td><td>6 قرارات</td><td><button class="btn-xs primary">دعوة</button></td><td><button class="btn-xs primary">وثائق</button></td><td><span class="badge done">مكتملة</span></td></tr>
-          <tr><td>جمعية عامة غير عادية — تعديل النظام</td><td>10 أكتوبر 2024</td><td>65% من المساهمين</td><td>3 قرارات</td><td><button class="btn-xs primary">دعوة</button></td><td><button class="btn-xs primary">وثائق</button></td><td><span class="badge done">مكتملة</span></td></tr>
-          <tr><td>الجمعية العامة العادية 2024</td><td>15 أبريل 2024</td><td>82% من المساهمين</td><td>7 قرارات</td><td><button class="btn-xs primary">دعوة</button></td><td><button class="btn-xs primary">وثائق</button></td><td><span class="badge done">مكتملة</span></td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>  <div class="sec-title" style="margin-top:20px">🤝 سجل الجمعيات المسجّلة</div>
-  <div class="card">
-    <div class="card-body" style="padding:0">
-      <table class="tbl">
-        <thead><tr><th>العنوان</th><th>النوع</th><th>التاريخ</th><th>الوقت</th><th>طريقة الانعقاد</th><th>ملاحظات</th><th>جدول الأعمال</th><th>المحضر</th><th>الدعوات</th><th>إجراء</th></tr></thead>
-        <tbody id="agmMeetingsCards">
-          <tr><td colspan="7" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+        <thead><tr><th>الجمعية</th><th>التاريخ</th><th>النوع</th><th>نسبة المشاركة بالتصويت</th><th>الحالة</th><th>إجراء</th></tr></thead>
+        <tbody id="pastAGMTbody">
+          <tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
       </table>
     </div>
@@ -1140,20 +1123,21 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
 <!-- ══ VOTING ═════════════════════════════ -->
 <div id="p-voting" class="page content">
-  <div class="sec-title">التصويت الإلكتروني</div>
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span>🗳️ التصويت الإلكتروني</span>
+    <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="go('agm')">🔙 رجوع للجمعية العامة</button>
+  </div>
   <div class="card">
-    <div class="card-head"><span class="card-title">الجمعية العامة العادية — شركة أسس الأنظمة الجديدة</span><span class="badge info">2026</span></div>
+    <div class="card-head"><span class="card-title" id="votingMeetingTitle">اختر جمعية للتصويت</span></div>
     <div class="card-body">
+      <div id="votingNotOpenBanner" style="display:none;padding:10px 14px;background:#FEF3E2;border-radius:8px;font-size:12px;font-weight:700;color:var(--orange);margin-bottom:12px"></div>
       <div id="companyCapitalInfo" style="font-size:11px;color:var(--gray3);background:var(--offwhite);border-radius:8px;padding:8px 12px;margin-bottom:12px">جارِ التحميل...</div>
       <div class="row2" style="margin-bottom:14px">
         <div class="fg"><label style="font-size:11px;font-weight:700;color:var(--gray3)">اسم المساهم</label><input class="fi" id="gm-shareholder-name" placeholder="مثال: عبدالله حامد محمد" /></div>
         <div class="fg"><label style="font-size:11px;font-weight:700;color:var(--gray3)">عدد الأسهم</label><input class="fi" id="gm-shares-count" type="number" placeholder="مثال: 500" /></div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
-        <div style="background:var(--offwhite);border-radius:10px;padding:12px;border-right:4px solid var(--primary)"><div style="font-size:11px;font-weight:800;color:var(--primary);margin-bottom:2px">البند الاول</div><div style="font-size:13px;font-weight:700;margin-bottom:6px">اعتماد الميزانية للسنة المالية 2025</div><div style="display:flex;gap:6px"><button class="btn btn-primary" onclick="voteItem(this,'اعتماد الميزانية للسنة المالية 2025','موافق')" style="font-size:11px;padding:4px 12px">موافق</button><button class="btn btn-ghost" onclick="voteItem(this,'اعتماد الميزانية للسنة المالية 2025','معارض')" style="font-size:11px;padding:4px 12px;border:1px solid var(--red);color:var(--red)">معارض</button><button class="btn btn-ghost" onclick="voteItem(this,'اعتماد الميزانية للسنة المالية 2025','ممتنع')" style="font-size:11px;padding:4px 12px">ممتنع</button></div></div>
-        <div style="background:var(--offwhite);border-radius:10px;padding:12px;border-right:4px solid var(--primary)"><div style="font-size:11px;font-weight:800;color:var(--primary);margin-bottom:2px">البند الثاني</div><div style="font-size:13px;font-weight:700;margin-bottom:6px">ابراء ذمة مجلس الادارة عن العام 2025</div><div style="display:flex;gap:6px"><button class="btn btn-primary" onclick="voteItem(this,'ابراء ذمة مجلس الادارة عن العام 2025','موافق')" style="font-size:11px;padding:4px 12px">موافق</button><button class="btn btn-ghost" onclick="voteItem(this,'ابراء ذمة مجلس الادارة عن العام 2025','معارض')" style="font-size:11px;padding:4px 12px;border:1px solid var(--red);color:var(--red)">معارض</button><button class="btn btn-ghost" onclick="voteItem(this,'ابراء ذمة مجلس الادارة عن العام 2025','ممتنع')" style="font-size:11px;padding:4px 12px">ممتنع</button></div></div>
-        <div style="background:var(--offwhite);border-radius:10px;padding:12px;border-right:4px solid var(--primary)"><div style="font-size:11px;font-weight:800;color:var(--primary);margin-bottom:2px">البند الثالث</div><div style="font-size:13px;font-weight:700;margin-bottom:6px">اقرار تقرير مجلس الادارة لعام 2025</div><div style="display:flex;gap:6px"><button class="btn btn-primary" onclick="voteItem(this,'اقرار تقرير مجلس الادارة لعام 2025','موافق')" style="font-size:11px;padding:4px 12px">موافق</button><button class="btn btn-ghost" onclick="voteItem(this,'اقرار تقرير مجلس الادارة لعام 2025','معارض')" style="font-size:11px;padding:4px 12px;border:1px solid var(--red);color:var(--red)">معارض</button><button class="btn btn-ghost" onclick="voteItem(this,'اقرار تقرير مجلس الادارة لعام 2025','ممتنع')" style="font-size:11px;padding:4px 12px">ممتنع</button></div></div>
-        <div style="background:var(--offwhite);border-radius:10px;padding:12px;border-right:4px solid var(--primary)"><div style="font-size:11px;font-weight:800;color:var(--primary);margin-bottom:2px">البند الرابع</div><div style="font-size:13px;font-weight:700;margin-bottom:6px">تعيين مكتب KPMG مراجع حسابات عن العام 2026</div><div style="display:flex;gap:6px"><button class="btn btn-primary" onclick="voteItem(this,'تعيين مكتب KPMG مراجع حسابات عن العام 2026','موافق')" style="font-size:11px;padding:4px 12px">موافق</button><button class="btn btn-ghost" onclick="voteItem(this,'تعيين مكتب KPMG مراجع حسابات عن العام 2026','معارض')" style="font-size:11px;padding:4px 12px;border:1px solid var(--red);color:var(--red)">معارض</button><button class="btn btn-ghost" onclick="voteItem(this,'تعيين مكتب KPMG مراجع حسابات عن العام 2026','ممتنع')" style="font-size:11px;padding:4px 12px">ممتنع</button></div></div>
+      <div id="votingTopicsContainer" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
+        <div style="text-align:center;color:var(--gray3);font-size:12px">جارِ التحميل...</div>
       </div>
       <div id="vote-msg" style="display:none;padding:8px 12px;background:#E8F8EF;border-radius:8px;font-size:12px;font-weight:700;color:var(--green);margin-bottom:10px">تم تسجيل تصويتك</div>
       <button class="btn btn-gold" style="width:100%" onclick="generateShareholderVotePDF()">📄 تحميل ملف PDF بنتيجة تصويتي</button>
@@ -1195,9 +1179,6 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <button class="btn btn-gold" style="flex:1" onclick="generateAttendanceSheet()">🖨️ تحميل كشف الحضور PDF</button>
     <button class="btn btn-gold" style="flex:1" onclick="generateVoteMinutesPDF()">🖨️ تحميل محضر فرز الأصوات PDF</button>
   </div>
-
-  <div class="sec-title" style="margin-top:20px">📚 سجل جلسات التصويت السابقة</div>
-  <div class="card"><div class="card-body" style="padding:0"><table class="tbl"><thead><tr><th>الجلسة</th><th>التاريخ</th><th>عدد البنود</th><th>نسبة الموافقة</th><th>الحالة</th></tr></thead><tbody><tr><td>الجمعية العامة العادية 2025</td><td>20 ابريل 2025</td><td>6 بنود</td><td>100%</td><td><span class="badge done">مكتمل</span></td></tr><tr><td>جمعية عامة غير عادية</td><td>10 اكتوبر 2024</td><td>3 بنود</td><td>85%</td><td><span class="badge done">مكتمل</span></td></tr><tr><td>الجمعية العامة العادية 2024</td><td>15 ابريل 2024</td><td>7 بنود</td><td>100%</td><td><span class="badge done">مكتمل</span></td></tr></tbody></table></div></div>
 </div>
 <div id="p-audit" class="page content">
   <div class="sec-title">🔍 التدقيق الداخلي</div>
@@ -1804,6 +1785,29 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
+<div class="modal-bg" id="m-agm-view">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title" id="agmView-title">تفاصيل الجمعية</div>
+    <div style="font-size:12px;color:var(--gray3);margin-bottom:14px" id="agmView-meta"></div>
+    <div id="agmView-files"></div>
+
+    <div style="margin-top:16px">
+      <div style="font-weight:800;font-size:12.5px;color:var(--dark);margin-bottom:8px">📋 بنود جدول الأعمال / التصويت</div>
+      <div id="agmView-topics" style="margin-bottom:8px"></div>
+      <div style="display:flex;gap:6px">
+        <input class="fi" id="agmView-newtopic" placeholder="نص بند جديد..." style="flex:1">
+        <button class="btn btn-gold" style="font-size:11px;padding:8px 14px;white-space:nowrap" onclick="addAGMTopic()">+ إضافة بند</button>
+      </div>
+      <p style="font-size:10.5px;color:var(--gray3);margin-top:6px">هذه البنود تظهر تلقائيًا بصفحة التصويت الخاصة بهذه الجمعية، وتنفتح للتصويت تلقائيًا بموعد الجمعية المحدد أعلاه.</p>
+    </div>
+
+    <div class="modal-foot" style="justify-content:space-between">
+      <button class="btn btn-ghost" onclick="closeM('m-agm-view')">إغلاق</button>
+      <button class="btn btn-gold" id="agmView-gotovote-btn" onclick="goToAGMVoting()">🗳️ الذهاب لصفحة التصويت</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-meeting-request">
   <div class="modal">
     <div class="modal-title">🗳️ طلب اجتماع جديد</div>
@@ -2075,6 +2079,7 @@ function isMutatingOnclick(val){
     || /^openPermItemsManager\(/.test(val)
     || /^openPermItemEditModal\(/.test(val)
     || /^linkMeetingToSigningDoc\(/.test(val)
+    || /^addAGMTopic\(/.test(val)
     || /^edit[A-Z]/.test(val)
     || /^delete[A-Z]/.test(val)
     || /^saveCompany/.test(val)
@@ -2084,6 +2089,7 @@ function isMutatingOnchange(val){
   if(!val) return false;
   return /^uploadFile\(/.test(val)
     || /^uploadMeetingFile\(/.test(val)
+    || /^uploadAGMSupportingDoc\(/.test(val)
     || /^updateUserRole\(/.test(val)
     || /^updateRequestStatus\(/.test(val)
     || /^savePermCell\(/.test(val);
@@ -2183,7 +2189,7 @@ function reloadCurrentPageData(){
   if(id==='committees') loadCommittees();
   if(id==='structure') loadStructure();
   if(id==='permissions') loadPermissionsMatrix();
-  if(id==='voting') loadVotes();
+  if(id==='voting') loadVotingPage();
   if(id==='audit') loadAudit();
   if(id==='consultants') loadConsultants();
   if(id==='perf') loadPerf();
@@ -2421,14 +2427,12 @@ async function deleteMeeting(id){
 
 async function loadMeetingsAll(){
   const committeeWrap = document.getElementById("committeeMeetingsCards");
-  const agmWrap = document.getElementById("agmMeetingsCards");
   const emptyMsg = '<tr><td colspan="10" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد بيانات بعد</td></tr>';
 
   const { data, error } = await sb.from("meetings").select("*").eq("company_id", currentCompanyId).order("id", { ascending: false });
   if(error){
     const errMsg = '<tr><td colspan="10" style="text-align:center;color:var(--red);font-size:12px;padding:14px">تعذّر التحميل: '+error.message+'</td></tr>';
     if(committeeWrap) committeeWrap.innerHTML = errMsg;
-    if(agmWrap) agmWrap.innerHTML = errMsg;
     return;
   }
 
@@ -2437,11 +2441,11 @@ async function loadMeetingsAll(){
   const agm = (data || []).filter(m => m.meeting_type === "الجمعية العامة");
 
   if(committeeWrap) committeeWrap.innerHTML = committee.length ? committee.map(renderMeetingRow).join("") : emptyMsg;
-  if(agmWrap) agmWrap.innerHTML = agm.length ? agm.map(renderMeetingRow).join("") : emptyMsg;
 
   renderUpcomingMeetingCards(board);
   loadMeetingRequestsReview();
   loadBoardMinutes(board);
+  renderAGMSection(agm);
 }
 
 /* ══════════ BOARD MINUTES (signed via e-signature) ══════════ */
@@ -2606,6 +2610,180 @@ function renderUpcomingMeetingCards(boardMeetings){
       </div>
     </div>`;
   }).join("");
+}
+
+/* ══════════ AGM (الجمعية العامة) — cards, detail modal, per-meeting voting topics ══════════ */
+let agmMeetingsCache = [];
+let currentAGMModalMeetingId = null;
+let currentVotingMeetingId = null;
+
+function renderAGMSection(agmMeetings){
+  agmMeetingsCache = agmMeetings;
+  const todayStr = new Date().toISOString().slice(0,10);
+  const currentYear = new Date().getFullYear();
+
+  const upcoming = agmMeetings
+    .filter(m => m.meeting_date && m.meeting_date >= todayStr && new Date(m.meeting_date).getFullYear() === currentYear)
+    .sort((a,b) => (a.meeting_date||"").localeCompare(b.meeting_date||""));
+  const past = agmMeetings
+    .filter(m => !m.meeting_date || m.meeting_date < todayStr)
+    .sort((a,b) => (b.meeting_date||"").localeCompare(a.meeting_date||""));
+
+  renderUpcomingAGMCards(upcoming);
+  renderPastAGMTable(past);
+}
+
+function renderUpcomingAGMCards(upcoming){
+  const wrap = document.getElementById("upcomingAGMCards");
+  if(!wrap) return;
+  if(upcoming.length === 0){
+    wrap.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">لا توجد جمعيات عامة قادمة هذا العام حاليًا.</div>';
+    return;
+  }
+  wrap.innerHTML = upcoming.map(m => {
+    const fileCount = [m.agenda_file_url,m.invitation_file_url,m.minutes_file_url].filter(Boolean).length;
+    return `<div class="mc q1" style="cursor:pointer" onclick="openAGMDetailModal(${m.id})">
+      <div class="mc-bar"></div>
+      <div class="mc-type">${m.meeting_type||''}</div>
+      <div class="mc-title">${m.title||""}</div>
+      <div class="mc-detail">📅 ${m.meeting_date||"—"}${m.meeting_time ? (" — الساعة "+m.meeting_time) : ""}</div>
+      <div class="mc-detail">📍 ${m.method||"—"}</div>
+      ${m.notes ? `<div class="mc-detail">📝 ${m.notes}</div>` : ""}
+      <div class="mc-actions">
+        <button class="btn-xs primary" style="width:100%" onclick="event.stopPropagation();openAGMDetailModal(${m.id})">📂 عرض التفاصيل والملفات ${fileCount ? `(${fileCount})` : ''}</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+async function renderPastAGMTable(past){
+  const tbody = document.getElementById("pastAGMTbody");
+  if(!tbody) return;
+  if(past.length === 0){
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا يوجد سجل جمعيات سابقة بعد</td></tr>';
+    return;
+  }
+  const ids = past.map(m=>m.id);
+  const { data: votes } = await sb.from("votes").select("*").in("meeting_id", ids);
+  const votesByMeeting = {};
+  (votes||[]).forEach(v => { if(!votesByMeeting[v.meeting_id]) votesByMeeting[v.meeting_id]=[]; votesByMeeting[v.meeting_id].push(v); });
+  const totalShares = Number(companySettings.total_shares) || 0;
+
+  tbody.innerHTML = past.map(m => {
+    const vs = votesByMeeting[m.id] || [];
+    const shareholders = {};
+    vs.forEach(v => { if(v.shareholder_name) shareholders[v.shareholder_name] = Number(v.shares_count)||0; });
+    const votedShares = Object.values(shareholders).reduce((a,b)=>a+b,0);
+    const participation = totalShares ? pct(votedShares, totalShares) : "—";
+    return `<tr style="cursor:pointer" onclick="openAGMDetailModal(${m.id})">
+      <td>${m.title||""}</td><td>${m.meeting_date||"—"}</td><td>${m.meeting_type||"—"}</td>
+      <td>${participation}</td>
+      <td><span class="badge done">مكتملة</span></td>
+      <td><button class="btn-xs primary" onclick="event.stopPropagation();openAGMDetailModal(${m.id})">📂 التفاصيل</button></td>
+    </tr>`;
+  }).join("");
+}
+
+async function openAGMDetailModal(id){
+  const m = agmMeetingsCache.find(x => x.id === id);
+  if(!m) return;
+  currentAGMModalMeetingId = id;
+  document.getElementById("agmView-title").textContent = m.title||"";
+  document.getElementById("agmView-meta").innerHTML =
+    `📅 ${m.meeting_date||"—"}${m.meeting_time?(" — الساعة "+m.meeting_time):""} &nbsp;·&nbsp; 📍 ${m.method||"—"}` +
+    (m.notes ? `<br>📝 ${m.notes}` : "");
+
+  document.getElementById("agmView-files").innerHTML =
+    fileRowWide(m.id,'invitation_file_url',m.invitation_file_url,'📨 دعوة الجمعية') +
+    fileRowWide(m.id,'minutes_file_url',m.minutes_file_url,'📋 محضر الجمعية') +
+    `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
+      <div style="font-size:13px;font-weight:800;color:var(--dark)">🧾 محضر كشف الحضور (تلقائي من التصويت)</div>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateAttendanceSheet(${m.id})">🖨️ توليد PDF</button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
+      <div style="font-size:13px;font-weight:800;color:var(--dark)">🗳️ محضر فرز الأصوات (تلقائي من التصويت)</div>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateVoteMinutesPDF(${m.id})">🖨️ توليد PDF</button>
+    </div>
+    <div style="padding:12px 0">
+      <div style="font-size:13px;font-weight:800;color:var(--dark);margin-bottom:8px">📎 الوثائق الداعمة</div>
+      <div id="agmView-supdocs"></div>
+      <label class="btn btn-ghost" style="font-size:11px;padding:6px 14px;cursor:pointer;margin-top:6px;display:inline-block">+ إضافة وثيقة<input type="file" style="display:none" onchange="uploadAGMSupportingDoc(${m.id},this)"></label>
+    </div>`;
+
+  await loadAGMSupportingDocs(m.id);
+  await loadAGMTopicsForModal(m.id);
+  openM("m-agm-view");
+}
+
+async function loadAGMSupportingDocs(meetingId){
+  const box = document.getElementById("agmView-supdocs");
+  if(!box) return;
+  const { data, error } = await sb.from("meeting_supporting_docs").select("*").eq("meeting_id", meetingId).order("id",{ascending:false});
+  if(error){ box.innerHTML = '<div style="font-size:11px;color:var(--red)">تعذّر التحميل</div>'; return; }
+  if(!data || data.length===0){ box.innerHTML = '<div style="font-size:11px;color:var(--gray3)">لا توجد وثائق داعمة مرفوعة بعد.</div>'; return; }
+  box.innerHTML = data.map(d => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:12px">
+    <span>${d.document_name||"وثيقة"}</span>
+    <span style="display:flex;gap:6px">
+      <a class="btn-xs primary" href="${d.file_url}" target="_blank" rel="noopener">📥</a>
+      <button style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer" onclick="deleteAGMSupportingDoc(${d.id},${meetingId})">🗑️</button>
+    </span>
+  </div>`).join("");
+}
+
+async function uploadAGMSupportingDoc(meetingId, inputEl){
+  if(!inputEl.files || !inputEl.files[0]) return;
+  const file_url = await uploadFile(inputEl, "meeting-docs");
+  if(!file_url) return;
+  const document_name = inputEl.files[0].name;
+  const { error } = await sb.from("meeting_supporting_docs").insert([{ meeting_id: meetingId, document_name, file_url, company_id: currentCompanyId }]);
+  if(error){ alert("تعذّر رفع الوثيقة: " + error.message); return; }
+  loadAGMSupportingDocs(meetingId);
+}
+
+async function deleteAGMSupportingDoc(docId, meetingId){
+  if(!confirm("حذف هذه الوثيقة؟")) return;
+  const { error } = await sb.from("meeting_supporting_docs").delete().eq("id", docId);
+  if(error){ alert("تعذّر الحذف: " + error.message); return; }
+  loadAGMSupportingDocs(meetingId);
+}
+
+async function loadAGMTopicsForModal(meetingId){
+  const box = document.getElementById("agmView-topics");
+  if(!box) return;
+  const { data, error } = await sb.from("vote_topics").select("*").eq("meeting_id", meetingId).order("sort_order",{ascending:true}).order("id",{ascending:true});
+  if(error){ box.innerHTML = '<div style="font-size:11px;color:var(--red)">تعذّر التحميل</div>'; return; }
+  if(!data || data.length===0){ box.innerHTML = '<div style="font-size:11px;color:var(--gray3);padding:6px 0">لا توجد بنود بعد — أضف أول بند بالأسفل.</div>'; return; }
+  box.innerHTML = data.map((t,i) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:12.5px;border-bottom:1px solid var(--gray1)">
+    <span>${i+1}. ${t.topic_text}</span>
+    <button style="background:none;border:none;color:var(--gray3);cursor:pointer;font-size:11px" onclick="deleteAGMTopic(${t.id},${meetingId})" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--gray3)'">🗑️</button>
+  </div>`).join("");
+}
+
+async function addAGMTopic(){
+  const input = document.getElementById("agmView-newtopic");
+  const topic_text = input.value.trim();
+  if(!topic_text || !currentAGMModalMeetingId) return;
+  const { data: existing } = await sb.from("vote_topics").select("id").eq("meeting_id", currentAGMModalMeetingId);
+  const { error } = await sb.from("vote_topics").insert([{
+    meeting_id: currentAGMModalMeetingId, topic_text, sort_order: (existing||[]).length, company_id: currentCompanyId
+  }]);
+  if(error){ alert("تعذّر إضافة البند: " + error.message); return; }
+  input.value = "";
+  loadAGMTopicsForModal(currentAGMModalMeetingId);
+}
+
+async function deleteAGMTopic(topicId, meetingId){
+  if(!confirm("حذف هذا البند نهائيًا؟ سيُحذف معه أي أصوات مسجّلة عليه.")) return;
+  const { error } = await sb.from("vote_topics").delete().eq("id", topicId);
+  if(error){ alert("تعذّر الحذف: " + error.message); return; }
+  loadAGMTopicsForModal(meetingId);
+}
+
+function goToAGMVoting(){
+  if(!currentAGMModalMeetingId) return;
+  currentVotingMeetingId = currentAGMModalMeetingId;
+  closeM("m-agm-view");
+  go('voting');
 }
 
 async function saveMeeting(){
@@ -3637,28 +3815,80 @@ async function loadCompanySettings(){
 }
 function pct(n, d){ return d ? ((n/d)*100).toFixed(1)+"%" : "0%"; }
 
-async function loadVotes(){
-  const tbody = document.getElementById("votesTbody");
-  if(tbody){
-    const { data, error } = await sb.from("votes").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
-    if(error){ tbody.innerHTML = errorRowHTML(3, error.message); }
-    else if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(3, 'لا توجد بيانات بعد.'); }
-    else {
-      tbody.innerHTML = data.map(v => `<tr>
-        <td>${v.topic||""}</td><td>${v.result||"—"}</td><td>${v.vote_date||"—"}</td>
-      </tr>`).join("");
+/* Main entry point when navigating to the voting page: picks which AGM meeting we're
+   voting in (or shows an empty state), then loads that meeting's topics + results. */
+async function loadVotingPage(){
+  const titleEl = document.getElementById("votingMeetingTitle");
+  const banner = document.getElementById("votingNotOpenBanner");
+  const topicsBox = document.getElementById("votingTopicsContainer");
+
+  if(!currentVotingMeetingId){
+    const { data: agms } = await sb.from("meetings").select("*").eq("company_id", currentCompanyId).eq("meeting_type","الجمعية العامة").order("meeting_date",{ascending:false});
+    if(agms && agms.length){
+      const todayStr = new Date().toISOString().slice(0,10);
+      const upcoming = agms.filter(m=>m.meeting_date && m.meeting_date>=todayStr).sort((a,b)=>(a.meeting_date||"").localeCompare(b.meeting_date||""));
+      currentVotingMeetingId = upcoming.length ? upcoming[0].id : agms[0].id;
     }
   }
+
+  if(!currentVotingMeetingId){
+    if(titleEl) titleEl.textContent = "لا توجد جمعية عامة بعد";
+    if(banner) banner.style.display = "none";
+    if(topicsBox) topicsBox.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px">أنشئ جمعية عامة أولًا من صفحة "الجمعية العامة".</div>';
+    return;
+  }
+
+  const { data: m, error } = await sb.from("meetings").select("*").eq("id", currentVotingMeetingId).single();
+  if(error || !m){
+    if(titleEl) titleEl.textContent = "تعذّر تحميل بيانات الجمعية";
+    return;
+  }
+
+  if(titleEl) titleEl.textContent = `${m.title||"جمعية عامة"} — ${m.meeting_date||""}`;
+
+  // Gate voting until the meeting's own scheduled date/time arrives
+  const now = new Date();
+  const meetingDateTime = m.meeting_date ? new Date(m.meeting_date+"T"+(m.meeting_time||"00:00")) : null;
+  const isOpen = !meetingDateTime || now >= meetingDateTime;
+  if(banner){
+    if(!isOpen){
+      banner.style.display = "block";
+      banner.textContent = `⏳ التصويت يبدأ بتاريخ ${m.meeting_date}${m.meeting_time?(' الساعة '+m.meeting_time):''}`;
+    } else {
+      banner.style.display = "none";
+    }
+  }
+
+  const { data: topics, error: topErr } = await sb.from("vote_topics").select("*").eq("meeting_id", currentVotingMeetingId).order("sort_order",{ascending:true}).order("id",{ascending:true});
+  if(topicsBox){
+    if(topErr){ topicsBox.innerHTML = '<div style="color:var(--red);font-size:12px">تعذّر تحميل البنود</div>'; }
+    else if(!topics || topics.length===0){ topicsBox.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px">لم تُضَف بنود لهذه الجمعية بعد.</div>'; }
+    else {
+      topicsBox.innerHTML = topics.map((t,i) => `
+        <div style="background:var(--offwhite);border-radius:10px;padding:12px;border-right:4px solid var(--primary)">
+          <div style="font-size:11px;font-weight:800;color:var(--primary);margin-bottom:2px">البند ${i+1}</div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:6px">${t.topic_text}</div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-primary" ${isOpen?'':'disabled'} onclick="voteItem(this,'${t.topic_text.replace(/'/g,"\\'")}','موافق')" style="font-size:11px;padding:4px 12px;${isOpen?'':'opacity:0.5;cursor:not-allowed'}">موافق</button>
+            <button class="btn btn-ghost" ${isOpen?'':'disabled'} onclick="voteItem(this,'${t.topic_text.replace(/'/g,"\\'")}','معارض')" style="font-size:11px;padding:4px 12px;border:1px solid var(--red);color:var(--red);${isOpen?'':'opacity:0.5;cursor:not-allowed'}">معارض</button>
+            <button class="btn btn-ghost" ${isOpen?'':'disabled'} onclick="voteItem(this,'${t.topic_text.replace(/'/g,"\\'")}','ممتنع')" style="font-size:11px;padding:4px 12px;${isOpen?'':'opacity:0.5;cursor:not-allowed'}">ممتنع</button>
+          </div>
+        </div>`).join("");
+    }
+  }
+
   await loadCompanySettings();
   loadVoteResults();
   loadShareholdersSummary();
 }
 
-/* Aggregated results per agenda item, weighted by shares & percentage of capital */
+/* Aggregated results per agenda item, weighted by shares & percentage of capital —
+   scoped to the AGM meeting currently open on this page. */
 async function loadVoteResults(){
   const tbody = document.getElementById("voteResultsTbody");
   if(!tbody) return;
-  const { data, error } = await sb.from("votes").select("*").eq("company_id", currentCompanyId).not("shareholder_name","is",null);
+  if(!currentVotingMeetingId){ tbody.innerHTML = emptyRowHTML(6, "لا توجد جمعية محددة."); return; }
+  const { data, error } = await sb.from("votes").select("*").eq("company_id", currentCompanyId).eq("meeting_id", currentVotingMeetingId).not("shareholder_name","is",null);
   if(error){ tbody.innerHTML = errorRowHTML(6, error.message); return; }
   const rows = data || [];
   if(rows.length===0){ tbody.innerHTML = emptyRowHTML(6, "لا توجد أصوات مسجّلة من المساهمين بعد."); return; }
@@ -3687,13 +3917,14 @@ async function loadVoteResults(){
   }).join("");
 }
 
-/* Summary table per shareholder: how many items voted in each category + share of capital */
+/* Summary table per shareholder — scoped to the currently open AGM meeting */
 async function loadShareholdersSummary(){
   const tbody = document.getElementById("shareholdersTbody");
   const tfoot = document.getElementById("shareholdersTfoot");
   const summaryBox = document.getElementById("votingCapitalSummary");
   if(!tbody) return;
-  const { data, error } = await sb.from("votes").select("*").eq("company_id", currentCompanyId).not("shareholder_name","is",null);
+  if(!currentVotingMeetingId){ tbody.innerHTML = emptyRowHTML(6, "لا توجد جمعية محددة."); return; }
+  const { data, error } = await sb.from("votes").select("*").eq("company_id", currentCompanyId).eq("meeting_id", currentVotingMeetingId).not("shareholder_name","is",null);
   if(error){ tbody.innerHTML = errorRowHTML(6, error.message); return; }
   const rows = data || [];
   if(rows.length===0){
@@ -3747,7 +3978,7 @@ async function saveVote(){
   const { error } = await sb.from("votes").insert([{ topic, result, vote_date, company_id: currentCompanyId }]);
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
   document.getElementById("mv-topic").value=""; document.getElementById("mv-date").value="";
-  closeM("m-vote"); loadVotes();
+  closeM("m-vote");
 }
 
 /* ══════════ AUDIT ITEMS ══════════ */
@@ -4043,7 +4274,7 @@ function go(id, el){
   if(id==='committees') loadCommittees();
   if(id==='structure') loadStructure();
   if(id==='permissions') loadPermissionsMatrix();
-  if(id==='voting') loadVotes();
+  if(id==='voting') loadVotingPage();
   if(id==='audit') loadAudit();
   if(id==='consultants') loadConsultants();
   if(id==='perf') loadPerf();
@@ -4238,12 +4469,14 @@ async function voteItem(btn, topic, result){
     else{msg.style.background="#E8F8EF";msg.style.color="var(--green)";}
   }
   if(topic && result){
+    if(!currentVotingMeetingId){ alert("تعذّر تحديد الجمعية الحالية"); return; }
     const vote_date = new Date().toISOString().slice(0,10);
-    // Replace any previous vote by this shareholder on the same topic
-    await sb.from("votes").delete().eq("topic", topic).eq("shareholder_name", shareholder_name);
-    const { error } = await sb.from("votes").insert([{ topic, result, vote_date, shareholder_name, shares_count, company_id: currentCompanyId }]);
+    // Replace any previous vote by this shareholder on the same topic, within this meeting only
+    await sb.from("votes").delete().eq("topic", topic).eq("shareholder_name", shareholder_name).eq("meeting_id", currentVotingMeetingId);
+    const { error } = await sb.from("votes").insert([{ topic, result, vote_date, shareholder_name, shares_count, meeting_id: currentVotingMeetingId, company_id: currentCompanyId }]);
     if(error){ alert("تعذّر تسجيل التصويت في القاعدة: " + error.message); return; }
-    loadVotes();
+    loadVoteResults();
+    loadShareholdersSummary();
   }
 }
 
@@ -4254,14 +4487,16 @@ async function generateShareholderVotePDF(){
   const shareholder_name = nameEl ? nameEl.value.trim() : "";
   const shares_count = sharesEl ? sharesEl.value : "";
   if(!shareholder_name){ alert("الرجاء إدخال اسم المساهم أولاً"); return; }
+  if(!currentVotingMeetingId){ alert("تعذّر تحديد الجمعية الحالية"); return; }
 
   const w = window.open("", "_blank");
   if(w){ w.document.write('<html dir="rtl"><body style="font-family:sans-serif;padding:30px">جارِ تجهيز الملف...</body></html>'); w.document.close(); }
-  const { data, error } = await sb.from("votes").select("*").eq("company_id", currentCompanyId).eq("shareholder_name", shareholder_name).order("id",{ascending:true});
+  const { data, error } = await sb.from("votes").select("*").eq("company_id", currentCompanyId).eq("meeting_id", currentVotingMeetingId).eq("shareholder_name", shareholder_name).order("id",{ascending:true});
   if(error){ alert("تعذّر توليد الملف: " + error.message); if(w) w.close(); return; }
   if(!w){ alert("المتصفح منع فتح نافذة الملف — الرجاء السماح بالنوافذ المنبثقة (Pop-ups) ثم المحاولة مرة أخرى."); return; }
   const rows = data || [];
   const dateNow = new Date().toLocaleDateString("ar-SA");
+  const meetingTitle = document.getElementById("votingMeetingTitle")?.textContent || "الجمعية العامة";
 
   w.document.open();
   w.document.write(`
@@ -4273,7 +4508,7 @@ async function generateShareholderVotePDF(){
       th,td{border:1px solid #ccc;padding:8px;text-align:right;font-size:13px}
       th{background:#EAF0F8}
     </style></head><body>
-    <h1>🗳️ نتيجة تصويت مساهم — الجمعية العامة العادية</h1>
+    <h1>🗳️ نتيجة تصويت مساهم — ${meetingTitle}</h1>
     <p><b>اسم المساهم:</b> ${shareholder_name}</p>
     <p><b>عدد الأسهم:</b> ${shares_count || "—"}</p>
     <p><b>تاريخ الإصدار:</b> ${dateNow}</p>
@@ -4292,10 +4527,10 @@ async function generateShareholderVotePDF(){
 
 function vote(type){const msg=document.getElementById("vote-msg");const labels={"yes":"✅ تم تسجيل تصويتك: موافق","no":"❌ تم تسجيل تصويتك: معارض","abs":"🔵 تم تسجيل تصويتك: ممتنع"};msg.textContent=labels[type]||"تم التسجيل";msg.style.display="block";if(type==="no"){msg.style.background="#FDE8E8";msg.style.color="var(--red)";}else if(type==="abs"){msg.style.background="#FEF3E2";msg.style.color="var(--orange)";}else{msg.style.background="#E8F8EF";msg.style.color="var(--green)";}};
 
-/* ══════════ VOTE PDF REPORT (all shareholders) ══════════ */
-/* Shared helper: distinct attendees (shareholders who cast at least one vote) */
-async function getAttendeesList(){
-  const { data, error } = await sb.from("votes").select("*").eq("company_id", currentCompanyId).not("shareholder_name","is",null);
+/* ══════════ VOTE PDF REPORT (per AGM meeting) ══════════ */
+/* Shared helper: distinct attendees (shareholders who cast at least one vote) for a given meeting */
+async function getAttendeesList(meetingId){
+  const { data, error } = await sb.from("votes").select("*").eq("company_id", currentCompanyId).eq("meeting_id", meetingId).not("shareholder_name","is",null);
   if(error) return { error, list: [] };
   const rows = data || [];
   const byShareholder = {};
@@ -4312,11 +4547,17 @@ async function getAttendeesList(){
   return { error:null, list };
 }
 
-/* PDF 1: Attendance sheet (كشف الحضور) */
-async function generateAttendanceSheet(){
+/* PDF 1: Attendance sheet (كشف الحضور). meetingId is optional — defaults to the meeting
+   currently open on the voting page; the AGM detail modal passes it explicitly. */
+async function generateAttendanceSheet(meetingId){
+  const mid = meetingId || currentVotingMeetingId;
+  if(!mid){ alert("تعذّر تحديد الجمعية"); return; }
   const w = window.open("", "_blank");
   if(w){ w.document.write('<html dir="rtl"><body style="font-family:sans-serif;padding:30px">جارِ تجهيز الملف...</body></html>'); w.document.close(); }
-  const { error, list } = await getAttendeesList();
+  const [{ error, list }, { data: m }] = await Promise.all([
+    getAttendeesList(mid),
+    sb.from("meetings").select("*").eq("id", mid).single()
+  ]);
   if(error){ alert("تعذّر توليد الملف: " + error.message); if(w) w.close(); return; }
   if(!w){ alert("المتصفح منع فتح نافذة الملف — الرجاء السماح بالنوافذ المنبثقة (Pop-ups) ثم المحاولة مرة أخرى."); return; }
   const dateNow = new Date().toLocaleDateString("ar-SA");
@@ -4333,8 +4574,8 @@ async function generateAttendanceSheet(){
       th{background:#EAF0F8}
       td:nth-child(2){text-align:right}
     </style></head><body>
-    <h1>📋 كشف حضور الجمعية العامة</h1>
-    <p>التاريخ: ${dateNow} &nbsp;·&nbsp; إجمالي الحاضرين: ${list.length} &nbsp;·&nbsp; إجمالي الأسهم الحاضرة: ${totalShares}</p>
+    <h1>📋 كشف حضور — ${m?.title||"الجمعية العامة"}</h1>
+    <p>تاريخ الجمعية: ${m?.meeting_date||"—"} &nbsp;·&nbsp; تاريخ الإصدار: ${dateNow} &nbsp;·&nbsp; إجمالي الحاضرين: ${list.length} &nbsp;·&nbsp; إجمالي الأسهم الحاضرة: ${totalShares}</p>
     <table>
       <thead><tr><th>م</th><th>اسم المساهم</th><th>رقم المساهم</th><th>عدد الأسهم</th><th>رقم بطاقة التصويت</th><th>التوقيع</th></tr></thead>
       <tbody>
@@ -4347,17 +4588,21 @@ async function generateAttendanceSheet(){
   w.document.close();
 }
 
-/* PDF 2: Vote counting minutes (محضر فرز الأصوات) */
-async function generateVoteMinutesPDF(){
+/* PDF 2: Vote counting minutes (محضر فرز الأصوات), scoped to one AGM meeting */
+async function generateVoteMinutesPDF(meetingId){
+  const mid = meetingId || currentVotingMeetingId;
+  if(!mid){ alert("تعذّر تحديد الجمعية"); return; }
   const w = window.open("", "_blank");
   if(w){ w.document.write('<html dir="rtl"><body style="font-family:sans-serif;padding:30px">جارِ تجهيز الملف...</body></html>'); w.document.close(); }
-  const [{ error: attError, list: attendees }, votesRes] = await Promise.all([
-    getAttendeesList(),
-    sb.from("votes").select("*").eq("company_id", currentCompanyId).not("shareholder_name","is",null)
+  const [{ error: attError, list: attendees }, votesRes, meetingRes] = await Promise.all([
+    getAttendeesList(mid),
+    sb.from("votes").select("*").eq("company_id", currentCompanyId).eq("meeting_id", mid).not("shareholder_name","is",null),
+    sb.from("meetings").select("*").eq("id", mid).single()
   ]);
   if(attError || votesRes.error){ alert("تعذّر توليد الملف: " + (attError||votesRes.error).message); if(w) w.close(); return; }
   if(!w){ alert("المتصفح منع فتح نافذة الملف — الرجاء السماح بالنوافذ المنبثقة (Pop-ups) ثم المحاولة مرة أخرى."); return; }
 
+  const m = meetingRes.data;
   const totalAttendeeShares = attendees.reduce((s,x)=>s+x.shares,0);
   const rows = votesRes.data || [];
   const byTopic = {};
@@ -4384,8 +4629,8 @@ async function generateVoteMinutesPDF(){
       .sig{margin-top:40px;display:flex;justify-content:space-between}
       .sig div{width:30%;border-top:1px solid #999;padding-top:6px;text-align:center;font-size:12px}
     </style></head><body>
-    <h1>🗳️ محضر فرز أصوات الجمعية العامة</h1>
-    <p>التاريخ: ${dateNow} &nbsp;·&nbsp; إجمالي عدد المساهمين الحاضرين: ${attendees.length} &nbsp;·&nbsp; إجمالي أسهم الحاضرين: ${totalAttendeeShares}</p>
+    <h1>🗳️ محضر فرز أصوات — ${m?.title||"الجمعية العامة"}</h1>
+    <p>تاريخ الجمعية: ${m?.meeting_date||"—"} &nbsp;·&nbsp; تاريخ الإصدار: ${dateNow} &nbsp;·&nbsp; إجمالي عدد المساهمين الحاضرين: ${attendees.length} &nbsp;·&nbsp; إجمالي أسهم الحاضرين: ${totalAttendeeShares}</p>
     <table>
       <thead><tr><th>البند</th><th>نسبة الموافقة</th><th>نسبة المعارضة</th><th>نسبة الامتناع</th><th>النسبة الإجمالية للموافقة من إجمالي أسهم الحاضرين</th></tr></thead>
       <tbody>
@@ -4414,12 +4659,14 @@ async function generateVoteMinutesPDF(){
 }
 
 async function generateVoteReport(){
+  if(!currentVotingMeetingId){ alert("تعذّر تحديد الجمعية الحالية"); return; }
   const w = window.open("", "_blank");
   if(w){ w.document.write('<html dir="rtl"><body style="font-family:sans-serif;padding:30px">جارِ تجهيز التقرير...</body></html>'); w.document.close(); }
-  await loadVotes();
+  await loadVotingPage();
   const resultsTable = document.getElementById("voteResultsTable");
   const shareholdersTable = document.getElementById("shareholdersTable");
   const summaryText = document.getElementById("votingCapitalSummary");
+  const meetingTitle = document.getElementById("votingMeetingTitle")?.textContent || "الجمعية العامة";
   if(!w){ alert("المتصفح منع فتح نافذة التقرير — الرجاء السماح بالنوافذ المنبثقة (Pop-ups) لهذا الموقع ثم المحاولة مرة أخرى."); return; }
   const dateNow = new Date().toLocaleDateString("ar-SA");
 
@@ -4434,7 +4681,7 @@ async function generateVoteReport(){
       th,td{border:1px solid #ccc;padding:6px 8px;text-align:right;font-size:11.5px}
       th{background:#EAF0F8}
     </style></head><body>
-    <h1>🧾 تقرير نتائج التصويت الإلكتروني الشامل — منصة حوكم</h1>
+    <h1>🧾 تقرير نتائج التصويت الإلكتروني الشامل — ${meetingTitle}</h1>
     <p>تاريخ التقرير: ${dateNow}</p>
     ${summaryText ? '<p>'+summaryText.textContent+'</p>' : ''}
     <h2>📊 نتائج التصويت حسب البند</h2>
