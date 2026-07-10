@@ -723,40 +723,9 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="sec-title">📊 مصفوفة المخاطر — الاحتمالية vs التأثير</div>
   <div class="card">
     <div class="card-body">
-      <!-- مصفوفة المخاطر كجدول مرئي -->
-      <div style="display:grid;grid-template-columns:40px repeat(3,1fr);grid-template-rows:repeat(3,1fr) 40px;gap:4px;height:280px;direction:ltr">
-        <!-- Row 3: عالي التأثير -->
-        <div style="display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--gray3);writing-mode:vertical-rl;transform:rotate(180deg)">عالي</div>
-        <div style="background:#FDE8E8;border-radius:8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px;padding:6px;border:1px solid #E8A0A0">
-        </div>
-        <div style="background:#FDE8E8;border-radius:8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px;padding:6px;border:1px solid #E8A0A0">
-          <div style="background:#C0392B;color:#fff;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;white-space:nowrap">سيولة مالية</div>
-        </div>
-        <div style="background:#FDE8E8;border-radius:8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px;padding:6px;border:1px solid #C0392B">
-          <div style="background:#C0392B;color:#fff;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;white-space:nowrap">امتثال تنظيمي</div>
-        </div>
-        <!-- Row 2: متوسط التأثير -->
-        <div style="display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--gray3);writing-mode:vertical-rl;transform:rotate(180deg)">متوسط</div>
-        <div style="background:#FEF3E2;border-radius:8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px;padding:6px;border:1px solid #F0C070">
-          <div style="background:#E67E22;color:#fff;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;white-space:nowrap">عمليات</div>
-        </div>
-        <div style="background:#FEF3E2;border-radius:8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px;padding:6px;border:1px solid #F0C070">
-          <div style="background:#E67E22;color:#fff;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;white-space:nowrap">أمن سيبراني</div>
-        </div>
-        <div style="background:#FDE8E8;border-radius:8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px;padding:6px;border:1px solid #C0392B">
-        </div>
-        <!-- Row 1: منخفض التأثير -->
-        <div style="display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--gray3);writing-mode:vertical-rl;transform:rotate(180deg)">منخفض</div>
-        <div style="background:#E8F8EF;border-radius:8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px;padding:6px;border:1px solid #A0D8B0">
-          <div style="background:#27AE60;color:#fff;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;white-space:nowrap">سمعة</div>
-        </div>
-        <div style="background:#E8F8EF;border-radius:8px;border:1px solid #A0D8B0"></div>
-        <div style="background:#FEF3E2;border-radius:8px;border:1px solid #F0C070"></div>
-        <!-- Row labels bottom -->
-        <div></div>
-        <div style="text-align:center;font-size:9px;color:var(--gray3);padding-top:4px">منخفض</div>
-        <div style="text-align:center;font-size:9px;color:var(--gray3);padding-top:4px">متوسط</div>
-        <div style="text-align:center;font-size:9px;color:var(--gray3);padding-top:4px">عالي</div>
+      <!-- مصفوفة المخاطر — تُبنى تلقائيًا من سجل المخاطر الحقيقي -->
+      <div id="riskMatrixGrid" style="display:grid;grid-template-columns:40px repeat(3,1fr);grid-template-rows:repeat(3,1fr) 40px;gap:4px;height:280px;direction:ltr">
+        <div style="text-align:center;color:var(--gray3);font-size:11px;padding:40px">جارِ التحميل...</div>
       </div>
       <div style="text-align:center;font-size:10px;color:var(--gray3);margin-top:6px">← الاحتمالية →</div>
       <!-- مفتاح الألوان -->
@@ -770,24 +739,19 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 
   <div class="sec-title">⚠️ سجل المخاطر المؤسسية</div>
-  <div class="risk-grid">
-    <div class="rcard hi"><div class="rlevel">🔴 عالية — حرجة</div><div class="rname">مخاطر الامتثال التنظيمي</div><div class="rmeta">التأثير: عالٍ · الاحتمالية: 70%</div><div class="rmeta" style="margin-top:4px">المالك: مدير الامتثال</div><div class="rprog"><div class="rprog-fill"></div></div></div>
-    <div class="rcard hi"><div class="rlevel">🔴 عالية — مراقبة</div><div class="rname">مخاطر الأمن السيبراني</div><div class="rmeta">التأثير: عالٍ · الاحتمالية: 55%</div><div class="rmeta" style="margin-top:4px">المالك: مدير التقنية</div><div class="rprog"><div class="rprog-fill"></div></div></div>
-    <div class="rcard md"><div class="rlevel">🟡 متوسطة — متابعة</div><div class="rname">مخاطر تركز الموردين</div><div class="rmeta">التأثير: متوسط · الاحتمالية: 40%</div><div class="rmeta" style="margin-top:4px">المالك: مدير المشتريات</div><div class="rprog"><div class="rprog-fill"></div></div></div>
-    <div class="rcard md"><div class="rlevel">🟡 متوسطة — تحت السيطرة</div><div class="rname">مخاطر الموارد البشرية</div><div class="rmeta">التأثير: متوسط · الاحتمالية: 35%</div><div class="rmeta" style="margin-top:4px">المالك: مدير الموارد البشرية</div><div class="rprog"><div class="rprog-fill"></div></div></div>
-    <div class="rcard lo"><div class="rlevel">🟢 منخفضة — مستقرة</div><div class="rname">مخاطر السمعة المؤسسية</div><div class="rmeta">التأثير: منخفض · الاحتمالية: 20%</div><div class="rmeta" style="margin-top:4px">المالك: مدير العلاقات</div><div class="rprog"><div class="rprog-fill"></div></div></div>
-    <div class="rcard lo"><div class="rlevel">🟢 منخفضة — مستقرة</div><div class="rname">مخاطر العمليات اليومية</div><div class="rmeta">التأثير: منخفض · الاحتمالية: 15%</div><div class="rmeta" style="margin-top:4px">المالك: مدير العمليات</div><div class="rprog"><div class="rprog-fill"></div></div></div>
+  <div class="risk-grid" id="riskCardsGrid">
+    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
   </div>
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
     <span>📊 سجل المخاطر التفصيلي</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-risk')">+ إضافة خطر</button>
+    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mr-id').value='';document.getElementById('mr-title-h').textContent='+ إضافة خطر';openM('m-risk')">+ إضافة خطر</button>
   </div>
   <div class="card">
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>اسم الخطر</th><th>الفئة</th><th>الاحتمالية %</th><th>التأثير</th><th>المالك</th><th>الحالة</th></tr></thead>
+        <thead><tr><th>اسم الخطر</th><th>الفئة</th><th>الاحتمالية %</th><th>التأثير</th><th>المالك</th><th>الحالة</th><th>إجراء</th></tr></thead>
         <tbody id="risksTbody">
-          <tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+          <tr><td colspan="7" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
       </table>
     </div>
@@ -798,65 +762,29 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <div id="p-compliance" class="page content">
   <div class="two-col">
     <div class="card">
-      <div class="card-head"><span class="card-title">📊 مستوى الامتثال — الأنظمة الرئيسية</span></div>
-      <div class="card-body">
-        <div class="comp-item"><div class="comp-head"><span class="comp-name">نظام الشركات م/132</span><span class="comp-pct">100%</span></div><div class="comp-track"><div class="comp-fill" style="width:100%"></div></div></div>
-        <div class="comp-item"><div class="comp-head"><span class="comp-name">لائحة حوكمة الشركات 2024</span><span class="comp-pct">95%</span></div><div class="comp-track"><div class="comp-fill" style="width:95%"></div></div></div>
-        <div class="comp-item"><div class="comp-head"><span class="comp-name">نظام حماية البيانات PDPL</span><span class="comp-pct">88%</span></div><div class="comp-track"><div class="comp-fill" style="width:88%"></div></div></div>
-        <div class="comp-item"><div class="comp-head"><span class="comp-name">الضوابط الأمنية ECC</span><span class="comp-pct">82%</span></div><div class="comp-track"><div class="comp-fill" style="width:82%"></div></div></div>
-        <div class="comp-item"><div class="comp-head"><span class="comp-name">نظام مكافحة غسيل الأموال</span><span class="comp-pct">100%</span></div><div class="comp-track"><div class="comp-fill" style="width:100%"></div></div></div>
-        <div class="comp-item"><div class="comp-head"><span class="comp-name">قواعد سلوك الأعضاء</span><span class="comp-pct">100%</span></div><div class="comp-track"><div class="comp-fill" style="width:100%"></div></div></div>
+      <div class="card-head"><span class="card-title">📊 مستوى الامتثال — حسب الجهة التنظيمية</span></div>
+      <div class="card-body" id="complianceByAuthority">
+        <div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div>
       </div>
     </div>
     <div class="card">
       <div class="card-head"><span class="card-title">⚡ إجراءات مطلوبة</span></div>
-      <div class="card-body">
-        <div class="alert-item"><div class="a-dot red"></div><div><div class="a-text">تحديث سياسة حماية البيانات (PDPL)</div><div class="a-time">مطلوب قبل 30 أبريل 2026</div></div></div>
-        <div class="alert-item"><div class="a-dot red"></div><div><div class="a-text">إكمال تقييم الأثر على الخصوصية DPIA</div><div class="a-time">مطلوب قبل 15 مايو 2026</div></div></div>
-        <div class="alert-item"><div class="a-dot gold"></div><div><div class="a-text">اختبار الاختراق الدوري — Q2 2026</div><div class="a-time">مطلوب يونيو 2026</div></div></div>
-        <div class="alert-item"><div class="a-dot gold"></div><div><div class="a-text">مراجعة سياسة تضارب المصالح للأعضاء</div><div class="a-time">مطلوب أغسطس 2026</div></div></div>
-        <div class="alert-item"><div class="a-dot green"></div><div><div class="a-text">تجديد شهادة SSL — تلقائي</div><div class="a-time">سبتمبر 2026</div></div></div>
+      <div class="card-body" id="complianceAlerts">
+        <div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div>
       </div>
-    </div>
-  </div>
-
-  <div class="sec-title" style="margin-top:20px">📋 سجل الالتزام</div>
-  <div class="card">
-    <div class="card-body" style="padding:0;overflow-x:auto">
-      <table class="tbl" style="min-width:700px">
-        <thead>
-          <tr>
-            <th>المتطلب التنظيمي</th>
-            <th>الجهة التنظيمية</th>
-            <th>القسم المطلوب</th>
-            <th style="text-align:center">الخطورة</th>
-            <th>المخالفة المترتبة</th>
-            <th>الموعد</th>
-            <th style="text-align:center">الحالة</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td>تطبيق لائحة حوكمة الشركات</td><td>هيئة السوق المالية</td><td>مجلس الإدارة</td><td style="text-align:center"><span class="badge urgent">عالية جداً</span></td><td>غرامة 500,000 ريال + إيقاف</td><td>مستمر</td><td style="text-align:center"><span class="badge done">ملتزم ✅</span></td></tr>
-          <tr><td>الإفصاح الدوري للمساهمين</td><td>هيئة السوق المالية</td><td>الإدارة المالية</td><td style="text-align:center"><span class="badge urgent">عالية</span></td><td>غرامة 100,000 ريال + تعليق</td><td>ربع سنوي</td><td style="text-align:center"><span class="badge done">ملتزم ✅</span></td></tr>
-          <tr><td>تحديث سياسة حماية البيانات PDPL</td><td>الهيئة السعودية للبيانات</td><td>تقنية المعلومات</td><td style="text-align:center"><span class="badge urgent">عالية</span></td><td>غرامة تصل 5,000,000 ريال</td><td>30 أبريل 2026</td><td style="text-align:center"><span class="badge pending">جارٍ</span></td></tr>
-          <tr><td>اختبار الاختراق الدوري ECC</td><td>هيئة الأمن السيبراني</td><td>تقنية المعلومات</td><td style="text-align:center"><span class="badge gold">متوسطة</span></td><td>تحذير رسمي وإلزام بالتصحيح</td><td>يونيو 2026</td><td style="text-align:center"><span class="badge gold">مجدول</span></td></tr>
-          <tr><td>تجديد السجل التجاري</td><td>وزارة التجارة</td><td>الإدارة القانونية</td><td style="text-align:center"><span class="badge urgent">عالية جداً</span></td><td>إيقاف النشاط + غرامة يومية</td><td>ديسمبر 2026</td><td style="text-align:center"><span class="badge done">ملتزم ✅</span></td></tr>
-          <tr><td>مكافحة غسيل الأموال AML</td><td>وزارة المالية</td><td>الإدارة المالية</td><td style="text-align:center"><span class="badge urgent">عالية جداً</span></td><td>عقوبات جنائية + إيقاف الحسابات</td><td>مستمر</td><td style="text-align:center"><span class="badge done">ملتزم ✅</span></td></tr>
-        </tbody>
-      </table>
     </div>
   </div>
 
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
     <span>📋 سجل بنود الامتثال</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-compliance')">+ إضافة بند</button>
+    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mc-id').value='';document.getElementById('mc-title-h').textContent='+ إضافة بند';openM('m-compliance')">+ إضافة بند</button>
   </div>
   <div class="card">
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>البند</th><th>الجهة التنظيمية</th><th>الموعد</th><th>الحالة</th></tr></thead>
+        <thead><tr><th>البند</th><th>الجهة التنظيمية</th><th>الموعد</th><th>الحالة</th><th>إجراء</th></tr></thead>
         <tbody id="complianceTbody">
-          <tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+          <tr><td colspan="5" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
       </table>
     </div>
@@ -1156,59 +1084,31 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 </div>
 <div id="p-audit" class="page content">
   <div class="sec-title">🔍 التدقيق الداخلي</div>
-  <div class="two-col" style="margin-bottom:18px">
-    <div class="card">
-      <div class="card-head"><span class="card-title">خطة التدقيق السنوية 2026</span><span class="badge info">جارية</span></div>
-      <div class="card-body" style="padding:0">
-        <table class="tbl">
-          <thead><tr><th>مجال التدقيق</th><th>الربع</th><th>الحالة</th><th>المدقق</th></tr></thead>
-          <tbody>
-            <tr><td>التدقيق المالي — Q1</td><td>Q1 2026</td><td><span class="badge info">جارٍ</span></td><td>فريق التدقيق الداخلي</td></tr>
-            <tr><td>تدقيق الامتثال التنظيمي</td><td>Q1 2026</td><td><span class="badge done">مكتمل</span></td><td>مدير الامتثال</td></tr>
-            <tr><td>تدقيق العمليات التشغيلية</td><td>Q2 2026</td><td><span class="badge pending">مجدول</span></td><td>فريق التدقيق الداخلي</td></tr>
-            <tr><td>تدقيق أمن المعلومات</td><td>Q2 2026</td><td><span class="badge pending">مجدول</span></td><td>مختص أمن خارجي</td></tr>
-            <tr><td>تدقيق المشتريات والعقود</td><td>Q3 2026</td><td><span class="badge gold">قيد التخطيط</span></td><td>—</td></tr>
-            <tr><td>تدقيق الموارد البشرية</td><td>Q3 2026</td><td><span class="badge gold">قيد التخطيط</span></td><td>—</td></tr>
-            <tr><td>تدقيق شامل نهاية العام</td><td>Q4 2026</td><td><span class="badge gold">قيد التخطيط</span></td><td>—</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-head"><span class="card-title">متابعة توصيات التدقيق</span></div>
-      <div class="card-body">
-        <div class="alert-item"><div class="a-dot red"></div><div><div class="a-text">تحديث إجراءات الشراء — مفتوحة منذ 60 يوماً</div><div class="a-time">المسؤول: مدير المشتريات · الموعد: 30 مارس</div></div></div>
-        <div class="alert-item"><div class="a-dot gold"></div><div><div class="a-text">مراجعة سياسة الاحتفاظ بالوثائق</div><div class="a-time">المسؤول: سكرتير المجلس · الموعد: 15 أبريل</div></div></div>
-        <div class="alert-item"><div class="a-dot green"></div><div><div class="a-text">تفعيل نظام الأرشفة الإلكترونية ✅</div><div class="a-time">مُغلقة · نُفِّذت في فبراير 2026</div></div></div>
-        <div class="alert-item"><div class="a-dot green"></div><div><div class="a-text">إعداد دليل الحوكمة المحدّث ✅</div><div class="a-time">مُغلقة · نُفِّذت في يناير 2026</div></div></div>
-      </div>
-    </div>
+
+  <div class="stats-bar" id="auditStatsBar" style="margin-bottom:18px">
+    <div class="sb-item"><div class="sb-val" id="audit-stat-open">—</div><div class="sb-lbl">مفتوحة</div></div>
+    <div class="sb-item"><div class="sb-val" id="audit-stat-progress">—</div><div class="sb-lbl">قيد المتابعة</div></div>
+    <div class="sb-item"><div class="sb-val" id="audit-stat-closed">—</div><div class="sb-lbl">مغلقة</div></div>
+    <div class="sb-item"><div class="sb-val" id="audit-stat-total">—</div><div class="sb-lbl">إجمالي البنود</div></div>
   </div>
 
-  <div class="sec-title">📄 تقارير التدقيق السابقة</div>
-  <div class="card">
-    <div class="card-body" style="padding:0">
-      <table class="tbl">
-        <thead><tr><th>التقرير</th><th>الفترة</th><th>عدد التوصيات</th><th>منفّذة</th><th>الحالة</th></tr></thead>
-        <tbody>
-          <tr><td>تقرير التدقيق الداخلي الشامل 2025</td><td>السنة المالية 2025</td><td>18 توصية</td><td>15/18</td><td><span class="badge done">مُعتمد</span></td></tr>
-          <tr><td>تقرير تدقيق الامتثال Q3 2025</td><td>Q3 2025</td><td>6 توصيات</td><td>6/6</td><td><span class="badge done">مكتمل 100%</span></td></tr>
-          <tr><td>تقرير تدقيق أمن المعلومات 2025</td><td>Q2 2025</td><td>12 توصية</td><td>10/12</td><td><span class="badge pending">قيد المتابعة</span></td></tr>
-        </tbody>
-      </table>
+  <div class="sec-title">📋 متابعة توصيات التدقيق</div>
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-body" id="auditFollowup">
+      <div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div>
     </div>
   </div>
 
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
     <span>🔍 سجل بنود التدقيق</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-audit')">+ إضافة بند</button>
+    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('ma-id').value='';document.getElementById('ma-title-h').textContent='+ إضافة بند';openM('m-audit')">+ إضافة بند</button>
   </div>
   <div class="card">
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>البند</th><th>التوصية</th><th>الحالة</th></tr></thead>
+        <thead><tr><th>البند</th><th>التوصية</th><th>الحالة</th><th>إجراء</th></tr></thead>
         <tbody id="auditTbody">
-          <tr><td colspan="3" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+          <tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
       </table>
     </div>
@@ -1529,7 +1429,8 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <!-- Add risk modal -->
 <div class="modal-bg" id="m-risk">
   <div class="modal">
-    <div class="modal-title">⚠️ إضافة خطر جديد</div>
+    <div class="modal-title" id="mr-title-h">⚠️ إضافة خطر جديد</div>
+    <input type="hidden" id="mr-id" value="" />
     <div class="fg"><label>اسم الخطر</label><input class="fi" id="mr-name" placeholder="مثال: مخاطر سلسلة الإمداد" /></div>
     <div class="fg"><label>الفئة</label><input class="fi" id="mr-category" placeholder="مثال: تشغيلي / مالي / تقني" /></div>
     <div class="row2"><div class="fg"><label>الاحتمالية %</label><input type="number" class="fi" id="mr-probability" placeholder="0-100"/></div><div class="fg"><label>التأثير</label><select class="fs" id="mr-impact"><option>عالٍ</option><option>متوسط</option><option>منخفض</option></select></div></div>
@@ -1542,7 +1443,8 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <!-- Add compliance modal -->
 <div class="modal-bg" id="m-compliance">
   <div class="modal">
-    <div class="modal-title">✅ إضافة بند امتثال</div>
+    <div class="modal-title" id="mc-title-h">✅ إضافة بند امتثال</div>
+    <input type="hidden" id="mc-id" value="" />
     <div class="fg"><label>البند</label><input class="fi" id="mc-item" placeholder="مثال: تحديث سياسة الخصوصية" /></div>
     <div class="fg"><label>الجهة التنظيمية</label><input class="fi" id="mc-authority" placeholder="مثال: هيئة السوق المالية" /></div>
     <div class="fg"><label>الموعد</label><input type="date" class="fi" id="mc-duedate"/></div>
@@ -1764,7 +1666,8 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <!-- Add audit item modal -->
 <div class="modal-bg" id="m-audit">
   <div class="modal">
-    <div class="modal-title">🔍 إضافة بند تدقيق</div>
+    <div class="modal-title" id="ma-title-h">🔍 إضافة بند تدقيق</div>
+    <input type="hidden" id="ma-id" value="" />
     <div class="fg"><label>البند</label><input class="fi" id="ma-item" placeholder="مثال: تدقيق مخزون الأصول" /></div>
     <div class="fg"><label>التوصية</label><textarea class="fta" id="ma-recommendation" rows="2" placeholder="وصف التوصية"></textarea></div>
     <div class="fg"><label>الحالة</label><select class="fs" id="ma-status"><option>مفتوحة</option><option>قيد المتابعة</option><option>مغلقة</option></select></div>
@@ -3658,18 +3561,121 @@ function errorRowHTML(cols, msg){
 }
 
 /* ══════════ RISKS ══════════ */
+let risksCache = [];
+const RISK_IMPACT_ROW = { "عالٍ": 0, "متوسط": 1, "منخفض": 2 }; // top to bottom in the grid
+function riskProbCol(p){ return p==null ? 1 : (p>=67 ? 2 : (p>=34 ? 1 : 0)); } // left→right: low/med/high (LTR grid)
+function riskSeverityColor(impact, probability){
+  const highImpact = impact === "عالٍ";
+  const highProb = (probability||0) >= 67;
+  if(highImpact && highProb) return "#C0392B";
+  if(highImpact || highProb) return "#E67E22";
+  if(impact === "منخفض" && (probability||0) < 34) return "#27AE60";
+  return "#F1C40F";
+}
+
 async function loadRisks(){
   const tbody = document.getElementById("risksTbody");
   if(!tbody) return;
   const { data, error } = await sb.from("risks").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
-  if(error){ tbody.innerHTML = errorRowHTML(6, error.message); return; }
-  if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(6, 'لا توجد بيانات بعد. اضغط "+ إضافة خطر" للبدء.'); return; }
-  tbody.innerHTML = data.map(r => `<tr>
+  if(error){ tbody.innerHTML = errorRowHTML(7, error.message); renderRiskMatrix([]); renderRiskCards([]); return; }
+  risksCache = data || [];
+  if(risksCache.length===0){
+    tbody.innerHTML = emptyRowHTML(7, 'لا توجد بيانات بعد. اضغط "+ إضافة خطر" للبدء.');
+    renderRiskMatrix([]); renderRiskCards([]);
+    return;
+  }
+  tbody.innerHTML = risksCache.map(r => `<tr>
     <td>${r.risk_name||""}</td><td>${r.category||"—"}</td><td>${r.probability!=null?r.probability+"%":"—"}</td>
     <td>${r.impact||"—"}</td><td>${r.owner||"—"}</td><td>${r.status||"—"}</td>
+    <td>
+      <button class="btn-xs primary" onclick="editRisk(${r.id})">✏️ تعديل</button>
+      <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;margin-right:4px" onclick="deleteRisk(${r.id})">🗑️ حذف</button>
+    </td>
   </tr>`).join("");
+  renderRiskMatrix(risksCache);
+  renderRiskCards(risksCache);
 }
+
+function renderRiskMatrix(risks){
+  const grid = document.getElementById("riskMatrixGrid");
+  if(!grid) return;
+  // 3x3 buckets: [impactRow][probCol], impactRow 0=عالي(top) .. 2=منخفض(bottom)
+  const buckets = [[[],[],[]],[[],[],[]],[[],[],[]]];
+  risks.forEach(r => {
+    const row = RISK_IMPACT_ROW[r.impact] ?? 1;
+    const col = riskProbCol(r.probability);
+    buckets[row][col].push(r);
+  });
+  const bg = { high:"#FDE8E8", mid:"#FEF3E2", low:"#E8F8EF" };
+  const border = { high:"#E8A0A0", mid:"#F0C070", low:"#A0D8B0" };
+  const cellStyle = (row) => row===0 ? {bg:bg.high,bd:border.high} : row===1 ? {bg:bg.mid,bd:border.mid} : {bg:bg.low,bd:border.low};
+
+  let html = '<div style="display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--gray3);writing-mode:vertical-rl;transform:rotate(180deg)">عالي</div>';
+  [0,1,2].forEach(col => {
+    const s = cellStyle(0);
+    html += `<div style="background:${s.bg};border-radius:8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px;padding:6px;border:1px solid ${s.bd}">
+      ${buckets[0][col].map(r => `<div style="background:${riskSeverityColor(r.impact,r.probability)};color:#fff;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;white-space:nowrap" title="${r.risk_name}">${r.risk_name}</div>`).join("")}
+    </div>`;
+  });
+  html += '<div style="display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--gray3);writing-mode:vertical-rl;transform:rotate(180deg)">متوسط</div>';
+  [0,1,2].forEach(col => {
+    const s = cellStyle(1);
+    html += `<div style="background:${s.bg};border-radius:8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px;padding:6px;border:1px solid ${s.bd}">
+      ${buckets[1][col].map(r => `<div style="background:${riskSeverityColor(r.impact,r.probability)};color:#fff;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;white-space:nowrap" title="${r.risk_name}">${r.risk_name}</div>`).join("")}
+    </div>`;
+  });
+  html += '<div style="display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--gray3);writing-mode:vertical-rl;transform:rotate(180deg)">منخفض</div>';
+  [0,1,2].forEach(col => {
+    const s = cellStyle(2);
+    html += `<div style="background:${s.bg};border-radius:8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px;padding:6px;border:1px solid ${s.bd}">
+      ${buckets[2][col].map(r => `<div style="background:${riskSeverityColor(r.impact,r.probability)};color:#fff;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;white-space:nowrap" title="${r.risk_name}">${r.risk_name}</div>`).join("")}
+    </div>`;
+  });
+  html += '<div></div><div style="text-align:center;font-size:9px;color:var(--gray3);padding-top:4px">منخفض</div><div style="text-align:center;font-size:9px;color:var(--gray3);padding-top:4px">متوسط</div><div style="text-align:center;font-size:9px;color:var(--gray3);padding-top:4px">عالي</div>';
+  grid.innerHTML = html;
+}
+
+function renderRiskCards(risks){
+  const wrap = document.getElementById("riskCardsGrid");
+  if(!wrap) return;
+  if(risks.length===0){ wrap.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">لا توجد مخاطر مسجّلة بعد.</div>'; return; }
+  wrap.innerHTML = risks.map(r => {
+    const color = riskSeverityColor(r.impact, r.probability);
+    const cls = color==="#C0392B" ? "hi" : color==="#27AE60" ? "lo" : "md";
+    const emoji = color==="#C0392B" ? "🔴" : color==="#27AE60" ? "🟢" : "🟡";
+    return `<div class="rcard ${cls}">
+      <div class="rlevel">${emoji} ${r.status||"—"}</div>
+      <div class="rname">${r.risk_name||""}</div>
+      <div class="rmeta">التأثير: ${r.impact||"—"} · الاحتمالية: ${r.probability!=null?r.probability+"%":"—"}</div>
+      <div class="rmeta" style="margin-top:4px">المالك: ${r.owner||"—"}</div>
+      <div class="rprog"><div class="rprog-fill" style="width:${r.probability||0}%"></div></div>
+    </div>`;
+  }).join("");
+}
+
+function editRisk(id){
+  const r = risksCache.find(x => x.id === id);
+  if(!r) return;
+  document.getElementById("mr-id").value = r.id;
+  document.getElementById("mr-title-h").textContent = "✏️ تعديل خطر";
+  document.getElementById("mr-name").value = r.risk_name || "";
+  document.getElementById("mr-category").value = r.category || "";
+  document.getElementById("mr-probability").value = r.probability ?? "";
+  document.getElementById("mr-impact").value = r.impact || "عالٍ";
+  document.getElementById("mr-owner").value = r.owner || "";
+  document.getElementById("mr-status").value = r.status || "مراقبة";
+  openM("m-risk");
+}
+
+async function deleteRisk(id){
+  if(!confirm("هل أنت متأكد من حذف هذا الخطر؟")) return;
+  const { error } = await sb.from("risks").delete().eq("id", id);
+  if(error){ alert("تعذّر الحذف: " + error.message); return; }
+  loadRisks();
+}
+
 async function saveRisk(){
+  const id = document.getElementById("mr-id").value;
   const risk_name = document.getElementById("mr-name").value.trim();
   if(!risk_name){ alert("الرجاء إدخال اسم الخطر"); return; }
   const category = document.getElementById("mr-category").value.trim();
@@ -3677,31 +3683,106 @@ async function saveRisk(){
   const impact = document.getElementById("mr-impact").value;
   const owner = document.getElementById("mr-owner").value.trim();
   const status = document.getElementById("mr-status").value;
-  const { error } = await sb.from("risks").insert([{ risk_name, category, probability, impact, owner, status, company_id: currentCompanyId }]);
+  const payload = { risk_name, category, probability, impact, owner, status, company_id: currentCompanyId };
+  const { error } = id
+    ? await sb.from("risks").update(payload).eq("id", id)
+    : await sb.from("risks").insert([payload]);
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
+  document.getElementById("mr-id").value = "";
+  document.getElementById("mr-title-h").textContent = "⚠️ إضافة خطر جديد";
   document.getElementById("mr-name").value=""; document.getElementById("mr-category").value=""; document.getElementById("mr-probability").value=""; document.getElementById("mr-owner").value="";
   closeM("m-risk"); loadRisks();
 }
 
 /* ══════════ COMPLIANCE ══════════ */
+let complianceCache = [];
 async function loadCompliance(){
   const tbody = document.getElementById("complianceTbody");
   if(!tbody) return;
   const { data, error } = await sb.from("compliance_items").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
-  if(error){ tbody.innerHTML = errorRowHTML(4, error.message); return; }
-  if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(4, 'لا توجد بيانات بعد. اضغط "+ إضافة بند" للبدء.'); return; }
-  tbody.innerHTML = data.map(c => `<tr>
+  if(error){ tbody.innerHTML = errorRowHTML(5, error.message); renderComplianceByAuthority([]); renderComplianceAlerts([]); return; }
+  complianceCache = data || [];
+  if(complianceCache.length===0){
+    tbody.innerHTML = emptyRowHTML(5, 'لا توجد بيانات بعد. اضغط "+ إضافة بند" للبدء.');
+    renderComplianceByAuthority([]); renderComplianceAlerts([]);
+    return;
+  }
+  tbody.innerHTML = complianceCache.map(c => `<tr>
     <td>${c.item_name||""}</td><td>${c.authority||"—"}</td><td>${c.due_date||"—"}</td><td>${c.status||"—"}</td>
+    <td>
+      <button class="btn-xs primary" onclick="editCompliance(${c.id})">✏️ تعديل</button>
+      <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;margin-right:4px" onclick="deleteCompliance(${c.id})">🗑️ حذف</button>
+    </td>
   </tr>`).join("");
+  renderComplianceByAuthority(complianceCache);
+  renderComplianceAlerts(complianceCache);
 }
+
+function renderComplianceByAuthority(items){
+  const box = document.getElementById("complianceByAuthority");
+  if(!box) return;
+  if(items.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا توجد بيانات بعد.</div>'; return; }
+  const byAuthority = {};
+  items.forEach(c => {
+    const a = c.authority || "غير محدد";
+    if(!byAuthority[a]) byAuthority[a] = { total:0, compliant:0 };
+    byAuthority[a].total += 1;
+    if(c.status === "ملتزم") byAuthority[a].compliant += 1;
+  });
+  box.innerHTML = Object.keys(byAuthority).map(a => {
+    const d = byAuthority[a];
+    const pct = Math.round((d.compliant/d.total)*100);
+    return `<div class="comp-item"><div class="comp-head"><span class="comp-name">${a}</span><span class="comp-pct">${pct}%</span></div><div class="comp-track"><div class="comp-fill" style="width:${pct}%"></div></div></div>`;
+  }).join("");
+}
+
+function renderComplianceAlerts(items){
+  const box = document.getElementById("complianceAlerts");
+  if(!box) return;
+  const pending = items.filter(c => c.status !== "ملتزم").sort((a,b) => (a.due_date||"9999").localeCompare(b.due_date||"9999"));
+  if(pending.length===0){
+    box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا توجد إجراءات مطلوبة حاليًا — كل البنود ملتزمة ✅</div>';
+    return;
+  }
+  box.innerHTML = pending.map(c => {
+    const dot = c.status === "جارٍ" ? "gold" : "red";
+    return `<div class="alert-item"><div class="a-dot ${dot}"></div><div><div class="a-text">${c.item_name} — ${c.authority||""}</div><div class="a-time">${c.status} ${c.due_date?(' · الموعد: '+c.due_date):''}</div></div></div>`;
+  }).join("");
+}
+
+function editCompliance(id){
+  const c = complianceCache.find(x => x.id === id);
+  if(!c) return;
+  document.getElementById("mc-id").value = c.id;
+  document.getElementById("mc-title-h").textContent = "✏️ تعديل بند امتثال";
+  document.getElementById("mc-item").value = c.item_name || "";
+  document.getElementById("mc-authority").value = c.authority || "";
+  document.getElementById("mc-duedate").value = c.due_date || "";
+  document.getElementById("mc-status").value = c.status || "ملتزم";
+  openM("m-compliance");
+}
+
+async function deleteCompliance(id){
+  if(!confirm("هل أنت متأكد من حذف هذا البند؟")) return;
+  const { error } = await sb.from("compliance_items").delete().eq("id", id);
+  if(error){ alert("تعذّر الحذف: " + error.message); return; }
+  loadCompliance();
+}
+
 async function saveCompliance(){
+  const id = document.getElementById("mc-id").value;
   const item_name = document.getElementById("mc-item").value.trim();
   if(!item_name){ alert("الرجاء إدخال اسم البند"); return; }
   const authority = document.getElementById("mc-authority").value.trim();
   const due_date = document.getElementById("mc-duedate").value || null;
   const status = document.getElementById("mc-status").value;
-  const { error } = await sb.from("compliance_items").insert([{ item_name, authority, due_date, status, company_id: currentCompanyId }]);
+  const payload = { item_name, authority, due_date, status, company_id: currentCompanyId };
+  const { error } = id
+    ? await sb.from("compliance_items").update(payload).eq("id", id)
+    : await sb.from("compliance_items").insert([payload]);
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
+  document.getElementById("mc-id").value = "";
+  document.getElementById("mc-title-h").textContent = "✅ إضافة بند امتثال";
   document.getElementById("mc-item").value=""; document.getElementById("mc-authority").value=""; document.getElementById("mc-duedate").value="";
   closeM("m-compliance"); loadCompliance();
 }
@@ -4710,23 +4791,82 @@ async function saveVote(){
 }
 
 /* ══════════ AUDIT ITEMS ══════════ */
+let auditCache = [];
 async function loadAudit(){
   const tbody = document.getElementById("auditTbody");
   if(!tbody) return;
   const { data, error } = await sb.from("audit_items").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
-  if(error){ tbody.innerHTML = errorRowHTML(3, error.message); return; }
-  if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(3, 'لا توجد بيانات بعد. اضغط "+ إضافة بند" للبدء.'); return; }
-  tbody.innerHTML = data.map(a => `<tr>
+  if(error){ tbody.innerHTML = errorRowHTML(4, error.message); return; }
+  auditCache = data || [];
+  if(auditCache.length===0){
+    tbody.innerHTML = emptyRowHTML(4, 'لا توجد بيانات بعد. اضغط "+ إضافة بند" للبدء.');
+    renderAuditStats([]); renderAuditFollowup([]);
+    return;
+  }
+  tbody.innerHTML = auditCache.map(a => `<tr>
     <td>${a.item||""}</td><td>${a.recommendation||"—"}</td><td>${a.status||"—"}</td>
+    <td>
+      <button class="btn-xs primary" onclick="editAudit(${a.id})">✏️ تعديل</button>
+      <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;margin-right:4px" onclick="deleteAudit(${a.id})">🗑️ حذف</button>
+    </td>
   </tr>`).join("");
+  renderAuditStats(auditCache);
+  renderAuditFollowup(auditCache);
 }
+
+function renderAuditStats(items){
+  setText("audit-stat-open", items.filter(a=>a.status==="مفتوحة").length);
+  setText("audit-stat-progress", items.filter(a=>a.status==="قيد المتابعة").length);
+  setText("audit-stat-closed", items.filter(a=>a.status==="مغلقة").length);
+  setText("audit-stat-total", items.length);
+}
+
+function renderAuditFollowup(items){
+  const box = document.getElementById("auditFollowup");
+  if(!box) return;
+  if(items.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا توجد بنود تدقيق بعد.</div>'; return; }
+  const sorted = [...items].sort((a,b) => {
+    const order = { "مفتوحة":0, "قيد المتابعة":1, "مغلقة":2 };
+    return (order[a.status]??3) - (order[b.status]??3);
+  });
+  box.innerHTML = sorted.map(a => {
+    const dot = a.status==="مفتوحة" ? "red" : a.status==="قيد المتابعة" ? "gold" : "green";
+    const mark = a.status==="مغلقة" ? " ✅" : "";
+    return `<div class="alert-item"><div class="a-dot ${dot}"></div><div><div class="a-text">${a.item}${mark}</div><div class="a-time">${a.recommendation||""} — ${a.status}</div></div></div>`;
+  }).join("");
+}
+
+function editAudit(id){
+  const a = auditCache.find(x => x.id === id);
+  if(!a) return;
+  document.getElementById("ma-id").value = a.id;
+  document.getElementById("ma-title-h").textContent = "✏️ تعديل بند تدقيق";
+  document.getElementById("ma-item").value = a.item || "";
+  document.getElementById("ma-recommendation").value = a.recommendation || "";
+  document.getElementById("ma-status").value = a.status || "مفتوحة";
+  openM("m-audit");
+}
+
+async function deleteAudit(id){
+  if(!confirm("هل أنت متأكد من حذف هذا البند؟")) return;
+  const { error } = await sb.from("audit_items").delete().eq("id", id);
+  if(error){ alert("تعذّر الحذف: " + error.message); return; }
+  loadAudit();
+}
+
 async function saveAudit(){
+  const id = document.getElementById("ma-id").value;
   const item = document.getElementById("ma-item").value.trim();
   if(!item){ alert("الرجاء إدخال البند"); return; }
   const recommendation = document.getElementById("ma-recommendation").value.trim();
   const status = document.getElementById("ma-status").value;
-  const { error } = await sb.from("audit_items").insert([{ item, recommendation, status, company_id: currentCompanyId }]);
+  const payload = { item, recommendation, status, company_id: currentCompanyId };
+  const { error } = id
+    ? await sb.from("audit_items").update(payload).eq("id", id)
+    : await sb.from("audit_items").insert([payload]);
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
+  document.getElementById("ma-id").value = "";
+  document.getElementById("ma-title-h").textContent = "🔍 إضافة بند تدقيق";
   document.getElementById("ma-item").value=""; document.getElementById("ma-recommendation").value="";
   closeM("m-audit"); loadAudit();
 }
