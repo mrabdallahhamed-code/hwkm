@@ -493,6 +493,8 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 .login-switch b{color:var(--primary3);}
 .login-msg{font-size:12px;text-align:center;border-radius:8px;padding:8px;margin-bottom:12px;display:none;}
 </style>
+<script src="https://unpkg.com/pizzip@3.2.0/dist/pizzip.min.js"></script>
+<script src="https://unpkg.com/docxtemplater@3.69.0/build/docxtemplater.js"></script>
 </head>
 <body>
 
@@ -899,6 +901,13 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
     <span>🤝 الجمعيات العامة</span>
     <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mt-type').value='الجمعية العامة';toggleVotingDatesFields();openM('m-meeting')">+ جمعية عامة جديدة</button>
+  </div>
+
+  <div class="sec-title" style="margin-top:16px">📄 قوالب المستندات (Word)</div>
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-body" id="docTemplatesList">
+      <div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div>
+    </div>
   </div>
 
   <div class="sec-title" style="margin-top:16px">📅 الجمعيات القادمة</div>
@@ -2062,6 +2071,7 @@ function isMutatingOnchange(val){
   return /^uploadFile\(/.test(val)
     || /^uploadMeetingFile\(/.test(val)
     || /^uploadAGMSupportingDoc\(/.test(val)
+    || /^uploadDocumentTemplate\(/.test(val)
     || /^updateUserRole\(/.test(val)
     || /^updateRequestStatus\(/.test(val)
     || /^savePermCell\(/.test(val);
@@ -3353,6 +3363,7 @@ let currentVotingMeetingId = null;
 
 function renderAGMSection(agmMeetings){
   agmMeetingsCache = agmMeetings;
+  loadDocumentTemplates();
   const todayStr = new Date().toISOString().slice(0,10);
   const currentYear = new Date().getFullYear();
 
@@ -3434,15 +3445,19 @@ async function openAGMDetailModal(id){
   renderAGMQuorumWidget(id);
 
   document.getElementById("agmView-files").innerHTML =
-    fileRowWide(m.id,'invitation_file_url',m.invitation_file_url,'📨 دعوة الجمعية') +
+    fileRowWide(m.id,'invitation_file_url',m.invitation_file_url,'📨 دعوة الجمعية (رفع يدوي)') +
     fileRowWide(m.id,'minutes_file_url',m.minutes_file_url,'📋 محضر الجمعية (رفع يدوي)') +
     `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
-      <div style="font-size:13px;font-weight:800;color:var(--dark)">📝 توليد محضر الجمعية تلقائيًا (Word)</div>
-      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateAGMMinutesDoc(${m.id})">📝 توليد Word</button>
+      <div style="font-size:13px;font-weight:800;color:var(--dark)">📨 توليد دعوة الجمعية تلقائيًا</div>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateAGMInvitationDoc(${m.id})">📝 توليد</button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
+      <div style="font-size:13px;font-weight:800;color:var(--dark)">📝 توليد محضر الجمعية تلقائيًا</div>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateAGMMinutesDoc(${m.id})">📝 توليد</button>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
       <div style="font-size:13px;font-weight:800;color:var(--dark)">🧾 محضر كشف الحضور (تلقائي من التصويت)</div>
-      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateAttendanceSheet(${m.id})">🖨️ توليد PDF</button>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateAttendanceSheet(${m.id})">🖨️ توليد</button>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
       <div style="font-size:13px;font-weight:800;color:var(--dark)">🗳️ محضر فرز الأصوات (تلقائي من التصويت)</div>
@@ -6514,6 +6529,25 @@ async function getAttendeesList(meetingId){
 async function generateAttendanceSheet(meetingId){
   const mid = meetingId || currentVotingMeetingId;
   if(!mid){ alert("تعذّر تحديد الجمعية"); return; }
+
+  const templateRow = docTemplatesCache["attendance_sheet"];
+  if(templateRow){
+    const [{ error: tErr, list }, { data: m }] = await Promise.all([
+      getAttendeesList(mid),
+      sb.from("meetings").select("*").eq("id", mid).single()
+    ]);
+    if(tErr){ alert("تعذّر توليد الملف: " + tErr.message); return; }
+    try{
+      const companyName = document.getElementById("reportCompanyName1")?.textContent || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "الشركة";
+      await fillDocxTemplate(templateRow.file_url, {
+        company_name: companyName, meeting_title: m?.title||"", meeting_date: m?.meeting_date||"",
+        total_attendees: list.length, total_shares: list.reduce((s,x)=>s+x.shares,0),
+        attendees: list.map(s => ({ no: s.shareholderNo, name: s.name, shares: s.shares, card_no: s.cardNo }))
+      }, `كشف حضور ${m?.title||'الجمعية'}.docx`);
+      return;
+    }catch(e){ alert("تعذّر تعبئة القالب، سيُستخدم التصميم الافتراضي بدلًا منه: " + e.message); }
+  }
+
   const w = window.open("", "_blank");
   if(w){ w.document.write('<html dir="rtl"><body style="font-family:sans-serif;padding:30px">جارِ تجهيز الملف...</body></html>'); w.document.close(); }
   const [{ error, list }, { data: m }] = await Promise.all([
@@ -6648,6 +6682,79 @@ async function generateMeetingMinutesDoc(meetingId){
   URL.revokeObjectURL(url);
 }
 
+/* ══════════ DOCUMENT TEMPLATES (upload real Word templates, fill with real data) ══════════ */
+const DOC_TEMPLATE_DEFS = [
+  { key: "agm_invitation", label: "📨 دعوة الجمعية" },
+  { key: "attendance_sheet", label: "🧾 محضر كشف الحضور" },
+  { key: "vote_minutes", label: "🗳️ محضر فرز الأصوات" },
+  { key: "agm_minutes", label: "📋 محضر الجمعية العامة" }
+];
+let docTemplatesCache = {};
+
+async function loadDocumentTemplates(){
+  const box = document.getElementById("docTemplatesList");
+  if(!box) return;
+  const { data, error } = await sb.from("document_templates").select("*").eq("company_id", currentCompanyId);
+  if(error){ box.innerHTML = `<div style="color:var(--red);font-size:12px">تعذّر التحميل: ${error.message}</div>`; return; }
+  docTemplatesCache = {};
+  (data||[]).forEach(t => { docTemplatesCache[t.template_key] = t; });
+
+  box.innerHTML = DOC_TEMPLATE_DEFS.map(def => {
+    const t = docTemplatesCache[def.key];
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gray1)">
+      <div>
+        <div style="font-size:12.5px;font-weight:700;color:var(--dark)">${def.label}</div>
+        <div style="font-size:10.5px;color:var(--gray3);margin-top:2px">${t ? '✅ '+t.file_name : 'لم يُرفع قالب — يُستخدم التصميم الافتراضي'}</div>
+      </div>
+      <label class="btn-xs primary" style="cursor:pointer">📎 ${t?'استبدال':'رفع'} القالب<input type="file" accept=".docx" style="display:none" onchange="uploadDocumentTemplate('${def.key}',this)"></label>
+    </div>`;
+  }).join("");
+}
+
+async function uploadDocumentTemplate(key, inputEl){
+  if(!inputEl.files || !inputEl.files[0]) return;
+  const fileName = inputEl.files[0].name;
+  const file_url = await uploadFile(inputEl, "templates");
+  if(!file_url) return;
+  const { error } = await sb.from("document_templates")
+    .upsert([{ company_id: currentCompanyId, template_key: key, file_url, file_name: fileName, updated_at: new Date().toISOString() }], { onConflict: 'company_id,template_key' });
+  if(error){ alert("تعذّر حفظ القالب: " + error.message); return; }
+  loadDocumentTemplates();
+}
+
+/* Loads a docx template, fills its {tags} with real data using docxtemplater, and
+   triggers a download of the resulting real .docx file. */
+async function fillDocxTemplate(templateUrl, data, downloadName){
+  const response = await fetch(templateUrl);
+  const arrayBuffer = await response.arrayBuffer();
+  const zip = new PizZip(arrayBuffer);
+  const doc = new window.docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
+  doc.render(data);
+  const blob = doc.getZip().generate({ type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = downloadName;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function generateAGMInvitationDoc(meetingId){
+  const t = docTemplatesCache["agm_invitation"];
+  if(!t){ alert('لا يوجد قالب مرفوع لـ"دعوة الجمعية" بعد. ارفعه من صفحة الجمعية العامة أولًا.'); return; }
+  const { data: m } = await sb.from("meetings").select("*").eq("id", meetingId).single();
+  if(!m) return;
+  const { data: topics } = await sb.from("vote_topics").select("*").eq("meeting_id", meetingId).order("sort_order",{ascending:true});
+  const companyName = document.getElementById("reportCompanyName1")?.textContent || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "الشركة";
+  const callLabel = { 1:"الأول", 2:"الثاني", 3:"الثالث" }[m.call_number||1] || "الأول";
+  try{
+    await fillDocxTemplate(t.file_url, {
+      company_name: companyName, meeting_title: m.title||"", meeting_date: m.meeting_date||"",
+      meeting_time: m.meeting_time||"", method: m.method||"", agm_type: m.agm_type||"عادية", call_number_label: callLabel,
+      topics: (topics||[]).map(tp => ({ topic_text: tp.topic_text }))
+    }, `دعوة ${m.title||'الجمعية'}.docx`);
+  }catch(e){ alert("تعذّر تعبئة القالب — تأكد أن العلامات بالقالب مطابقة للمطلوبة: " + e.message); }
+}
+
 async function generateAGMMinutesDoc(meetingId){
   const { data: m, error: mErr } = await sb.from("meetings").select("*").eq("id", meetingId).single();
   if(mErr || !m){ alert("تعذّر تحميل بيانات الجمعية"); return; }
@@ -6677,6 +6784,26 @@ async function generateAGMMinutesDoc(meetingId){
 
   const companyName = document.getElementById("reportCompanyName1")?.textContent || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "الشركة";
   const dateNow = new Date().toLocaleDateString("ar-SA");
+
+  const templateRow = docTemplatesCache["agm_minutes"];
+  if(templateRow){
+    try{
+      await fillDocxTemplate(templateRow.file_url, {
+        company_name: companyName, meeting_title: m.title||"", meeting_date: m.meeting_date||"",
+        meeting_time: m.meeting_time||"", method: m.method||"",
+        attendee_count: attendees.length, attendee_shares: totalAttendeeShares,
+        attendance_pct: attendancePct.toFixed(1), quorum_threshold: quorumThreshold,
+        quorum_status: quorumMet ? "تحقق النصاب ✅" : "لم يتحقق النصاب ❌",
+        topics: (topics||[]).map(t => {
+          const d = byTopic[t.topic_text] || { yes:0, no:0, abs:0 };
+          const voted = d.yes + d.no + d.abs;
+          return { topic_text: t.topic_text, yes_pct: pct(d.yes,voted), no_pct: pct(d.no,voted), abs_pct: pct(d.abs,voted),
+            decision: voted===0 ? "لم يُصوَّت عليه" : (d.yes>=d.no && d.yes>=d.abs ? "تمت الموافقة" : "لم تتم الموافقة") };
+        })
+      }, `محضر ${m.title||'الجمعية العامة'}.docx`);
+      return;
+    }catch(e){ alert("تعذّر تعبئة القالب، سيُستخدم التصميم الافتراضي بدلًا منه: " + e.message); }
+  }
 
   const topicsHtml = (topics||[]).map((t,i) => {
     const d = byTopic[t.topic_text] || { yes:0, no:0, abs:0 };
@@ -6746,6 +6873,40 @@ async function generateAGMMinutesDoc(meetingId){
 async function generateVoteMinutesPDF(meetingId){
   const mid = meetingId || currentVotingMeetingId;
   if(!mid){ alert("تعذّر تحديد الجمعية"); return; }
+
+  const templateRow = docTemplatesCache["vote_minutes"];
+  if(templateRow){
+    const [{ error: tAttError, list: tAttendees }, tVotesRes, tMeetingRes] = await Promise.all([
+      getAttendeesList(mid),
+      sb.from("votes").select("*").eq("company_id", currentCompanyId).eq("meeting_id", mid).not("shareholder_name","is",null),
+      sb.from("meetings").select("*").eq("id", mid).single()
+    ]);
+    if(tAttError || tVotesRes.error){ alert("تعذّر توليد الملف: " + (tAttError||tVotesRes.error).message); return; }
+    try{
+      const m = tMeetingRes.data;
+      const totalAttShares = tAttendees.reduce((s,x)=>s+x.shares,0);
+      const byT = {};
+      (tVotesRes.data||[]).forEach(v => {
+        const t = v.topic || "—";
+        if(!byT[t]) byT[t] = { yes:0, no:0, abs:0 };
+        const shares = Number(v.shares_count)||0;
+        if(v.result==="موافق") byT[t].yes += shares;
+        else if(v.result==="معارض") byT[t].no += shares;
+        else if(v.result==="ممتنع") byT[t].abs += shares;
+      });
+      const companyName = document.getElementById("reportCompanyName1")?.textContent || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "الشركة";
+      await fillDocxTemplate(templateRow.file_url, {
+        company_name: companyName, meeting_title: m?.title||"", meeting_date: m?.meeting_date||"",
+        total_attendees: tAttendees.length, total_shares: totalAttShares,
+        results: Object.keys(byT).map(t => {
+          const d = byT[t]; const voted = d.yes+d.no+d.abs;
+          return { topic: t, yes_pct: pct(d.yes,voted), no_pct: pct(d.no,voted), abs_pct: pct(d.abs,voted) };
+        })
+      }, `محضر فرز أصوات ${m?.title||'الجمعية'}.docx`);
+      return;
+    }catch(e){ alert("تعذّر تعبئة القالب، سيُستخدم التصميم الافتراضي بدلًا منه: " + e.message); }
+  }
+
   const w = window.open("", "_blank");
   if(w){ w.document.write('<html dir="rtl"><body style="font-family:sans-serif;padding:30px">جارِ تجهيز الملف...</body></html>'); w.document.close(); }
   const [{ error: attError, list: attendees }, votesRes, meetingRes] = await Promise.all([
