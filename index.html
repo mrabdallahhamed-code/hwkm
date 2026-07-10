@@ -2420,6 +2420,19 @@ async function loadMeetingsAll(){
 /* Board-only cards: shows meetings from this calendar year that haven't happened yet
    (today or later), sorted soonest-first. Committee/AGM meetings are intentionally
    excluded here — they have their own dedicated pages. */
+/* Labeled version for the card view: shows a title above the buttons, and keeps a
+   dedicated download button visible alongside upload/replace once a file exists. */
+function fileCellCard(id, field, url, label){
+  return `<div style="text-align:center;flex:1">
+    <div style="font-size:9.5px;color:var(--gray3);margin-bottom:4px;font-weight:700">${label}</div>
+    <div style="display:flex;gap:4px;justify-content:center">
+      ${url ? `<a class="btn-xs primary" href="${url}" target="_blank" rel="noopener" title="تحميل">📥 تحميل</a>` : ""}
+      <label class="btn-xs" style="cursor:pointer;display:inline-block;${url ? 'background:var(--offwhite);color:var(--dark)' : 'background:var(--primary);color:#fff'}">📎 ${url?'استبدال':'رفع'}<input type="file" style="display:none" onchange="uploadMeetingFile(${id},'${field}',this)"></label>
+      ${url ? `<button style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:3px 6px;font-size:11px;cursor:pointer" title="حذف الملف" onclick="deleteMeetingFile(${id},'${field}')">🗑️</button>` : ""}
+    </div>
+  </div>`;
+}
+
 function renderUpcomingMeetingCards(boardMeetings){
   const wrap = document.getElementById("upcomingMeetCards");
   if(!wrap) return;
@@ -2445,9 +2458,9 @@ function renderUpcomingMeetingCards(boardMeetings){
       <div class="mc-detail">📍 ${m.method||"—"}</div>
       ${m.notes ? `<div class="mc-detail">📝 ${m.notes}</div>` : ""}
       <div class="mc-actions">
-        ${fileCell(m.id,'agenda_file_url',m.agenda_file_url)}
-        ${fileCell(m.id,'minutes_file_url',m.minutes_file_url)}
-        ${fileCell(m.id,'invitation_file_url',m.invitation_file_url)}
+        ${fileCellCard(m.id,'agenda_file_url',m.agenda_file_url,'جدول الأعمال')}
+        ${fileCellCard(m.id,'invitation_file_url',m.invitation_file_url,'الدعوة')}
+        ${fileCellCard(m.id,'minutes_file_url',m.minutes_file_url,'المحضر')}
       </div>
     </div>`;
   }).join("");
