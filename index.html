@@ -543,6 +543,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <label>عدد الأسهم</label>
       <input class="fi" id="signupShares" type="number" placeholder="مثال: 500" />
     </div>
+    <div class="login-field" id="signupInviteField" style="display:none">
+      <label>رمز الدعوة (اختياري — إن كنت مدعوًا للانضمام لشركة موجودة)</label>
+      <input class="fi" id="signupInviteCode" placeholder="مثال: A1B2C3D4" />
+    </div>
     <div class="login-field">
       <label>البريد الإلكتروني</label>
       <input type="email" id="loginEmail" placeholder="name@example.com" />
@@ -651,7 +655,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <select id="companySwitcher" onchange="switchCompany(this.value)" style="font-family:'Tajawal',sans-serif;font-size:12px;padding:6px 10px;border-radius:8px;border:1.5px solid var(--gray1);background:#fff;color:var(--dark);max-width:180px">
       <option>جارِ التحميل...</option>
     </select>
-    <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="openNewCompanyModal()">+ شركة</button>
+    <button id="btnAddCompany" class="btn btn-ghost" style="font-size:11px;padding:6px 12px;display:none" onclick="openNewCompanyModal()">+ شركة</button>
     <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="openEditCompanyModal()">✏️ تعديل الشركة</button>
     <div style="position:relative">
       <button class="notif-btn" onclick="toggleNotifPanel()">🔔<div class="notif-dot" id="notifDot" style="display:none"></div></button>
@@ -1416,7 +1420,16 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
 <!-- ══ USER MANAGEMENT (admin only) ══════ -->
 <div id="p-users" class="page content">
-  <div class="sec-title">🛡️ إدارة الصلاحيات</div>
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span>🛡️ إدارة الصلاحيات</span>
+    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openInviteModal()">🔗 دعوة عضو جديد</button>
+  </div>
+
+  <div class="card" id="pendingInvitesCard" style="margin-bottom:16px;display:none">
+    <div class="card-head"><span class="card-title">🔗 دعوات لم تُستخدم بعد</span></div>
+    <div class="card-body" id="pendingInvitesList"></div>
+  </div>
+
   <div class="card">
     <div class="card-head"><span class="card-title">المستخدمون المسجّلون</span></div>
     <div class="card-body" style="padding:0">
@@ -1896,6 +1909,28 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 </div>
 
 <!-- Add company modal -->
+<div class="modal-bg" id="m-invite">
+  <div class="modal">
+    <div class="modal-title">🔗 دعوة عضو جديد</div>
+    <div id="mi-form">
+      <div class="fg"><label>الدور المقترح له</label>
+        <select class="fs" id="mi-role">
+          <option>رئيس مجلس</option><option>سكرتير المجلس</option>
+          <option>رئيس لجنة الترشيحات</option><option>عضو لجنة الترشيحات</option>
+          <option selected>عضو مجلس</option><option>مساهم</option>
+        </select>
+      </div>
+      <p style="font-size:11px;color:var(--gray3)">بعد التوليد، شارك الرابط أو الرمز مع الشخص — لما يسجّل حساب جديد ويدخله، ينضم مباشرة لشركتك بالدور المحدد.</p>
+      <button class="btn btn-gold" style="width:100%" onclick="generateInvite()">✅ توليد رابط الدعوة</button>
+    </div>
+    <div id="mi-result" style="display:none">
+      <div class="fg"><label>رابط الدعوة</label><input class="fi" id="mi-link" readonly onclick="this.select()"></div>
+      <button class="btn-xs primary" style="width:100%" onclick="copyInviteLink()">📋 نسخ الرابط</button>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-invite')">إغلاق</button></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-company">
   <div class="modal">
     <div class="modal-title" id="mco-title-h">🏢 إضافة شركة جديدة</div>
@@ -1995,7 +2030,12 @@ function toggleAuthMode(){
   document.getElementById("signupNameField").style.display = authMode === "signup" ? "block" : "none";
   document.getElementById("signupNationalIdField").style.display = authMode === "signup" ? "block" : "none";
   document.getElementById("signupPhoneField").style.display = authMode === "signup" ? "block" : "none";
-  if(authMode === "signup"){ toggleShareholderFields(); }
+  document.getElementById("signupInviteField").style.display = authMode === "signup" ? "block" : "none";
+  if(authMode === "signup"){
+    toggleShareholderFields();
+    const urlInvite = new URLSearchParams(window.location.search).get("invite");
+    if(urlInvite) document.getElementById("signupInviteCode").value = urlInvite;
+  }
   else { document.getElementById("signupSharesField").style.display = "none"; }
   hideLoginMsg();
 }
@@ -2039,10 +2079,29 @@ async function handleAuth(){
     const { error } = await sb.auth.signUp({ email, password });
     if(error){ showLoginMsg("خطأ: " + error.message, false); return; }
 
-    const { error: profileError } = await sb.from("user_profiles").insert([{ email, account_type, full_name, national_id, phone_number, shares_count }]);
+    // If an invite code was supplied, validate it and join that company directly
+    // instead of landing in the company-less "request a company" state.
+    const inviteCode = document.getElementById("signupInviteCode").value.trim();
+    let inviteCompanyId = null, inviteRole = null, inviteRowId = null;
+    if(inviteCode){
+      const { data: invite } = await sb.from("company_invites").select("*").eq("invite_code", inviteCode).eq("used", false).maybeSingle();
+      if(invite){
+        inviteCompanyId = invite.company_id; inviteRole = invite.suggested_role; inviteRowId = invite.id;
+      } else {
+        showLoginMsg("تنبيه: رمز الدعوة غير صحيح أو مُستخدَم بالفعل — سيُنشأ حسابك بدون ربطه بشركة.", false);
+      }
+    }
+
+    const profilePayload = { email, account_type, full_name, national_id, phone_number, shares_count };
+    if(inviteCompanyId){ profilePayload.company_id = inviteCompanyId; profilePayload.role = inviteRole; }
+
+    const { error: profileError } = await sb.from("user_profiles").insert([profilePayload]);
     if(profileError){
       showLoginMsg("تم إنشاء حساب الدخول، لكن تعذّر حفظ بياناتك الشخصية: " + profileError.message + " — تواصل مع مدير النظام.", false);
       return;
+    }
+    if(inviteRowId){
+      await sb.from("company_invites").update({ used: true, used_by_email: email, used_at: new Date().toISOString() }).eq("id", inviteRowId);
     }
 
     showLoginMsg("تم إنشاء الحساب. يمكنك تسجيل الدخول الآن (أو تحقق من بريدك للتفعيل)", true);
@@ -2052,6 +2111,7 @@ async function handleAuth(){
     document.getElementById("signupNameField").style.display = "none";
     document.getElementById("signupNationalIdField").style.display = "none";
     document.getElementById("signupPhoneField").style.display = "none";
+    document.getElementById("signupInviteField").style.display = "none";
     document.getElementById("signupSharesField").style.display = "none";
   }
 }
@@ -2103,6 +2163,8 @@ function applyRolePermissions(){
   if(avEl) avEl.textContent = displayName.trim().charAt(0) || "م";
 
   document.getElementById('platformAdminNavGroup').style.display = isPlatformAdmin ? 'block' : 'none';
+  const btnAddCompany = document.getElementById('btnAddCompany');
+  if(btnAddCompany) btnAddCompany.style.display = isPlatformAdmin ? 'inline-block' : 'none';
 
   if(hasNoCompany && !isPlatformAdmin){
     // No company yet: hide every other section and force the "request a company" page —
@@ -2163,6 +2225,7 @@ function isMutatingOnclick(val){
     || /^openNewCommitteeModal\(/.test(val)
     || /^openNewGovEvalModal\(/.test(val)
     || /^openNewCompanyModal\(/.test(val)
+    || /^openInviteModal\(/.test(val)
     || /^openEditCompanyModal\(/.test(val)
     || /^edit[A-Z]/.test(val)
     || /^delete[A-Z]/.test(val)
@@ -2214,14 +2277,81 @@ function startMutationGuard(){
   observer.observe(main, { childList: true, subtree: true });
 }
 
+/* ══════════ TEAM INVITES (join an existing company via code/link) ══════════ */
+function openInviteModal(){
+  document.getElementById("mi-form").style.display = "block";
+  document.getElementById("mi-result").style.display = "none";
+  document.getElementById("mi-role").value = "عضو مجلس";
+  openM("m-invite");
+}
+
+function randomInviteCode(){
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for(let i=0;i<8;i++) code += chars[Math.floor(Math.random()*chars.length)];
+  return code;
+}
+
+async function generateInvite(){
+  if(!currentCompanyId){ alert("لا توجد شركة محددة حاليًا"); return; }
+  const suggested_role = document.getElementById("mi-role").value;
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+  const invite_code = randomInviteCode();
+
+  const { error } = await sb.from("company_invites").insert([{ company_id: currentCompanyId, invite_code, suggested_role, created_by: myEmail }]);
+  if(error){ alert("تعذّر توليد الدعوة: " + error.message); return; }
+
+  const link = `${window.location.origin}${window.location.pathname}?invite=${invite_code}`;
+  document.getElementById("mi-link").value = link;
+  document.getElementById("mi-form").style.display = "none";
+  document.getElementById("mi-result").style.display = "block";
+  loadPendingInvites();
+}
+
+function copyInviteLink(){
+  const el = document.getElementById("mi-link");
+  el.select();
+  navigator.clipboard?.writeText(el.value).then(()=>alert("تم نسخ الرابط ✅")).catch(()=>{});
+}
+
+async function loadPendingInvites(){
+  const card = document.getElementById("pendingInvitesCard");
+  const box = document.getElementById("pendingInvitesList");
+  if(!box || !currentCompanyId) return;
+  const { data } = await sb.from("company_invites").select("*").eq("company_id", currentCompanyId).eq("used", false).order("id",{ascending:false});
+  if(!data || data.length===0){ if(card) card.style.display = "none"; return; }
+  if(card) card.style.display = "block";
+  box.innerHTML = data.map(inv => {
+    const link = `${window.location.origin}${window.location.pathname}?invite=${inv.invite_code}`;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--gray1)">
+      <div>
+        <div style="font-size:12px;font-weight:700">${inv.invite_code} <span style="color:var(--gray3);font-weight:500">— ${inv.suggested_role}</span></div>
+        <div style="font-size:10px;color:var(--gray3)">${new Date(inv.created_at).toLocaleDateString('ar-SA')}</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-xs primary" onclick="navigator.clipboard.writeText('${link}');alert('تم نسخ الرابط ✅')">📋 نسخ</button>
+        <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer" onclick="deleteInvite(${inv.id})">🗑️</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+async function deleteInvite(id){
+  if(!confirm("إلغاء هذه الدعوة؟")) return;
+  await sb.from("company_invites").delete().eq("id", id);
+  loadPendingInvites();
+}
+
 async function loadUsers(){
+  loadPendingInvites();
   const tbody = document.getElementById("usersTbody");
   if(!tbody) return;
   if(getCurrentRole() !== 'مدير النظام'){
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--red);font-size:12px;padding:14px">هذه الصفحة متاحة لمدير النظام فقط</td></tr>';
     return;
   }
-  const { data, error } = await sb.from("user_profiles").select("*").order("id",{ascending:true});
+  const { data, error } = await sb.from("user_profiles").select("*").eq("company_id", currentCompanyId).order("id",{ascending:true});
   if(error){ tbody.innerHTML = errorRowHTML(7, error.message); return; }
   if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(7, "لا يوجد مستخدمون مسجّلون بعد."); return; }
   const roles = ['مدير النظام','رئيس مجلس','سكرتير المجلس','رئيس لجنة الترشيحات','عضو لجنة الترشيحات','عضو مجلس','مساهم'];
@@ -2260,23 +2390,23 @@ async function updateUserRole(id, role){
 }
 async function loadCompanies(preferredCompanyId){
   const sel = document.getElementById("companySwitcher");
-  const { data, error } = await sb.from("companies").select("*").order("id",{ascending:true});
+  const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
+
+  // Regular users only ever see their own single company — never the full company list.
+  // Only the platform owner (is_platform_admin) can browse across every tenant.
+  const query = isPlatformAdmin
+    ? sb.from("companies").select("*").order("id",{ascending:true})
+    : sb.from("companies").select("*").eq("id", preferredCompanyId || -1);
+  const { data, error } = await query;
+
   if(error || !data || data.length===0){
-    if(sel) sel.innerHTML = '<option>لا توجد شركات</option>';
+    if(sel) sel.innerHTML = '<option>لا توجد شركة مرتبطة بحسابك</option>';
+    currentCompanyId = null;
+    reloadCurrentPageData();
     return;
   }
   if(sel){
     sel.innerHTML = data.map(c => `<option value="${c.id}">${c.name}</option>`).join("");
-  }
-  const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
-  if(!preferredCompanyId && !isPlatformAdmin){
-    // A user with no assigned company sees no company data at all — they're routed
-    // to the "request a company" flow instead of silently falling back to another
-    // tenant's data.
-    currentCompanyId = null;
-    if(sel) sel.innerHTML = '<option>لا توجد شركة مرتبطة بحسابك</option>';
-    reloadCurrentPageData();
-    return;
   }
   currentCompanyId = preferredCompanyId && data.some(c=>c.id===preferredCompanyId) ? preferredCompanyId : data[0].id;
   if(sel) sel.value = currentCompanyId;
@@ -3006,6 +3136,9 @@ async function checkSession(){
   }
 }
 checkSession();
+if(new URLSearchParams(window.location.search).get("invite") && authMode === "login"){
+  toggleAuthMode();
+}
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(()=>{}); });
 }
