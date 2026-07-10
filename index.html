@@ -708,13 +708,15 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
         </tbody>
       </table>
     </div>
-  </div>  <div class="sec-title" style="margin-top:20px">📅 سجل اجتماعات المجلس</div>
+  </div>
+
+  <div class="sec-title" style="margin-top:20px">📜 محاضر المجلس</div>
   <div class="card">
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>العنوان</th><th>النوع</th><th>التاريخ</th><th>الوقت</th><th>طريقة الانعقاد</th><th>ملاحظات</th><th>جدول الأعمال</th><th>المحضر</th><th>الدعوات</th><th>إجراء</th></tr></thead>
-        <tbody id="boardMeetingsCards">
-          <tr><td colspan="7" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+        <thead><tr><th>العنوان</th><th>النوع</th><th>التاريخ</th><th>الوقت</th><th>حالة التوقيع</th><th>المحضر</th></tr></thead>
+        <tbody id="boardMinutesTbody">
+          <tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
       </table>
     </div>
@@ -2079,6 +2081,7 @@ function isMutatingOnclick(val){
     || /^openPermHoldersManager\(/.test(val)
     || /^openPermItemsManager\(/.test(val)
     || /^openPermItemEditModal\(/.test(val)
+    || /^linkMeetingToSigningDoc\(/.test(val)
     || /^edit[A-Z]/.test(val)
     || /^delete[A-Z]/.test(val)
     || /^saveCompany/.test(val)
@@ -2424,7 +2427,6 @@ async function deleteMeeting(id){
 }
 
 async function loadMeetingsAll(){
-  const boardWrap = document.getElementById("boardMeetingsCards");
   const committeeWrap = document.getElementById("committeeMeetingsCards");
   const agmWrap = document.getElementById("agmMeetingsCards");
   const emptyMsg = '<tr><td colspan="10" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد بيانات بعد</td></tr>';
@@ -2432,7 +2434,6 @@ async function loadMeetingsAll(){
   const { data, error } = await sb.from("meetings").select("*").eq("company_id", currentCompanyId).order("id", { ascending: false });
   if(error){
     const errMsg = '<tr><td colspan="10" style="text-align:center;color:var(--red);font-size:12px;padding:14px">تعذّر التحميل: '+error.message+'</td></tr>';
-    if(boardWrap) boardWrap.innerHTML = errMsg;
     if(committeeWrap) committeeWrap.innerHTML = errMsg;
     if(agmWrap) agmWrap.innerHTML = errMsg;
     return;
@@ -2442,12 +2443,99 @@ async function loadMeetingsAll(){
   const committee = (data || []).filter(m => m.meeting_type === "اجتماع لجنة");
   const agm = (data || []).filter(m => m.meeting_type === "الجمعية العامة");
 
-  if(boardWrap) boardWrap.innerHTML = board.length ? board.map(renderMeetingRow).join("") : emptyMsg;
   if(committeeWrap) committeeWrap.innerHTML = committee.length ? committee.map(renderMeetingRow).join("") : emptyMsg;
   if(agmWrap) agmWrap.innerHTML = agm.length ? agm.map(renderMeetingRow).join("") : emptyMsg;
 
   renderUpcomingMeetingCards(board);
   loadMeetingRequestsReview();
+  loadBoardMinutes(board);
+}
+
+/* ══════════ BOARD MINUTES (signed via e-signature) ══════════ */
+async function loadBoardMinutes(boardMeetings){
+  const tbody = document.getElementById("boardMinutesTbody");
+  if(!tbody) return;
+  if(!boardMeetings || boardMeetings.length===0){
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد اجتماعات مجلس بعد</td></tr>';
+    return;
+  }
+
+  const signingIds = boardMeetings.map(m=>m.signing_doc_id).filter(Boolean);
+  let signingById = {};
+  if(signingIds.length){
+    const { data: docs } = await sb.from("signing_documents").select("*").in("id", signingIds);
+    (docs||[]).forEach(d => { signingById[d.id] = d; });
+  }
+
+  tbody.innerHTML = boardMeetings
+    .sort((a,b) => (b.meeting_date||"").localeCompare(a.meeting_date||""))
+    .map(m => {
+      const doc = m.signing_doc_id ? signingById[m.signing_doc_id] : null;
+      let statusBadge, actionBtn;
+      if(!doc){
+        statusBadge = '<span class="badge pending">لم يُربط بعد بمستند توقيع</span>';
+        actionBtn = `<button class="btn-xs primary" onclick="linkMeetingToSigningDoc(${m.id})">🔗 ربط بمحضر توقيع</button>`;
+      } else if((doc.signers_done||0) >= (doc.signers_total||1) && doc.signers_total){
+        statusBadge = `<span class="badge done">موقّع بالكامل ✍️ (${doc.signers_done}/${doc.signers_total})</span>`;
+        actionBtn = `<button class="btn-xs gold" onclick="generateSignedMinutesPDF(${m.id})">📜 عرض المحضر</button>`;
+      } else {
+        statusBadge = `<span class="badge info">قيد التوقيع (${doc.signers_done||0}/${doc.signers_total||'?'})</span>`;
+        actionBtn = `<button class="btn-xs" style="background:var(--offwhite);color:var(--gray3);border:1px solid var(--gray1);border-radius:6px;padding:5px 10px;font-size:11px;cursor:not-allowed" disabled title="ينتظر اكتمال توقيع كل الأعضاء">📜 عرض المحضر</button>
+          <button class="btn-xs" style="background:none;border:none;color:var(--gray3);font-size:10px;cursor:pointer" onclick="linkMeetingToSigningDoc(${m.id})">🔗 تغيير الربط</button>`;
+      }
+      return `<tr>
+        <td>${m.title||""}</td><td>${m.meeting_type||"—"}</td><td>${m.meeting_date||"—"}</td><td>${m.meeting_time||"—"}</td>
+        <td>${statusBadge}</td>
+        <td>${actionBtn}</td>
+      </tr>`;
+    }).join("");
+}
+
+async function linkMeetingToSigningDoc(meetingId){
+  const { data: docs, error } = await sb.from("signing_documents").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
+  if(error){ alert("تعذّر تحميل مستندات التوقيع: " + error.message); return; }
+  if(!docs || docs.length===0){ alert('لا توجد مستندات بصفحة "التوقيع الإلكتروني" بعد. ارفع محضر الاجتماع هناك أولًا كمستند للتوقيع.'); return; }
+
+  const options = docs.map((d,i) => `${i+1}. ${d.document_name} (${d.signers_done||0}/${d.signers_total||'?'} موقّعين)`).join("\n");
+  const choice = prompt("اختر رقم مستند التوقيع المطابق لمحضر هذا الاجتماع:\n\n" + options);
+  const idx = Number(choice) - 1;
+  if(!choice || isNaN(idx) || idx < 0 || idx >= docs.length) return;
+
+  const { error: updErr } = await sb.from("meetings").update({ signing_doc_id: docs[idx].id }).eq("id", meetingId);
+  if(updErr){ alert("تعذّر الربط: " + updErr.message); return; }
+  loadMeetingsAll();
+}
+
+async function generateSignedMinutesPDF(meetingId){
+  const { data: m, error } = await sb.from("meetings").select("*").eq("id", meetingId).single();
+  if(error || !m){ alert("تعذّر تحميل بيانات الاجتماع"); return; }
+  const { data: doc } = await sb.from("signing_documents").select("*").eq("id", m.signing_doc_id).single();
+
+  const w = window.open("", "_blank");
+  if(!w){ alert("المتصفح منع فتح نافذة التقرير — الرجاء السماح بالنوافذ المنبثقة لهذا الموقع ثم المحاولة مرة أخرى."); return; }
+  const dateNow = new Date().toLocaleDateString("ar-SA");
+  w.document.open();
+  w.document.write(`
+    <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>محضر موقّع — ${m.title||""}</title>
+    <style>
+      body{font-family:'Tajawal',Arial,sans-serif;padding:40px;color:#0D2447}
+      h1{color:#1A3A6B;font-size:20px;border-bottom:3px solid #D4AF37;padding-bottom:10px}
+      .meta{font-size:13px;margin:6px 0}
+      .stamp{margin-top:30px;padding:16px;background:#EAF8F0;border:2px solid #1E8E5A;border-radius:10px;color:#166A43;font-weight:800;text-align:center}
+      .files a{color:#1A3A6B}
+    </style></head><body>
+    <h1>📜 محضر اجتماع موقّع إلكترونيًا</h1>
+    <p class="meta"><b>عنوان الاجتماع:</b> ${m.title||"—"}</p>
+    <p class="meta"><b>النوع:</b> ${m.meeting_type||"—"}</p>
+    <p class="meta"><b>التاريخ:</b> ${m.meeting_date||"—"} ${m.meeting_time?(' — الساعة '+m.meeting_time):''}</p>
+    <p class="meta"><b>طريقة الانعقاد:</b> ${m.method||"—"}</p>
+    ${m.notes ? `<p class="meta"><b>ملاحظات:</b> ${m.notes}</p>` : ""}
+    <div class="stamp">✅ تم توقيع هذا المحضر إلكترونيًا من ${doc?.signers_done||0} من ${doc?.signers_total||'?'} من الأعضاء المخوّلين، بتاريخ ${dateNow}.</div>
+    ${m.minutes_file_url ? `<p class="files" style="margin-top:20px">📎 <a href="${m.minutes_file_url}" target="_blank">فتح ملف المحضر الأصلي</a></p>` : ""}
+    <script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>
+    </body></html>
+  `);
+  w.document.close();
 }
 
 /* Board-only cards: shows meetings from this calendar year that haven't happened yet
