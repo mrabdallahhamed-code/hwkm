@@ -279,6 +279,15 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   border-bottom:2px solid var(--gray1);
   display:flex;align-items:center;gap:8px;
 }
+.rep-sec-title{
+  font-size:14px;font-weight:800;color:var(--dark);
+  margin:20px 0 10px;padding-bottom:8px;
+  border-bottom:2px solid var(--gray1);
+}
+.rep-field-textarea{
+  width:100%;border:1px solid var(--gray1);border-radius:8px;padding:10px;
+  font-family:'Tajawal',sans-serif;font-size:12px;resize:vertical;margin-bottom:6px;color:var(--dark);
+}
 
 /* ── MEETING CARDS ── */
 .meet-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;}
@@ -1125,29 +1134,24 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
 <!-- ══ REPORTS ════════════════════════════ -->
 <div id="p-reports" class="page content">
-  <div class="sec-title">📈 تقارير الحوكمة</div>
-
-  <!-- Annual report card -->
-  <div class="card" style="margin-bottom:18px">
-    <div class="card-head">
-      <span class="card-title">📋 تقرير مجلس الإدارة السنوي — <span id="reportYear"></span></span>
-      <div style="display:flex;gap:8px">
-        <button class="btn-xs gold" onclick="generateAnnualReportPDF()">📄 تحميل PDF</button>
-      </div>
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span>📈 تقرير مجلس الإدارة السنوي (حسب المادة 90 من لائحة حوكمة الشركات)</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <select class="fs" id="reportYearSelect" onchange="loadReportsPage()" style="font-size:12px;padding:6px 10px;width:auto"></select>
+      <button class="btn-xs gold" onclick="generateAnnualReportPDF()">📄 تحميل PDF</button>
     </div>
+  </div>
+
+  <div class="card" style="margin-bottom:18px">
     <div class="card-body">
-      <!-- Report preview -->
       <div style="border:1px solid var(--gray1);border-radius:10px;overflow:hidden">
-        <!-- Report header -->
         <div style="background:var(--primary);color:#fff;padding:24px 28px;text-align:center">
           <div style="font-size:11px;letter-spacing:2px;color:rgba(255,255,255,0.65);margin-bottom:8px">المملكة العربية السعودية</div>
           <div style="font-size:20px;font-weight:900;color:var(--gold3);margin-bottom:4px" id="reportCompanyName1">—</div>
           <div style="font-size:15px;font-weight:700;margin-top:10px">تقرير مجلس الإدارة السنوي</div>
           <div style="font-size:13px;color:rgba(255,255,255,0.7);margin-top:4px" id="reportPeriodLine">—</div>
         </div>
-        <!-- Report body -->
-        <div style="padding:24px 28px;background:#fff">
-          <!-- Summary stats (real, computed) -->
+        <div style="padding:24px 28px;background:#fff" id="reportBody">
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px">
             <div style="background:var(--offwhite);border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--primary)" id="rep-kpi-meetings">—</div><div style="font-size:10px;color:var(--gray3)">اجتماعات المجلس هذا العام</div></div>
             <div style="background:var(--offwhite);border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--green)" id="rep-kpi-decisions">—</div><div style="font-size:10px;color:var(--gray3)">قراراً موقّعًا هذا العام</div></div>
@@ -1155,21 +1159,59 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
             <div style="background:var(--offwhite);border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--teal)" id="rep-kpi-committees">—</div><div style="font-size:10px;color:var(--gray3)">لجان نشطة</div></div>
           </div>
 
-          <div style="font-size:14px;font-weight:800;color:var(--dark);margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--gray1)">أولاً: رسالة رئيس مجلس الإدارة</div>
-          <p style="font-size:12px;color:var(--gray3);line-height:1.8;margin-bottom:16px">يسعدنا أن نقدم التقرير السنوي لمجلس إدارة <span id="reportCompanyName2">—</span> للسنة المالية <span id="reportYear2"></span>م، والذي يعكس مسيرة الشركة في تعزيز منظومة الحوكمة المؤسسية والارتقاء بمعايير الشفافية والإفصاح بما يتوافق مع رؤية المملكة 2030 ومتطلبات الجهات التنظيمية.</p>
+          <div class="rep-sec-title">أولاً: ما طُبّق من أحكام لائحة حوكمة الشركات وما لم يُطبّق وأسبابه</div>
+          <div id="field-compliance_statement"></div>
 
-          <div style="font-size:14px;font-weight:800;color:var(--dark);margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--gray1)">ثانياً: أبرز القرارات الصادرة هذا العام</div>
+          <div class="rep-sec-title">ثانياً: تكوين مجلس الإدارة وتصنيف الأعضاء</div>
+          <div id="rep-board-composition" style="margin-bottom:16px"><div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div></div>
+
+          <div class="rep-sec-title">ثالثاً: عضوية أعضاء المجلس في مجالس إدارات أخرى</div>
+          <div id="field-other_directorships"></div>
+
+          <div class="rep-sec-title">رابعاً: اللجان — الأعضاء وعدد الاجتماعات ونسب الحضور</div>
+          <div id="rep-committees-detail" style="margin-bottom:16px"><div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div></div>
+
+          <div class="rep-sec-title">خامساً: مكافآت أعضاء مجلس الإدارة والإدارة التنفيذية</div>
+          <div id="field-remuneration"></div>
+
+          <div class="rep-sec-title">سادساً: العقوبات والجزاءات المفروضة على الشركة</div>
+          <div id="field-penalties"></div>
+
+          <div class="rep-sec-title">سابعاً: نتائج المراجعة السنوية للرقابة الداخلية ورأي لجنة المراجعة</div>
+          <div id="field-internal_control"></div>
+
+          <div class="rep-sec-title">ثامناً: المخاطر التي تواجه الشركة وسياسة إدارتها</div>
+          <div id="rep-risks-list" style="margin-bottom:10px"><div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div></div>
+          <div id="field-risk_policy"></div>
+
+          <div class="rep-sec-title">تاسعاً: الفروقات الجوهرية في النتائج التشغيلية عن السنة السابقة</div>
+          <div id="field-material_variances"></div>
+
+          <div class="rep-sec-title">عاشراً: الشركات التابعة</div>
+          <div id="field-subsidiaries"></div>
+
+          <div class="rep-sec-title">حادي عشر: القروض على الشركة</div>
+          <div id="field-loans"></div>
+
+          <div class="rep-sec-title">ثاني عشر: طلبات الشركة لسجل المساهمين</div>
+          <div id="field-share_registry_requests"></div>
+
+          <div class="rep-sec-title">ثالث عشر: الأعمال والعقود مع أطراف ذات علاقة بأعضاء المجلس</div>
+          <div id="field-related_party_contracts"></div>
+
+          <div class="rep-sec-title">رابع عشر: توزيعات الأرباح</div>
+          <div id="field-dividends"></div>
+
+          <div class="rep-sec-title">خامس عشر: إقرارات مجلس الإدارة</div>
+          <div id="field-declarations"></div>
+
+          <div class="rep-sec-title">أبرز القرارات الصادرة هذا العام</div>
           <div id="rep-decisions-list" style="margin-bottom:16px">
             <div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div>
           </div>
 
-          <div style="font-size:14px;font-weight:800;color:var(--dark);margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--gray1)">ثالثاً: أعضاء مجلس الإدارة</div>
-          <div id="rep-members-list" style="margin-bottom:16px">
-            <div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div>
-          </div>
-
           <div style="margin-top:20px;padding:14px;background:var(--offwhite);border-radius:8px;font-size:11px;color:var(--gray3);text-align:center">
-            تقرير مولّد تلقائيًا من بيانات المنصة الحقيقية بتاريخ <span id="reportGenDate"></span>
+            تقرير مبني على بيانات المنصة الحقيقية + بنود مدخلة يدويًا، بتاريخ <span id="reportGenDate"></span>
           </div>
         </div>
       </div>
@@ -2104,26 +2146,79 @@ function reloadCurrentPageData(){
   if(id==='dashboard') loadDashboard();
 }
 
+const REPORT_MANUAL_FIELDS = [
+  { key:'compliance_statement', label:'', placeholder:'اذكر ما طُبّق من أحكام لائحة حوكمة الشركات وما لم يُطبّق وأسباب ذلك...', default:'طبّقت الشركة كافة الأحكام الواردة في لائحة حوكمة الشركات الصادرة عن هيئة السوق المالية.' },
+  { key:'other_directorships', placeholder:'أسماء الشركات (داخل المملكة أو خارجها) التي يكون أي من أعضاء المجلس عضوًا في مجالس إدارتها الحالية أو السابقة...' },
+  { key:'remuneration', placeholder:'إفصاح عن مكافآت أعضاء مجلس الإدارة والإدارة التنفيذية، وسياسة تحديدها، والعلاقة بين المكافآت الممنوحة وسياسة المكافآت المعمول بها...' },
+  { key:'penalties', placeholder:'أي عقوبة أو جزاء أو تدبير احترازي مفروض على الشركة من الهيئة أو أي جهة تنظيمية، مع بيان الأسباب وسبل العلاج...', default:'لم تتعرض الشركة خلال هذا العام لأي عقوبات أو جزاءات من الجهات التنظيمية.' },
+  { key:'internal_control', placeholder:'نتائج المراجعة السنوية لفعالية إجراءات الرقابة الداخلية، ورأي لجنة المراجعة في مدى كفايتها...' },
+  { key:'risk_policy', placeholder:'سياسة إدارة المخاطر المذكورة أعلاه وآلية مراقبتها...' },
+  { key:'material_variances', placeholder:'أي فروقات جوهرية (10% فأكثر) في النتائج التشغيلية عن السنة السابقة أو عن أي توقعات أعلنتها الشركة...', default:'لا توجد فروقات جوهرية تستدعي الإفصاح عنها.' },
+  { key:'subsidiaries', placeholder:'اسم كل شركة تابعة، ورأس مالها، ونسبة ملكية الشركة فيها، ونشاطها الرئيسي، ودولة التأسيس...', default:'لا توجد شركات تابعة.' },
+  { key:'loans', placeholder:'معلومات عن أي قروض على الشركة (المبلغ، الجهة المانحة، المدة، الرصيد المتبقي)...', default:'لا توجد قروض على الشركة.' },
+  { key:'share_registry_requests', placeholder:'عدد طلبات الشركة لسجل المساهمين وتواريخها وأسبابها...' },
+  { key:'related_party_contracts', placeholder:'أي أعمال أو عقود تكون الشركة طرفًا فيها ولأحد أعضاء المجلس أو كبار التنفيذيين مصلحة فيها...', default:'لا توجد أعمال أو عقود من هذا القبيل.' },
+  { key:'dividends', placeholder:'نسب الأرباح الموزعة على المساهمين خلال العام، والمقترح توزيعه في نهاية السنة المالية...' },
+  { key:'declarations', placeholder:'إقرارات مجلس الإدارة...', default:'يقر مجلس الإدارة بأن سجلات الحسابات أُعدت بالشكل الصحيح، وأن نظام الرقابة الداخلية أُعد على أسس سليمة ونُفذ بفاعلية، وأنه لا يوجد أي شك يُذكر في قدرة الشركة على مواصلة نشاطها.' }
+];
+
+function renderReportManualFields(year, savedValues){
+  REPORT_MANUAL_FIELDS.forEach(f => {
+    const box = document.getElementById("field-"+f.key);
+    if(!box) return;
+    const val = savedValues[f.key] != null ? savedValues[f.key] : (f.default || "");
+    box.innerHTML = `
+      <textarea class="rep-field-textarea" id="repfield-${f.key}" rows="2" placeholder="${f.placeholder}">${val}</textarea>
+      <button class="btn-xs primary" onclick="saveReportField('${f.key}',${year})">💾 حفظ</button>
+    `;
+  });
+}
+
+async function saveReportField(key, year){
+  const el = document.getElementById("repfield-"+key);
+  if(!el) return;
+  const field_value = el.value;
+  const { error } = await sb.from("board_report_fields")
+    .upsert([{ company_id: currentCompanyId, year, field_key: key, field_value }], { onConflict: 'company_id,year,field_key' });
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  alert("تم الحفظ ✅");
+}
+
+function boardMemberClassification(m){
+  if(m.is_executive === "تنفيذي") return "تنفيذي";
+  if(m.status === "مستقل") return "مستقل";
+  return "غير تنفيذي";
+}
+
 async function loadReportsPage(){
   const list = document.getElementById("companySwitcher");
   const name = list && list.selectedOptions.length ? list.selectedOptions[0].textContent : "الشركة";
   setText("reportCompanyName1", name);
-  setText("reportCompanyName2", name);
 
-  const currentYear = new Date().getFullYear();
-  setText("reportYear", currentYear);
-  setText("reportYear2", currentYear);
+  const yearSelect = document.getElementById("reportYearSelect");
+  const nowYear = new Date().getFullYear();
+  if(yearSelect && yearSelect.options.length === 0){
+    for(let y = nowYear; y >= nowYear-4; y--){
+      const opt = document.createElement("option");
+      opt.value = y; opt.textContent = y;
+      yearSelect.appendChild(opt);
+    }
+  }
+  const currentYear = yearSelect ? Number(yearSelect.value) : nowYear;
   setText("reportPeriodLine", `للسنة المالية المنتهية في 31 ديسمبر ${currentYear}`);
   setText("reportGenDate", new Date().toLocaleDateString("ar-SA"));
 
-  const [meetingsRes, signingRes, complianceRes, committeesRes, membersRes, risksRes, perfRes] = await Promise.all([
+  const [meetingsRes, signingRes, complianceRes, committeesRes, membersRes, risksRes, perfRes, fieldsRes, attendanceRes, committeeMembersRes] = await Promise.all([
     sb.from("meetings").select("*").eq("company_id", currentCompanyId),
     sb.from("signing_documents").select("*").eq("company_id", currentCompanyId),
     sb.from("compliance_items").select("*").eq("company_id", currentCompanyId),
     sb.from("committees").select("*").eq("company_id", currentCompanyId),
     sb.from("board_members").select("*").eq("company_id", currentCompanyId),
     sb.from("risks").select("*").eq("company_id", currentCompanyId),
-    sb.from("performance_evaluations").select("*").eq("company_id", currentCompanyId)
+    sb.from("performance_evaluations").select("*").eq("company_id", currentCompanyId),
+    sb.from("board_report_fields").select("*").eq("company_id", currentCompanyId).eq("year", currentYear),
+    sb.from("meeting_attendance").select("*").eq("company_id", currentCompanyId),
+    sb.from("committee_members").select("*").eq("company_id", currentCompanyId)
   ]);
   const meetings = meetingsRes.data || [];
   const signingDocs = signingRes.data || [];
@@ -2132,6 +2227,12 @@ async function loadReportsPage(){
   const members = membersRes.data || [];
   const risks = risksRes.data || [];
   const perfEvals = perfRes.data || [];
+  const attendance = attendanceRes.data || [];
+  const committeeLinks = committeeMembersRes.data || [];
+
+  const savedFields = {};
+  (fieldsRes.data||[]).forEach(f => { savedFields[f.field_key] = f.field_value; });
+  renderReportManualFields(currentYear, savedFields);
 
   const boardMeetingsThisYear = meetings.filter(m => (m.meeting_type==="اجتماع مجلس الإدارة الدوري"||m.meeting_type==="اجتماع طارئ") && m.meeting_date && new Date(m.meeting_date).getFullYear()===currentYear);
   const decisionsThisYear = signingDocs.filter(d => d.status==="مكتمل" && d.created_at && new Date(d.created_at).getFullYear()===currentYear);
@@ -2142,6 +2243,42 @@ async function loadReportsPage(){
   setText("rep-kpi-compliance", compliancePct!=null ? compliancePct+"%" : "—");
   setText("rep-kpi-committees", committeesData.length);
 
+  // ── Section 2: Board composition & classification (real) ──
+  const compBox = document.getElementById("rep-board-composition");
+  if(compBox){
+    compBox.innerHTML = members.length ? `<table class="tbl"><thead><tr><th>الاسم</th><th>المنصب</th><th>التصنيف</th></tr></thead><tbody>
+      ${members.map(m => `<tr><td>${m.name||""}</td><td>${m.position||"—"}</td><td>${boardMemberClassification(m)}</td></tr>`).join("")}
+    </tbody></table>` : '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا يوجد أعضاء مسجّلون بعد.</div>';
+  }
+
+  // ── Section 4: Committees detail — members, meeting count, attendance (real) ──
+  const commBox = document.getElementById("rep-committees-detail");
+  if(commBox){
+    if(committeesData.length===0){
+      commBox.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا توجد لجان مسجّلة بعد.</div>';
+    } else {
+      commBox.innerHTML = `<table class="tbl"><thead><tr><th>اللجنة</th><th>الرئيس</th><th>عدد الأعضاء</th><th>اجتماعاتها هذا العام</th><th>متوسط نسبة الحضور</th></tr></thead><tbody>
+        ${committeesData.map(c => {
+          const memberIds = committeeLinks.filter(l=>l.committee_id===c.id).map(l=>l.member_id);
+          const cMeetings = meetings.filter(m => m.committee_id===c.id && m.meeting_date && new Date(m.meeting_date).getFullYear()===currentYear);
+          const cMeetingIds = cMeetings.map(m=>m.id);
+          const cAttendance = attendance.filter(a => cMeetingIds.includes(a.meeting_id) && memberIds.includes(a.member_id));
+          const present = cAttendance.filter(a=>a.status==="حاضر").length;
+          const avgPct = cAttendance.length ? Math.round((present/cAttendance.length)*100) : null;
+          return `<tr><td>${c.committee_name||""}</td><td>${c.chairman_name||"—"}</td><td>${memberIds.length}</td><td>${cMeetings.length}</td><td>${avgPct!=null?avgPct+'%':'—'}</td></tr>`;
+        }).join("")}
+      </tbody></table>`;
+    }
+  }
+
+  // ── Section 8: Risks list (real) ──
+  const riskBox = document.getElementById("rep-risks-list");
+  if(riskBox){
+    riskBox.innerHTML = risks.length ? `<table class="tbl"><thead><tr><th>الخطر</th><th>الفئة</th><th>التأثير</th><th>الاحتمالية</th><th>الحالة</th></tr></thead><tbody>
+      ${risks.map(r => `<tr><td>${r.risk_name||""}</td><td>${r.category||"—"}</td><td>${r.impact||"—"}</td><td>${r.probability!=null?r.probability+'%':'—'}</td><td>${r.status||"—"}</td></tr>`).join("")}
+    </tbody></table>` : '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا توجد مخاطر مسجّلة بعد.</div>';
+  }
+
   // Decisions list
   const decBox = document.getElementById("rep-decisions-list");
   if(decBox){
@@ -2151,22 +2288,6 @@ async function loadReportsPage(){
         topDecisions.map(d => `<div style="background:#E8F8EF;border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green);font-weight:600">✅ ${d.document_name}</div>`).join("") +
         '</div>'
       : '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا توجد قرارات موقّعة مكتملة هذا العام بعد.</div>';
-  }
-
-  // Members list (roster — no attendance tracking exists in the platform yet)
-  const memBox = document.getElementById("rep-members-list");
-  if(memBox){
-    if(members.length === 0){
-      memBox.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا يوجد أعضاء مسجّلون بعد.</div>';
-    } else {
-      const attendancePcts = await computeAttendancePercentages();
-      const pctByName = {};
-      attendancePcts.forEach(p => { pctByName[p.name] = p.pct; });
-      memBox.innerHTML = members.map(m => {
-        const pct = pctByName[m.name];
-        return `<div class="comp-item"><div class="comp-head"><span class="comp-name">${m.name||""} <span style="font-size:10px;color:var(--gray3)">(${m.position||"—"})</span></span><span class="comp-pct">${pct!=null ? pct+"%" : "لا توجد بيانات"}</span></div><div class="comp-track"><div class="comp-fill" style="width:${pct!=null?pct:0}%"></div></div></div>`;
-      }).join("");
-    }
   }
 
   // Other governance reports — live summaries linking to real pages
@@ -2192,6 +2313,7 @@ async function loadReportsPage(){
     }).join("");
   }
 }
+
 
 async function generateAnnualReportPDF(){
   const w = window.open("", "_blank");
