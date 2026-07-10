@@ -1396,7 +1396,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <!-- ══ SECTION 1: طلبات الاستشارات ══ -->
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
     <span>💼 طلبات الاستشارات</span>
-    <button id="btn-new-consult-request" class="btn btn-gold" style="font-size:11px;padding:6px 14px;display:none" onclick="document.getElementById('mcr-category').value='إدارية';document.getElementById('mcr-details').value='';openM('m-consult-request')">+ تقديم طلب استشارة</button>
+    <button id="btn-new-consult-request" class="btn btn-gold" style="font-size:11px;padding:6px 14px;display:none" onclick="document.getElementById('mcr-id').value='';document.getElementById('mcr-title-h').textContent='💼 تقديم طلب استشارة';document.getElementById('mcr-category').value='إدارية';document.getElementById('mcr-details').value='';openM('m-consult-request')">+ تقديم طلب استشارة</button>
   </div>
   <div id="consultRequestsList" style="margin-bottom:28px">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
@@ -1411,13 +1411,13 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
   </div>
 
-  <div class="sec-title" style="margin-top:10px">📋 الطلبات السابقة (وساطة)</div>
+  <div class="sec-title" style="margin-top:10px">📋 الطلبات السابقة</div>
   <div class="card">
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>الجهة</th><th>تاريخ الطلب</th><th>الحالة</th><th>إجراء</th></tr></thead>
-        <tbody id="serviceRequestsTbody">
-          <tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+        <thead><tr><th>النوع</th><th>الجهة/الفئة</th><th>تاريخ الطلب</th><th>الحالة</th><th>إجراء</th></tr></thead>
+        <tbody id="allRequestsHistoryTbody">
+          <tr><td colspan="5" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
       </table>
     </div>
@@ -1782,7 +1782,8 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <!-- Add consultant modal -->
 <div class="modal-bg" id="m-consult-request">
   <div class="modal">
-    <div class="modal-title">💼 تقديم طلب استشارة</div>
+    <div class="modal-title" id="mcr-title-h">💼 تقديم طلب استشارة</div>
+    <input type="hidden" id="mcr-id" value="" />
     <div class="fg"><label>فئة الاستشارة</label>
       <select class="fs" id="mcr-category">
         <option>إدارية</option>
@@ -1814,6 +1815,14 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div id="mst-track-stepper" style="margin-bottom:14px"></div>
     <div id="mst-track-advance"></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-service-tracking')">إغلاق</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-consult-detail">
+  <div class="modal">
+    <div class="modal-title">💼 تفاصيل طلب الاستشارة</div>
+    <div id="mcd-body" style="font-size:12.5px;line-height:2"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-consult-detail')">إغلاق</button></div>
   </div>
 </div>
 
@@ -4626,7 +4635,8 @@ async function saveAudit(){
 
 /* ══════════ CONSULTANTS ══════════ */
 /* ══════════ CONSULTATION REQUESTS (chairman/secretary → admin quote → chairman decision) ══════════ */
-const CONSULT_REQUEST_ROLES = ['رئيس مجلس','سكرتير المجلس'];
+const CONSULT_REQUEST_ROLES = ['رئيس مجلس','سكرتير المجلس','مدير النظام'];
+let consultRequestsCache = [];
 const CONSULT_STATUS_STYLE = {
   "جديد": { bg:"var(--offwhite)", color:"var(--gray3)" },
   "عرض سعر مقدم": { bg:"#EAF0F8", color:"var(--primary)" },
@@ -4641,7 +4651,7 @@ async function loadConsultantsPage(){
 
   await loadConsultRequests(role);
   await loadServiceProviders();
-  await loadServiceRequestsHistory();
+  await loadAllRequestsHistory();
 }
 
 async function loadConsultRequests(role){
@@ -4649,12 +4659,15 @@ async function loadConsultRequests(role){
   if(!box) return;
   const { data, error } = await sb.from("consultation_requests").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
   if(error){ box.innerHTML = `<div style="color:var(--red);font-size:12px">تعذّر التحميل: ${error.message}</div>`; return; }
-  if(!data || data.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">لا توجد طلبات استشارة بعد.</div>'; return; }
+  consultRequestsCache = data || [];
+  if(consultRequestsCache.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">لا توجد طلبات استشارة بعد.</div>'; return; }
 
   const isAdmin = role === 'مدير النظام';
   const isChairman = role === 'رئيس مجلس';
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
 
-  box.innerHTML = data.map(r => {
+  box.innerHTML = consultRequestsCache.map(r => {
     const st = CONSULT_STATUS_STYLE[r.status] || CONSULT_STATUS_STYLE["جديد"];
     let actionHtml = "";
     if(r.status === "جديد"){
@@ -4678,6 +4691,15 @@ async function loadConsultRequests(role){
     } else {
       actionHtml = `<div style="font-size:12px;margin-top:6px">💰 عرض السعر: ${r.quote_amount ? Number(r.quote_amount).toLocaleString('ar-SA')+' ريال' : '—'}</div>`;
     }
+    // Only the original requester (or an admin) can edit/withdraw a request, and only
+    // before a quote has been submitted — after that point it's already in motion.
+    const canEditDelete = r.status === "جديد" && (isAdmin || (myEmail && r.requested_by_email === myEmail));
+    const editDeleteHtml = canEditDelete
+      ? `<div style="display:flex;gap:6px;margin-top:8px">
+          <button class="btn-xs primary" onclick="editConsultRequest(${r.id})">✏️ تعديل</button>
+          <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer" onclick="deleteConsultRequest(${r.id})">🗑️ حذف</button>
+        </div>`
+      : "";
     return `<div class="card" style="margin-bottom:14px">
       <div class="card-body">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
@@ -4689,24 +4711,50 @@ async function loadConsultRequests(role){
           <span style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px;background:${st.bg};color:${st.color}">${r.status}</span>
         </div>
         ${actionHtml}
+        ${editDeleteHtml}
       </div>
     </div>`;
   }).join("");
 }
 
 async function submitConsultRequest(){
+  const id = document.getElementById("mcr-id").value;
   const category = document.getElementById("mcr-category").value;
   const details = document.getElementById("mcr-details").value.trim();
   if(!details){ alert("الرجاء إدخال تفاصيل الطلب"); return; }
-  const { data: userData } = await sb.auth.getUser();
-  const myEmail = userData && userData.user ? userData.user.email : null;
-  const requested_by_name = currentUserProfile ? (currentUserProfile.full_name || myEmail) : myEmail;
 
-  const { error } = await sb.from("consultation_requests").insert([{
-    category, details, requested_by_name, requested_by_email: myEmail, status: "جديد", company_id: currentCompanyId
-  }]);
-  if(error){ alert("تعذّر إرسال الطلب: " + error.message); return; }
+  if(id){
+    const { error } = await sb.from("consultation_requests").update({ category, details }).eq("id", id);
+    if(error){ alert("تعذّر حفظ التعديل: " + error.message); return; }
+  } else {
+    const { data: userData } = await sb.auth.getUser();
+    const myEmail = userData && userData.user ? userData.user.email : null;
+    const requested_by_name = currentUserProfile ? (currentUserProfile.full_name || myEmail) : myEmail;
+    const { error } = await sb.from("consultation_requests").insert([{
+      category, details, requested_by_name, requested_by_email: myEmail, status: "جديد", company_id: currentCompanyId
+    }]);
+    if(error){ alert("تعذّر إرسال الطلب: " + error.message); return; }
+  }
+  document.getElementById("mcr-id").value = "";
+  document.getElementById("mcr-title-h").textContent = "💼 تقديم طلب استشارة";
   closeM("m-consult-request");
+  loadConsultantsPage();
+}
+
+function editConsultRequest(id){
+  const r = consultRequestsCache.find(x => x.id === id);
+  if(!r) return;
+  document.getElementById("mcr-id").value = r.id;
+  document.getElementById("mcr-title-h").textContent = "✏️ تعديل طلب الاستشارة";
+  document.getElementById("mcr-category").value = r.category || "إدارية";
+  document.getElementById("mcr-details").value = r.details || "";
+  openM("m-consult-request");
+}
+
+async function deleteConsultRequest(id){
+  if(!confirm("هل تريد حذف/سحب هذا الطلب نهائيًا؟")) return;
+  const { error } = await sb.from("consultation_requests").delete().eq("id", id);
+  if(error){ alert("تعذّر الحذف: " + error.message); return; }
   loadConsultantsPage();
 }
 
@@ -4785,25 +4833,58 @@ async function requestService(providerId){
     provider_id: providerId, requested_by_name, requested_by_email: myEmail, status: SERVICE_STAGES[0], company_id: currentCompanyId
   }]).select().single();
   if(error){ alert("تعذّر إرسال الطلب: " + error.message); return; }
-  loadServiceRequestsHistory();
+  loadAllRequestsHistory();
   openServiceTrackingModal(data.id);
 }
 
-async function loadServiceRequestsHistory(){
-  const tbody = document.getElementById("serviceRequestsTbody");
+async function loadAllRequestsHistory(){
+  const tbody = document.getElementById("allRequestsHistoryTbody");
   if(!tbody) return;
-  const { data, error } = await sb.from("service_requests").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
-  if(error){ tbody.innerHTML = errorRowHTML(4, error.message); return; }
-  if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(4, "لا توجد طلبات خدمة سابقة بعد."); return; }
-  tbody.innerHTML = data.map(r => {
-    const provider = providersCache.find(p => p.id === r.provider_id);
-    return `<tr style="cursor:pointer" onclick="openServiceTrackingModal(${r.id})">
-      <td>${provider ? provider.entity_name : "—"}</td>
-      <td>${r.created_at ? new Date(r.created_at).toLocaleDateString('ar-SA') : "—"}</td>
-      <td><span class="badge ${r.status==='مكتمل'?'done':'pending'}">${r.status}</span></td>
-      <td><button class="btn-xs primary" onclick="event.stopPropagation();openServiceTrackingModal(${r.id})">🔎 تتبع</button></td>
+  const [{ data: consultData, error: consultErr }, { data: serviceData, error: serviceErr }] = await Promise.all([
+    sb.from("consultation_requests").select("*").eq("company_id", currentCompanyId),
+    sb.from("service_requests").select("*").eq("company_id", currentCompanyId)
+  ]);
+  if(consultErr || serviceErr){ tbody.innerHTML = errorRowHTML(5, (consultErr||serviceErr).message); return; }
+
+  const combined = [
+    ...(consultData||[]).map(r => ({ kind:"استشارة", label:r.category, date:r.created_at, status:r.status, id:r.id })),
+    ...(serviceData||[]).map(r => {
+      const provider = providersCache.find(p => p.id === r.provider_id);
+      return { kind:"وساطة", label: provider ? provider.entity_name : "—", date:r.created_at, status:r.status, id:r.id };
+    })
+  ].sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
+
+  if(combined.length===0){ tbody.innerHTML = emptyRowHTML(5, "لا توجد طلبات سابقة بعد."); return; }
+
+  tbody.innerHTML = combined.map(r => {
+    const action = r.kind === "استشارة"
+      ? `onclick="openConsultDetailModal(${r.id})"`
+      : `onclick="openServiceTrackingModal(${r.id})"`;
+    const btnLabel = r.kind === "استشارة" ? "📄 التفاصيل" : "🔎 تتبع";
+    return `<tr style="cursor:pointer" ${action}>
+      <td>${r.kind}</td>
+      <td>${r.label||"—"}</td>
+      <td>${r.date ? new Date(r.date).toLocaleDateString('ar-SA') : "—"}</td>
+      <td><span class="badge ${r.status==='مكتمل'||r.status==='معتمد'?'done':(r.status==='مرفوض'?'urgent':'pending')}">${r.status}</span></td>
+      <td><button class="btn-xs primary" ${action.replace('onclick=','onclick=event.stopPropagation();')}>${btnLabel}</button></td>
     </tr>`;
   }).join("");
+}
+
+function openConsultDetailModal(id){
+  const r = consultRequestsCache.find(x => x.id === id);
+  const box = document.getElementById("mcd-body");
+  if(!r){ box.innerHTML = '<div style="color:var(--gray3)">تعذّر إيجاد تفاصيل هذا الطلب.</div>'; openM("m-consult-detail"); return; }
+  box.innerHTML = `
+    <div><b>الفئة:</b> ${r.category||"—"}</div>
+    <div><b>التفاصيل:</b> ${r.details||"—"}</div>
+    <div><b>مقدَّم من:</b> ${r.requested_by_name||"—"}</div>
+    <div><b>الحالة:</b> ${r.status||"—"}</div>
+    ${r.quote_amount ? `<div><b>عرض السعر:</b> ${Number(r.quote_amount).toLocaleString('ar-SA')} ريال${r.quote_notes?(' — '+r.quote_notes):''}</div>` : ""}
+    ${r.quoted_by ? `<div><b>قدَّم العرض:</b> ${r.quoted_by}</div>` : ""}
+    ${r.decision_by ? `<div><b>القرار من:</b> ${r.decision_by}${r.decision_at ? (' — '+new Date(r.decision_at).toLocaleDateString('ar-SA')) : ''}</div>` : ""}
+  `;
+  openM("m-consult-detail");
 }
 
 let currentTrackingRequestId = null;
@@ -4852,7 +4933,7 @@ async function advanceServiceRequest(){
   const { error } = await sb.from("service_requests").update({ status: SERVICE_STAGES[idx+1] }).eq("id", requestId);
   if(error){ alert("تعذّر التحديث: " + error.message); return; }
   openServiceTrackingModal(requestId);
-  loadServiceRequestsHistory();
+  loadAllRequestsHistory();
 }
 
 /* ══════════ PERFORMANCE EVALUATIONS ══════════ */
