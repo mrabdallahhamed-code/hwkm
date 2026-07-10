@@ -1700,6 +1700,23 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
+<div class="modal-bg" id="m-signature-pad">
+  <div class="modal">
+    <div class="modal-title">✍️ ارسم توقيعك</div>
+    <p style="font-size:11.5px;color:var(--gray3);margin-bottom:8px">استخدم إصبعك أو الماوس للتوقيع داخل الإطار أدناه.</p>
+    <div style="border:2px dashed var(--gray1);border-radius:10px;background:#fff;touch-action:none">
+      <canvas id="sigCanvas" width="460" height="180" style="width:100%;height:180px;cursor:crosshair;display:block"></canvas>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-ghost" style="flex:1" onclick="clearSignaturePad()">🧹 مسح</button>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeM('m-signature-pad')">إلغاء</button>
+      <button class="btn btn-gold" onclick="confirmSignature()">✅ تأكيد التوقيع</button>
+    </div>
+  </div>
+</div>
+
 <!-- Add committee modal -->
 <div class="modal-bg" id="m-committee">
   <div class="modal">
@@ -3402,7 +3419,7 @@ async function loadSigning(){
         <td>${s.document_name||""}</td><td>${s.doc_type||"—"}</td>
         <td>${signed.length}/${total||"?"} وقّعوا</td>
         <td>${statusBadge}</td><td>${s.due_date||"—"}</td>
-        <td>${downloadBtn(s.file_url)}</td>
+        <td>${downloadBtn(s.file_url)} <button class="btn-xs gold" onclick="generateSignedDocumentPDF(${s.id})">🖨️ شهادة توقيع</button></td>
         <td><button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="deleteSigningDoc(${s.id})">🗑️ حذف</button></td>
       </tr>`;
     }).join("");
@@ -3428,7 +3445,7 @@ async function loadSigning(){
           const namesList = signed.length ? signed.map(x=>x.signer_name||x.signer_email).join('، ') : 'لا أحد بعد';
           const actionBtn = iSigned
             ? '<span class="badge done">✅ وقّعت بالفعل</span>'
-            : `<button class="btn-xs gold" onclick="signDocument(${s.id})">✍️ توقيع</button>`;
+            : `<button class="btn-xs gold" onclick="openSignaturePad(${s.id})">✍️ توقيع</button>`;
           return `<tr>
             <td>${s.document_name||""}</td><td>${s.doc_type||"—"}</td>
             <td>${signed.length}/${total||"?"}</td>
@@ -3442,16 +3459,77 @@ async function loadSigning(){
   }
 }
 
-async function signDocument(docId){
+let currentSignDocId = null;
+let sigPadDrawing = false;
+let sigPadCtx = null;
+
+function openSignaturePad(docId){
+  currentSignDocId = docId;
+  openM("m-signature-pad");
+  // Canvas must be sized/initialized after the modal is visible, otherwise it has zero size
+  setTimeout(initSignaturePad, 50);
+}
+
+function initSignaturePad(){
+  const canvas = document.getElementById("sigCanvas");
+  if(!canvas) return;
+  // Match the canvas's internal pixel size to its displayed size for crisp, correctly-aligned drawing
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle = "#0D2447";
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  sigPadCtx = ctx;
+
+  const getPos = (e) => {
+    const r = canvas.getBoundingClientRect();
+    const point = e.touches ? e.touches[0] : e;
+    return { x: point.clientX - r.left, y: point.clientY - r.top };
+  };
+  const start = (e) => { e.preventDefault(); sigPadDrawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+  const move = (e) => { if(!sigPadDrawing) return; e.preventDefault(); const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+  const end = () => { sigPadDrawing = false; };
+
+  canvas.onmousedown = start; canvas.onmousemove = move; canvas.onmouseup = end; canvas.onmouseleave = end;
+  canvas.ontouchstart = start; canvas.ontouchmove = move; canvas.ontouchend = end;
+}
+
+function clearSignaturePad(){
+  if(!sigPadCtx) return;
+  const canvas = document.getElementById("sigCanvas");
+  sigPadCtx.clearRect(0,0,canvas.width,canvas.height);
+}
+
+function isSignaturePadEmpty(){
+  const canvas = document.getElementById("sigCanvas");
+  if(!canvas) return true;
+  const ctx = canvas.getContext("2d");
+  const data = ctx.getImageData(0,0,canvas.width,canvas.height).data;
+  for(let i=3; i<data.length; i+=4){ if(data[i] !== 0) return false; }
+  return true;
+}
+
+async function confirmSignature(){
+  const docId = currentSignDocId;
+  if(!docId) return;
+  if(isSignaturePadEmpty()){ alert("الرجاء رسم توقيعك أولًا قبل التأكيد"); return; }
+
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
   if(!myEmail){ alert("تعذّر تحديد هويتك، الرجاء تسجيل الدخول من جديد"); return; }
   const signer_name = currentUserProfile ? (currentUserProfile.full_name || myEmail) : myEmail;
 
   const { data: existing } = await sb.from("document_signatures").select("id").eq("document_id", docId).eq("signer_email", myEmail);
-  if(existing && existing.length){ alert("لقد وقّعت هذه الوثيقة بالفعل ✅"); return; }
+  if(existing && existing.length){ alert("لقد وقّعت هذه الوثيقة بالفعل ✅"); closeM("m-signature-pad"); return; }
 
-  const { error } = await sb.from("document_signatures").insert([{ document_id: docId, signer_email: myEmail, signer_name, company_id: currentCompanyId }]);
+  const canvas = document.getElementById("sigCanvas");
+  const signature_image = canvas.toDataURL("image/png");
+
+  const { error } = await sb.from("document_signatures").insert([{ document_id: docId, signer_email: myEmail, signer_name, signature_image, company_id: currentCompanyId }]);
   if(error){ alert("تعذّر تسجيل التوقيع: " + error.message); return; }
 
   // Recompute and, if this was the final required signature, mark the document complete
@@ -3460,6 +3538,7 @@ async function signDocument(docId){
   if(doc && doc.signers_total && sigs && sigs.length >= doc.signers_total){
     await sb.from("signing_documents").update({ status: "مكتمل" }).eq("id", docId);
   }
+  closeM("m-signature-pad");
   loadSigning();
   loadMeetingsAll(); // refresh any board/committee minutes cards linked to this document
 }
@@ -3469,6 +3548,56 @@ async function deleteSigningDoc(id){
   const { error } = await sb.from("signing_documents").delete().eq("id", id);
   if(error){ alert("تعذّر الحذف: " + error.message); return; }
   loadSigning();
+}
+
+async function generateSignedDocumentPDF(docId){
+  const w = window.open("", "_blank");
+  if(w){ w.document.write('<html dir="rtl"><body style="font-family:sans-serif;padding:30px">جارِ تجهيز الملف...</body></html>'); w.document.close(); }
+  const [{ data: doc, error: docErr }, { data: sigs, error: sigErr }] = await Promise.all([
+    sb.from("signing_documents").select("*").eq("id", docId).single(),
+    sb.from("document_signatures").select("*").eq("document_id", docId).order("created_at",{ascending:true})
+  ]);
+  if(docErr || sigErr || !doc){ alert("تعذّر توليد الملف"); if(w) w.close(); return; }
+  if(!w){ alert("المتصفح منع فتح نافذة الملف — الرجاء السماح بالنوافذ المنبثقة ثم المحاولة مرة أخرى."); return; }
+
+  const signatures = sigs || [];
+  const total = doc.signers_total || 0;
+  const isComplete = total>0 && signatures.length >= total;
+  const dateNow = new Date().toLocaleDateString("ar-SA");
+
+  w.document.open();
+  w.document.write(`
+    <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>شهادة توقيع — ${doc.document_name||""}</title>
+    <style>
+      body{font-family:'Tajawal',Arial,sans-serif;padding:40px;color:#0D2447}
+      h1{color:#1A3A6B;font-size:20px;border-bottom:3px solid #D4AF37;padding-bottom:10px}
+      .meta{font-size:13px;margin:6px 0}
+      table{width:100%;border-collapse:collapse;margin-top:16px}
+      th,td{border:1px solid #ccc;padding:8px;text-align:right;font-size:12.5px}
+      th{background:#EAF0F8}
+      .stamp{margin-top:24px;padding:16px;border-radius:10px;font-weight:800;text-align:center}
+      .stamp.done{background:#EAF8F0;border:2px solid #1E8E5A;color:#166A43}
+      .stamp.pending{background:#FEF3E2;border:2px solid #C99A2E;color:#8A6D1F}
+    </style></head><body>
+    <h1>✍️ شهادة توقيع إلكتروني</h1>
+    <p class="meta"><b>اسم الوثيقة:</b> ${doc.document_name||"—"}</p>
+    <p class="meta"><b>النوع:</b> ${doc.doc_type||"—"}</p>
+    <p class="meta"><b>الموعد:</b> ${doc.due_date||"—"}</p>
+    <p class="meta"><b>تاريخ إصدار الشهادة:</b> ${dateNow}</p>
+    <table>
+      <thead><tr><th>#</th><th>اسم الموقّع</th><th>البريد الإلكتروني</th><th>تاريخ ووقت التوقيع</th><th>التوقيع</th></tr></thead>
+      <tbody>
+        ${signatures.length ? signatures.map((s,i)=>`<tr><td>${i+1}</td><td>${s.signer_name||"—"}</td><td>${s.signer_email||"—"}</td><td>${new Date(s.created_at).toLocaleString("ar-SA")}</td><td>${s.signature_image ? `<img src="${s.signature_image}" style="height:36px;max-width:120px">` : "—"}</td></tr>`).join("") : '<tr><td colspan="5" style="color:#C0392B">لا توجد توقيعات مسجّلة بعد.</td></tr>'}
+      </tbody>
+    </table>
+    <div class="stamp ${isComplete?'done':'pending'}">
+      ${isComplete ? `✅ اكتمل توقيع هذه الوثيقة إلكترونيًا من ${signatures.length} من ${total} من الأشخاص المخوّلين.` : `⏳ التوقيع لا يزال قيد الإتمام — وقّع حتى الآن ${signatures.length} من ${total||'?'} موقّعين مطلوبين.`}
+    </div>
+    ${doc.file_url ? `<p style="margin-top:20px">📎 <a href="${doc.file_url}" target="_blank">فتح الملف الأصلي المرفوع</a></p>` : ""}
+    <script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>
+    </body></html>
+  `);
+  w.document.close();
 }
 
 async function saveSigning(){
