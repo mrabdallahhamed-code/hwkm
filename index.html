@@ -1140,53 +1140,65 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
 <!-- ══ PERF ════════════════════════════════ -->
 <div id="p-perf" class="page content">
-  <div class="sec-title">📐 تقييم الأداء</div>
-  <div class="two-col">
-    <div class="card">
-      <div class="card-head"><span class="card-title">تقييم أداء المجلس 2025</span><span class="badge done">مكتمل</span></div>
-      <div class="card-body">
-        <div class="comp-item"><div class="comp-head"><span class="comp-name">الفاعلية والحضور</span><span class="comp-pct">92%</span></div><div class="comp-track"><div class="comp-fill" style="width:92%"></div></div></div>
-        <div class="comp-item"><div class="comp-head"><span class="comp-name">جودة القرارات الاستراتيجية</span><span class="comp-pct">88%</span></div><div class="comp-track"><div class="comp-fill" style="width:88%"></div></div></div>
-        <div class="comp-item"><div class="comp-head"><span class="comp-name">الالتزام بمعايير الحوكمة</span><span class="comp-pct">95%</span></div><div class="comp-track"><div class="comp-fill" style="width:95%"></div></div></div>
-        <div class="comp-item"><div class="comp-head"><span class="comp-name">التفاعل مع الإدارة التنفيذية</span><span class="comp-pct">85%</span></div><div class="comp-track"><div class="comp-fill" style="width:85%"></div></div></div>
-        <div class="comp-item"><div class="comp-head"><span class="comp-name">الرقابة على الأداء المالي</span><span class="comp-pct">90%</span></div><div class="comp-track"><div class="comp-fill" style="width:90%"></div></div></div>
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span>📐 تقييم الأداء</span>
+    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-perf')">+ فتح تقييم جديد</button>
+  </div>
+
+  <!-- Board / nomination-committee review submission (visible to all board-level roles) -->
+  <div class="card" style="margin-bottom:18px" id="perfReviewCard">
+    <div class="card-head"><span class="card-title">🗳️ تقييمات تحتاج تقييمك</span></div>
+    <div class="card-body" id="perfReviewBody" style="padding:14px">
+      <div style="text-align:center;color:var(--gray3);font-size:12px">جارِ التحميل...</div>
+    </div>
+  </div>
+
+  <!-- Final results — visible to مدير النظام only -->
+  <div id="perfResultsSection" style="display:none">
+    <div class="two-col">
+      <div class="card">
+        <div class="card-head"><span class="card-title">تقييم أداء المجلس 2025</span><span class="badge done">مكتمل</span></div>
+        <div class="card-body">
+          <div class="comp-item"><div class="comp-head"><span class="comp-name">الفاعلية والحضور</span><span class="comp-pct">92%</span></div><div class="comp-track"><div class="comp-fill" style="width:92%"></div></div></div>
+          <div class="comp-item"><div class="comp-head"><span class="comp-name">جودة القرارات الاستراتيجية</span><span class="comp-pct">88%</span></div><div class="comp-track"><div class="comp-fill" style="width:88%"></div></div></div>
+          <div class="comp-item"><div class="comp-head"><span class="comp-name">الالتزام بمعايير الحوكمة</span><span class="comp-pct">95%</span></div><div class="comp-track"><div class="comp-fill" style="width:95%"></div></div></div>
+          <div class="comp-item"><div class="comp-head"><span class="comp-name">التفاعل مع الإدارة التنفيذية</span><span class="comp-pct">85%</span></div><div class="comp-track"><div class="comp-fill" style="width:85%"></div></div></div>
+          <div class="comp-item"><div class="comp-head"><span class="comp-name">الرقابة على الأداء المالي</span><span class="comp-pct">90%</span></div><div class="comp-track"><div class="comp-fill" style="width:90%"></div></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">التقييم الفردي — 2025</span></div>
+        <div class="card-body" style="padding:0">
+          <table class="tbl">
+            <thead><tr><th>العضو</th><th>الحضور</th><th>التقييم</th></tr></thead>
+            <tbody>
+              <tr><td>فلاح السبيعي</td><td>100%</td><td><span class="badge done">ممتاز</span></td></tr>
+              <tr><td>سلطان السبيعي</td><td>88%</td><td><span class="badge done">جيد جداً</span></td></tr>
+              <tr><td>عبدالله حامد</td><td>100%</td><td><span class="badge done">ممتاز</span></td></tr>
+              <tr><td>أحمد الروقي</td><td>100%</td><td><span class="badge done">ممتاز</span></td></tr>
+              <tr><td>ريم حمدان</td><td>87%</td><td><span class="badge done">جيد جداً</span></td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
+
+    <div class="sec-title" style="margin-top:20px">تقييم الادارة التنفيذية 2025</div>
+    <div class="two-col">
+      <div class="card"><div class="card-head"><span class="card-title">محاور التقييم</span><span class="badge info">جاري</span></div><div class="card-body"><div class="comp-item"><div class="comp-head"><span class="comp-name">الاهداف الاستراتيجية</span><span class="comp-pct">88%</span></div><div class="comp-track"><div class="comp-fill" style="width:88%"></div></div></div><div class="comp-item"><div class="comp-head"><span class="comp-name">الاداء التشغيلي</span><span class="comp-pct">85%</span></div><div class="comp-track"><div class="comp-fill" style="width:85%"></div></div></div><div class="comp-item"><div class="comp-head"><span class="comp-name">القيادة والفريق</span><span class="comp-pct">90%</span></div><div class="comp-track"><div class="comp-fill" style="width:90%"></div></div></div><div class="comp-item"><div class="comp-head"><span class="comp-name">الامتثال والحوكمة</span><span class="comp-pct">95%</span></div><div class="comp-track"><div class="comp-fill" style="width:95%"></div></div></div></div></div>
+      <div class="card"><div class="card-head"><span class="card-title">التقييم الفردي للتنفيذيين</span></div><div class="card-body" style="padding:0"><table class="tbl"><thead><tr><th>المسمى</th><th>الاسم</th><th>التقييم</th></tr></thead><tbody><tr><td>الرئيس التنفيذي</td><td>عبدالله حامد</td><td><span class="badge done">ممتاز</span></td></tr><tr><td>نائب الرئيس للمالية</td><td>احمد خلف</td><td><span class="badge done">جيد جدا</span></td></tr><tr><td>نائب الرئيس للموارد البشرية</td><td>ريم حمدان</td><td><span class="badge done">ممتاز</span></td></tr><tr><td>نائب الرئيس للعمليات</td><td>-</td><td><span class="badge pending">قيد التعيين</span></td></tr><tr><td>نائب الرئيس للخدمات المشتركة</td><td>-</td><td><span class="badge pending">قيد التعيين</span></td></tr></tbody></table></div></div>
+    </div>
+
+    <div class="sec-title" style="margin-top:20px">📐 سجل تقييمات الأداء</div>
     <div class="card">
-      <div class="card-head"><span class="card-title">التقييم الفردي — 2025</span></div>
       <div class="card-body" style="padding:0">
         <table class="tbl">
-          <thead><tr><th>العضو</th><th>الحضور</th><th>التقييم</th></tr></thead>
-          <tbody>
-            <tr><td>فلاح السبيعي</td><td>100%</td><td><span class="badge done">ممتاز</span></td></tr>
-            <tr><td>سلطان السبيعي</td><td>88%</td><td><span class="badge done">جيد جداً</span></td></tr>
-            <tr><td>عبدالله حامد</td><td>100%</td><td><span class="badge done">ممتاز</span></td></tr>
-            <tr><td>أحمد الروقي</td><td>100%</td><td><span class="badge done">ممتاز</span></td></tr>
-            <tr><td>ريم حمدان</td><td>87%</td><td><span class="badge done">جيد جداً</span></td></tr>
+          <thead><tr><th>الجهة/الشخص</th><th>النوع</th><th>الفترة</th><th>الحالة</th><th>عدد المقيّمين</th><th>الدرجة النهائية</th><th>إجراء</th></tr></thead>
+          <tbody id="perfTbody">
+            <tr><td colspan="7" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
           </tbody>
         </table>
       </div>
-    </div>
-  </div>
-
-  <div class="sec-title" style="margin-top:20px">تقييم الادارة التنفيذية 2025</div>
-  <div class="two-col">
-    <div class="card"><div class="card-head"><span class="card-title">محاور التقييم</span><span class="badge info">جاري</span></div><div class="card-body"><div class="comp-item"><div class="comp-head"><span class="comp-name">الاهداف الاستراتيجية</span><span class="comp-pct">88%</span></div><div class="comp-track"><div class="comp-fill" style="width:88%"></div></div></div><div class="comp-item"><div class="comp-head"><span class="comp-name">الاداء التشغيلي</span><span class="comp-pct">85%</span></div><div class="comp-track"><div class="comp-fill" style="width:85%"></div></div></div><div class="comp-item"><div class="comp-head"><span class="comp-name">القيادة والفريق</span><span class="comp-pct">90%</span></div><div class="comp-track"><div class="comp-fill" style="width:90%"></div></div></div><div class="comp-item"><div class="comp-head"><span class="comp-name">الامتثال والحوكمة</span><span class="comp-pct">95%</span></div><div class="comp-track"><div class="comp-fill" style="width:95%"></div></div></div></div></div>
-    <div class="card"><div class="card-head"><span class="card-title">التقييم الفردي للتنفيذيين</span></div><div class="card-body" style="padding:0"><table class="tbl"><thead><tr><th>المسمى</th><th>الاسم</th><th>التقييم</th></tr></thead><tbody><tr><td>الرئيس التنفيذي</td><td>عبدالله حامد</td><td><span class="badge done">ممتاز</span></td></tr><tr><td>نائب الرئيس للمالية</td><td>احمد خلف</td><td><span class="badge done">جيد جدا</span></td></tr><tr><td>نائب الرئيس للموارد البشرية</td><td>ريم حمدان</td><td><span class="badge done">ممتاز</span></td></tr><tr><td>نائب الرئيس للعمليات</td><td>-</td><td><span class="badge pending">قيد التعيين</span></td></tr><tr><td>نائب الرئيس للخدمات المشتركة</td><td>-</td><td><span class="badge pending">قيد التعيين</span></td></tr></tbody></table></div></div>
-  </div>
-
-  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
-    <span>📐 سجل تقييمات الأداء</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mpe-id').value='';document.getElementById('mpe-title').textContent='📐 تقييم جديد';openM('m-perf')">+ تقييم جديد</button>
-  </div>
-  <div class="card">
-    <div class="card-body" style="padding:0">
-      <table class="tbl">
-        <thead><tr><th>الجهة/الشخص</th><th>النوع</th><th>الفترة</th><th>الدرجة</th><th>ملاحظات</th><th>إجراء</th></tr></thead>
-        <tbody id="perfTbody">
-          <tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
-        </tbody>
-      </table>
     </div>
   </div>
 </div>
@@ -1911,14 +1923,13 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <!-- Add performance evaluation modal -->
 <div class="modal-bg" id="m-perf">
   <div class="modal">
-    <div class="modal-title" id="mpe-title">📐 تقييم جديد</div>
+    <div class="modal-title" id="mpe-title">📐 فتح تقييم جديد</div>
     <input type="hidden" id="mpe-id" value="" />
     <div class="fg"><label>الجهة/الشخص المُقيَّم</label><input class="fi" id="mpe-entity" placeholder="مثال: فلاح السبيعي / مجلس الإدارة" /></div>
     <div class="fg"><label>النوع</label><select class="fs" id="mpe-type"><option>عضو مجلس</option><option>المجلس ككل</option><option>لجنة</option><option>تنفيذي</option></select></div>
     <div class="fg"><label>الفترة</label><input class="fi" id="mpe-period" placeholder="مثال: 2026" /></div>
-    <div class="fg"><label>الدرجة (0-100)</label><input type="number" class="fi" id="mpe-score" placeholder="90" /></div>
-    <div class="fg"><label>ملاحظات</label><textarea class="fta" id="mpe-notes" rows="2" placeholder="ملاحظات التقييم"></textarea></div>
-    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-perf')">إلغاء</button><button class="btn btn-gold" onclick="savePerf()">✅ حفظ التقييم</button></div>
+    <p style="font-size:11px;color:var(--gray3)">بعد الحفظ، هذا التقييم يفتح تلقائيًا لأعضاء المجلس ولجنة الترشيحات لتسجيل تقييمهم. النتيجة النهائية تظهر لمدير النظام فقط.</p>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-perf')">إلغاء</button><button class="btn btn-gold" onclick="savePerf()">✅ فتح التقييم</button></div>
   </div>
 </div>
 
@@ -2039,6 +2050,7 @@ async function loadCurrentUserProfile(){
 
 /* ══════════ ROLES & PERMISSIONS ══════════ */
 const FULL_ACCESS_ROLES = ['مدير النظام','رئيس مجلس','سكرتير المجلس'];
+const PERF_RESULTS_ROLES = ['مدير النظام','رئيس مجلس','سكرتير المجلس','رئيس لجنة الترشيحات','عضو لجنة الترشيحات'];
 const SHAREHOLDER_PAGES = ['agm','voting','signing'];
 
 function getCurrentRole(){
@@ -2140,7 +2152,7 @@ async function loadUsers(){
   const { data, error } = await sb.from("user_profiles").select("*").order("id",{ascending:true});
   if(error){ tbody.innerHTML = errorRowHTML(4, error.message); return; }
   if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(4, "لا يوجد مستخدمون مسجّلون بعد."); return; }
-  const roles = ['مدير النظام','رئيس مجلس','سكرتير المجلس','عضو مجلس','مساهم'];
+  const roles = ['مدير النظام','رئيس مجلس','سكرتير المجلس','رئيس لجنة الترشيحات','عضو لجنة الترشيحات','عضو مجلس','مساهم'];
   tbody.innerHTML = data.map(u => `<tr>
     <td>${u.full_name||"—"}</td>
     <td>${u.email||"—"}</td>
@@ -3376,47 +3388,122 @@ async function saveConsultant(){
 
 /* ══════════ PERFORMANCE EVALUATIONS ══════════ */
 let perfCache = [];
+const PERF_SCORE_LABELS = {1:"ضعيف",2:"مقبول",3:"جيد",4:"جيد جدًا",5:"ممتاز"};
+
 async function loadPerf(){
+  const resultsSection = document.getElementById("perfResultsSection");
+  const isAdmin = PERF_RESULTS_ROLES.includes(getCurrentRole());
+  if(resultsSection) resultsSection.style.display = isAdmin ? "block" : "none";
+
+  loadPerfReviewSection();
+
+  if(!isAdmin) return; // Only مدير النظام loads/see the results table
   const tbody = document.getElementById("perfTbody");
   if(!tbody) return;
   const { data, error } = await sb.from("performance_evaluations").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
-  if(error){ tbody.innerHTML = errorRowHTML(6, error.message); return; }
-  if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(6, 'لا توجد بيانات بعد. اضغط "+ تقييم جديد" للبدء.'); return; }
+  if(error){ tbody.innerHTML = errorRowHTML(7, error.message); return; }
+  if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(7, 'لا توجد بيانات بعد. اضغط "+ فتح تقييم جديد" للبدء.'); return; }
   perfCache = data;
-  tbody.innerHTML = data.map(p => `<tr>
-    <td>${p.entity_name||""}</td><td>${p.entity_type||"—"}</td><td>${p.period||"—"}</td><td>${p.score??"—"}</td><td>${p.notes||"—"}</td>
-    <td><button class="btn-xs primary" onclick="editPerf(${p.id})">✏️ تعديل</button></td>
-  </tr>`).join("");
+
+  const ids = data.map(p=>p.id);
+  const { data: reviews } = await sb.from("performance_evaluation_reviews").select("*").in("evaluation_id", ids);
+  const reviewsByEval = {};
+  (reviews||[]).forEach(rv => {
+    if(!reviewsByEval[rv.evaluation_id]) reviewsByEval[rv.evaluation_id] = [];
+    reviewsByEval[rv.evaluation_id].push(rv);
+  });
+
+  tbody.innerHTML = data.map(p => {
+    const revs = reviewsByEval[p.id] || [];
+    const avg = revs.length ? (revs.reduce((s,r)=>s+(r.score||0),0)/revs.length) : null;
+    const statusBadge = p.status === "مكتمل" ? '<span class="badge done">مكتمل ✅</span>' : '<span class="badge pending">مفتوح للتقييم</span>';
+    const closeBtn = p.status !== "مكتمل"
+      ? `<button class="btn-xs primary" onclick="closePerfEvaluation(${p.id})">🔒 إغلاق واعتماد النتيجة</button>`
+      : "";
+    const scoreDisplay = p.score!=null ? (Number(p.score).toFixed(1) + "/5 — " + (PERF_SCORE_LABELS[Math.round(p.score)]||"")) : (avg!=null ? "(معاينة) " + avg.toFixed(1)+"/5" : "—");
+    return `<tr>
+      <td>${p.entity_name||""}</td><td>${p.entity_type||"—"}</td><td>${p.period||"—"}</td>
+      <td>${statusBadge}</td>
+      <td style="text-align:center">${revs.length}</td>
+      <td>${scoreDisplay}</td>
+      <td>${closeBtn}</td>
+    </tr>`;
+  }).join("");
 }
-function editPerf(id){
-  const p = perfCache.find(x => x.id === id);
-  if(!p) return;
-  document.getElementById("mpe-id").value = p.id;
-  document.getElementById("mpe-title").textContent = "✏️ تعديل تقييم";
-  document.getElementById("mpe-entity").value = p.entity_name || "";
-  document.getElementById("mpe-type").value = p.entity_type || "عضو مجلس";
-  document.getElementById("mpe-period").value = p.period || "";
-  document.getElementById("mpe-score").value = p.score ?? "";
-  document.getElementById("mpe-notes").value = p.notes || "";
-  openM("m-perf");
-}
+
 async function savePerf(){
-  const id = document.getElementById("mpe-id").value;
   const entity_name = document.getElementById("mpe-entity").value.trim();
   if(!entity_name){ alert("الرجاء إدخال اسم الجهة/الشخص"); return; }
   const entity_type = document.getElementById("mpe-type").value;
   const period = document.getElementById("mpe-period").value.trim();
-  const score = document.getElementById("mpe-score").value ? Number(document.getElementById("mpe-score").value) : null;
-  const notes = document.getElementById("mpe-notes").value.trim();
-  const payload = { entity_name, entity_type, period, score, notes, company_id: currentCompanyId };
-  const { error } = id
-    ? await sb.from("performance_evaluations").update(payload).eq("id", id)
-    : await sb.from("performance_evaluations").insert([payload]);
+  const payload = { entity_name, entity_type, period, status: "مفتوح للتقييم", company_id: currentCompanyId };
+  const { error } = await sb.from("performance_evaluations").insert([payload]);
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
-  document.getElementById("mpe-id").value = "";
-  document.getElementById("mpe-title").textContent = "📐 تقييم جديد";
-  document.getElementById("mpe-entity").value=""; document.getElementById("mpe-period").value=""; document.getElementById("mpe-score").value=""; document.getElementById("mpe-notes").value="";
+  document.getElementById("mpe-entity").value=""; document.getElementById("mpe-period").value="";
   closeM("m-perf"); loadPerf();
+}
+
+async function closePerfEvaluation(id){
+  const { data: revs, error } = await sb.from("performance_evaluation_reviews").select("*").eq("evaluation_id", id);
+  if(error){ alert("تعذّر الحساب: " + error.message); return; }
+  if(!revs || revs.length===0){ alert("لا توجد تقييمات مسجّلة بعد من الأعضاء لهذا العنصر."); return; }
+  const avg = revs.reduce((s,r)=>s+(r.score||0),0)/revs.length;
+  if(!confirm("سيتم اعتماد النتيجة النهائية ("+avg.toFixed(1)+"/5) وإغلاق هذا التقييم. متابعة؟")) return;
+  const { error: updErr } = await sb.from("performance_evaluations").update({ score: avg, status: "مكتمل" }).eq("id", id);
+  if(updErr){ alert("تعذّر الإغلاق: " + updErr.message); return; }
+  loadPerf();
+}
+
+/* Board members & nomination-committee members submit their own rating here */
+async function loadPerfReviewSection(){
+  const box = document.getElementById("perfReviewBody");
+  if(!box) return;
+  const role = getCurrentRole();
+  if(role === 'مساهم'){ box.innerHTML = ""; return; }
+
+  const { data: openEvals, error } = await sb.from("performance_evaluations")
+    .select("*").eq("company_id", currentCompanyId).eq("status", "مفتوح للتقييم").order("id",{ascending:false});
+  if(error){ box.innerHTML = '<div style="color:var(--red);font-size:12px">تعذّر التحميل: '+error.message+'</div>'; return; }
+  if(!openEvals || openEvals.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px">لا توجد تقييمات مفتوحة حاليًا.</div>'; return; }
+
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+  const ids = openEvals.map(e=>e.id);
+  const { data: myReviews } = await sb.from("performance_evaluation_reviews").select("*").in("evaluation_id", ids).eq("reviewer_email", myEmail||"");
+  const mineByEval = {};
+  (myReviews||[]).forEach(r => { mineByEval[r.evaluation_id] = r; });
+
+  box.innerHTML = openEvals.map(ev => {
+    const mine = mineByEval[ev.id];
+    return `<div style="border:1px solid var(--gray1);border-radius:10px;padding:12px;margin-bottom:12px">
+      <div style="font-weight:800;font-size:13px;color:var(--dark)">${ev.entity_name||""} <span style="font-size:11px;color:var(--gray3);font-weight:600">— ${ev.entity_type||""} · ${ev.period||""}</span></div>
+      <div style="display:flex;gap:6px;margin:8px 0">
+        ${[1,2,3,4,5].map(s => `<button class="btn-xs" style="background:${mine&&mine.score===s?'linear-gradient(135deg,var(--primary),var(--accent))':'var(--offwhite)'};color:${mine&&mine.score===s?'#fff':'var(--dark)'};border:1px solid var(--gray1);border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer" onclick="submitPerfReview(${ev.id},${s})">${s} — ${PERF_SCORE_LABELS[s]}</button>`).join('')}
+      </div>
+      <textarea id="perf-review-notes-${ev.id}" placeholder="ملاحظاتك (اختياري)" style="width:100%;border:1px solid var(--gray1);border-radius:8px;padding:8px;font-family:'Tajawal',sans-serif;font-size:12px;resize:none" rows="2">${mine ? (mine.notes||"") : ""}</textarea>
+      <div style="display:flex;justify-content:flex-end;margin-top:6px">
+        <button class="btn-xs primary" onclick="submitPerfReview(${ev.id}, ${mine?mine.score:'null'})">💾 حفظ الملاحظة</button>
+      </div>
+      ${mine ? `<div style="font-size:10.5px;color:var(--gray3);margin-top:6px">تقييمك المسجّل حاليًا: ${mine.score} — ${PERF_SCORE_LABELS[mine.score]||""}</div>` : ""}
+    </div>`;
+  }).join("");
+}
+
+async function submitPerfReview(evaluationId, score){
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+  if(!myEmail){ alert("تعذّر تحديد هويتك، الرجاء تسجيل الدخول من جديد"); return; }
+  if(score==null){ alert("الرجاء اختيار تقييم (1-5) أولاً"); return; }
+  const reviewer_name = currentUserProfile ? (currentUserProfile.full_name || myEmail) : myEmail;
+  const notesEl = document.getElementById("perf-review-notes-"+evaluationId);
+  const notes = notesEl ? notesEl.value.trim() : "";
+
+  await sb.from("performance_evaluation_reviews").delete().eq("evaluation_id", evaluationId).eq("reviewer_email", myEmail);
+  const { error } = await sb.from("performance_evaluation_reviews").insert([{
+    evaluation_id: evaluationId, reviewer_email: myEmail, reviewer_name, score, notes, company_id: currentCompanyId
+  }]);
+  if(error){ alert("تعذّر حفظ تقييمك: " + error.message); return; }
+  loadPerfReviewSection();
 }
 
 const titles={
