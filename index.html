@@ -455,6 +455,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   .sb-item{flex:1 1 40%;border:none;}
   .tb-right .btn-outline{display:none;}
   .search-in{width:160px;}
+  .tb-left{min-width:0;overflow:hidden;}
+  .page-title,.page-sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:44vw;}
+  #companySwitcher{max-width:90px;}
+  .tb-right button.btn-ghost{display:none;}
 }
 @media(max-width:540px){
   .members-grid,.risk-grid{grid-template-columns:1fr;}
@@ -463,6 +467,9 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   .topbar{padding:0 14px;}
   .content{padding:12px;}
   .stats-bar{display:none;}
+  .page-sub{display:none;}
+  .page-title{max-width:38vw;font-size:15px;}
+  #companySwitcher{max-width:70px;font-size:10.5px;}
 }
 /* ── LOGIN SCREEN ── */
 #loginScreen{
