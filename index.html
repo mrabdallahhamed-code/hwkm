@@ -1393,130 +1393,31 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
 <!-- ══ CONSULTANTS PAGE ═══════════════════ -->
 <div id="p-consultants" class="page content">
-  <div class="sec-title" style="margin-top:20px">مكاتب المراجعة القانونية</div>
-  <div class="card">
-    <div class="card-head" style="background:linear-gradient(135deg,#C0392B,#E85D50)">
-      <span style="font-size:13px;font-weight:800;color:#fff">المراجع القانوني للشركة</span>
-    </div>
-    <div class="card-body">
-      <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--gray1)">
-        <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#C0392B,#E85D50);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;flex-shrink:0">م</div>
-        <div style="flex:1"><div style="font-size:13px;font-weight:800;color:var(--dark)">مكتب المنصور للمحاماة والاستشارات القانونية</div><div style="font-size:11px;color:var(--gray3)">مراجعة العقود - الشؤون التنظيمية - التقاضي التجاري</div></div>
-        <span class="badge done">نشط</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;padding:12px 0">
-        <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#8B2FC9,#B56AE8);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;flex-shrink:0">ع</div>
-        <div style="flex:1"><div style="font-size:13px;font-weight:800;color:var(--dark)">مكتب العقيل للاستشارات القانونية</div><div style="font-size:11px;color:var(--gray3)">الامتثال التنظيمي - الحوكمة القانونية - لائحة هيئة السوق المالية</div></div>
-        <span class="badge done">نشط</span>
-      </div>
-    </div>
+  <!-- ══ SECTION 1: طلبات الاستشارات ══ -->
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span>💼 طلبات الاستشارات</span>
+    <button id="btn-new-consult-request" class="btn btn-gold" style="font-size:11px;padding:6px 14px;display:none" onclick="document.getElementById('mcr-category').value='إدارية';document.getElementById('mcr-details').value='';openM('m-consult-request')">+ تقديم طلب استشارة</button>
+  </div>
+  <div id="consultRequestsList" style="margin-bottom:28px">
+    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
   </div>
 
-  <div class="sec-title">💼 الاستشارات</div>
-
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px">
-    <!-- Legal -->
-    <div class="card">
-      <div class="card-head" style="background:linear-gradient(135deg,var(--primary),var(--primary2))">
-        <span style="font-size:13.5px;font-weight:800;color:#fff">⚖️ الاستشارات القانونية</span>
-        <button class="btn-xs" style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.3);padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">+ إضافة</button>
-      </div>
-      <div class="card-body">
-        <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--gray1)">
-          <div style="width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;flex-shrink:0">م</div>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:800;color:var(--dark)">مكتب المنصور للمحاماة</div>
-            <div style="font-size:11px;color:var(--gray3);margin-top:2px">استشارات تجارية وحوكمة شركات — الرياض</div>
-            <div style="font-size:10px;color:var(--gray3);margin-top:3px">📞 0112345678 · منذ يناير 2024</div>
-          </div>
-          <span class="badge done">نشط</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--gray1)">
-          <div style="width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,var(--teal),#29B8A8);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;flex-shrink:0">ع</div>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:800;color:var(--dark)">مكتب العقيل للاستشارات</div>
-            <div style="font-size:11px;color:var(--gray3);margin-top:2px">قانون الشركات والأوراق المالية</div>
-            <div style="font-size:10px;color:var(--gray3);margin-top:3px">📞 0113456789 · منذ مارس 2025</div>
-          </div>
-          <span class="badge done">نشط</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;padding:12px 0">
-          <div style="width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,#8B2FC9,#B56AE8);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;flex-shrink:0">ن</div>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:800;color:var(--dark)">مكتب النهدي القانوني</div>
-            <div style="font-size:11px;color:var(--gray3);margin-top:2px">تدقيق العقود والامتثال التنظيمي</div>
-            <div style="font-size:10px;color:var(--gray3);margin-top:3px">📞 0554321987 · منذ يونيو 2025</div>
-          </div>
-          <span class="badge pending">مؤقت</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Admin -->
-    <div class="card">
-      <div class="card-head" style="background:linear-gradient(135deg,var(--gold),var(--gold2))">
-        <span style="font-size:13.5px;font-weight:800;color:var(--dark)">🗂️ الاستشارات الإدارية</span>
-        <button class="btn-xs" style="background:rgba(0,0,0,0.1);color:var(--dark);border:1px solid rgba(0,0,0,0.15);padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">+ إضافة</button>
-      </div>
-      <div class="card-body">
-        <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--gray1)">
-          <div style="width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,var(--gold),var(--gold3));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:var(--dark);flex-shrink:0">ب</div>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:800;color:var(--dark)">شركة بيان للاستشارات</div>
-            <div style="font-size:11px;color:var(--gray3);margin-top:2px">تطوير الأداء المؤسسي والحوكمة — الرياض</div>
-            <div style="font-size:10px;color:var(--gray3);margin-top:3px">📞 0501234567 · منذ فبراير 2024</div>
-          </div>
-          <span class="badge done">نشط</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--gray1)">
-          <div style="width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,#C55A11,#E87A30);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;flex-shrink:0">ن</div>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:800;color:var(--dark)">نخبة للإدارة الاستراتيجية</div>
-            <div style="font-size:11px;color:var(--gray3);margin-top:2px">الحوكمة والتحول المؤسسي</div>
-            <div style="font-size:10px;color:var(--gray3);margin-top:3px">📞 0556789012 · منذ سبتمبر 2025</div>
-          </div>
-          <span class="badge pending">مؤقت</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;padding:12px 0">
-          <div style="width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,var(--green),#4DC975);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;flex-shrink:0">أ</div>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:800;color:var(--dark)">أفاق للتطوير الإداري</div>
-            <div style="font-size:11px;color:var(--gray3);margin-top:2px">تقييم الأداء وإعادة الهيكلة</div>
-            <div style="font-size:10px;color:var(--gray3);margin-top:3px">📞 0509876543 · منذ يناير 2026</div>
-          </div>
-          <span class="badge done">نشط</span>
-        </div>
-      </div>
-    </div>
+  <!-- ══ SECTION 2: وساطة ══ -->
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span>🤝 وساطة — مقدّمو الخدمات</span>
+    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-provider-add')">+ إضافة</button>
+  </div>
+  <div id="providersGrid" class="two-col" style="margin-bottom:20px">
+    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
   </div>
 
-  <!-- Contracts table -->
-  <div class="sec-title">📄 عقود الاستشارة</div>
+  <div class="sec-title" style="margin-top:10px">📋 الطلبات السابقة (وساطة)</div>
   <div class="card">
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>الجهة الاستشارية</th><th>النوع</th><th>قيمة العقد</th><th>تاريخ البدء</th><th>تاريخ الانتهاء</th><th>الحالة</th></tr></thead>
-        <tbody>
-          <tr><td>مكتب المنصور للمحاماة</td><td>قانوني</td><td>120,000 ريال/سنة</td><td>يناير 2024</td><td>ديسمبر 2026</td><td><span class="badge done">ساري</span></td></tr>
-          <tr><td>شركة بيان للاستشارات</td><td>إداري</td><td>80,000 ريال/سنة</td><td>فبراير 2024</td><td>يناير 2026</td><td><span class="badge pending">تجديد مطلوب</span></td></tr>
-          <tr><td>مكتب العقيل للاستشارات</td><td>قانوني</td><td>60,000 ريال/سنة</td><td>مارس 2025</td><td>فبراير 2027</td><td><span class="badge done">ساري</span></td></tr>
-          <tr><td>نخبة للإدارة الاستراتيجية</td><td>إداري</td><td>45,000 ريال/6 أشهر</td><td>سبتمبر 2025</td><td>مارس 2026</td><td><span class="badge urgent">ينتهي قريباً</span></td></tr>
-          <tr><td>أفاق للتطوير الإداري</td><td>إداري</td><td>90,000 ريال/سنة</td><td>يناير 2026</td><td>ديسمبر 2026</td><td><span class="badge done">ساري</span></td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
-    <span>📁 سجل الجهات الاستشارية</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-consultant')">+ إضافة جهة</button>
-  </div>
-  <div class="card">
-    <div class="card-body" style="padding:0">
-      <table class="tbl">
-        <thead><tr><th>اسم الجهة</th><th>النوع</th><th>تاريخ العقد</th></tr></thead>
-        <tbody id="consultantsTbody">
-          <tr><td colspan="3" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+        <thead><tr><th>الجهة</th><th>تاريخ الطلب</th><th>الحالة</th><th>إجراء</th></tr></thead>
+        <tbody id="serviceRequestsTbody">
+          <tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
       </table>
     </div>
@@ -1879,13 +1780,40 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 </div>
 
 <!-- Add consultant modal -->
-<div class="modal-bg" id="m-consultant">
+<div class="modal-bg" id="m-consult-request">
   <div class="modal">
-    <div class="modal-title">📁 إضافة جهة استشارية</div>
-    <div class="fg"><label>اسم الجهة</label><input class="fi" id="mcn-name" placeholder="مثال: مكتب الفهد للاستشارات" /></div>
-    <div class="fg"><label>النوع</label><select class="fs" id="mcn-type"><option>قانوني</option><option>إداري</option><option>مالي</option></select></div>
-    <div class="fg"><label>تاريخ العقد</label><input type="date" class="fi" id="mcn-date"/></div>
-    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-consultant')">إلغاء</button><button class="btn btn-gold" onclick="saveConsultant()">✅ حفظ الجهة</button></div>
+    <div class="modal-title">💼 تقديم طلب استشارة</div>
+    <div class="fg"><label>فئة الاستشارة</label>
+      <select class="fs" id="mcr-category">
+        <option>إدارية</option>
+        <option>قانونية</option>
+        <option>حوكمة</option>
+      </select>
+    </div>
+    <div class="fg"><label>تفاصيل الطلب</label><textarea class="fta" id="mcr-details" rows="3" placeholder="وصف الاستشارة المطلوبة..."></textarea></div>
+    <p style="font-size:11px;color:var(--gray3)">بعد الإرسال، يظهر الطلب لمدير النظام لتقديم عرض سعر، ثم يُحال إليك للموافقة أو الرفض.</p>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-consult-request')">إلغاء</button><button class="btn btn-gold" onclick="submitConsultRequest()">📨 إرسال الطلب</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-provider-add">
+  <div class="modal">
+    <div class="modal-title">🤝 إضافة جهة وساطة</div>
+    <div class="fg"><label>اسم الجهة</label><input class="fi" id="mpv-name" placeholder="مثال: شركة الرواد للخدمات" /></div>
+    <div class="fg"><label>الخدمة المقدَّمة</label><input class="fi" id="mpv-service" placeholder="مثال: خدمات تأمين طبي" /></div>
+    <div class="fg"><label>نوع النشاط</label><input class="fi" id="mpv-activity" placeholder="مثال: وساطة تأمين" /></div>
+    <div class="fg"><label>رقم السجل التجاري</label><input class="fi" id="mpv-cr" placeholder="مثال: 1010XXXXXX" /></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-provider-add')">إلغاء</button><button class="btn btn-gold" onclick="saveServiceProvider()">✅ حفظ الجهة</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-service-tracking">
+  <div class="modal">
+    <div class="modal-title" id="mst-track-title">🔎 تتبع الطلب</div>
+    <div style="font-size:12px;color:var(--gray3);margin-bottom:14px" id="mst-track-meta"></div>
+    <div id="mst-track-stepper" style="margin-bottom:14px"></div>
+    <div id="mst-track-advance"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-service-tracking')">إغلاق</button></div>
   </div>
 </div>
 
@@ -2206,7 +2134,7 @@ function reloadCurrentPageData(){
   if(id==='permissions') loadPermissionsMatrix();
   if(id==='voting') loadVotingPage();
   if(id==='audit') loadAudit();
-  if(id==='consultants') loadConsultants();
+  if(id==='consultants') loadConsultantsPage();
   if(id==='perf') loadPerf();
   if(id==='appoint'){ loadAppointRequests(); loadReviewSection(); }
   if(id==='reports') loadReportsPage();
@@ -4697,25 +4625,234 @@ async function saveAudit(){
 }
 
 /* ══════════ CONSULTANTS ══════════ */
-async function loadConsultants(){
-  const tbody = document.getElementById("consultantsTbody");
-  if(!tbody) return;
-  const { data, error } = await sb.from("consultants").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
-  if(error){ tbody.innerHTML = errorRowHTML(3, error.message); return; }
-  if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(3, 'لا توجد بيانات بعد. اضغط "+ إضافة جهة" للبدء.'); return; }
-  tbody.innerHTML = data.map(c => `<tr>
-    <td>${c.firm_name||""}</td><td>${c.type||"—"}</td><td>${c.contract_date||"—"}</td>
-  </tr>`).join("");
+/* ══════════ CONSULTATION REQUESTS (chairman/secretary → admin quote → chairman decision) ══════════ */
+const CONSULT_REQUEST_ROLES = ['رئيس مجلس','سكرتير المجلس'];
+const CONSULT_STATUS_STYLE = {
+  "جديد": { bg:"var(--offwhite)", color:"var(--gray3)" },
+  "عرض سعر مقدم": { bg:"#EAF0F8", color:"var(--primary)" },
+  "معتمد": { bg:"#E8F8EF", color:"var(--green)" },
+  "مرفوض": { bg:"#FDE8E8", color:"var(--red)" }
+};
+
+async function loadConsultantsPage(){
+  const role = getCurrentRole();
+  const newBtn = document.getElementById("btn-new-consult-request");
+  if(newBtn) newBtn.style.display = CONSULT_REQUEST_ROLES.includes(role) ? "inline-block" : "none";
+
+  await loadConsultRequests(role);
+  await loadServiceProviders();
+  await loadServiceRequestsHistory();
 }
-async function saveConsultant(){
-  const firm_name = document.getElementById("mcn-name").value.trim();
-  if(!firm_name){ alert("الرجاء إدخال اسم الجهة"); return; }
-  const type = document.getElementById("mcn-type").value;
-  const contract_date = document.getElementById("mcn-date").value || null;
-  const { error } = await sb.from("consultants").insert([{ firm_name, type, contract_date, company_id: currentCompanyId }]);
+
+async function loadConsultRequests(role){
+  const box = document.getElementById("consultRequestsList");
+  if(!box) return;
+  const { data, error } = await sb.from("consultation_requests").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
+  if(error){ box.innerHTML = `<div style="color:var(--red);font-size:12px">تعذّر التحميل: ${error.message}</div>`; return; }
+  if(!data || data.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">لا توجد طلبات استشارة بعد.</div>'; return; }
+
+  const isAdmin = role === 'مدير النظام';
+  const isChairman = role === 'رئيس مجلس';
+
+  box.innerHTML = data.map(r => {
+    const st = CONSULT_STATUS_STYLE[r.status] || CONSULT_STATUS_STYLE["جديد"];
+    let actionHtml = "";
+    if(r.status === "جديد"){
+      actionHtml = isAdmin
+        ? `<div style="margin-top:10px;padding:10px;background:var(--offwhite);border-radius:8px">
+            <div class="row2">
+              <div class="fg"><label style="font-size:11px">قيمة عرض السعر (ريال)</label><input type="number" class="fi" id="quote-amount-${r.id}"/></div>
+              <div class="fg"><label style="font-size:11px">ملاحظات العرض</label><input class="fi" id="quote-notes-${r.id}"/></div>
+            </div>
+            <button class="btn-xs primary" onclick="submitQuote(${r.id})">📨 تقديم عرض السعر</button>
+          </div>`
+        : `<div style="font-size:11px;color:var(--gray3);margin-top:6px">⏳ بانتظار عرض سعر من مدير النظام</div>`;
+    } else if(r.status === "عرض سعر مقدم"){
+      actionHtml = `<div style="font-size:12px;margin-top:6px">💰 عرض السعر: <b>${r.quote_amount ? Number(r.quote_amount).toLocaleString('ar-SA')+' ريال' : '—'}</b>${r.quote_notes ? (' — '+r.quote_notes) : ''}</div>` +
+        (isChairman
+          ? `<div style="display:flex;gap:6px;margin-top:8px">
+              <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="decideConsultRequest(${r.id},'معتمد')">✅ موافقة</button>
+              <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="decideConsultRequest(${r.id},'مرفوض')">❌ رفض</button>
+            </div>`
+          : `<div style="font-size:11px;color:var(--gray3);margin-top:6px">⏳ بانتظار قرار رئيس المجلس</div>`);
+    } else {
+      actionHtml = `<div style="font-size:12px;margin-top:6px">💰 عرض السعر: ${r.quote_amount ? Number(r.quote_amount).toLocaleString('ar-SA')+' ريال' : '—'}</div>`;
+    }
+    return `<div class="card" style="margin-bottom:14px">
+      <div class="card-body">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <div>
+            <div style="font-weight:800;font-size:13px;color:var(--dark)">${r.category||""} <span style="font-size:11px;color:var(--gray3);font-weight:600">— طلب #${r.id}</span></div>
+            <div style="font-size:12px;color:var(--gray3);margin-top:3px">${r.details||""}</div>
+            <div style="font-size:10.5px;color:var(--gray3);margin-top:4px">مقدَّم من: ${r.requested_by_name||"—"} · ${r.created_at ? new Date(r.created_at).toLocaleDateString('ar-SA') : ''}</div>
+          </div>
+          <span style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px;background:${st.bg};color:${st.color}">${r.status}</span>
+        </div>
+        ${actionHtml}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+async function submitConsultRequest(){
+  const category = document.getElementById("mcr-category").value;
+  const details = document.getElementById("mcr-details").value.trim();
+  if(!details){ alert("الرجاء إدخال تفاصيل الطلب"); return; }
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+  const requested_by_name = currentUserProfile ? (currentUserProfile.full_name || myEmail) : myEmail;
+
+  const { error } = await sb.from("consultation_requests").insert([{
+    category, details, requested_by_name, requested_by_email: myEmail, status: "جديد", company_id: currentCompanyId
+  }]);
+  if(error){ alert("تعذّر إرسال الطلب: " + error.message); return; }
+  closeM("m-consult-request");
+  loadConsultantsPage();
+}
+
+async function submitQuote(requestId){
+  const amountEl = document.getElementById("quote-amount-"+requestId);
+  const notesEl = document.getElementById("quote-notes-"+requestId);
+  const quote_amount = amountEl && amountEl.value ? Number(amountEl.value) : null;
+  if(!quote_amount){ alert("الرجاء إدخال قيمة عرض السعر"); return; }
+  const quote_notes = notesEl ? notesEl.value.trim() : "";
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+  const quoted_by = currentUserProfile ? (currentUserProfile.full_name || myEmail) : myEmail;
+
+  const { error } = await sb.from("consultation_requests").update({
+    quote_amount, quote_notes, quoted_by, status: "عرض سعر مقدم"
+  }).eq("id", requestId);
+  if(error){ alert("تعذّر إرسال العرض: " + error.message); return; }
+  loadConsultantsPage();
+}
+
+async function decideConsultRequest(requestId, decision){
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+  const decision_by = currentUserProfile ? (currentUserProfile.full_name || myEmail) : myEmail;
+  const { error } = await sb.from("consultation_requests").update({
+    status: decision, decision_by, decision_at: new Date().toISOString()
+  }).eq("id", requestId);
+  if(error){ alert("تعذّر تسجيل القرار: " + error.message); return; }
+  loadConsultantsPage();
+}
+
+/* ══════════ SERVICE PROVIDER MARKETPLACE (وساطة) ══════════ */
+const SERVICE_STAGES = ["قيد المراجعة", "قيد التنفيذ", "مكتمل"];
+let providersCache = [];
+
+async function loadServiceProviders(){
+  const grid = document.getElementById("providersGrid");
+  if(!grid) return;
+  const { data, error } = await sb.from("service_providers").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
+  if(error){ grid.innerHTML = `<div style="color:var(--red);font-size:12px">تعذّر التحميل: ${error.message}</div>`; return; }
+  providersCache = data || [];
+  if(providersCache.length===0){ grid.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">لا توجد جهات مضافة بعد. اضغط "+ إضافة" للبدء.</div>'; return; }
+
+  const canRequest = FULL_ACCESS_ROLES.includes(getCurrentRole());
+  grid.innerHTML = providersCache.map(p => `<div class="card" style="margin-bottom:16px">
+    <div class="card-body">
+      <div style="font-weight:800;font-size:13.5px;color:var(--dark)">${p.entity_name||""}</div>
+      <div style="font-size:11.5px;color:var(--gray3);margin-top:4px">🛠️ ${p.service_provided||"—"}</div>
+      <div style="font-size:11.5px;color:var(--gray3);margin-top:2px">🏷️ ${p.activity_type||"—"}</div>
+      <div style="font-size:11px;color:var(--gray3);margin-top:2px">📄 س.ت: ${p.cr_number||"—"}</div>
+      ${canRequest ? `<button class="btn-xs gold" style="width:100%;margin-top:10px" onclick="requestService(${p.id})">🤝 اطلب الخدمة</button>` : ""}
+    </div>
+  </div>`).join("");
+}
+
+async function saveServiceProvider(){
+  const entity_name = document.getElementById("mpv-name").value.trim();
+  if(!entity_name){ alert("الرجاء إدخال اسم الجهة"); return; }
+  const service_provided = document.getElementById("mpv-service").value.trim();
+  const activity_type = document.getElementById("mpv-activity").value.trim();
+  const cr_number = document.getElementById("mpv-cr").value.trim();
+  const { error } = await sb.from("service_providers").insert([{ entity_name, service_provided, activity_type, cr_number, company_id: currentCompanyId }]);
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
-  document.getElementById("mcn-name").value=""; document.getElementById("mcn-date").value="";
-  closeM("m-consultant"); loadConsultants();
+  document.getElementById("mpv-name").value=""; document.getElementById("mpv-service").value=""; document.getElementById("mpv-activity").value=""; document.getElementById("mpv-cr").value="";
+  closeM("m-provider-add");
+  loadServiceProviders();
+}
+
+async function requestService(providerId){
+  if(!confirm("تأكيد إرسال طلب الخدمة لهذه الجهة؟")) return;
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+  const requested_by_name = currentUserProfile ? (currentUserProfile.full_name || myEmail) : myEmail;
+
+  const { data, error } = await sb.from("service_requests").insert([{
+    provider_id: providerId, requested_by_name, requested_by_email: myEmail, status: SERVICE_STAGES[0], company_id: currentCompanyId
+  }]).select().single();
+  if(error){ alert("تعذّر إرسال الطلب: " + error.message); return; }
+  loadServiceRequestsHistory();
+  openServiceTrackingModal(data.id);
+}
+
+async function loadServiceRequestsHistory(){
+  const tbody = document.getElementById("serviceRequestsTbody");
+  if(!tbody) return;
+  const { data, error } = await sb.from("service_requests").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
+  if(error){ tbody.innerHTML = errorRowHTML(4, error.message); return; }
+  if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(4, "لا توجد طلبات خدمة سابقة بعد."); return; }
+  tbody.innerHTML = data.map(r => {
+    const provider = providersCache.find(p => p.id === r.provider_id);
+    return `<tr style="cursor:pointer" onclick="openServiceTrackingModal(${r.id})">
+      <td>${provider ? provider.entity_name : "—"}</td>
+      <td>${r.created_at ? new Date(r.created_at).toLocaleDateString('ar-SA') : "—"}</td>
+      <td><span class="badge ${r.status==='مكتمل'?'done':'pending'}">${r.status}</span></td>
+      <td><button class="btn-xs primary" onclick="event.stopPropagation();openServiceTrackingModal(${r.id})">🔎 تتبع</button></td>
+    </tr>`;
+  }).join("");
+}
+
+let currentTrackingRequestId = null;
+async function openServiceTrackingModal(requestId){
+  currentTrackingRequestId = requestId;
+  const { data: r, error } = await sb.from("service_requests").select("*").eq("id", requestId).single();
+  if(error || !r){ alert("تعذّر تحميل بيانات الطلب"); return; }
+  const provider = providersCache.find(p => p.id === r.provider_id);
+
+  document.getElementById("mst-track-title").textContent = "🔎 تتبع الطلب — " + (provider ? provider.entity_name : "");
+  document.getElementById("mst-track-meta").innerHTML = `مقدَّم من: ${r.requested_by_name||"—"} · ${r.created_at ? new Date(r.created_at).toLocaleDateString('ar-SA') : ''}`;
+
+  const currentIdx = SERVICE_STAGES.indexOf(r.status);
+  document.getElementById("mst-track-stepper").innerHTML = `<div style="display:flex;align-items:center">
+    ${SERVICE_STAGES.map((stage,i) => {
+      const done = i < currentIdx, active = i === currentIdx;
+      const dotColor = done ? "var(--green)" : active ? "var(--primary)" : "var(--gray1)";
+      const lineColor = i < currentIdx ? "var(--green)" : "var(--gray1)";
+      return `<div style="display:flex;flex-direction:column;align-items:center;flex:${i<SERVICE_STAGES.length-1?'1':'0'}">
+        <div style="display:flex;align-items:center;width:100%">
+          <div style="width:14px;height:14px;border-radius:50%;background:${dotColor};flex-shrink:0"></div>
+          ${i<SERVICE_STAGES.length-1 ? `<div style="flex:1;height:3px;background:${lineColor}"></div>` : ""}
+        </div>
+        <div style="font-size:10px;color:var(--gray3);margin-top:4px;white-space:nowrap">${stage}</div>
+      </div>`;
+    }).join("")}
+  </div>`;
+
+  const advanceBox = document.getElementById("mst-track-advance");
+  const canAdvance = FULL_ACCESS_ROLES.includes(getCurrentRole());
+  if(canAdvance && currentIdx >= 0 && currentIdx < SERVICE_STAGES.length-1){
+    advanceBox.innerHTML = `<button class="btn btn-gold" style="width:100%" onclick="advanceServiceRequest()">⏩ نقل إلى: ${SERVICE_STAGES[currentIdx+1]}</button>`;
+  } else {
+    advanceBox.innerHTML = "";
+  }
+  openM("m-service-tracking");
+}
+
+async function advanceServiceRequest(){
+  const requestId = currentTrackingRequestId;
+  if(!requestId) return;
+  const { data: r } = await sb.from("service_requests").select("*").eq("id", requestId).single();
+  if(!r) return;
+  const idx = SERVICE_STAGES.indexOf(r.status);
+  if(idx === -1 || idx >= SERVICE_STAGES.length-1) return;
+  const { error } = await sb.from("service_requests").update({ status: SERVICE_STAGES[idx+1] }).eq("id", requestId);
+  if(error){ alert("تعذّر التحديث: " + error.message); return; }
+  openServiceTrackingModal(requestId);
+  loadServiceRequestsHistory();
 }
 
 /* ══════════ PERFORMANCE EVALUATIONS ══════════ */
@@ -4983,7 +5120,7 @@ function go(id, el){
   if(id==='permissions') loadPermissionsMatrix();
   if(id==='voting') loadVotingPage();
   if(id==='audit') loadAudit();
-  if(id==='consultants') loadConsultants();
+  if(id==='consultants') loadConsultantsPage();
   if(id==='perf') loadPerf();
   if(id==='appoint'){ loadAppointRequests(); loadReviewSection(); }
   if(id==='reports') loadReportsPage();
