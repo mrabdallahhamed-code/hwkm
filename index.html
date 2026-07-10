@@ -1306,7 +1306,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="card-head"><span class="card-title">📥 الطلبات الجديدة المُقدَّمة</span></div>
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>المرشح</th><th>نوع الطلب</th><th>المنصب المقترح</th><th>التخصص</th><th>التاريخ</th><th>الحالة</th></tr></thead>
+        <thead id="appointRequestsThead"><tr><th>المرشح</th><th>نوع الطلب</th><th>المنصب المقترح</th><th>التخصص</th><th>التاريخ</th><th>الحالة</th></tr></thead>
         <tbody id="appointRequestsTbody">
           <tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
@@ -4827,19 +4827,34 @@ async function submitRequest(){
   loadAppointRequests();
 }
 
+const APPOINT_TYPE_ICONS = {
+  "تعيين عضو مجلس إدارة جديد": "🧑‍💼",
+  "تعيين عضو لجنة متخصصة": "👥",
+  "تجديد عضوية عضو حالي": "🔁",
+  "إحلال عضو بديل": "🔄"
+};
+const APPOINT_STATUS_STYLE = {
+  "جديد": { bg: "var(--offwhite)", color: "var(--gray3)", border: "var(--gray1)" },
+  "محال إلى مجلس الإدارة": { bg: "#EAF0F8", color: "var(--primary)", border: "#C9D9EE" },
+  "معتمد": { bg: "#E8F8EF", color: "var(--green)", border: "#BFEBD1" },
+  "مرفوض": { bg: "#FDE8E8", color: "var(--red)", border: "#F5C6C6" }
+};
+
 async function loadAppointRequests(){
+  const thead = document.getElementById("appointRequestsThead");
   const tbody = document.getElementById("appointRequestsTbody");
   if(!tbody) return;
+  if(thead){
+    thead.innerHTML = '<tr>' +
+      ['المرشح','نوع الطلب','المنصب المقترح','التخصص','التاريخ','الحالة'].map(h =>
+        `<th style="background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;padding:12px 14px;font-size:11.5px">${h}</th>`
+      ).join('') + '</tr>';
+  }
+
   const { data, error } = await sb.from("appoint_requests").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
   if(error){ tbody.innerHTML = errorRowHTML(6, error.message); return; }
   if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(6, "لا توجد طلبات مقدَّمة بعد."); return; }
-  const statusBadge = (s) => {
-    if(s === "جديد") return '<span class="badge pending">جديد</span>';
-    if(s === "محال إلى مجلس الإدارة") return '<span class="badge info">محال إلى مجلس الإدارة</span>';
-    if(s === "معتمد") return '<span class="badge done">معتمد ✅</span>';
-    if(s === "مرفوض") return '<span class="badge urgent">مرفوض</span>';
-    return '<span class="badge info">'+(s||"—")+'</span>';
-  };
+
   // Group requests by type (عضو مجلس / عضو لجنة ...) so each category's requests sit together
   const groups = {};
   data.forEach(r => {
@@ -4847,18 +4862,27 @@ async function loadAppointRequests(){
     if(!groups[cat]) groups[cat] = [];
     groups[cat].push(r);
   });
+
   let rows = "";
   Object.keys(groups).forEach(cat => {
-    rows += `<tr style="background:#EAF0F8"><td colspan="6" style="font-weight:800;color:var(--primary);font-size:11px;padding:8px 14px">${cat}</td></tr>`;
+    const icon = APPOINT_TYPE_ICONS[cat] || "📋";
+    rows += `<tr><td colspan="6" style="background:var(--offwhite);border-right:4px solid var(--gold);font-weight:800;color:var(--primary);font-size:12px;padding:10px 16px">${icon} ${cat}</td></tr>`;
     groups[cat].forEach(r => {
+      const initial = (r.candidate_name||"؟").trim().charAt(0);
+      const st = APPOINT_STATUS_STYLE[r.status] || APPOINT_STATUS_STYLE["جديد"];
       rows += `<tr>
-        <td>${r.candidate_name||""}</td>
-        <td>${r.request_type||"—"}</td>
-        <td>${r.proposed_position||"—"}</td>
-        <td>${r.specialization||"—"}</td>
-        <td>${r.created_at ? new Date(r.created_at).toLocaleDateString("ar-SA") : "—"}</td>
+        <td style="padding:12px 14px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0">${initial}</div>
+            <span style="font-weight:700;color:var(--dark)">${r.candidate_name||""}</span>
+          </div>
+        </td>
+        <td style="font-size:12px;color:var(--gray3)">${r.request_type||"—"}</td>
+        <td style="font-size:12.5px;font-weight:600">${r.proposed_position||"—"}</td>
+        <td style="font-size:12px;color:var(--gray3)">${r.specialization||"—"}</td>
+        <td style="font-size:12px;color:var(--gray3)">${r.created_at ? new Date(r.created_at).toLocaleDateString("ar-SA") : "—"}</td>
         <td>
-          <select onchange="updateRequestStatus(${r.id}, this.value)" style="font-size:11px;padding:3px 6px;border-radius:6px;border:1px solid var(--gray1)">
+          <select onchange="updateRequestStatus(${r.id}, this.value)" style="font-size:11px;font-weight:700;padding:5px 10px;border-radius:8px;cursor:pointer;background:${st.bg};color:${st.color};border:1.5px solid ${st.border}">
             <option ${r.status==="جديد"?"selected":""}>جديد</option>
             <option ${r.status==="محال إلى مجلس الإدارة"?"selected":""}>محال إلى مجلس الإدارة</option>
             <option ${r.status==="معتمد"?"selected":""}>معتمد</option>
