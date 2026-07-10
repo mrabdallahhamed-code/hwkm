@@ -1807,6 +1807,28 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
+<div class="modal-bg" id="m-perm-item-edit">
+  <div class="modal">
+    <div class="modal-title">✏️ تعديل البند</div>
+    <input type="hidden" id="mpie-id" value="" />
+    <div class="fg"><label>نص البند</label><input class="fi" id="mpie-name" /></div>
+    <div class="fg"><label>الفئة</label>
+      <select class="fs" id="mpie-category">
+        <option>الصلاحيات الاستراتيجية والتنظيمية</option>
+        <option>الصلاحيات المتعلقة بالموارد البشرية</option>
+        <option>الصلاحيات المالية والاستثمارية</option>
+        <option>الصلاحيات التشغيلية</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>الصلاحيات الحالية لكل جهة</label>
+      <div id="mpie-assignments"></div>
+      <button type="button" class="btn btn-ghost" style="font-size:11px;padding:5px 12px;margin-top:6px" onclick="addPermEditAssignmentRow()">+ إضافة جهة أخرى</button>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-perm-item-edit')">إلغاء</button><button class="btn btn-gold" onclick="savePermItemEdit()">✅ حفظ التعديلات</button></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-perm-item">
   <div class="modal">
     <div class="modal-title">➕ إضافة بند صلاحية</div>
@@ -2063,6 +2085,7 @@ function isMutatingOnclick(val){
     || /^openPermItemModal\(/.test(val)
     || /^openPermHoldersManager\(/.test(val)
     || /^openPermItemsManager\(/.test(val)
+    || /^openPermItemEditModal\(/.test(val)
     || /^edit[A-Z]/.test(val)
     || /^delete[A-Z]/.test(val)
     || /^saveCompany/.test(val)
@@ -3043,7 +3066,10 @@ function renderPermItemsManageList(){
   list.innerHTML = permItemsCache.map(it => `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--gray1);font-size:12.5px">
       <span>${it.item_name}<br><span style="font-size:10px;color:var(--gray3)">${it.category||""}</span></span>
-      <button style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="deletePermItemFromManager(${it.id})">🗑️ حذف</button>
+      <div style="display:flex;gap:6px">
+        <button style="background:var(--offwhite);color:var(--primary);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="openPermItemEditModal(${it.id})">✏️ تعديل</button>
+        <button style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="deletePermItemFromManager(${it.id})">🗑️ حذف</button>
+      </div>
     </div>`).join('');
 }
 
@@ -3093,6 +3119,90 @@ async function findOrCreateHolder(name){
   if(error){ throw error; }
   permHoldersCache.push(data);
   return data.id;
+}
+
+/* ══ Real item editor: rename item, and add/edit/remove its holder assignments ══ */
+async function openPermItemEditModal(itemId){
+  const item = permItemsCache.find(i => i.id === itemId);
+  if(!item) return;
+  document.getElementById("mpie-id").value = item.id;
+  document.getElementById("mpie-name").value = item.item_name || "";
+  document.getElementById("mpie-category").value = item.category || "الصلاحيات التشغيلية";
+
+  const { data: cells, error } = await sb.from("permission_cells").select("*").eq("item_id", itemId);
+  if(error){ alert("تعذّر تحميل الصلاحيات الحالية: " + error.message); return; }
+
+  const container = document.getElementById("mpie-assignments");
+  container.innerHTML = "";
+  (cells||[]).forEach(cell => {
+    const holder = permHoldersCache.find(h => h.id === cell.holder_id);
+    addPermEditAssignmentRow(cell.id, holder ? holder.name : "", cell.code);
+  });
+  if(!cells || cells.length===0) addPermEditAssignmentRow();
+
+  const dl = document.getElementById("permHolderNames");
+  if(dl) dl.innerHTML = permHoldersCache.map(h => `<option value="${(h.name||"").replace(/"/g,'&quot;')}">`).join("");
+
+  openM("m-perm-item-edit");
+}
+
+function addPermEditAssignmentRow(cellId, holderName, code){
+  const container = document.getElementById("mpie-assignments");
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex;gap:6px;margin-top:6px";
+  row.dataset.cellId = cellId || "";
+  row.innerHTML = `
+    <input list="permHolderNames" class="fi perm-edit-holder" placeholder="الجهة (مثال: الرئيس التنفيذي)" value="${holderName ? holderName.replace(/"/g,'&quot;') : ''}" style="flex:2">
+    <select class="fs perm-edit-code" style="flex:1">
+      <option value="" ${!code?'selected':''}>—</option>
+      <option value="ت" ${code==='ت'?'selected':''}>ت — توصية</option>
+      <option value="ع" ${code==='ع'?'selected':''}>ع — اعتماد</option>
+      <option value="م" ${code==='م'?'selected':''}>م — مراجعة</option>
+    </select>
+    <button type="button" onclick="removePermEditAssignmentRow(this)" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px">✕</button>
+  `;
+  container.appendChild(row);
+}
+
+async function removePermEditAssignmentRow(btn){
+  const row = btn.closest("div[data-cell-id], div");
+  const cellId = row.dataset.cellId;
+  if(cellId){
+    if(!confirm("حذف صلاحية هذه الجهة عن هذا البند؟")) return;
+    const { error } = await sb.from("permission_cells").delete().eq("id", cellId);
+    if(error){ alert("تعذّر الحذف: " + error.message); return; }
+  }
+  row.remove();
+}
+
+async function savePermItemEdit(){
+  const id = document.getElementById("mpie-id").value;
+  const item_name = document.getElementById("mpie-name").value.trim();
+  if(!item_name){ alert("الرجاء إدخال نص البند"); return; }
+  const category = document.getElementById("mpie-category").value;
+
+  const { error } = await sb.from("permission_items").update({ item_name, category }).eq("id", id);
+  if(error){ alert("تعذّر حفظ البند: " + error.message); return; }
+
+  const rows = document.querySelectorAll("#mpie-assignments > div");
+  for(const row of rows){
+    const holderName = row.querySelector(".perm-edit-holder").value.trim();
+    const code = row.querySelector(".perm-edit-code").value;
+    if(!holderName || !code) continue; // rows left blank are simply skipped, not saved
+    try{
+      const holderId = await findOrCreateHolder(holderName);
+      await sb.from("permission_cells").upsert(
+        [{ item_id: Number(id), holder_id: holderId, code, company_id: currentCompanyId }],
+        { onConflict: 'item_id,holder_id' }
+      );
+    }catch(e){
+      alert("تعذّر حفظ صلاحية الجهة \""+holderName+"\": " + e.message);
+    }
+  }
+
+  closeM("m-perm-item-edit");
+  await loadPermissionsMatrix();
+  renderPermItemsManageList();
 }
 
 async function savePermItem(){
