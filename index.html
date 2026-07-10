@@ -963,6 +963,15 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <span>🏛️ السياسات والحوكمة</span>
     <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mp-id').value='';document.getElementById('mp-title-h').textContent='🏛️ إضافة سياسة جديدة';document.getElementById('mp-name').value='';document.getElementById('mp-type').value='';document.getElementById('mp-approval').value='';document.getElementById('mp-review').value='';openM('m-policy')">+ إضافة سياسة</button>
   </div>
+  <div style="background:linear-gradient(135deg,var(--primary),var(--primary2));border-radius:14px;padding:16px 18px;margin-bottom:18px;box-shadow:0 6px 20px rgba(26,58,107,0.18)">
+    <div style="position:relative">
+      <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:14px;opacity:0.7;pointer-events:none">🔍</span>
+      <input id="policySearchInput" placeholder="ابحث باسم السياسة..." oninput="renderPoliciesFiltered()"
+        style="width:100%;padding:11px 42px 11px 14px;border-radius:10px;border:none;font-family:'Tajawal',sans-serif;font-size:13px;background:rgba(255,255,255,0.95);color:var(--dark);outline:none">
+    </div>
+    <div id="policyCategoryPills" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"></div>
+  </div>
+
   <div id="policiesCards">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
   </div>
@@ -2313,12 +2322,12 @@ async function linkExistingAccount(){
   const role = document.getElementById("mi-existing-role").value;
   if(!currentCompanyId){ alert("لا توجد شركة محددة حاليًا"); return; }
 
-  const { data: existing, error: findErr } = await sb.from("user_profiles").select("*").eq("email", email).maybeSingle();
+  const { data: existing, error: findErr } = await sb.from("user_profiles").select("*").ilike("email", email).maybeSingle();
   if(findErr || !existing){ alert("لا يوجد حساب مسجّل بهذا البريد الإلكتروني. تأكد أنه سجّل حساب بالمنصة أولًا، أو استخدم تبويب \"عضو جديد\" بدل ذلك."); return; }
 
   if(!confirm(`سيتم نقل "${existing.full_name||email}" من شركته الحالية (إن وجدت) إلى شركتك بدور "${role}". متابعة؟`)) return;
 
-  const { error } = await sb.from("user_profiles").update({ company_id: currentCompanyId, role }).eq("email", email);
+  const { error } = await sb.from("user_profiles").update({ company_id: currentCompanyId, role }).ilike("email", email);
   if(error){ alert("تعذّر الربط: " + error.message); return; }
   alert(`تم ربط "${existing.full_name||email}" بشركتك ✅ — عليه تسجيل خروج ثم دخول من جديد ليرى شركتك.`);
   document.getElementById("mi-existing-email").value = "";
@@ -4409,6 +4418,7 @@ function policyStageStepper(status){
   <div style="font-size:10px;color:var(--gray3);text-align:center;font-weight:700">${status||"مسودة"}</div>`;
 }
 
+let policyActiveCategory = "الكل";
 async function loadPolicies(){
   const wrap = document.getElementById("policiesCards");
   const { data, error } = await sb.from("policies").select("*").eq("company_id", currentCompanyId).order("id", { ascending: true });
@@ -4417,21 +4427,65 @@ async function loadPolicies(){
     return;
   }
   policiesCache = data || [];
+  renderPolicyPills();
+  renderPoliciesFiltered();
+}
+
+function renderPolicyPills(){
+  const box = document.getElementById("policyCategoryPills");
+  if(!box) return;
+  const categoryOrder = ["سياسات الجمعية", "سياسات المجلس", "سياسات اللجان", "لوائح المجلس", "لوائح اللجان", "لوائح داخلية"];
+  const present = [...new Set(policiesCache.map(p => p.category || "لوائح داخلية"))];
+  const cats = categoryOrder.filter(c => present.includes(c)).concat(present.filter(c => !categoryOrder.includes(c)));
+
+  const pill = (label, key, count, icon) => {
+    const active = policyActiveCategory === key;
+    return `<button onclick="setPolicyCategory('${key}')" style="font-size:11.5px;font-weight:700;padding:7px 14px;border-radius:20px;cursor:pointer;border:none;background:${active?'#fff':'rgba(255,255,255,0.18)'};color:${active?'var(--primary)':'#fff'};transition:.15s">${icon?icon+' ':''}${label}${count!=null?` <span style="opacity:.75">(${count})</span>`:''}</button>`;
+  };
+
+  let html = pill("الكل", "الكل", policiesCache.length, "📚");
+  cats.forEach(c => {
+    const count = policiesCache.filter(p => (p.category||"لوائح داخلية")===c).length;
+    html += pill(c, c, count, POLICY_CATEGORY_ICONS[c] || "📁");
+  });
+  box.innerHTML = html;
+}
+
+function setPolicyCategory(cat){
+  policyActiveCategory = cat;
+  renderPolicyPills();
+  renderPoliciesFiltered();
+}
+
+function renderPoliciesFiltered(){
+  const wrap = document.getElementById("policiesCards");
+  if(!wrap) return;
+  const searchEl = document.getElementById("policySearchInput");
+  const search = searchEl ? searchEl.value.trim().toLowerCase() : "";
+
+  let list = policiesCache;
+  if(policyActiveCategory !== "الكل") list = list.filter(p => (p.category||"لوائح داخلية") === policyActiveCategory);
+  if(search) list = list.filter(p => (p.policy_name||"").toLowerCase().includes(search));
+
   if(policiesCache.length === 0){
-    wrap.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد سياسات بعد. اضغط "+ إضافة سياسة" للبدء.</div>';
+    wrap.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">لا توجد سياسات بعد. اضغط "+ إضافة سياسة" للبدء.</div>';
     return;
   }
+  if(list.length === 0){
+    wrap.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">لا توجد سياسات مطابقة لبحثك.</div>';
+    return;
+  }
+
   const statusBadge = (s) => {
     if(s === "معتمدة نهائيًا") return '<span class="badge done">معتمدة نهائيًا ✅</span>';
     if(s === "تجديد مطلوب") return '<span class="badge urgent">تجديد مطلوب</span>';
     if(s === "مسودة") return '<span class="badge pending">مسودة</span>';
     return '<span class="badge info">'+ (s || "مسودة") +'</span>';
   };
-  // Group all policies by category first, regardless of insertion order, so cards of the
-  // same category always sit together under one header instead of being interleaved.
+  // Group the filtered policies by category so cards of the same category sit together
   const categoryOrder = ["سياسات الجمعية", "سياسات المجلس", "سياسات اللجان", "لوائح المجلس", "لوائح اللجان", "لوائح داخلية"];
   const groups = {};
-  policiesCache.forEach(p => {
+  list.forEach(p => {
     const cat = p.category || "لوائح داخلية";
     if(!groups[cat]) groups[cat] = [];
     groups[cat].push(p);
@@ -4488,6 +4542,7 @@ async function loadPolicies(){
   wrap.innerHTML = html;
   loadPolicyReviewSection();
 }
+
 
 /* ══════════ BOARD MEMBER REVIEW ON POLICIES AT "مرفوعة لمجلس الإدارة" STAGE ══════════ */
 async function loadPolicyReviewSection(){
