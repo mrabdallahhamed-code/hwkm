@@ -5405,6 +5405,7 @@ function pct(n, d){ return d ? ((n/d)*100).toFixed(1)+"%" : "0%"; }
 /* Main entry point when navigating to the voting page: picks which AGM meeting we're
    voting in (or shows an empty state), then loads that meeting's topics + results. */
 async function loadVotingPage(){
+  loadDocumentTemplates();
   const titleEl = document.getElementById("votingMeetingTitle");
   const banner = document.getElementById("votingNotOpenBanner");
   const topicsBox = document.getElementById("votingTopicsContainer");
@@ -6466,6 +6467,29 @@ async function generateShareholderVotePDF(){
   if(!shareholder_name){ alert("الرجاء إدخال اسم المساهم أولاً"); return; }
   if(!currentVotingMeetingId){ alert("تعذّر تحديد الجمعية الحالية"); return; }
 
+  const templateRow = docTemplatesCache["vote_card"];
+  if(templateRow){
+    try{
+      const { data: m } = await sb.from("meetings").select("*").eq("id", currentVotingMeetingId).single();
+      const { list: attendees } = await getAttendeesList(currentVotingMeetingId);
+      const mine = attendees.find(a => a.name === shareholder_name);
+      const companyName = document.getElementById("reportCompanyName1")?.textContent || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "الشركة";
+      await fillDocxTemplate(templateRow.file_url, {
+        card_number: mine ? mine.shareholderNo : "-",
+        company_name: companyName,
+        meeting_type_label: m?.agm_type || "عادية",
+        method: m?.method || "",
+        meeting_date: m?.meeting_date || "",
+        meeting_time: m?.meeting_time || "",
+        shareholder_name: shareholder_name,
+        shares_own: shares_count || (mine ? mine.shares : ""),
+        shares_proxy: 0,
+        shares_total: shares_count || (mine ? mine.shares : "")
+      }, `بطاقة تصويت - ${shareholder_name}.docx`);
+      return;
+    }catch(e){ alert("تعذّر تعبئة القالب، سيُستخدم التصميم الافتراضي بدلًا منه: " + e.message); }
+  }
+
   const w = window.open("", "_blank");
   if(w){ w.document.write('<html dir="rtl"><body style="font-family:sans-serif;padding:30px">جارِ تجهيز الملف...</body></html>'); w.document.close(); }
   const { data, error } = await sb.from("votes").select("*").eq("company_id", currentCompanyId).eq("meeting_id", currentVotingMeetingId).eq("shareholder_name", shareholder_name).order("id",{ascending:true});
@@ -6687,17 +6711,18 @@ const DOC_TEMPLATE_DEFS = [
   { key: "agm_invitation", label: "📨 دعوة الجمعية" },
   { key: "attendance_sheet", label: "🧾 محضر كشف الحضور" },
   { key: "vote_minutes", label: "🗳️ محضر فرز الأصوات" },
-  { key: "agm_minutes", label: "📋 محضر الجمعية العامة" }
+  { key: "agm_minutes", label: "📋 محضر الجمعية العامة" },
+  { key: "vote_card", label: "🪪 بطاقة تصويت المساهم" }
 ];
 let docTemplatesCache = {};
 
 async function loadDocumentTemplates(){
   const box = document.getElementById("docTemplatesList");
-  if(!box) return;
   const { data, error } = await sb.from("document_templates").select("*").eq("company_id", currentCompanyId);
-  if(error){ box.innerHTML = `<div style="color:var(--red);font-size:12px">تعذّر التحميل: ${error.message}</div>`; return; }
+  if(error){ if(box) box.innerHTML = `<div style="color:var(--red);font-size:12px">تعذّر التحميل: ${error.message}</div>`; return; }
   docTemplatesCache = {};
   (data||[]).forEach(t => { docTemplatesCache[t.template_key] = t; });
+  if(!box) return;
 
   box.innerHTML = DOC_TEMPLATE_DEFS.map(def => {
     const t = docTemplatesCache[def.key];
@@ -6706,9 +6731,19 @@ async function loadDocumentTemplates(){
         <div style="font-size:12.5px;font-weight:700;color:var(--dark)">${def.label}</div>
         <div style="font-size:10.5px;color:var(--gray3);margin-top:2px">${t ? '✅ '+t.file_name : 'لم يُرفع قالب — يُستخدم التصميم الافتراضي'}</div>
       </div>
-      <label class="btn-xs primary" style="cursor:pointer">📎 ${t?'استبدال':'رفع'} القالب<input type="file" accept=".docx" style="display:none" onchange="uploadDocumentTemplate('${def.key}',this)"></label>
+      <div style="display:flex;gap:6px">
+        <label class="btn-xs primary" style="cursor:pointer">📎 ${t?'استبدال':'رفع'} القالب<input type="file" accept=".docx" style="display:none" onchange="uploadDocumentTemplate('${def.key}',this)"></label>
+        ${t ? `<button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer" onclick="deleteDocumentTemplate('${def.key}')">🗑️ حذف</button>` : ""}
+      </div>
     </div>`;
   }).join("");
+}
+
+async function deleteDocumentTemplate(key){
+  if(!confirm("حذف هذا القالب؟ سيرجع النظام يستخدم التصميم الافتراضي بدلاً منه.")) return;
+  const { error } = await sb.from("document_templates").delete().eq("company_id", currentCompanyId).eq("template_key", key);
+  if(error){ alert("تعذّر الحذف: " + error.message); return; }
+  loadDocumentTemplates();
 }
 
 async function uploadDocumentTemplate(key, inputEl){
