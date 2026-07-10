@@ -506,6 +506,14 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <label>الاسم الكامل</label>
       <input class="fi" id="signupFullName" placeholder="الاسم الثلاثي" />
     </div>
+    <div class="login-field" id="signupNationalIdField" style="display:none">
+      <label>رقم الهوية</label>
+      <input class="fi" id="signupNationalId" placeholder="مثال: 1XXXXXXXXX" />
+    </div>
+    <div class="login-field" id="signupPhoneField" style="display:none">
+      <label>رقم الجوال</label>
+      <input class="fi" id="signupPhone" type="tel" placeholder="مثال: 05XXXXXXXX" />
+    </div>
     <div class="login-field" id="signupSharesField" style="display:none">
       <label>عدد الأسهم</label>
       <input class="fi" id="signupShares" type="number" placeholder="مثال: 500" />
@@ -1416,7 +1424,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="card-head"><span class="card-title">المستخدمون المسجّلون</span></div>
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>الاسم</th><th>البريد الإلكتروني</th><th>نوع الحساب</th><th>الدور / الصلاحية</th><th>إجراء</th></tr></thead>
+        <thead><tr><th>الاسم</th><th>البريد الإلكتروني</th><th>رقم الهوية</th><th>رقم الجوال</th><th>نوع الحساب</th><th>الدور / الصلاحية</th><th>إجراء</th></tr></thead>
         <tbody id="usersTbody">
           <tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
@@ -1888,6 +1896,8 @@ function toggleAuthMode(){
     : 'لديك حساب بالفعل؟ <b>تسجيل الدخول</b>';
   document.getElementById("signupTypeField").style.display = authMode === "signup" ? "block" : "none";
   document.getElementById("signupNameField").style.display = authMode === "signup" ? "block" : "none";
+  document.getElementById("signupNationalIdField").style.display = authMode === "signup" ? "block" : "none";
+  document.getElementById("signupPhoneField").style.display = authMode === "signup" ? "block" : "none";
   if(authMode === "signup"){ toggleShareholderFields(); }
   else { document.getElementById("signupSharesField").style.display = "none"; }
   hideLoginMsg();
@@ -1921,14 +1931,18 @@ async function handleAuth(){
   } else {
     const account_type = document.getElementById("signupAccountType").value;
     const full_name = document.getElementById("signupFullName").value.trim();
+    const national_id = document.getElementById("signupNationalId").value.trim();
+    const phone_number = document.getElementById("signupPhone").value.trim();
     const shares_count = document.getElementById("signupShares").value ? Number(document.getElementById("signupShares").value) : null;
     if(!full_name){ showLoginMsg("الرجاء إدخال الاسم الكامل", false); return; }
+    if(!national_id){ showLoginMsg("الرجاء إدخال رقم الهوية", false); return; }
+    if(!phone_number){ showLoginMsg("الرجاء إدخال رقم الجوال", false); return; }
     if(account_type === "مساهم" && !shares_count){ showLoginMsg("الرجاء إدخال عدد الأسهم", false); return; }
 
     const { error } = await sb.auth.signUp({ email, password });
     if(error){ showLoginMsg("خطأ: " + error.message, false); return; }
 
-    const { error: profileError } = await sb.from("user_profiles").insert([{ email, account_type, full_name, shares_count }]);
+    const { error: profileError } = await sb.from("user_profiles").insert([{ email, account_type, full_name, national_id, phone_number, shares_count }]);
     if(profileError){
       showLoginMsg("تم إنشاء حساب الدخول، لكن تعذّر حفظ بياناتك الشخصية: " + profileError.message + " — تواصل مع مدير النظام.", false);
       return;
@@ -1939,6 +1953,8 @@ async function handleAuth(){
     document.getElementById("loginBtn").textContent = "تسجيل الدخول";
     document.getElementById("signupTypeField").style.display = "none";
     document.getElementById("signupNameField").style.display = "none";
+    document.getElementById("signupNationalIdField").style.display = "none";
+    document.getElementById("signupPhoneField").style.display = "none";
     document.getElementById("signupSharesField").style.display = "none";
   }
 }
@@ -2070,18 +2086,20 @@ async function loadUsers(){
   const tbody = document.getElementById("usersTbody");
   if(!tbody) return;
   if(getCurrentRole() !== 'مدير النظام'){
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--red);font-size:12px;padding:14px">هذه الصفحة متاحة لمدير النظام فقط</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--red);font-size:12px;padding:14px">هذه الصفحة متاحة لمدير النظام فقط</td></tr>';
     return;
   }
   const { data, error } = await sb.from("user_profiles").select("*").order("id",{ascending:true});
-  if(error){ tbody.innerHTML = errorRowHTML(5, error.message); return; }
-  if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(5, "لا يوجد مستخدمون مسجّلون بعد."); return; }
+  if(error){ tbody.innerHTML = errorRowHTML(7, error.message); return; }
+  if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(7, "لا يوجد مستخدمون مسجّلون بعد."); return; }
   const roles = ['مدير النظام','رئيس مجلس','سكرتير المجلس','رئيس لجنة الترشيحات','عضو لجنة الترشيحات','عضو مجلس','مساهم'];
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
   tbody.innerHTML = data.map(u => `<tr>
     <td>${u.full_name||"—"}</td>
     <td>${u.email||"—"}</td>
+    <td>${u.national_id||"—"}</td>
+    <td>${u.phone_number||"—"}</td>
     <td>${u.account_type||"—"}</td>
     <td>
       <select onchange="updateUserRole(${u.id}, this.value)" style="font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid var(--gray1)">
