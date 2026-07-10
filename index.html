@@ -2318,19 +2318,135 @@ async function loadReportsPage(){
 async function generateAnnualReportPDF(){
   const w = window.open("", "_blank");
   if(w){ w.document.write('<html dir="rtl"><body style="font-family:sans-serif;padding:30px">جارِ تجهيز التقرير...</body></html>'); w.document.close(); }
-  await loadReportsPage();
-  const reportCard = document.querySelector("#p-reports .card-body > div");
+
+  const yearSelect = document.getElementById("reportYearSelect");
+  const currentYear = yearSelect ? Number(yearSelect.value) : new Date().getFullYear();
+  const companyName = document.getElementById("reportCompanyName1")?.textContent || "الشركة";
+  const dateNow = new Date().toLocaleDateString("ar-SA");
+
+  // Pull whatever is currently written in each manual field (including unsaved edits),
+  // since generating the PDF is meant to happen right after finishing writing the report.
+  const manualValues = {};
+  REPORT_MANUAL_FIELDS.forEach(f => {
+    const el = document.getElementById("repfield-"+f.key);
+    manualValues[f.key] = el ? el.value.trim() : (f.default || "");
+  });
+
+  const [meetingsRes, signingRes, complianceRes, committeesRes, membersRes, risksRes, attendanceRes, committeeMembersRes] = await Promise.all([
+    sb.from("meetings").select("*").eq("company_id", currentCompanyId),
+    sb.from("signing_documents").select("*").eq("company_id", currentCompanyId),
+    sb.from("compliance_items").select("*").eq("company_id", currentCompanyId),
+    sb.from("committees").select("*").eq("company_id", currentCompanyId),
+    sb.from("board_members").select("*").eq("company_id", currentCompanyId),
+    sb.from("risks").select("*").eq("company_id", currentCompanyId),
+    sb.from("meeting_attendance").select("*").eq("company_id", currentCompanyId),
+    sb.from("committee_members").select("*").eq("company_id", currentCompanyId)
+  ]);
   if(!w){ alert("المتصفح منع فتح نافذة التقرير — الرجاء السماح بالنوافذ المنبثقة ثم المحاولة مرة أخرى."); return; }
+
+  const meetings = meetingsRes.data || [];
+  const signingDocs = signingRes.data || [];
+  const compliance = complianceRes.data || [];
+  const committeesData = committeesRes.data || [];
+  const members = membersRes.data || [];
+  const risks = risksRes.data || [];
+  const attendance = attendanceRes.data || [];
+  const committeeLinks = committeeMembersRes.data || [];
+
+  const boardMeetingsThisYear = meetings.filter(m => (m.meeting_type==="اجتماع مجلس الإدارة الدوري"||m.meeting_type==="اجتماع طارئ") && m.meeting_date && new Date(m.meeting_date).getFullYear()===currentYear);
+  const decisionsThisYear = signingDocs.filter(d => d.status==="مكتمل" && d.created_at && new Date(d.created_at).getFullYear()===currentYear);
+  const compliancePct = compliance.length ? Math.round((compliance.filter(c=>c.status==="ملتزم").length/compliance.length)*100) : null;
+
+  const composRows = members.map(m => `<tr><td>${m.name||""}</td><td>${m.position||"—"}</td><td>${boardMemberClassification(m)}</td></tr>`).join("")
+    || '<tr><td colspan="3">لا يوجد أعضاء مسجّلون.</td></tr>';
+
+  const commRows = committeesData.map(c => {
+    const memberIds = committeeLinks.filter(l=>l.committee_id===c.id).map(l=>l.member_id);
+    const cMeetings = meetings.filter(m => m.committee_id===c.id && m.meeting_date && new Date(m.meeting_date).getFullYear()===currentYear);
+    const cMeetingIds = cMeetings.map(m=>m.id);
+    const cAttendance = attendance.filter(a => cMeetingIds.includes(a.meeting_id) && memberIds.includes(a.member_id));
+    const present = cAttendance.filter(a=>a.status==="حاضر").length;
+    const avgPct = cAttendance.length ? Math.round((present/cAttendance.length)*100) : null;
+    return `<tr><td>${c.committee_name||""}</td><td>${c.chairman_name||"—"}</td><td>${memberIds.length}</td><td>${cMeetings.length}</td><td>${avgPct!=null?avgPct+'%':'—'}</td></tr>`;
+  }).join("") || '<tr><td colspan="5">لا توجد لجان مسجّلة.</td></tr>';
+
+  const riskRows = risks.map(r => `<tr><td>${r.risk_name||""}</td><td>${r.category||"—"}</td><td>${r.impact||"—"}</td><td>${r.probability!=null?r.probability+'%':'—'}</td><td>${r.status||"—"}</td></tr>`).join("")
+    || '<tr><td colspan="5">لا توجد مخاطر مسجّلة.</td></tr>';
+
+  const decisionsList = decisionsThisYear.length
+    ? '<ul>' + decisionsThisYear.map(d => `<li>${d.document_name}</li>`).join("") + '</ul>'
+    : '<p>لا توجد قرارات موقّعة مكتملة هذا العام بعد.</p>';
+
+  const sections = [
+    { num:"أولاً", title:"ما طُبّق من أحكام لائحة حوكمة الشركات وما لم يُطبّق وأسبابه", body: `<p>${manualValues.compliance_statement||"—"}</p>` },
+    { num:"ثانياً", title:"تكوين مجلس الإدارة وتصنيف الأعضاء", body: `<table><thead><tr><th>الاسم</th><th>المنصب</th><th>التصنيف</th></tr></thead><tbody>${composRows}</tbody></table>` },
+    { num:"ثالثاً", title:"عضوية أعضاء المجلس في مجالس إدارات أخرى", body: `<p>${manualValues.other_directorships||"لا يوجد"}</p>` },
+    { num:"رابعاً", title:"اللجان — الأعضاء وعدد الاجتماعات ونسب الحضور", body: `<table><thead><tr><th>اللجنة</th><th>الرئيس</th><th>عدد الأعضاء</th><th>اجتماعاتها هذا العام</th><th>متوسط نسبة الحضور</th></tr></thead><tbody>${commRows}</tbody></table>` },
+    { num:"خامساً", title:"مكافآت أعضاء مجلس الإدارة والإدارة التنفيذية", body: `<p>${manualValues.remuneration||"—"}</p>` },
+    { num:"سادساً", title:"العقوبات والجزاءات المفروضة على الشركة", body: `<p>${manualValues.penalties||"—"}</p>` },
+    { num:"سابعاً", title:"نتائج المراجعة السنوية للرقابة الداخلية ورأي لجنة المراجعة", body: `<p>${manualValues.internal_control||"—"}</p>` },
+    { num:"ثامناً", title:"المخاطر التي تواجه الشركة وسياسة إدارتها", body: `<table><thead><tr><th>الخطر</th><th>الفئة</th><th>التأثير</th><th>الاحتمالية</th><th>الحالة</th></tr></thead><tbody>${riskRows}</tbody></table><p style="margin-top:8px">${manualValues.risk_policy||""}</p>` },
+    { num:"تاسعاً", title:"الفروقات الجوهرية في النتائج التشغيلية عن السنة السابقة", body: `<p>${manualValues.material_variances||"—"}</p>` },
+    { num:"عاشراً", title:"الشركات التابعة", body: `<p>${manualValues.subsidiaries||"—"}</p>` },
+    { num:"حادي عشر", title:"القروض على الشركة", body: `<p>${manualValues.loans||"—"}</p>` },
+    { num:"ثاني عشر", title:"طلبات الشركة لسجل المساهمين", body: `<p>${manualValues.share_registry_requests||"—"}</p>` },
+    { num:"ثالث عشر", title:"الأعمال والعقود مع أطراف ذات علاقة بأعضاء المجلس", body: `<p>${manualValues.related_party_contracts||"—"}</p>` },
+    { num:"رابع عشر", title:"توزيعات الأرباح", body: `<p>${manualValues.dividends||"—"}</p>` },
+    { num:"خامس عشر", title:"إقرارات مجلس الإدارة", body: `<p>${manualValues.declarations||"—"}</p>` },
+    { num:"", title:"أبرز القرارات الصادرة هذا العام", body: decisionsList }
+  ];
+
   w.document.open();
   w.document.write(`
-    <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>تقرير مجلس الإدارة السنوي</title>
-    <style>body{font-family:'Tajawal',Arial,sans-serif;margin:0}</style></head><body>
-    ${reportCard ? reportCard.outerHTML : '<p style="padding:30px">تعذّر تجهيز التقرير.</p>'}
-    <script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>
+    <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>تقرير مجلس الإدارة السنوي ${currentYear}</title>
+    <style>
+      @page{ margin:2cm 1.8cm; }
+      *{ box-sizing:border-box; }
+      body{ font-family:'Tajawal',Arial,sans-serif; color:#0D2447; font-size:12.5px; line-height:1.9; margin:0; }
+      .cover{
+        background:linear-gradient(135deg,#1A3A6B,#2E5AA8); color:#fff; text-align:center;
+        padding:60px 30px; border-radius:0 0 24px 24px; margin-bottom:30px;
+      }
+      .cover .kingdom{ font-size:11px; letter-spacing:3px; color:rgba(255,255,255,0.65); margin-bottom:14px; }
+      .cover .company{ font-size:26px; font-weight:900; color:#D4AF37; margin-bottom:10px; }
+      .cover .title{ font-size:18px; font-weight:700; margin-top:14px; }
+      .cover .period{ font-size:13px; color:rgba(255,255,255,0.75); margin-top:6px; }
+      .kpis{ display:flex; justify-content:center; gap:14px; margin:-40px 30px 30px; flex-wrap:wrap; }
+      .kpi-box{ background:#fff; border:1px solid #E4E9F0; border-radius:10px; padding:14px 18px; text-align:center; box-shadow:0 4px 14px rgba(13,36,71,0.08); min-width:110px; }
+      .kpi-box .val{ font-size:22px; font-weight:900; color:#1A3A6B; }
+      .kpi-box .lbl{ font-size:10px; color:#8B95A5; margin-top:4px; }
+      .section{ padding:0 4px; margin-bottom:22px; page-break-inside:avoid; }
+      .section h2{ font-size:14.5px; font-weight:800; color:#1A3A6B; border-bottom:2px solid #D4AF37; padding-bottom:8px; margin-bottom:10px; }
+      .section h2 .num{ color:#D4AF37; margin-left:6px; }
+      .section p{ color:#33475B; margin:0 0 6px; }
+      table{ width:100%; border-collapse:collapse; margin-top:6px; font-size:11.5px; }
+      th,td{ border:1px solid #D8DEE8; padding:7px 9px; text-align:right; }
+      th{ background:#EAF0F8; color:#1A3A6B; font-weight:800; }
+      ul{ margin:4px 0; padding-right:20px; color:#33475B; }
+      .footer{ margin-top:40px; padding:14px; background:#F5F7FA; border-radius:8px; font-size:10.5px; color:#8B95A5; text-align:center; }
+      @media print{ .cover{ border-radius:0; } }
+    </style></head>
+    <body>
+      <div class="cover">
+        <div class="kingdom">المملكة العربية السعودية</div>
+        <div class="company">${companyName}</div>
+        <div class="title">تقرير مجلس الإدارة السنوي</div>
+        <div class="period">للسنة المالية المنتهية في 31 ديسمبر ${currentYear}</div>
+      </div>
+      <div class="kpis">
+        <div class="kpi-box"><div class="val">${boardMeetingsThisYear.length}</div><div class="lbl">اجتماعات المجلس</div></div>
+        <div class="kpi-box"><div class="val">${decisionsThisYear.length}</div><div class="lbl">قراراً موقّعًا</div></div>
+        <div class="kpi-box"><div class="val">${compliancePct!=null?compliancePct+'%':'—'}</div><div class="lbl">نسبة الامتثال</div></div>
+        <div class="kpi-box"><div class="val">${committeesData.length}</div><div class="lbl">لجان نشطة</div></div>
+      </div>
+      ${sections.map(s => `<div class="section"><h2>${s.num?`<span class="num">${s.num}:</span>`:''}${s.title}</h2>${s.body}</div>`).join("")}
+      <div class="footer">تقرير مبني على بيانات المنصة الحقيقية بتاريخ ${dateNow} — طبقًا للمادة (90) من لائحة حوكمة الشركات الصادرة عن هيئة السوق المالية.</div>
+      <script>window.onload=function(){setTimeout(function(){window.print()},400)}<\/script>
     </body></html>
   `);
   w.document.close();
 }
+
 
 /* ══════════ ARCHIVE ══════════ */
 const ARCHIVE_CATEGORY_ICONS = {
