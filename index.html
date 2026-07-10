@@ -917,17 +917,8 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
 <!-- ══ COMMITTEES ════════════════════════ -->
 <div id="p-committees" class="page content">
-  <div class="sec-title">📋 اللجان المتخصصة</div>
-  <div class="risk-grid">
-    <div class="rcard" style="border-right-color:var(--primary)"><div class="rlevel" style="color:var(--primary)">لجنة رئيسية · نشطة</div><div class="rname">لجنة المراجعة والتدقيق</div><div class="rmeta">5 أعضاء · رئيس: فلاح السبيعي</div><div class="rmeta" style="margin-top:4px">آخر اجتماع: ديسمبر 2025</div></div>
-    <div class="rcard" style="border-right-color:var(--gold2)"><div class="rlevel" style="color:var(--gold)">لجنة رئيسية · نشطة</div><div class="rname">لجنة المكافآت والترشيحات</div><div class="rmeta">4 أعضاء · رئيس: سلطان السبيعي</div><div class="rmeta" style="margin-top:4px">آخر اجتماع: نوفمبر 2025</div></div>
-    <div class="rcard" style="border-right-color:var(--teal)"><div class="rlevel" style="color:var(--teal)">لجنة رئيسية · نشطة</div><div class="rname">لجنة إدارة المخاطر</div><div class="rmeta">4 أعضاء · رئيس: أحمد الروقي</div><div class="rmeta" style="margin-top:4px">آخر اجتماع: يناير 2026</div></div>
-    <div class="rcard" style="border-right-color:#8B2FC9"><div class="rlevel" style="color:#8B2FC9">لجنة متخصصة · نشطة</div><div class="rname">لجنة الاستراتيجية والتطوير</div><div class="rmeta">5 أعضاء · رئيس: أحمد الروقي</div><div class="rmeta" style="margin-top:4px">آخر اجتماع: فبراير 2026</div></div>
-  </div>
-
-  <div class="sec-title" style="margin-top:20px">سجل اجتماعات اللجان السابقة</div>
-  <div class="card"><div class="card-body" style="padding:0"><table class="tbl"><thead><tr><th>اللجنة</th><th>التاريخ</th><th>الحضور</th><th>القرارات</th><th>المحضر</th></tr></thead><tbody><tr><td>لجنة المراجعة والتدقيق</td><td>15 ديسمبر 2025</td><td>5/5</td><td>4 قرارات</td><td><span class="badge done">معتمد</span></td></tr><tr><td>لجنة المكافآت والترشيحات</td><td>10 نوفمبر 2025</td><td>4/4</td><td>3 قرارات</td><td><span class="badge done">معتمد</span></td></tr><tr><td>لجنة ادارة المخاطر</td><td>20 يناير 2026</td><td>4/4</td><td>5 قرارات</td><td><span class="badge done">معتمد</span></td></tr><tr><td>لجنة الاستراتيجية والتطوير</td><td>5 فبراير 2026</td><td>5/5</td><td>6 قرارات</td><td><span class="badge done">معتمد</span></td></tr></tbody></table></div></div>  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
-    <span>🏛️ سجل اللجان المتخصصة</span>
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span>🏛️ اللجان المتخصصة</span>
     <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-committee')">+ إضافة لجنة</button>
   </div>
   <div class="card">
@@ -941,13 +932,21 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     </div>
   </div>
 
-  <div class="sec-title" style="margin-top:20px">📅 سجل اجتماعات اللجان</div>
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
+    <span>📅 اجتماعات اللجان القادمة</span>
+    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mt-type').value='اجتماع لجنة';toggleVotingDatesFields();openM('m-meeting')">+ اجتماع لجنة جديد</button>
+  </div>
+  <div class="meet-cards" id="upcomingCommitteeCards">
+    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
+  </div>
+
+  <div class="sec-title" style="margin-top:20px">📚 سجل اجتماعات اللجان السابقة</div>
   <div class="card">
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>العنوان</th><th>النوع</th><th>التاريخ</th><th>الوقت</th><th>طريقة الانعقاد</th><th>ملاحظات</th><th>جدول الأعمال</th><th>المحضر</th><th>الدعوات</th><th>إجراء</th></tr></thead>
-        <tbody id="committeeMeetingsCards">
-          <tr><td colspan="7" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+        <thead><tr><th>الاجتماع</th><th>اللجنة/النوع</th><th>التاريخ</th><th>الوقت</th><th>إجراء</th></tr></thead>
+        <tbody id="pastCommitteeTbody">
+          <tr><td colspan="5" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
       </table>
     </div>
@@ -2443,26 +2442,23 @@ async function deleteMeeting(id){
 }
 
 async function loadMeetingsAll(){
-  const committeeWrap = document.getElementById("committeeMeetingsCards");
   const emptyMsg = '<tr><td colspan="10" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد بيانات بعد</td></tr>';
 
   const { data, error } = await sb.from("meetings").select("*").eq("company_id", currentCompanyId).order("id", { ascending: false });
   if(error){
-    const errMsg = '<tr><td colspan="10" style="text-align:center;color:var(--red);font-size:12px;padding:14px">تعذّر التحميل: '+error.message+'</td></tr>';
-    if(committeeWrap) committeeWrap.innerHTML = errMsg;
     return;
   }
+  allMeetingsCache = data || [];
 
   const board = (data || []).filter(m => m.meeting_type === "اجتماع مجلس الإدارة الدوري" || m.meeting_type === "اجتماع طارئ");
   const committee = (data || []).filter(m => m.meeting_type === "اجتماع لجنة");
   const agm = (data || []).filter(m => m.meeting_type === "الجمعية العامة");
 
-  if(committeeWrap) committeeWrap.innerHTML = committee.length ? committee.map(renderMeetingRow).join("") : emptyMsg;
-
   renderUpcomingMeetingCards(board);
   loadMeetingRequestsReview();
   loadBoardMinutes(board);
   renderAGMSection(agm);
+  renderCommitteeSection(committee);
 }
 
 /* ══════════ BOARD MINUTES (signed via e-signature) ══════════ */
@@ -2569,6 +2565,7 @@ function fileCellCard(id, field, url, label){
 }
 
 let upcomingMeetingsCache = [];
+let allMeetingsCache = [];
 
 /* Spacious, single-column version used inside the detail modal (roomy, not cramped) */
 function fileRowWide(id, field, url, label){
@@ -2583,7 +2580,7 @@ function fileRowWide(id, field, url, label){
 }
 
 function openMeetingDetailModal(id){
-  const m = upcomingMeetingsCache.find(x => x.id === id);
+  const m = allMeetingsCache.find(x => x.id === id);
   if(!m) return;
   document.getElementById("mdView-title").textContent = m.title||"";
   document.getElementById("mdView-meta").innerHTML =
@@ -2829,6 +2826,58 @@ function toggleVotingDatesFields(){
   const type = document.getElementById("mt-type").value;
   const box = document.getElementById("mt-voting-dates");
   if(box) box.style.display = (type === "الجمعية العامة") ? "block" : "none";
+}
+
+/* ══════════ COMMITTEE MEETINGS (same card + detail pattern as board meetings) ══════════ */
+function renderCommitteeSection(committeeMeetings){
+  const todayStr = new Date().toISOString().slice(0,10);
+  const currentYear = new Date().getFullYear();
+
+  const upcoming = committeeMeetings
+    .filter(m => m.meeting_date && m.meeting_date >= todayStr && new Date(m.meeting_date).getFullYear() === currentYear)
+    .sort((a,b) => (a.meeting_date||"").localeCompare(b.meeting_date||""));
+  const past = committeeMeetings
+    .filter(m => !m.meeting_date || m.meeting_date < todayStr)
+    .sort((a,b) => (b.meeting_date||"").localeCompare(a.meeting_date||""));
+
+  renderUpcomingCommitteeCards(upcoming);
+  renderPastCommitteeTable(past);
+}
+
+function renderUpcomingCommitteeCards(upcoming){
+  const wrap = document.getElementById("upcomingCommitteeCards");
+  if(!wrap) return;
+  if(upcoming.length === 0){
+    wrap.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">لا توجد اجتماعات لجان قادمة هذا العام حاليًا.</div>';
+    return;
+  }
+  wrap.innerHTML = upcoming.map(m => {
+    const fileCount = [m.agenda_file_url,m.invitation_file_url,m.minutes_file_url].filter(Boolean).length;
+    return `<div class="mc q2" style="cursor:pointer" onclick="openMeetingDetailModal(${m.id})">
+      <div class="mc-bar"></div>
+      <div class="mc-type">${m.meeting_type||''}</div>
+      <div class="mc-title">${m.title||""}</div>
+      <div class="mc-detail">📅 ${m.meeting_date||"—"}${m.meeting_time ? (" — الساعة "+m.meeting_time) : ""}</div>
+      <div class="mc-detail">📍 ${m.method||"—"}</div>
+      ${m.notes ? `<div class="mc-detail">📝 ${m.notes}</div>` : ""}
+      <div class="mc-actions">
+        <button class="btn-xs primary" style="width:100%" onclick="event.stopPropagation();openMeetingDetailModal(${m.id})">📂 عرض التفاصيل والملفات ${fileCount ? `(${fileCount})` : ''}</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function renderPastCommitteeTable(past){
+  const tbody = document.getElementById("pastCommitteeTbody");
+  if(!tbody) return;
+  if(past.length === 0){
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا يوجد سجل اجتماعات لجان سابقة بعد</td></tr>';
+    return;
+  }
+  tbody.innerHTML = past.map(m => `<tr style="cursor:pointer" onclick="openMeetingDetailModal(${m.id})">
+    <td>${m.title||""}</td><td>${m.meeting_type||"—"}</td><td>${m.meeting_date||"—"}</td><td>${m.meeting_time||"—"}</td>
+    <td><button class="btn-xs primary" onclick="event.stopPropagation();openMeetingDetailModal(${m.id})">📂 التفاصيل</button></td>
+  </tr>`).join("");
 }
 
 async function saveMeeting(){
