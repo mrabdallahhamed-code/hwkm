@@ -627,7 +627,8 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <select id="companySwitcher" onchange="switchCompany(this.value)" style="font-family:'Tajawal',sans-serif;font-size:12px;padding:6px 10px;border-radius:8px;border:1.5px solid var(--gray1);background:#fff;color:var(--dark);max-width:180px">
       <option>جارِ التحميل...</option>
     </select>
-    <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="openM('m-company')">+ شركة</button>
+    <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="openNewCompanyModal()">+ شركة</button>
+    <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="openEditCompanyModal()">✏️ تعديل الشركة</button>
     <div style="position:relative">
       <button class="notif-btn" onclick="toggleNotifPanel()">🔔<div class="notif-dot" id="notifDot" style="display:none"></div></button>
       <div id="notifPanel" style="display:none;position:absolute;left:0;top:calc(100% + 8px);width:320px;max-height:420px;overflow-y:auto;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(13,36,71,0.18);z-index:200;padding:10px">
@@ -1843,11 +1844,32 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <!-- Add company modal -->
 <div class="modal-bg" id="m-company">
   <div class="modal">
-    <div class="modal-title">🏢 إضافة شركة جديدة</div>
+    <div class="modal-title" id="mco-title-h">🏢 إضافة شركة جديدة</div>
+    <input type="hidden" id="mco-id" value="" />
     <div class="fg"><label>اسم الشركة</label><input class="fi" id="mco-name" placeholder="مثال: شركة النخبة القابضة" /></div>
-    <div class="fg"><label>رأس المال (ريال)</label><input type="number" class="fi" id="mco-capital" placeholder="مثال: 1000000" /></div>
-    <div class="fg"><label>عدد الأسهم</label><input type="number" class="fi" id="mco-shares" placeholder="مثال: 100000" /></div>
-    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-company')">إلغاء</button><button class="btn btn-gold" onclick="saveCompany()">✅ إنشاء الشركة</button></div>
+    <div class="fg"><label>نوع الشركة</label>
+      <select class="fs" id="mco-type" onchange="toggleShareNominalField()">
+        <option>مساهمة مدرجة</option>
+        <option>مساهمة غير مدرجة</option>
+        <option>ذات مسؤولية محدودة</option>
+        <option>مؤسسة فردية</option>
+      </select>
+    </div>
+    <div class="row2">
+      <div class="fg"><label>رقم السجل التجاري</label><input class="fi" id="mco-cr-number" placeholder="مثال: 1010XXXXXX" /></div>
+      <div class="fg"><label>تاريخ السجل</label><input type="date" class="fi" id="mco-cr-date"/></div>
+    </div>
+    <div class="fg"><label>الشخص المسؤول</label><input class="fi" id="mco-resp-name" placeholder="مثال: عبدالله حامد" /></div>
+    <div class="row2">
+      <div class="fg"><label>جوال المسؤول</label><input class="fi" id="mco-resp-phone" placeholder="مثال: 05XXXXXXXX" /></div>
+      <div class="fg"><label>إيميل المسؤول</label><input type="email" class="fi" id="mco-resp-email" placeholder="example@company.com" /></div>
+    </div>
+    <div class="row2">
+      <div class="fg"><label>رأس المال (ريال)</label><input type="number" class="fi" id="mco-capital" placeholder="مثال: 1000000" /></div>
+      <div class="fg"><label>عدد الأسهم</label><input type="number" class="fi" id="mco-shares" placeholder="مثال: 100000" /></div>
+    </div>
+    <div class="fg" id="mco-nominal-field"><label>السعر الاسمي للسهم (ريال)</label><input type="number" step="0.01" class="fi" id="mco-nominal" placeholder="مثال: 10" /></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-company')">إلغاء</button><button class="btn btn-gold" onclick="saveCompany()">✅ حفظ الشركة</button></div>
   </div>
 </div>
 
@@ -2027,6 +2049,7 @@ function applyRolePermissions(){
   // Sidebar always shows every item/group for every role — access is enforced per-page in go()
   document.getElementById('adminNavGroup').style.display = 'block';
   document.querySelectorAll('.nav-item').forEach(item=>{ item.style.display = ''; });
+  applyCompanyTypeVisibility();
 
   if(isShareholder){
     go('agm');
@@ -2041,9 +2064,11 @@ function applyRolePermissions(){
   }
 }
 
+let currentCompanyType = null;
 function isPageAllowed(pageId, role){
   if(pageId === 'users') return role === 'مدير النظام';
   if(role === 'مساهم') return SHAREHOLDER_PAGES.includes(pageId);
+  if(currentCompanyType === 'مؤسسة فردية' && SOLE_PROP_HIDDEN_PAGES.includes(pageId)) return false;
   return true;
 }
 
@@ -2061,6 +2086,8 @@ function isMutatingOnclick(val){
     || /^saveMeetingAttendance\(/.test(val)
     || /^openNewCommitteeModal\(/.test(val)
     || /^openNewGovEvalModal\(/.test(val)
+    || /^openNewCompanyModal\(/.test(val)
+    || /^openEditCompanyModal\(/.test(val)
     || /^edit[A-Z]/.test(val)
     || /^delete[A-Z]/.test(val)
     || /^saveCompany/.test(val)
@@ -2167,11 +2194,13 @@ async function loadCompanies(preferredCompanyId){
   }
   currentCompanyId = preferredCompanyId && data.some(c=>c.id===preferredCompanyId) ? preferredCompanyId : data[0].id;
   if(sel) sel.value = currentCompanyId;
+  applyCompanyTypeVisibility();
   reloadCurrentPageData();
 }
 
 function switchCompany(id){
   currentCompanyId = Number(id);
+  applyCompanyTypeVisibility();
   reloadCurrentPageData();
 }
 
@@ -2620,19 +2649,100 @@ async function deleteArchiveDoc(id){
   loadArchive();
 }
 
-async function saveCompany(){
-  const name = document.getElementById("mco-name").value.trim();
-  if(!name){ alert("الرجاء إدخال اسم الشركة"); return; }
-  const total_capital = document.getElementById("mco-capital").value ? Number(document.getElementById("mco-capital").value) : null;
-  const total_shares = document.getElementById("mco-shares").value ? Number(document.getElementById("mco-shares").value) : null;
-  const { data, error } = await sb.from("companies").insert([{ name, total_capital, total_shares }]).select().single();
-  if(error){ alert("تعذّر إنشاء الشركة: " + error.message); return; }
+function toggleShareNominalField(){
+  const type = document.getElementById("mco-type").value;
+  const box = document.getElementById("mco-nominal-field");
+  if(box) box.style.display = (type==="مساهمة مدرجة" || type==="مساهمة غير مدرجة") ? "block" : "none";
+}
+
+function resetCompanyForm(){
+  document.getElementById("mco-id").value = "";
   document.getElementById("mco-name").value = "";
+  document.getElementById("mco-type").value = "مساهمة غير مدرجة";
+  document.getElementById("mco-cr-number").value = "";
+  document.getElementById("mco-cr-date").value = "";
+  document.getElementById("mco-resp-name").value = "";
+  document.getElementById("mco-resp-phone").value = "";
+  document.getElementById("mco-resp-email").value = "";
   document.getElementById("mco-capital").value = "";
   document.getElementById("mco-shares").value = "";
-  closeM("m-company");
-  await loadCompanies(data ? data.id : null);
-  alert("تم إنشاء الشركة بنجاح ✅ — أنت الآن تعمل عليها. كل البيانات الجديدة (أعضاء، اجتماعات...) ستُسجَّل تحتها بشكل منفصل تمامًا.");
+  document.getElementById("mco-nominal").value = "";
+  toggleShareNominalField();
+}
+
+function openNewCompanyModal(){
+  resetCompanyForm();
+  document.getElementById("mco-title-h").textContent = "🏢 إضافة شركة جديدة";
+  openM("m-company");
+}
+
+async function openEditCompanyModal(){
+  if(!currentCompanyId){ alert("لا توجد شركة محددة حاليًا"); return; }
+  const { data: c, error } = await sb.from("companies").select("*").eq("id", currentCompanyId).single();
+  if(error || !c){ alert("تعذّر تحميل بيانات الشركة"); return; }
+  document.getElementById("mco-id").value = c.id;
+  document.getElementById("mco-title-h").textContent = "✏️ تعديل بيانات الشركة";
+  document.getElementById("mco-name").value = c.name || "";
+  document.getElementById("mco-type").value = c.company_type || "مساهمة غير مدرجة";
+  document.getElementById("mco-cr-number").value = c.cr_number || "";
+  document.getElementById("mco-cr-date").value = c.cr_date || "";
+  document.getElementById("mco-resp-name").value = c.responsible_person || "";
+  document.getElementById("mco-resp-phone").value = c.responsible_phone || "";
+  document.getElementById("mco-resp-email").value = c.responsible_email || "";
+  document.getElementById("mco-capital").value = c.total_capital ?? "";
+  document.getElementById("mco-shares").value = c.total_shares ?? "";
+  document.getElementById("mco-nominal").value = c.share_nominal_value ?? "";
+  toggleShareNominalField();
+  openM("m-company");
+}
+
+async function saveCompany(){
+  const id = document.getElementById("mco-id").value;
+  const name = document.getElementById("mco-name").value.trim();
+  if(!name){ alert("الرجاء إدخال اسم الشركة"); return; }
+  const company_type = document.getElementById("mco-type").value;
+  const cr_number = document.getElementById("mco-cr-number").value.trim();
+  const cr_date = document.getElementById("mco-cr-date").value || null;
+  const responsible_person = document.getElementById("mco-resp-name").value.trim();
+  const responsible_phone = document.getElementById("mco-resp-phone").value.trim();
+  const responsible_email = document.getElementById("mco-resp-email").value.trim();
+  const total_capital = document.getElementById("mco-capital").value ? Number(document.getElementById("mco-capital").value) : null;
+  const total_shares = document.getElementById("mco-shares").value ? Number(document.getElementById("mco-shares").value) : null;
+  const share_nominal_value = document.getElementById("mco-nominal").value ? Number(document.getElementById("mco-nominal").value) : null;
+
+  const payload = { name, company_type, cr_number, cr_date, responsible_person, responsible_phone, responsible_email, total_capital, total_shares, share_nominal_value };
+
+  if(id){
+    const { error } = await sb.from("companies").update(payload).eq("id", id);
+    if(error){ alert("تعذّر حفظ التعديلات: " + error.message); return; }
+    closeM("m-company");
+    await loadCompanies(Number(id));
+    alert("تم تحديث بيانات الشركة ✅");
+  } else {
+    const { data, error } = await sb.from("companies").insert([payload]).select().single();
+    if(error){ alert("تعذّر إنشاء الشركة: " + error.message); return; }
+    closeM("m-company");
+    await loadCompanies(data ? data.id : null);
+    alert("تم إنشاء الشركة بنجاح ✅ — أنت الآن تعمل عليها. كل البيانات الجديدة (أعضاء، اجتماعات...) ستُسجَّل تحتها بشكل منفصل تمامًا.");
+  }
+  resetCompanyForm();
+}
+
+/* Company-type-aware navigation: sole proprietorships have no board/shareholders, so
+   board/committee/AGM-related pages are irrelevant and get hidden from the sidebar. */
+const SOLE_PROP_HIDDEN_PAGES = ['meetings','committees','agm','voting','members','appoint','perf'];
+async function applyCompanyTypeVisibility(){
+  if(!currentCompanyId) return;
+  const { data: c } = await sb.from("companies").select("company_type").eq("id", currentCompanyId).single();
+  currentCompanyType = c ? c.company_type : null;
+  const isSoleProp = currentCompanyType === "مؤسسة فردية";
+  document.querySelectorAll('.nav-item').forEach(item => {
+    const pageId = item.getAttribute('onclick')?.match(/go\('([a-z]+)'/)?.[1];
+    if(!pageId) return;
+    if(isSoleProp && SOLE_PROP_HIDDEN_PAGES.includes(pageId)){
+      item.style.display = 'none';
+    }
+  });
 }
 
 async function logout(){
