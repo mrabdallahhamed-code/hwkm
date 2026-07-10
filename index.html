@@ -919,7 +919,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <div id="p-committees" class="page content">
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
     <span>🏛️ اللجان المتخصصة</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-committee')">+ إضافة لجنة</button>
+    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mcm-id').value='';document.getElementById('mcm-title-h').textContent='📋 إضافة لجنة';document.getElementById('mcm-name').value='';document.getElementById('mcm-chairman').value='';document.getElementById('mcm-appointment-date').value='';document.getElementById('mcm-scope').value='';openM('m-committee')">+ إضافة لجنة</button>
   </div>
   <div id="committeesCards" class="two-col">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
@@ -1708,7 +1708,8 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <!-- Add committee modal -->
 <div class="modal-bg" id="m-committee">
   <div class="modal">
-    <div class="modal-title">📋 إضافة لجنة</div>
+    <div class="modal-title" id="mcm-title-h">📋 إضافة لجنة</div>
+    <input type="hidden" id="mcm-id" value="" />
     <div class="fg"><label>اسم اللجنة</label><input class="fi" id="mcm-name" placeholder="مثال: لجنة الاستدامة" /></div>
     <div class="fg"><label>رئيس اللجنة</label><input class="fi" id="mcm-chairman" placeholder="مثال: خالد العتيبي" /></div>
     <div class="row2">
@@ -3394,19 +3395,27 @@ async function saveSigning(){
 }
 
 /* ══════════ COMMITTEES ══════════ */
+let committeesCache = [];
 async function loadCommittees(){
   const wrap = document.getElementById("committeesCards");
   if(!wrap) return;
   const { data, error } = await sb.from("committees").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
   if(error){ wrap.innerHTML = `<div style="color:var(--red);font-size:12px;padding:14px">تعذّر التحميل: ${error.message}</div>`; return; }
-  if(!data || data.length===0){ wrap.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد بيانات بعد. اضغط "+ إضافة لجنة" للبدء.</div>'; return; }
+  committeesCache = data || [];
+  if(committeesCache.length===0){ wrap.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد بيانات بعد. اضغط "+ إضافة لجنة" للبدء.</div>'; return; }
 
   const catColors = { "لجنة رئيسية": "var(--primary)", "لجنة متخصصة": "#8B2FC9" };
-  wrap.innerHTML = data.map(c => {
+  wrap.innerHTML = committeesCache.map(c => {
     const color = catColors[c.category] || "var(--gray3)";
     return `<div class="card" style="margin-bottom:16px;border-right:4px solid ${color}">
       <div class="card-body">
-        <div style="font-size:11px;font-weight:800;color:${color};margin-bottom:4px">${c.category||"لجنة"}</div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div style="font-size:11px;font-weight:800;color:${color};margin-bottom:4px">${c.category||"لجنة"}</div>
+          <div style="display:flex;gap:6px">
+            <button class="btn-xs primary" onclick="editCommittee(${c.id})">✏️ تعديل</button>
+            <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="deleteCommittee(${c.id})">🗑️ حذف</button>
+          </div>
+        </div>
         <div style="font-size:14px;font-weight:800;color:var(--dark);margin-bottom:8px">${c.committee_name||""}</div>
         <div style="font-size:12px;color:var(--gray3);margin-bottom:4px">👤 رئيس اللجنة: <b style="color:var(--dark)">${c.chairman_name||"—"}</b></div>
         <div style="font-size:12px;color:var(--gray3);margin-bottom:8px">📅 تاريخ التعيين: ${c.appointment_date||"—"}</div>
@@ -3415,15 +3424,39 @@ async function loadCommittees(){
     </div>`;
   }).join("");
 }
+function editCommittee(id){
+  const c = committeesCache.find(x => x.id === id);
+  if(!c) return;
+  document.getElementById("mcm-id").value = c.id;
+  document.getElementById("mcm-title-h").textContent = "✏️ تعديل لجنة";
+  document.getElementById("mcm-name").value = c.committee_name || "";
+  document.getElementById("mcm-chairman").value = c.chairman_name || "";
+  document.getElementById("mcm-appointment-date").value = c.appointment_date || "";
+  document.getElementById("mcm-category").value = c.category || "لجنة رئيسية";
+  document.getElementById("mcm-scope").value = c.scope || "";
+  openM("m-committee");
+}
+async function deleteCommittee(id){
+  if(!confirm("هل أنت متأكد من حذف هذه اللجنة نهائيًا؟")) return;
+  const { error } = await sb.from("committees").delete().eq("id", id);
+  if(error){ alert("تعذّر الحذف: " + error.message); return; }
+  loadCommittees();
+}
 async function saveCommittee(){
+  const id = document.getElementById("mcm-id").value;
   const committee_name = document.getElementById("mcm-name").value.trim();
   if(!committee_name){ alert("الرجاء إدخال اسم اللجنة"); return; }
   const chairman_name = document.getElementById("mcm-chairman").value.trim();
   const appointment_date = document.getElementById("mcm-appointment-date").value || null;
   const category = document.getElementById("mcm-category").value;
   const scope = document.getElementById("mcm-scope").value.trim();
-  const { error } = await sb.from("committees").insert([{ committee_name, chairman_name, appointment_date, category, scope, company_id: currentCompanyId }]);
+  const payload = { committee_name, chairman_name, appointment_date, category, scope, company_id: currentCompanyId };
+  const { error } = id
+    ? await sb.from("committees").update(payload).eq("id", id)
+    : await sb.from("committees").insert([payload]);
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
+  document.getElementById("mcm-id").value = "";
+  document.getElementById("mcm-title-h").textContent = "📋 إضافة لجنة";
   document.getElementById("mcm-name").value=""; document.getElementById("mcm-chairman").value=""; document.getElementById("mcm-appointment-date").value=""; document.getElementById("mcm-scope").value="";
   closeM("m-committee"); loadCommittees();
 }
