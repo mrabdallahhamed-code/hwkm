@@ -617,6 +617,16 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="nav-item" onclick="go('users',this)"><span class="ni-icon">🛡️</span><span class="ni-text">إدارة الصلاحيات</span></div>
   </div>
 
+  <div class="nav-group" id="companyRequestNavGroup" style="display:none">
+    <div class="nav-group-label">الشركة</div>
+    <div class="nav-item" onclick="go('companyrequest',this)"><span class="ni-icon">🆕</span><span class="ni-text">طلب إدراج شركة</span></div>
+  </div>
+
+  <div class="nav-group" id="platformAdminNavGroup" style="display:none">
+    <div class="nav-group-label">مالك المنصة</div>
+    <div class="nav-item" onclick="go('companyrequests',this)"><span class="ni-icon">🏢</span><span class="ni-text">طلبات إدراج الشركات</span></div>
+  </div>
+
   <div class="sidebar-footer">
     <div class="user-chip" style="justify-content:space-between">
       <div style="display:flex;align-items:center;gap:10px">
@@ -1441,6 +1451,36 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
+<!-- ══ COMPANY REQUEST (for company-less users) ══════ -->
+<div id="p-companyrequest" class="page content">
+  <div style="display:flex;align-items:center;justify-content:center;min-height:70vh">
+    <div class="card" style="max-width:520px;width:100%">
+      <div class="card-body" id="companyRequestBody">
+        <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PLATFORM ADMIN — COMPANY REQUESTS REVIEW ══════ -->
+<div id="p-companyrequests" class="page content">
+  <div class="sec-title">🏢 طلبات إدراج الشركات الجديدة</div>
+  <div id="companyRequestsReviewList">
+    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
+  </div>
+  <div class="sec-title" style="margin-top:20px">📚 الطلبات السابقة</div>
+  <div class="card">
+    <div class="card-body" style="padding:0">
+      <table class="tbl">
+        <thead><tr><th>الشركة</th><th>مقدَّم من</th><th>التاريخ</th><th>الحالة</th></tr></thead>
+        <tbody id="companyRequestsHistoryTbody">
+          <tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 </main>
 
 <!-- MODALS -->
@@ -2051,17 +2091,34 @@ function getCurrentRole(){
 function applyRolePermissions(){
   const role = getCurrentRole();
   const isShareholder = role === 'مساهم';
+  const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
+  const hasNoCompany = currentUserProfile && !currentUserProfile.company_id;
 
   const nameEl = document.getElementById('sidebarUserName');
   const roleEl = document.getElementById('sidebarUserRole');
   const avEl = document.getElementById('sidebarUserAv');
   const displayName = currentUserProfile ? (currentUserProfile.full_name || currentUserProfile.email || "مستخدم") : "مستخدم";
   if(nameEl) nameEl.textContent = displayName;
-  if(roleEl) roleEl.textContent = role;
+  if(roleEl) roleEl.textContent = hasNoCompany ? "بانتظار ربط شركة" : role;
   if(avEl) avEl.textContent = displayName.trim().charAt(0) || "م";
 
-  // Sidebar always shows every item/group for every role — access is enforced per-page in go()
+  document.getElementById('platformAdminNavGroup').style.display = isPlatformAdmin ? 'block' : 'none';
+
+  if(hasNoCompany && !isPlatformAdmin){
+    // No company yet: hide every other section and force the "request a company" page —
+    // this account has nothing to see until an owner request is approved.
+    document.querySelectorAll('.nav-group').forEach(g => { g.style.display = 'none'; });
+    document.getElementById('companyRequestNavGroup').style.display = 'block';
+    document.querySelectorAll('.nav-item').forEach(item=>{ item.style.display = ''; });
+    go('companyrequest');
+    restrictMutatingButtons();
+    startMutationGuard();
+    return;
+  }
+
+  // Sidebar shows every item/group otherwise — access is enforced per-page in go()
   document.getElementById('adminNavGroup').style.display = 'block';
+  document.getElementById('companyRequestNavGroup').style.display = isPlatformAdmin ? 'block' : 'none';
   document.querySelectorAll('.nav-item').forEach(item=>{ item.style.display = ''; });
   applyCompanyTypeVisibility();
 
@@ -2080,6 +2137,11 @@ function applyRolePermissions(){
 
 let currentCompanyType = null;
 function isPageAllowed(pageId, role){
+  const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
+  const hasNoCompany = currentUserProfile && !currentUserProfile.company_id;
+  if(pageId === 'companyrequests') return isPlatformAdmin;
+  if(pageId === 'companyrequest') return true;
+  if(hasNoCompany && !isPlatformAdmin) return false;
   if(pageId === 'users') return role === 'مدير النظام';
   if(role === 'مساهم') return SHAREHOLDER_PAGES.includes(pageId);
   if(currentCompanyType === 'مؤسسة فردية' && SOLE_PROP_HIDDEN_PAGES.includes(pageId)) return false;
@@ -2206,6 +2268,16 @@ async function loadCompanies(preferredCompanyId){
   if(sel){
     sel.innerHTML = data.map(c => `<option value="${c.id}">${c.name}</option>`).join("");
   }
+  const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
+  if(!preferredCompanyId && !isPlatformAdmin){
+    // A user with no assigned company sees no company data at all — they're routed
+    // to the "request a company" flow instead of silently falling back to another
+    // tenant's data.
+    currentCompanyId = null;
+    if(sel) sel.innerHTML = '<option>لا توجد شركة مرتبطة بحسابك</option>';
+    reloadCurrentPageData();
+    return;
+  }
   currentCompanyId = preferredCompanyId && data.some(c=>c.id===preferredCompanyId) ? preferredCompanyId : data[0].id;
   if(sel) sel.value = currentCompanyId;
   applyCompanyTypeVisibility();
@@ -2219,6 +2291,7 @@ function switchCompany(id){
 }
 
 function reloadCurrentPageData(){
+  if(!currentCompanyId) return; // no company assigned yet — nothing to load
   const activePage = document.querySelector('.page.active');
   if(!activePage) { loadMembers(); loadMeetingsAll(); return; }
   const id = activePage.id.replace('p-','');
@@ -2239,6 +2312,8 @@ function reloadCurrentPageData(){
   if(id==='archive') loadArchive();
   if(id==='users') loadUsers();
   if(id==='dashboard') loadDashboard();
+  if(id==='companyrequest') loadCompanyRequestPage();
+  if(id==='companyrequests') loadCompanyRequestsReview();
 }
 
 const REPORT_MANUAL_FIELDS = [
@@ -2708,6 +2783,146 @@ async function openEditCompanyModal(){
   document.getElementById("mco-nominal").value = c.share_nominal_value ?? "";
   toggleShareNominalField();
   openM("m-company");
+}
+
+/* ══════════ COMPANY ONBOARDING (request → platform-owner approval) ══════════ */
+const COMPANY_REQUEST_STATUS_STYLE = {
+  "قيد المراجعة": { bg:"var(--offwhite)", color:"var(--gray3)" },
+  "معتمد": { bg:"#E8F8EF", color:"var(--green)" },
+  "مرفوض": { bg:"#FDE8E8", color:"var(--red)" }
+};
+
+async function loadCompanyRequestPage(){
+  const box = document.getElementById("companyRequestBody");
+  if(!box || !currentUserProfile) return;
+  const { data: myRequests } = await sb.from("company_requests").select("*").eq("requested_by_email", currentUserProfile.email).order("id",{ascending:false});
+  const latest = myRequests && myRequests.length ? myRequests[0] : null;
+
+  if(latest && latest.status === "قيد المراجعة"){
+    box.innerHTML = `<div style="text-align:center;padding:20px">
+      <div style="font-size:40px;margin-bottom:10px">⏳</div>
+      <div style="font-size:15px;font-weight:800;color:var(--dark);margin-bottom:6px">طلبك قيد المراجعة</div>
+      <div style="font-size:12.5px;color:var(--gray3);line-height:1.8">تم إرسال طلب إدراج "<b>${latest.company_name}</b>" وهو الآن بانتظار موافقة مالك المنصة.<br>بمجرد الموافقة، سجّل خروج ثم دخول من جديد وستجد شركتك جاهزة.</div>
+    </div>`;
+    return;
+  }
+
+  const rejectedNotice = latest && latest.status === "مرفوض"
+    ? `<div style="background:#FDE8E8;color:var(--red);border-radius:8px;padding:10px;font-size:12px;margin-bottom:14px">❌ تم رفض طلبك السابق لـ"${latest.company_name}". يمكنك تعديل البيانات وإعادة الإرسال.</div>`
+    : "";
+
+  box.innerHTML = `
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:36px">🆕</div>
+      <div style="font-size:15px;font-weight:800;color:var(--dark);margin-top:6px">طلب إدراج شركتك بالمنصة</div>
+      <div style="font-size:12px;color:var(--gray3);margin-top:4px">عبِّ بيانات شركتك، وبعد موافقة مالك المنصة ستصبح أنت مدير النظام لها.</div>
+    </div>
+    ${rejectedNotice}
+    <div class="fg"><label>اسم الشركة</label><input class="fi" id="cr-name" placeholder="مثال: شركة النخبة القابضة"/></div>
+    <div class="fg"><label>نوع الشركة</label>
+      <select class="fs" id="cr-type">
+        <option>مساهمة مدرجة</option><option>مساهمة غير مدرجة</option>
+        <option>ذات مسؤولية محدودة</option><option>مؤسسة فردية</option>
+      </select>
+    </div>
+    <div class="row2">
+      <div class="fg"><label>رقم السجل التجاري</label><input class="fi" id="cr-cr-number"/></div>
+      <div class="fg"><label>تاريخ السجل</label><input type="date" class="fi" id="cr-cr-date"/></div>
+    </div>
+    <div class="fg"><label>الشخص المسؤول (أنت)</label><input class="fi" id="cr-resp-name" value="${currentUserProfile.full_name||''}"/></div>
+    <div class="row2">
+      <div class="fg"><label>جوال المسؤول</label><input class="fi" id="cr-resp-phone" value="${currentUserProfile.phone_number||''}"/></div>
+      <div class="fg"><label>إيميل المسؤول</label><input type="email" class="fi" id="cr-resp-email" value="${currentUserProfile.email||''}"/></div>
+    </div>
+    <button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="submitCompanyRequest()">📨 إرسال الطلب</button>
+  `;
+}
+
+async function submitCompanyRequest(){
+  const company_name = document.getElementById("cr-name").value.trim();
+  if(!company_name){ alert("الرجاء إدخال اسم الشركة"); return; }
+  const company_type = document.getElementById("cr-type").value;
+  const cr_number = document.getElementById("cr-cr-number").value.trim();
+  const cr_date = document.getElementById("cr-cr-date").value || null;
+  const responsible_person = document.getElementById("cr-resp-name").value.trim();
+  const responsible_phone = document.getElementById("cr-resp-phone").value.trim();
+  const responsible_email = document.getElementById("cr-resp-email").value.trim();
+
+  const { error } = await sb.from("company_requests").insert([{
+    requested_by_email: currentUserProfile.email, requested_by_name: currentUserProfile.full_name,
+    company_name, company_type, cr_number, cr_date, responsible_person, responsible_phone, responsible_email,
+    status: "قيد المراجعة"
+  }]);
+  if(error){ alert("تعذّر إرسال الطلب: " + error.message); return; }
+  loadCompanyRequestPage();
+}
+
+async function loadCompanyRequestsReview(){
+  const pendingBox = document.getElementById("companyRequestsReviewList");
+  const historyBox = document.getElementById("companyRequestsHistoryTbody");
+  if(!pendingBox) return;
+  const { data, error } = await sb.from("company_requests").select("*").order("id",{ascending:false});
+  if(error){ pendingBox.innerHTML = `<div style="color:var(--red);font-size:12px">${error.message}</div>`; return; }
+
+  const pending = (data||[]).filter(r => r.status === "قيد المراجعة");
+  pendingBox.innerHTML = pending.length===0
+    ? '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">لا توجد طلبات جديدة حاليًا.</div>'
+    : pending.map(r => `<div class="card" style="margin-bottom:14px">
+        <div class="card-body">
+          <div style="font-weight:800;font-size:13.5px;color:var(--dark)">${r.company_name}</div>
+          <div style="font-size:11.5px;color:var(--gray3);margin-top:4px">النوع: ${r.company_type} · س.ت: ${r.cr_number||"—"} ${r.cr_date?(' · تاريخ: '+r.cr_date):''}</div>
+          <div style="font-size:11.5px;color:var(--gray3);margin-top:2px">المسؤول: ${r.responsible_person||"—"} · ${r.responsible_phone||""} · ${r.responsible_email||""}</div>
+          <div style="font-size:10.5px;color:var(--gray3);margin-top:4px">مقدَّم من: ${r.requested_by_name||r.requested_by_email} · ${new Date(r.created_at).toLocaleDateString('ar-SA')}</div>
+          <div style="display:flex;gap:6px;margin-top:10px">
+            <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="approveCompanyRequest(${r.id})">✅ موافقة وإنشاء الشركة</button>
+            <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="rejectCompanyRequest(${r.id})">❌ رفض</button>
+          </div>
+        </div>
+      </div>`).join("");
+
+  if(historyBox){
+    if(!data || data.length===0){ historyBox.innerHTML = emptyRowHTML(4, "لا توجد طلبات بعد."); }
+    else {
+      historyBox.innerHTML = data.map(r => {
+        const st = COMPANY_REQUEST_STATUS_STYLE[r.status] || COMPANY_REQUEST_STATUS_STYLE["قيد المراجعة"];
+        return `<tr>
+          <td>${r.company_name}</td><td>${r.requested_by_name||r.requested_by_email}</td><td>${new Date(r.created_at).toLocaleDateString('ar-SA')}</td>
+          <td><span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:8px;background:${st.bg};color:${st.color}">${r.status}</span></td>
+        </tr>`;
+      }).join("");
+    }
+  }
+}
+
+async function approveCompanyRequest(requestId){
+  if(!confirm("الموافقة على هذا الطلب تنشئ شركة جديدة وتجعل مقدّم الطلب مدير نظام لها. متابعة؟")) return;
+  const { data: r, error: rErr } = await sb.from("company_requests").select("*").eq("id", requestId).single();
+  if(rErr || !r){ alert("تعذّر تحميل الطلب"); return; }
+
+  const { data: newCompany, error: cErr } = await sb.from("companies").insert([{
+    name: r.company_name, company_type: r.company_type, cr_number: r.cr_number, cr_date: r.cr_date,
+    responsible_person: r.responsible_person, responsible_phone: r.responsible_phone, responsible_email: r.responsible_email
+  }]).select().single();
+  if(cErr){ alert("تعذّر إنشاء الشركة: " + cErr.message); return; }
+
+  const { error: uErr } = await sb.from("user_profiles").update({ company_id: newCompany.id, role: "مدير النظام" }).eq("email", r.requested_by_email);
+  if(uErr){ alert("تم إنشاء الشركة لكن تعذّر ربط المستخدم بها: " + uErr.message); return; }
+
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+  await sb.from("company_requests").update({ status: "معتمد", reviewed_at: new Date().toISOString(), reviewed_by: myEmail, company_id: newCompany.id }).eq("id", requestId);
+
+  alert("تم إنشاء الشركة وربط المستخدم بها كمدير نظام ✅");
+  loadCompanyRequestsReview();
+}
+
+async function rejectCompanyRequest(requestId){
+  if(!confirm("رفض هذا الطلب؟")) return;
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+  const { error } = await sb.from("company_requests").update({ status: "مرفوض", reviewed_at: new Date().toISOString(), reviewed_by: myEmail }).eq("id", requestId);
+  if(error){ alert("تعذّر الرفض: " + error.message); return; }
+  loadCompanyRequestsReview();
 }
 
 async function saveCompany(){
@@ -6346,6 +6561,8 @@ function go(id, el){
   closeSidebar();
   if(blocked) return;
   if(id==='dashboard') loadDashboard();
+  if(id==='companyrequest') loadCompanyRequestPage();
+  if(id==='companyrequests') loadCompanyRequestsReview();
   if(id==='members') loadMembers();
   if(id==='governance') loadPolicies();
   if(id==='meetings' || id==='committees' || id==='agm') loadMeetingsAll();
