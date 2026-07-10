@@ -3421,11 +3421,26 @@ async function loadPerf(){
       ? `<button class="btn-xs primary" onclick="closePerfEvaluation(${p.id})">🔒 إغلاق واعتماد النتيجة</button>`
       : "";
     const scoreDisplay = p.score!=null ? (Number(p.score).toFixed(1) + "/5 — " + (PERF_SCORE_LABELS[Math.round(p.score)]||"")) : (avg!=null ? "(معاينة) " + avg.toFixed(1)+"/5" : "—");
+    const uniqueReviewers = new Set(revs.map(r=>r.reviewer_email)).size;
+
+    // Per-criterion breakdown for a quick governance-style overview
+    const byCrit = {};
+    revs.forEach(r => {
+      const c = r.criterion || "عام";
+      if(!byCrit[c]) byCrit[c] = [];
+      byCrit[c].push(r.score||0);
+    });
+    const critDetail = Object.keys(byCrit).length
+      ? '<div style="font-size:10px;color:var(--gray3);margin-top:4px;line-height:1.8">' +
+        Object.keys(byCrit).map(c => `${c}: ${(byCrit[c].reduce((a,b)=>a+b,0)/byCrit[c].length).toFixed(1)}/5`).join(' &nbsp;·&nbsp; ') +
+        '</div>'
+      : "";
+
     return `<tr>
       <td>${p.entity_name||""}</td><td>${p.entity_type||"—"}</td><td>${p.period||"—"}</td>
       <td>${statusBadge}</td>
-      <td style="text-align:center">${revs.length}</td>
-      <td>${scoreDisplay}</td>
+      <td style="text-align:center">${uniqueReviewers}</td>
+      <td>${scoreDisplay}${critDetail}</td>
       <td>${closeBtn}</td>
     </tr>`;
   }).join("");
@@ -3454,7 +3469,13 @@ async function closePerfEvaluation(id){
   loadPerf();
 }
 
-/* Board members & nomination-committee members submit their own rating here */
+const PERF_CRITERIA_BOARD = ["الفاعلية والحضور","جودة القرارات الاستراتيجية","الالتزام بمعايير الحوكمة","التفاعل مع الإدارة التنفيذية","الرقابة على الأداء المالي"];
+const PERF_CRITERIA_EXEC = ["الأهداف الاستراتيجية","الأداء التشغيلي","القيادة والفريق","الامتثال والحوكمة"];
+function getPerfCriteria(entityType){
+  return entityType === "تنفيذي" ? PERF_CRITERIA_EXEC : PERF_CRITERIA_BOARD;
+}
+
+/* Board members & nomination-committee members submit their own rating here, item by item */
 async function loadPerfReviewSection(){
   const box = document.getElementById("perfReviewBody");
   if(!box) return;
@@ -3470,38 +3491,63 @@ async function loadPerfReviewSection(){
   const myEmail = userData && userData.user ? userData.user.email : null;
   const ids = openEvals.map(e=>e.id);
   const { data: myReviews } = await sb.from("performance_evaluation_reviews").select("*").in("evaluation_id", ids).eq("reviewer_email", myEmail||"");
-  const mineByEval = {};
-  (myReviews||[]).forEach(r => { mineByEval[r.evaluation_id] = r; });
+  const mineByEvalCriterion = {};
+  (myReviews||[]).forEach(r => { mineByEvalCriterion[r.evaluation_id+'|'+r.criterion] = r; });
 
   box.innerHTML = openEvals.map(ev => {
-    const mine = mineByEval[ev.id];
-    return `<div style="border:1px solid var(--gray1);border-radius:10px;padding:12px;margin-bottom:12px">
-      <div style="font-weight:800;font-size:13px;color:var(--dark)">${ev.entity_name||""} <span style="font-size:11px;color:var(--gray3);font-weight:600">— ${ev.entity_type||""} · ${ev.period||""}</span></div>
-      <div style="display:flex;gap:6px;margin:8px 0">
-        ${[1,2,3,4,5].map(s => `<button class="btn-xs" style="background:${mine&&mine.score===s?'linear-gradient(135deg,var(--primary),var(--accent))':'var(--offwhite)'};color:${mine&&mine.score===s?'#fff':'var(--dark)'};border:1px solid var(--gray1);border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer" onclick="submitPerfReview(${ev.id},${s})">${s} — ${PERF_SCORE_LABELS[s]}</button>`).join('')}
+    const criteria = getPerfCriteria(ev.entity_type);
+    const notesKey = ev.id+'|__notes__';
+    const savedNotes = criteria.map(c => mineByEvalCriterion[ev.id+'|'+c]).find(r=>r&&r.notes)?.notes || "";
+    return `<div style="border:1px solid var(--gray1);border-radius:10px;padding:12px;margin-bottom:14px">
+      <div style="font-weight:800;font-size:13px;color:var(--dark);margin-bottom:10px">${ev.entity_name||""} <span style="font-size:11px;color:var(--gray3);font-weight:600">— ${ev.entity_type||""} · ${ev.period||""}</span></div>
+      ${criteria.map(crit => {
+        const mine = mineByEvalCriterion[ev.id+'|'+crit];
+        return `<div class="perf-crit-row" data-eval="${ev.id}" data-criterion="${crit.replace(/"/g,'&quot;')}" data-selected="${mine?mine.score:''}" style="margin-bottom:10px">
+          <div style="font-size:12px;font-weight:700;color:var(--dark);margin-bottom:5px">${crit}</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">
+            ${[1,2,3,4,5].map(s => `<button type="button" class="perf-crit-btn" data-val="${s}" style="background:${mine&&mine.score===s?'linear-gradient(135deg,var(--primary),var(--accent))':'var(--offwhite)'};color:${mine&&mine.score===s?'#fff':'var(--dark)'};border:1px solid var(--gray1);border-radius:6px;padding:5px 9px;font-size:10.5px;cursor:pointer" onclick="selectPerfCriterionScore(this,${s})">${s} — ${PERF_SCORE_LABELS[s]}</button>`).join('')}
+          </div>
+        </div>`;
+      }).join("")}
+      <textarea id="perf-review-notes-${ev.id}" placeholder="ملاحظاتك العامة (اختياري)" style="width:100%;border:1px solid var(--gray1);border-radius:8px;padding:8px;font-family:'Tajawal',sans-serif;font-size:12px;resize:none;margin-top:6px" rows="2">${savedNotes}</textarea>
+      <div style="display:flex;justify-content:flex-end;margin-top:8px">
+        <button class="btn-xs primary" onclick="submitPerfReview(${ev.id})">💾 حفظ تقييمي لكل البنود</button>
       </div>
-      <textarea id="perf-review-notes-${ev.id}" placeholder="ملاحظاتك (اختياري)" style="width:100%;border:1px solid var(--gray1);border-radius:8px;padding:8px;font-family:'Tajawal',sans-serif;font-size:12px;resize:none" rows="2">${mine ? (mine.notes||"") : ""}</textarea>
-      <div style="display:flex;justify-content:flex-end;margin-top:6px">
-        <button class="btn-xs primary" onclick="submitPerfReview(${ev.id}, ${mine?mine.score:'null'})">💾 حفظ الملاحظة</button>
-      </div>
-      ${mine ? `<div style="font-size:10.5px;color:var(--gray3);margin-top:6px">تقييمك المسجّل حاليًا: ${mine.score} — ${PERF_SCORE_LABELS[mine.score]||""}</div>` : ""}
     </div>`;
   }).join("");
 }
 
-async function submitPerfReview(evaluationId, score){
+function selectPerfCriterionScore(btn, val){
+  const row = btn.closest(".perf-crit-row");
+  row.dataset.selected = val;
+  row.querySelectorAll(".perf-crit-btn").forEach(b => {
+    const active = Number(b.dataset.val) === val;
+    b.style.background = active ? "linear-gradient(135deg,var(--primary),var(--accent))" : "var(--offwhite)";
+    b.style.color = active ? "#fff" : "var(--dark)";
+  });
+}
+
+async function submitPerfReview(evaluationId){
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
   if(!myEmail){ alert("تعذّر تحديد هويتك، الرجاء تسجيل الدخول من جديد"); return; }
-  if(score==null){ alert("الرجاء اختيار تقييم (1-5) أولاً"); return; }
   const reviewer_name = currentUserProfile ? (currentUserProfile.full_name || myEmail) : myEmail;
   const notesEl = document.getElementById("perf-review-notes-"+evaluationId);
   const notes = notesEl ? notesEl.value.trim() : "";
 
+  const rows = document.querySelectorAll('.perf-crit-row[data-eval="'+evaluationId+'"]');
+  const payloads = [];
+  for(const row of rows){
+    const val = row.dataset.selected;
+    if(!val){ alert("الرجاء اختيار تقييم لكل البنود قبل الحفظ"); return; }
+    payloads.push({
+      evaluation_id: evaluationId, reviewer_email: myEmail, reviewer_name,
+      criterion: row.dataset.criterion, score: Number(val), notes, company_id: currentCompanyId
+    });
+  }
+
   await sb.from("performance_evaluation_reviews").delete().eq("evaluation_id", evaluationId).eq("reviewer_email", myEmail);
-  const { error } = await sb.from("performance_evaluation_reviews").insert([{
-    evaluation_id: evaluationId, reviewer_email: myEmail, reviewer_name, score, notes, company_id: currentCompanyId
-  }]);
+  const { error } = await sb.from("performance_evaluation_reviews").insert(payloads);
   if(error){ alert("تعذّر حفظ تقييمك: " + error.message); return; }
   loadPerfReviewSection();
 }
