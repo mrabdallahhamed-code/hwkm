@@ -1904,7 +1904,11 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <!-- Add company modal -->
 <div class="modal-bg" id="m-invite">
   <div class="modal">
-    <div class="modal-title">🔗 دعوة عضو جديد</div>
+    <div class="modal-title" id="mi-title-h">🔗 دعوة عضو جديد</div>
+    <div style="display:flex;gap:6px;margin-bottom:14px">
+      <button class="btn-xs primary" id="mi-tab-new" style="flex:1" onclick="switchInviteTab('new')">🆕 عضو جديد (بدون حساب)</button>
+      <button class="btn-xs" id="mi-tab-existing" style="flex:1;background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1)" onclick="switchInviteTab('existing')">🔗 ربط حساب موجود</button>
+    </div>
     <div id="mi-form">
       <div class="fg"><label>الدور المقترح له</label>
         <select class="fs" id="mi-role">
@@ -1915,6 +1919,18 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       </div>
       <p style="font-size:11px;color:var(--gray3)">بعد التوليد، شارك الرابط أو الرمز مع الشخص — لما يسجّل حساب جديد ويدخله، ينضم مباشرة لشركتك بالدور المحدد.</p>
       <button class="btn btn-gold" style="width:100%" onclick="generateInvite()">✅ توليد رابط الدعوة</button>
+    </div>
+    <div id="mi-existing-form" style="display:none">
+      <div class="fg"><label>البريد الإلكتروني للحساب المسجَّل مسبقًا</label><input class="fi" id="mi-existing-email" type="email" placeholder="example@email.com"/></div>
+      <div class="fg"><label>الدور بشركتك</label>
+        <select class="fs" id="mi-existing-role">
+          <option>رئيس مجلس</option><option>سكرتير المجلس</option>
+          <option>رئيس لجنة الترشيحات</option><option>عضو لجنة الترشيحات</option>
+          <option selected>عضو مجلس</option><option>مساهم</option>
+        </select>
+      </div>
+      <p style="font-size:11px;color:var(--gray3)">استخدم هذا لو الشخص عنده حساب مسجّل مسبقًا بالمنصة (بشركة ثانية أو بدون شركة)، وتبي تربطه بشركتك مباشرة بدون ما يسجّل من جديد.</p>
+      <button class="btn btn-gold" style="width:100%" onclick="linkExistingAccount()">✅ ربط الحساب بشركتي</button>
     </div>
     <div id="mi-result" style="display:none">
       <div class="fg"><label>رابط الدعوة</label><input class="fi" id="mi-link" readonly onclick="this.select()"></div>
@@ -2272,10 +2288,42 @@ function startMutationGuard(){
 
 /* ══════════ TEAM INVITES (join an existing company via code/link) ══════════ */
 function openInviteModal(){
-  document.getElementById("mi-form").style.display = "block";
-  document.getElementById("mi-result").style.display = "none";
   document.getElementById("mi-role").value = "عضو مجلس";
+  switchInviteTab('new');
   openM("m-invite");
+}
+
+function switchInviteTab(tab){
+  const isNew = tab === 'new';
+  document.getElementById("mi-form").style.display = isNew ? "block" : "none";
+  document.getElementById("mi-existing-form").style.display = isNew ? "none" : "block";
+  document.getElementById("mi-result").style.display = "none";
+  document.getElementById("mi-title-h").textContent = isNew ? "🔗 دعوة عضو جديد" : "🔗 ربط حساب موجود بشركتك";
+  document.getElementById("mi-tab-new").style.background = isNew ? "" : "var(--offwhite)";
+  document.getElementById("mi-tab-new").style.color = isNew ? "" : "var(--dark)";
+  document.getElementById("mi-tab-new").className = isNew ? "btn-xs primary" : "btn-xs";
+  document.getElementById("mi-tab-existing").className = isNew ? "btn-xs" : "btn-xs primary";
+  document.getElementById("mi-tab-existing").style.background = isNew ? "var(--offwhite)" : "";
+  document.getElementById("mi-tab-existing").style.color = isNew ? "var(--dark)" : "";
+}
+
+async function linkExistingAccount(){
+  const email = document.getElementById("mi-existing-email").value.trim();
+  if(!email){ alert("الرجاء إدخال البريد الإلكتروني"); return; }
+  const role = document.getElementById("mi-existing-role").value;
+  if(!currentCompanyId){ alert("لا توجد شركة محددة حاليًا"); return; }
+
+  const { data: existing, error: findErr } = await sb.from("user_profiles").select("*").eq("email", email).maybeSingle();
+  if(findErr || !existing){ alert("لا يوجد حساب مسجّل بهذا البريد الإلكتروني. تأكد أنه سجّل حساب بالمنصة أولًا، أو استخدم تبويب \"عضو جديد\" بدل ذلك."); return; }
+
+  if(!confirm(`سيتم نقل "${existing.full_name||email}" من شركته الحالية (إن وجدت) إلى شركتك بدور "${role}". متابعة؟`)) return;
+
+  const { error } = await sb.from("user_profiles").update({ company_id: currentCompanyId, role }).eq("email", email);
+  if(error){ alert("تعذّر الربط: " + error.message); return; }
+  alert(`تم ربط "${existing.full_name||email}" بشركتك ✅ — عليه تسجيل خروج ثم دخول من جديد ليرى شركتك.`);
+  document.getElementById("mi-existing-email").value = "";
+  closeM("m-invite");
+  loadUsers();
 }
 
 function randomInviteCode(){
