@@ -888,12 +888,9 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="card">
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>الوثيقة</th><th>النوع</th><th>الموقّعون</th><th>متوقف عند</th><th>الحالة</th><th>الموعد</th><th>الإجراء</th></tr></thead>
-        <tbody>
-          <tr><td>محضر اجتماع مجلس الإدارة — مارس 2026</td><td>محضر رسمي</td><td>5/9 وقّعوا</td><td>سلطان السبيعي</td><td><span class="badge pending">قيد التوقيع</span></td><td>30 مارس</td><td><button class="btn-xs gold">توقيع</button></td></tr>
-          <tr><td>قرار توزيع الأرباح السنوية 2025</td><td>قرار رسمي</td><td>9/9 وقّعوا</td><td>—</td><td><span class="badge done">مكتمل</span></td><td>—</td><td><button class="btn-xs primary">تحميل</button></td></tr>
-          <tr><td>تعديل النظام الأساسي للشركة</td><td>وثيقة قانونية</td><td>0/9 وقّعوا</td><td>فلاح السبيعي</td><td><span class="badge urgent">انتظار</span></td><td>15 أبريل</td><td><button class="btn-xs gold">توقيع</button></td></tr>
-          <tr><td>محضر الجمعية العامة العادية 2025</td><td>محضر جمعية</td><td>9/9 وقّعوا</td><td>—</td><td><span class="badge done">مكتمل</span></td><td>—</td><td><button class="btn-xs primary">تحميل</button></td></tr>
+        <thead><tr><th>الوثيقة</th><th>النوع</th><th>الموقّعون</th><th>الموقّعون فعليًا</th><th>الحالة</th><th>الموعد</th><th>الإجراء</th></tr></thead>
+        <tbody id="signingActionTbody">
+          <tr><td colspan="7" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
       </table>
     </div>
@@ -906,9 +903,9 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="card">
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>الوثيقة</th><th>النوع</th><th>الموقّعون</th><th>متوقف عند</th><th>الحالة</th><th>الموعد</th><th>الملف</th></tr></thead>
+        <thead><tr><th>الوثيقة</th><th>النوع</th><th>الموقّعون</th><th>الحالة</th><th>الموعد</th><th>الملف</th><th>إجراء</th></tr></thead>
         <tbody id="signingTbody">
-          <tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+          <tr><td colspan="7" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
       </table>
     </div>
@@ -1696,9 +1693,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="modal-title">✍️ إضافة وثيقة للتوقيع</div>
     <div class="fg"><label>اسم الوثيقة</label><input class="fi" id="ms-name" placeholder="مثال: محضر اجتماع مجلس الإدارة" /></div>
     <div class="fg"><label>النوع</label><input class="fi" id="ms-type" placeholder="مثال: محضر رسمي / قرار / وثيقة قانونية" /></div>
-    <div class="row2"><div class="fg"><label>عدد الموقّعين الكلي</label><input type="number" class="fi" id="ms-total" placeholder="9"/></div><div class="fg"><label>عدد من وقّع</label><input type="number" class="fi" id="ms-done" placeholder="0"/></div></div>
-    <div class="fg"><label>متوقف عند</label><input class="fi" id="ms-pending" placeholder="اسم العضو (اختياري)" /></div>
-    <div class="fg"><label>الحالة</label><select class="fs" id="ms-status"><option>قيد التوقيع</option><option>انتظار</option><option>مكتمل</option></select></div>
+    <div class="fg"><label>عدد الموقّعين المطلوب</label><input type="number" class="fi" id="ms-total" placeholder="9"/></div>
     <div class="fg"><label>الموعد</label><input type="date" class="fi" id="ms-duedate"/></div>
     <div class="fg"><label>رفع الملف (بعد التوقيع أو قبله)</label><input type="file" class="fi" id="ms-file" /></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-signing')">إلغاء</button><button class="btn btn-gold" onclick="saveSigning()">✅ حفظ الوثيقة</button></div>
@@ -3364,33 +3359,129 @@ async function saveCompliance(){
 }
 
 /* ══════════ SIGNING DOCUMENTS ══════════ */
+/* ══════════ E-SIGNATURE (real per-user signing) ══════════ */
+let signingDocsCache = [];
 async function loadSigning(){
-  const tbody = document.getElementById("signingTbody");
-  if(!tbody) return;
-  const { data, error } = await sb.from("signing_documents").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
-  if(error){ tbody.innerHTML = errorRowHTML(7, error.message); return; }
-  if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(7, 'لا توجد بيانات بعد. اضغط "+ توقيع جديد" للبدء.'); return; }
-  tbody.innerHTML = data.map(s => `<tr>
-    <td>${s.document_name||""}</td><td>${s.doc_type||"—"}</td>
-    <td>${(s.signers_done??"0")+"/"+(s.signers_total??"0")+" وقّعوا"}</td>
-    <td>${s.pending_with||"—"}</td><td>${s.status||"—"}</td><td>${s.due_date||"—"}</td>
-    <td>${downloadBtn(s.file_url)}</td>
-  </tr>`).join("");
+  const archiveTbody = document.getElementById("signingTbody");
+  const actionTbody = document.getElementById("signingActionTbody");
+  if(!archiveTbody && !actionTbody) return;
+
+  const { data: docs, error } = await sb.from("signing_documents").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
+  if(error){
+    if(archiveTbody) archiveTbody.innerHTML = errorRowHTML(7, error.message);
+    if(actionTbody) actionTbody.innerHTML = errorRowHTML(7, error.message);
+    return;
+  }
+  signingDocsCache = docs || [];
+
+  const docIds = signingDocsCache.map(d=>d.id);
+  let sigsByDoc = {};
+  if(docIds.length){
+    const { data: sigs } = await sb.from("document_signatures").select("*").in("document_id", docIds);
+    (sigs||[]).forEach(s => { if(!sigsByDoc[s.document_id]) sigsByDoc[s.document_id]=[]; sigsByDoc[s.document_id].push(s); });
+  }
+
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+  const role = getCurrentRole();
+
+  if(signingDocsCache.length===0){
+    if(archiveTbody) archiveTbody.innerHTML = emptyRowHTML(7, 'لا توجد بيانات بعد. اضغط "+ توقيع جديد" للبدء.');
+    if(actionTbody) actionTbody.innerHTML = emptyRowHTML(7, 'لا توجد وثائق بعد.');
+    return;
+  }
+
+  // Archive table: full reference list of every document, with real computed signer counts
+  if(archiveTbody){
+    archiveTbody.innerHTML = signingDocsCache.map(s => {
+      const signed = sigsByDoc[s.id] || [];
+      const total = s.signers_total || 0;
+      const isComplete = total>0 && signed.length >= total;
+      const statusBadge = isComplete ? '<span class="badge done">مكتمل ✍️</span>' : '<span class="badge pending">قيد التوقيع</span>';
+      return `<tr>
+        <td>${s.document_name||""}</td><td>${s.doc_type||"—"}</td>
+        <td>${signed.length}/${total||"?"} وقّعوا</td>
+        <td>${statusBadge}</td><td>${s.due_date||"—"}</td>
+        <td>${downloadBtn(s.file_url)}</td>
+        <td><button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="deleteSigningDoc(${s.id})">🗑️ حذف</button></td>
+      </tr>`;
+    }).join("");
+  }
+
+  // Action table: only for people who still need to sign something (or can view progress)
+  if(actionTbody){
+    if(role === 'مساهم'){
+      actionTbody.innerHTML = emptyRowHTML(7, 'لا توجد وثائق تخصّك.');
+    } else {
+      const pending = signingDocsCache.filter(s => {
+        const signed = sigsByDoc[s.id] || [];
+        const total = s.signers_total || 0;
+        return !(total>0 && signed.length >= total);
+      });
+      if(pending.length===0){
+        actionTbody.innerHTML = emptyRowHTML(7, 'لا توجد وثائق تنتظر التوقيع حاليًا. ✅');
+      } else {
+        actionTbody.innerHTML = pending.map(s => {
+          const signed = sigsByDoc[s.id] || [];
+          const total = s.signers_total || 0;
+          const iSigned = myEmail && signed.some(x => x.signer_email === myEmail);
+          const namesList = signed.length ? signed.map(x=>x.signer_name||x.signer_email).join('، ') : 'لا أحد بعد';
+          const actionBtn = iSigned
+            ? '<span class="badge done">✅ وقّعت بالفعل</span>'
+            : `<button class="btn-xs gold" onclick="signDocument(${s.id})">✍️ توقيع</button>`;
+          return `<tr>
+            <td>${s.document_name||""}</td><td>${s.doc_type||"—"}</td>
+            <td>${signed.length}/${total||"?"}</td>
+            <td style="font-size:10.5px;color:var(--gray3)">${namesList}</td>
+            <td><span class="badge pending">قيد التوقيع</span></td><td>${s.due_date||"—"}</td>
+            <td>${actionBtn}</td>
+          </tr>`;
+        }).join("");
+      }
+    }
+  }
 }
+
+async function signDocument(docId){
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+  if(!myEmail){ alert("تعذّر تحديد هويتك، الرجاء تسجيل الدخول من جديد"); return; }
+  const signer_name = currentUserProfile ? (currentUserProfile.full_name || myEmail) : myEmail;
+
+  const { data: existing } = await sb.from("document_signatures").select("id").eq("document_id", docId).eq("signer_email", myEmail);
+  if(existing && existing.length){ alert("لقد وقّعت هذه الوثيقة بالفعل ✅"); return; }
+
+  const { error } = await sb.from("document_signatures").insert([{ document_id: docId, signer_email: myEmail, signer_name, company_id: currentCompanyId }]);
+  if(error){ alert("تعذّر تسجيل التوقيع: " + error.message); return; }
+
+  // Recompute and, if this was the final required signature, mark the document complete
+  const { data: sigs } = await sb.from("document_signatures").select("id").eq("document_id", docId);
+  const doc = signingDocsCache.find(d => d.id === docId);
+  if(doc && doc.signers_total && sigs && sigs.length >= doc.signers_total){
+    await sb.from("signing_documents").update({ status: "مكتمل" }).eq("id", docId);
+  }
+  loadSigning();
+  loadMeetingsAll(); // refresh any board/committee minutes cards linked to this document
+}
+
+async function deleteSigningDoc(id){
+  if(!confirm("حذف هذه الوثيقة وكل توقيعاتها نهائيًا؟")) return;
+  const { error } = await sb.from("signing_documents").delete().eq("id", id);
+  if(error){ alert("تعذّر الحذف: " + error.message); return; }
+  loadSigning();
+}
+
 async function saveSigning(){
   const document_name = document.getElementById("ms-name").value.trim();
   if(!document_name){ alert("الرجاء إدخال اسم الوثيقة"); return; }
   const doc_type = document.getElementById("ms-type").value.trim();
   const signers_total = document.getElementById("ms-total").value ? Number(document.getElementById("ms-total").value) : null;
-  const signers_done = document.getElementById("ms-done").value ? Number(document.getElementById("ms-done").value) : 0;
-  const pending_with = document.getElementById("ms-pending").value.trim();
-  const status = document.getElementById("ms-status").value;
   const due_date = document.getElementById("ms-duedate").value || null;
   const fileInput = document.getElementById("ms-file");
   const file_url = await uploadFile(fileInput, "signing");
-  const { error } = await sb.from("signing_documents").insert([{ document_name, doc_type, signers_total, signers_done, pending_with, status, due_date, file_url, company_id: currentCompanyId }]);
+  const { error } = await sb.from("signing_documents").insert([{ document_name, doc_type, signers_total, signers_done: 0, status: "قيد التوقيع", due_date, file_url, company_id: currentCompanyId }]);
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
-  document.getElementById("ms-name").value=""; document.getElementById("ms-type").value=""; document.getElementById("ms-total").value=""; document.getElementById("ms-done").value=""; document.getElementById("ms-pending").value=""; document.getElementById("ms-duedate").value=""; fileInput.value="";
+  document.getElementById("ms-name").value=""; document.getElementById("ms-type").value=""; document.getElementById("ms-total").value=""; document.getElementById("ms-duedate").value=""; fileInput.value="";
   closeM("m-signing"); loadSigning();
 }
 
