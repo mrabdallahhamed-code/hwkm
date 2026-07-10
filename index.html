@@ -1155,41 +1155,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
   <!-- Final results — visible to مدير النظام only -->
   <div id="perfResultsSection" style="display:none">
-    <div class="two-col">
-      <div class="card">
-        <div class="card-head"><span class="card-title">تقييم أداء المجلس 2025</span><span class="badge done">مكتمل</span></div>
-        <div class="card-body">
-          <div class="comp-item"><div class="comp-head"><span class="comp-name">الفاعلية والحضور</span><span class="comp-pct">92%</span></div><div class="comp-track"><div class="comp-fill" style="width:92%"></div></div></div>
-          <div class="comp-item"><div class="comp-head"><span class="comp-name">جودة القرارات الاستراتيجية</span><span class="comp-pct">88%</span></div><div class="comp-track"><div class="comp-fill" style="width:88%"></div></div></div>
-          <div class="comp-item"><div class="comp-head"><span class="comp-name">الالتزام بمعايير الحوكمة</span><span class="comp-pct">95%</span></div><div class="comp-track"><div class="comp-fill" style="width:95%"></div></div></div>
-          <div class="comp-item"><div class="comp-head"><span class="comp-name">التفاعل مع الإدارة التنفيذية</span><span class="comp-pct">85%</span></div><div class="comp-track"><div class="comp-fill" style="width:85%"></div></div></div>
-          <div class="comp-item"><div class="comp-head"><span class="comp-name">الرقابة على الأداء المالي</span><span class="comp-pct">90%</span></div><div class="comp-track"><div class="comp-fill" style="width:90%"></div></div></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-head"><span class="card-title">التقييم الفردي — 2025</span></div>
-        <div class="card-body" style="padding:0">
-          <table class="tbl">
-            <thead><tr><th>العضو</th><th>الحضور</th><th>التقييم</th></tr></thead>
-            <tbody>
-              <tr><td>فلاح السبيعي</td><td>100%</td><td><span class="badge done">ممتاز</span></td></tr>
-              <tr><td>سلطان السبيعي</td><td>88%</td><td><span class="badge done">جيد جداً</span></td></tr>
-              <tr><td>عبدالله حامد</td><td>100%</td><td><span class="badge done">ممتاز</span></td></tr>
-              <tr><td>أحمد الروقي</td><td>100%</td><td><span class="badge done">ممتاز</span></td></tr>
-              <tr><td>ريم حمدان</td><td>87%</td><td><span class="badge done">جيد جداً</span></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+    <div class="sec-title">📐 سجل تقييمات الأداء (النتائج النهائية والمفتوحة)</div>
+    <div id="perfResultsCards"></div>
 
-    <div class="sec-title" style="margin-top:20px">تقييم الادارة التنفيذية 2025</div>
-    <div class="two-col">
-      <div class="card"><div class="card-head"><span class="card-title">محاور التقييم</span><span class="badge info">جاري</span></div><div class="card-body"><div class="comp-item"><div class="comp-head"><span class="comp-name">الاهداف الاستراتيجية</span><span class="comp-pct">88%</span></div><div class="comp-track"><div class="comp-fill" style="width:88%"></div></div></div><div class="comp-item"><div class="comp-head"><span class="comp-name">الاداء التشغيلي</span><span class="comp-pct">85%</span></div><div class="comp-track"><div class="comp-fill" style="width:85%"></div></div></div><div class="comp-item"><div class="comp-head"><span class="comp-name">القيادة والفريق</span><span class="comp-pct">90%</span></div><div class="comp-track"><div class="comp-fill" style="width:90%"></div></div></div><div class="comp-item"><div class="comp-head"><span class="comp-name">الامتثال والحوكمة</span><span class="comp-pct">95%</span></div><div class="comp-track"><div class="comp-fill" style="width:95%"></div></div></div></div></div>
-      <div class="card"><div class="card-head"><span class="card-title">التقييم الفردي للتنفيذيين</span></div><div class="card-body" style="padding:0"><table class="tbl"><thead><tr><th>المسمى</th><th>الاسم</th><th>التقييم</th></tr></thead><tbody><tr><td>الرئيس التنفيذي</td><td>عبدالله حامد</td><td><span class="badge done">ممتاز</span></td></tr><tr><td>نائب الرئيس للمالية</td><td>احمد خلف</td><td><span class="badge done">جيد جدا</span></td></tr><tr><td>نائب الرئيس للموارد البشرية</td><td>ريم حمدان</td><td><span class="badge done">ممتاز</span></td></tr><tr><td>نائب الرئيس للعمليات</td><td>-</td><td><span class="badge pending">قيد التعيين</span></td></tr><tr><td>نائب الرئيس للخدمات المشتركة</td><td>-</td><td><span class="badge pending">قيد التعيين</span></td></tr></tbody></table></div></div>
-    </div>
-
-    <div class="sec-title" style="margin-top:20px">📐 سجل تقييمات الأداء</div>
+    <div class="sec-title" style="margin-top:20px">📋 كل التقييمات (جدول)</div>
     <div class="card">
       <div class="card-body" style="padding:0">
         <table class="tbl">
@@ -3397,12 +3366,17 @@ async function loadPerf(){
 
   loadPerfReviewSection();
 
-  if(!isAdmin) return; // Only مدير النظام loads/see the results table
+  if(!isAdmin) return; // Only authorized governance roles load/see the results
   const tbody = document.getElementById("perfTbody");
+  const cardsWrap = document.getElementById("perfResultsCards");
   if(!tbody) return;
   const { data, error } = await sb.from("performance_evaluations").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
   if(error){ tbody.innerHTML = errorRowHTML(7, error.message); return; }
-  if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(7, 'لا توجد بيانات بعد. اضغط "+ فتح تقييم جديد" للبدء.'); return; }
+  if(!data || data.length===0){
+    tbody.innerHTML = emptyRowHTML(7, 'لا توجد بيانات بعد. اضغط "+ فتح تقييم جديد" للبدء.');
+    if(cardsWrap) cardsWrap.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">لا توجد تقييمات بعد.</div>';
+    return;
+  }
   perfCache = data;
 
   const ids = data.map(p=>p.id);
@@ -3413,35 +3387,53 @@ async function loadPerf(){
     reviewsByEval[rv.evaluation_id].push(rv);
   });
 
+  // Polished progress-bar cards (one per evaluation)
+  if(cardsWrap){
+    cardsWrap.innerHTML = '<div class="two-col">' + data.map(p => {
+      const revs = reviewsByEval[p.id] || [];
+      const icon = p.entity_type === "تنفيذي" ? "👔" : (p.entity_type === "لجنة" ? "🏛️" : "🧑‍💼");
+      const uniqueReviewers = new Set(revs.map(r=>r.reviewer_email)).size;
+      const statusBadge = p.status === "مكتمل" ? '<span class="badge done">مكتمل ✅</span>' : '<span class="badge pending">مفتوح للتقييم</span>';
+
+      const byCrit = {};
+      revs.forEach(r => {
+        const c = r.criterion || "عام";
+        if(!byCrit[c]) byCrit[c] = [];
+        byCrit[c].push(r.score||0);
+      });
+      const criteriaOrder = getPerfCriteria(p.entity_type);
+      const bars = criteriaOrder.filter(c=>byCrit[c]).map(c => {
+        const avg = byCrit[c].reduce((a,b)=>a+b,0)/byCrit[c].length;
+        const pct = Math.round((avg/5)*100);
+        return `<div class="comp-item"><div class="comp-head"><span class="comp-name">${c}</span><span class="comp-pct">${pct}%</span></div><div class="comp-track"><div class="comp-fill" style="width:${pct}%"></div></div></div>`;
+      }).join("");
+
+      const closeBtn = p.status !== "مكتمل" && revs.length
+        ? `<button class="btn btn-gold" style="font-size:11px;padding:6px 14px;margin-top:10px;width:100%" onclick="closePerfEvaluation(${p.id})">🔒 إغلاق واعتماد النتيجة النهائية</button>`
+        : "";
+
+      return `<div class="card" style="margin-bottom:16px">
+        <div class="card-head"><span class="card-title">${icon} ${p.entity_name||""} <span style="font-size:11px;color:var(--gray3);font-weight:600">— ${p.period||""}</span></span>${statusBadge}</div>
+        <div class="card-body">
+          ${bars || '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا توجد تقييمات مسجّلة من الأعضاء بعد.</div>'}
+          <div style="font-size:11px;color:var(--gray3);margin-top:8px">👥 عدد المقيّمين: ${uniqueReviewers}${p.score!=null ? " · الدرجة الإجمالية: "+Number(p.score).toFixed(1)+"/5 — "+(PERF_SCORE_LABELS[Math.round(p.score)]||"") : ""}</div>
+          ${closeBtn}
+        </div>
+      </div>`;
+    }).join("") + '</div>';
+  }
+
   tbody.innerHTML = data.map(p => {
     const revs = reviewsByEval[p.id] || [];
-    const avg = revs.length ? (revs.reduce((s,r)=>s+(r.score||0),0)/revs.length) : null;
-    const statusBadge = p.status === "مكتمل" ? '<span class="badge done">مكتمل ✅</span>' : '<span class="badge pending">مفتوح للتقييم</span>';
-    const closeBtn = p.status !== "مكتمل"
-      ? `<button class="btn-xs primary" onclick="closePerfEvaluation(${p.id})">🔒 إغلاق واعتماد النتيجة</button>`
-      : "";
-    const scoreDisplay = p.score!=null ? (Number(p.score).toFixed(1) + "/5 — " + (PERF_SCORE_LABELS[Math.round(p.score)]||"")) : (avg!=null ? "(معاينة) " + avg.toFixed(1)+"/5" : "—");
     const uniqueReviewers = new Set(revs.map(r=>r.reviewer_email)).size;
-
-    // Per-criterion breakdown for a quick governance-style overview
-    const byCrit = {};
-    revs.forEach(r => {
-      const c = r.criterion || "عام";
-      if(!byCrit[c]) byCrit[c] = [];
-      byCrit[c].push(r.score||0);
-    });
-    const critDetail = Object.keys(byCrit).length
-      ? '<div style="font-size:10px;color:var(--gray3);margin-top:4px;line-height:1.8">' +
-        Object.keys(byCrit).map(c => `${c}: ${(byCrit[c].reduce((a,b)=>a+b,0)/byCrit[c].length).toFixed(1)}/5`).join(' &nbsp;·&nbsp; ') +
-        '</div>'
-      : "";
-
+    const statusBadge = p.status === "مكتمل" ? '<span class="badge done">مكتمل ✅</span>' : '<span class="badge pending">مفتوح للتقييم</span>';
+    const scoreDisplay = p.score!=null ? (Number(p.score).toFixed(1) + "/5 — " + (PERF_SCORE_LABELS[Math.round(p.score)]||"")) : "—";
     return `<tr>
       <td>${p.entity_name||""}</td><td>${p.entity_type||"—"}</td><td>${p.period||"—"}</td>
       <td>${statusBadge}</td>
       <td style="text-align:center">${uniqueReviewers}</td>
-      <td>${scoreDisplay}${critDetail}</td>
-      <td>${closeBtn}</td>
+      <td>${scoreDisplay}</td>
+      <td>${p.status!=="مكتمل" && revs.length ? `<button class="btn-xs primary" onclick="closePerfEvaluation(${p.id})">🔒 إغلاق</button>` : ""}</td>
     </tr>`;
   }).join("");
 }
@@ -3496,22 +3488,27 @@ async function loadPerfReviewSection(){
 
   box.innerHTML = openEvals.map(ev => {
     const criteria = getPerfCriteria(ev.entity_type);
-    const notesKey = ev.id+'|__notes__';
     const savedNotes = criteria.map(c => mineByEvalCriterion[ev.id+'|'+c]).find(r=>r&&r.notes)?.notes || "";
-    return `<div style="border:1px solid var(--gray1);border-radius:10px;padding:12px;margin-bottom:14px">
-      <div style="font-weight:800;font-size:13px;color:var(--dark);margin-bottom:10px">${ev.entity_name||""} <span style="font-size:11px;color:var(--gray3);font-weight:600">— ${ev.entity_type||""} · ${ev.period||""}</span></div>
-      ${criteria.map(crit => {
-        const mine = mineByEvalCriterion[ev.id+'|'+crit];
-        return `<div class="perf-crit-row" data-eval="${ev.id}" data-criterion="${crit.replace(/"/g,'&quot;')}" data-selected="${mine?mine.score:''}" style="margin-bottom:10px">
-          <div style="font-size:12px;font-weight:700;color:var(--dark);margin-bottom:5px">${crit}</div>
-          <div style="display:flex;gap:5px;flex-wrap:wrap">
-            ${[1,2,3,4,5].map(s => `<button type="button" class="perf-crit-btn" data-val="${s}" style="background:${mine&&mine.score===s?'linear-gradient(135deg,var(--primary),var(--accent))':'var(--offwhite)'};color:${mine&&mine.score===s?'#fff':'var(--dark)'};border:1px solid var(--gray1);border-radius:6px;padding:5px 9px;font-size:10.5px;cursor:pointer" onclick="selectPerfCriterionScore(this,${s})">${s} — ${PERF_SCORE_LABELS[s]}</button>`).join('')}
-          </div>
-        </div>`;
-      }).join("")}
-      <textarea id="perf-review-notes-${ev.id}" placeholder="ملاحظاتك العامة (اختياري)" style="width:100%;border:1px solid var(--gray1);border-radius:8px;padding:8px;font-family:'Tajawal',sans-serif;font-size:12px;resize:none;margin-top:6px" rows="2">${savedNotes}</textarea>
-      <div style="display:flex;justify-content:flex-end;margin-top:8px">
-        <button class="btn-xs primary" onclick="submitPerfReview(${ev.id})">💾 حفظ تقييمي لكل البنود</button>
+    const icon = ev.entity_type === "تنفيذي" ? "👔" : (ev.entity_type === "لجنة" ? "🏛️" : "🧑‍💼");
+    return `<div style="border-radius:14px;overflow:hidden;box-shadow:0 4px 16px rgba(13,36,71,0.08);margin-bottom:18px;border:1px solid var(--gray1)">
+      <div style="background:linear-gradient(135deg,var(--primary),var(--accent));padding:14px 16px;color:#fff">
+        <div style="font-weight:900;font-size:14px">${icon} ${ev.entity_name||""}</div>
+        <div style="font-size:11px;opacity:0.85;margin-top:2px">${ev.entity_type||""} · الفترة: ${ev.period||""}</div>
+      </div>
+      <div style="padding:16px;background:#fff">
+        ${criteria.map((crit,idx) => {
+          const mine = mineByEvalCriterion[ev.id+'|'+crit];
+          return `<div class="perf-crit-row" data-eval="${ev.id}" data-criterion="${crit.replace(/"/g,'&quot;')}" data-selected="${mine?mine.score:''}" style="margin-bottom:${idx<criteria.length-1?'16px':'4px'}">
+            <div style="font-size:12.5px;font-weight:800;color:var(--dark);margin-bottom:7px">${crit}</div>
+            <div style="display:flex;gap:0;border-radius:10px;overflow:hidden;border:1.5px solid var(--gray1)">
+              ${[1,2,3,4,5].map((s,i) => `<button type="button" class="perf-crit-btn" data-val="${s}" style="flex:1;background:${mine&&mine.score===s?'linear-gradient(135deg,var(--primary),var(--accent))':'#fff'};color:${mine&&mine.score===s?'#fff':'var(--dark)'};border:none;${i>0?'border-right:1px solid var(--gray1)':''};padding:9px 4px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s" onclick="selectPerfCriterionScore(this,${s})">${s}<br><span style="font-size:9px;font-weight:600;opacity:0.9">${PERF_SCORE_LABELS[s]}</span></button>`).join('')}
+            </div>
+          </div>`;
+        }).join("")}
+        <textarea id="perf-review-notes-${ev.id}" placeholder="ملاحظاتك العامة (اختياري)" style="width:100%;border:1.5px solid var(--gray1);border-radius:10px;padding:10px;font-family:'Tajawal',sans-serif;font-size:12px;resize:none;margin-top:10px;background:var(--offwhite)" rows="2">${savedNotes}</textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:10px">
+          <button class="btn-xs primary" onclick="submitPerfReview(${ev.id})">💾 حفظ تقييمي لكل البنود</button>
+        </div>
       </div>
     </div>`;
   }).join("");
@@ -3522,7 +3519,7 @@ function selectPerfCriterionScore(btn, val){
   row.dataset.selected = val;
   row.querySelectorAll(".perf-crit-btn").forEach(b => {
     const active = Number(b.dataset.val) === val;
-    b.style.background = active ? "linear-gradient(135deg,var(--primary),var(--accent))" : "var(--offwhite)";
+    b.style.background = active ? "linear-gradient(135deg,var(--primary),var(--accent))" : "#fff";
     b.style.color = active ? "#fff" : "var(--dark)";
   });
 }
