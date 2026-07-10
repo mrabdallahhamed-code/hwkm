@@ -991,11 +991,13 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-archive')">+ رفع وثيقة</button>
   </div>
 
-  <div class="card" style="margin-bottom:18px">
-    <div class="card-body" style="padding:14px">
-      <input class="fi" id="archiveSearchInput" placeholder="🔍 ابحث باسم الوثيقة..." oninput="renderArchiveDocs()" style="margin-bottom:12px">
-      <div id="archiveCategoryPills" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+  <div style="background:linear-gradient(135deg,var(--primary),var(--primary2));border-radius:14px;padding:16px 18px;margin-bottom:18px;box-shadow:0 6px 20px rgba(26,58,107,0.18)">
+    <div style="position:relative">
+      <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:14px;opacity:0.7;pointer-events:none">🔍</span>
+      <input id="archiveSearchInput" placeholder="ابحث باسم الوثيقة..." oninput="renderArchiveDocs()"
+        style="width:100%;padding:11px 42px 11px 14px;border-radius:10px;border:none;font-family:'Tajawal',sans-serif;font-size:13px;background:rgba(255,255,255,0.95);color:var(--dark);outline:none">
     </div>
+    <div id="archiveCategoryPills" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"></div>
   </div>
 
   <div id="archiveDocsGrid">
@@ -2853,8 +2855,9 @@ function renderArchivePills(){
   const cats = ["الكل", ...Object.keys(ARCHIVE_CATEGORY_ICONS)];
   box.innerHTML = cats.map(c => {
     const active = c === archiveActiveCategory;
-    const color = c==="الكل" ? "var(--primary)" : (ARCHIVE_CATEGORY_COLORS[c]||"var(--gray3)");
-    return `<button onclick="setArchiveCategory('${c}')" style="font-size:11.5px;font-weight:700;padding:6px 14px;border-radius:20px;cursor:pointer;border:1.5px solid ${color};background:${active?color:'#fff'};color:${active?'#fff':color}">${c==="الكل"?"":ARCHIVE_CATEGORY_ICONS[c]+" "}${c}</button>`;
+    const count = c === "الكل" ? archiveDocsCache.length : archiveDocsCache.filter(d => (d.category||"أخرى")===c).length;
+    const icon = c === "الكل" ? "📚" : ARCHIVE_CATEGORY_ICONS[c];
+    return `<button onclick="setArchiveCategory('${c}')" style="font-size:11.5px;font-weight:700;padding:7px 14px;border-radius:20px;cursor:pointer;border:none;background:${active?'#fff':'rgba(255,255,255,0.18)'};color:${active?'var(--primary)':'#fff'};transition:.15s">${icon} ${c} <span style="opacity:.75">(${count})</span></button>`;
   }).join("");
 }
 
