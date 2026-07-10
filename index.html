@@ -621,18 +621,18 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <!-- ══ DASHBOARD ══════════════════════════ -->
 <div id="p-dashboard" class="page active content">
   <div class="kpi-grid">
-    <div class="kpi blue"><div class="kpi-stripe"></div><div class="kpi-label">اجتماعات هذا الربع</div><div class="kpi-val">8</div><div class="kpi-foot">✅ 3 مكتملة · 5 قادمة</div><div class="kpi-icon">📅</div></div>
-    <div class="kpi gold"><div class="kpi-stripe"></div><div class="kpi-label">محاضر معتمدة</div><div class="kpi-val">24</div><div class="kpi-foot">↑ 4 هذا الشهر</div><div class="kpi-icon">📄</div></div>
-    <div class="kpi green"><div class="kpi-stripe"></div><div class="kpi-label">نسبة الامتثال</div><div class="kpi-val">98%</div><div class="kpi-foot">↑ 2% عن الربع الماضي</div><div class="kpi-icon">✅</div></div>
-    <div class="kpi red"><div class="kpi-stripe"></div><div class="kpi-label">مخاطر مفتوحة</div><div class="kpi-val">2</div><div class="kpi-foot">🔴 1 عالية الأولوية</div><div class="kpi-icon">⚠️</div></div>
+    <div class="kpi blue"><div class="kpi-stripe"></div><div class="kpi-label">اجتماعات هذا الربع</div><div class="kpi-val" id="kpi-meetings-q">—</div><div class="kpi-foot" id="kpi-meetings-q-foot">جارِ التحميل...</div><div class="kpi-icon">📅</div></div>
+    <div class="kpi gold"><div class="kpi-stripe"></div><div class="kpi-label">محاضر معتمدة</div><div class="kpi-val" id="kpi-minutes">—</div><div class="kpi-foot" id="kpi-minutes-foot">جارِ التحميل...</div><div class="kpi-icon">📄</div></div>
+    <div class="kpi green"><div class="kpi-stripe"></div><div class="kpi-label">نسبة الامتثال</div><div class="kpi-val" id="kpi-compliance">—</div><div class="kpi-foot" id="kpi-compliance-foot">جارِ التحميل...</div><div class="kpi-icon">✅</div></div>
+    <div class="kpi red"><div class="kpi-stripe"></div><div class="kpi-label">مخاطر مفتوحة</div><div class="kpi-val" id="kpi-risks">—</div><div class="kpi-foot" id="kpi-risks-foot">جارِ التحميل...</div><div class="kpi-icon">⚠️</div></div>
   </div>
 
   <div class="stats-bar">
-    <div class="sb-item"><div class="sb-val">9</div><div class="sb-lbl">أعضاء المجلس</div></div>
-    <div class="sb-item"><div class="sb-val">4</div><div class="sb-lbl">لجان نشطة</div></div>
-    <div class="sb-item"><div class="sb-val">156</div><div class="sb-lbl">قراراً هذا العام</div></div>
-    <div class="sb-item"><div class="sb-val">100%</div><div class="sb-lbl">نظام الشركات م/132</div></div>
-    <div class="sb-item"><div class="sb-val">2</div><div class="sb-lbl">وثائق تنتظر توقيع</div></div>
+    <div class="sb-item"><div class="sb-val" id="stat-members">—</div><div class="sb-lbl">أعضاء المجلس</div></div>
+    <div class="sb-item"><div class="sb-val" id="stat-committees">—</div><div class="sb-lbl">لجان نشطة</div></div>
+    <div class="sb-item"><div class="sb-val" id="stat-decisions">—</div><div class="sb-lbl">قراراً هذا العام</div></div>
+    <div class="sb-item"><div class="sb-val" id="stat-compliance2">—</div><div class="sb-lbl">نسبة الامتثال التنظيمي</div></div>
+    <div class="sb-item"><div class="sb-val" id="stat-pending-signs">—</div><div class="sb-lbl">وثائق تنتظر توقيع</div></div>
   </div>
 
   <div class="two-col">
@@ -641,37 +641,14 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
         <span class="card-title">📅 الاجتماعات القادمة</span>
         <button class="btn-xs primary" onclick="go('meetings',null)">عرض الكل</button>
       </div>
-      <div class="card-body">
-        <div class="meet-item">
-          <div class="meet-dt"><div class="meet-day">25</div><div class="meet-mon">مارس</div></div>
-          <div class="meet-info"><div class="meet-name">اجتماع مجلس الإدارة — Q1 2026</div><div class="meet-meta">📍 عن بُعد · 10:00 ص · النصاب: 6/9 ✅</div></div>
-          <span class="badge done">مؤكد</span>
-        </div>
-        <div class="meet-item">
-          <div class="meet-dt"><div class="meet-day">8</div><div class="meet-mon">أبريل</div></div>
-          <div class="meet-info"><div class="meet-name">اجتماع لجنة المراجعة والتدقيق</div><div class="meet-meta">📍 مقر الشركة · 2:00 م · 5 أعضاء</div></div>
-          <span class="badge pending">انتظار</span>
-        </div>
-        <div class="meet-item">
-          <div class="meet-dt"><div class="meet-day">15</div><div class="meet-mon">أبريل</div></div>
-          <div class="meet-info"><div class="meet-name">الجمعية العامة العادية 2026</div><div class="meet-meta">📍 قاعة المؤتمرات · 11:00 ص · للمساهمين</div></div>
-          <span class="badge gold">تحضير</span>
-        </div>
-        <div class="meet-item">
-          <div class="meet-dt"><div class="meet-day">20</div><div class="meet-mon">مارس</div></div>
-          <div class="meet-info"><div class="meet-name">اجتماع طارئ — مخاطر تشغيلية</div><div class="meet-meta">📍 عن بُعد (Teams) · 4:00 م</div></div>
-          <span class="badge urgent">طارئ</span>
-        </div>
+      <div class="card-body" id="dashUpcomingMeetings">
+        <div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</div>
       </div>
     </div>
     <div class="card">
       <div class="card-head"><span class="card-title">🔔 التنبيهات التنفيذية</span></div>
-      <div class="card-body">
-        <div class="alert-item"><div class="a-dot red"></div><div><div class="a-text">اجتماع مجلس الإدارة Q1 مقرر بعد 5 أيام — النصاب: 6/9 مؤكدين ولا يزال 3 بدون رد</div><div class="a-time">منذ ساعتين</div></div></div>
-        <div class="alert-item"><div class="a-dot red"></div><div><div class="a-text">مخاطر الامتثال التنظيمي مصنفة عالية — تحتاج خطة معالجة فورية</div><div class="a-time">منذ يوم</div></div></div>
-        <div class="alert-item"><div class="a-dot gold"></div><div><div class="a-text">وثيقتان تنتظران التوقيع الإلكتروني من رئيس المجلس</div><div class="a-time">منذ يومين</div></div></div>
-        <div class="alert-item"><div class="a-dot green"></div><div><div class="a-text">تم اعتماد محضر اجتماع فبراير بالتوقيع الإلكتروني من جميع الأعضاء</div><div class="a-time">منذ 3 أيام</div></div></div>
-        <div class="alert-item"><div class="a-dot gold"></div><div><div class="a-text">موعد تجديد سياسة الحوكمة السنوية خلال 30 يوماً</div><div class="a-time">منذ أسبوع</div></div></div>
+      <div class="card-body" id="dashAlerts">
+        <div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</div>
       </div>
     </div>
   </div>
@@ -2235,6 +2212,7 @@ function reloadCurrentPageData(){
   if(id==='reports') updateReportsCompanyInfo();
   if(id==='archive') loadArchive();
   if(id==='users') loadUsers();
+  if(id==='dashboard') loadDashboard();
 }
 
 function updateReportsCompanyInfo(){
@@ -2462,6 +2440,140 @@ async function deleteMeeting(id){
   if(error){ alert("تعذّر الحذف: " + error.message); return; }
   loadMeetingsAll();
 }
+
+/* ══════════ DASHBOARD (real data pulled from every page) ══════════ */
+const AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+
+async function loadDashboard(){
+  const [meetingsRes, risksRes, complianceRes, membersRes, committeesRes, signingRes, policiesRes] = await Promise.all([
+    sb.from("meetings").select("*").eq("company_id", currentCompanyId),
+    sb.from("risks").select("*").eq("company_id", currentCompanyId),
+    sb.from("compliance_items").select("*").eq("company_id", currentCompanyId),
+    sb.from("board_members").select("*").eq("company_id", currentCompanyId),
+    sb.from("committees").select("*").eq("company_id", currentCompanyId),
+    sb.from("signing_documents").select("*").eq("company_id", currentCompanyId),
+    sb.from("policies").select("*").eq("company_id", currentCompanyId)
+  ]);
+
+  const meetings = meetingsRes.data || [];
+  const risks = risksRes.data || [];
+  const compliance = complianceRes.data || [];
+  const members = membersRes.data || [];
+  const committeesData = committeesRes.data || [];
+  const signingDocs = signingRes.data || [];
+  const policies = policiesRes.data || [];
+
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0,10);
+  const currentQuarter = Math.floor(now.getMonth()/3);
+  const currentYear = now.getFullYear();
+
+  // ── KPI: meetings this quarter ──
+  const quarterMeetings = meetings.filter(m => {
+    if(!m.meeting_date) return false;
+    const d = new Date(m.meeting_date);
+    return d.getFullYear()===currentYear && Math.floor(d.getMonth()/3)===currentQuarter;
+  });
+  const completedQ = quarterMeetings.filter(m => m.meeting_date < todayStr).length;
+  const upcomingQ = quarterMeetings.filter(m => m.meeting_date >= todayStr).length;
+  setText("kpi-meetings-q", quarterMeetings.length);
+  setText("kpi-meetings-q-foot", `✅ ${completedQ} مكتملة · ${upcomingQ} قادمة`);
+
+  // ── KPI: approved minutes (fully-signed documents) ──
+  const approvedDocs = signingDocs.filter(d => d.status === "مكتمل");
+  const approvedThisMonth = approvedDocs.filter(d => d.created_at && new Date(d.created_at).getMonth()===now.getMonth() && new Date(d.created_at).getFullYear()===currentYear).length;
+  setText("kpi-minutes", approvedDocs.length);
+  setText("kpi-minutes-foot", `↑ ${approvedThisMonth} هذا الشهر`);
+
+  // ── KPI: compliance % ──
+  const compliantCount = compliance.filter(c => c.status === "ملتزم").length;
+  const compliancePct = compliance.length ? Math.round((compliantCount/compliance.length)*100) : 0;
+  setText("kpi-compliance", compliance.length ? compliancePct+"%" : "—");
+  setText("kpi-compliance-foot", compliance.length ? `${compliantCount} من ${compliance.length} بندًا ملتزم` : "لا توجد بيانات بعد");
+  setText("stat-compliance2", compliance.length ? compliancePct+"%" : "—");
+
+  // ── KPI: open risks ──
+  const openRisks = risks.filter(r => r.status === "مراقبة" || r.status === "متابعة");
+  const highOpenRisks = openRisks.filter(r => r.impact === "عالٍ").length;
+  setText("kpi-risks", openRisks.length);
+  setText("kpi-risks-foot", highOpenRisks ? `🔴 ${highOpenRisks} عالية الأولوية` : "لا مخاطر عالية حاليًا");
+
+  // ── Stats bar ──
+  setText("stat-members", members.length);
+  setText("stat-committees", committeesData.length);
+  const decisionsThisYear = signingDocs.filter(d => d.created_at && new Date(d.created_at).getFullYear()===currentYear).length;
+  setText("stat-decisions", decisionsThisYear);
+  setText("stat-pending-signs", signingDocs.filter(d => d.status !== "مكتمل").length);
+
+  // ── Upcoming meetings (next 4, any type) ──
+  const upcoming = meetings
+    .filter(m => m.meeting_date && m.meeting_date >= todayStr)
+    .sort((a,b) => (a.meeting_date||"").localeCompare(b.meeting_date||""))
+    .slice(0,4);
+  const upcomingBox = document.getElementById("dashUpcomingMeetings");
+  if(upcomingBox){
+    if(upcoming.length===0){
+      upcomingBox.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد اجتماعات قادمة حاليًا.</div>';
+    } else {
+      upcomingBox.innerHTML = upcoming.map(m => {
+        const d = new Date(m.meeting_date);
+        const isEmergency = m.meeting_type === "اجتماع طارئ";
+        const badge = isEmergency ? '<span class="badge urgent">طارئ</span>' : '<span class="badge done">مؤكد</span>';
+        return `<div class="meet-item">
+          <div class="meet-dt"><div class="meet-day">${d.getDate()}</div><div class="meet-mon">${AR_MONTHS[d.getMonth()]}</div></div>
+          <div class="meet-info"><div class="meet-name">${m.title||""}</div><div class="meet-meta">📍 ${m.method||"—"}${m.meeting_time?(' · '+m.meeting_time):''} · ${m.meeting_type||""}</div></div>
+          ${badge}
+        </div>`;
+      }).join("");
+    }
+  }
+
+  // ── Executive alerts, generated from real conditions across the platform ──
+  const alerts = [];
+  if(upcoming.length){
+    const next = upcoming[0];
+    const daysAway = Math.ceil((new Date(next.meeting_date) - now) / 86400000);
+    if(daysAway <= 7){
+      alerts.push({ color:"red", text:`${next.title||"اجتماع"} مقرر خلال ${daysAway} ${daysAway===1?'يوم':'أيام'} — ${next.meeting_date}` });
+    }
+  }
+  if(highOpenRisks){
+    alerts.push({ color:"red", text:`يوجد ${highOpenRisks} ${highOpenRisks===1?'خطر مصنّف':'مخاطر مصنّفة'} عالية الأولوية تحتاج خطة معالجة` });
+  }
+  const pendingSignCount = signingDocs.filter(d => d.status !== "مكتمل").length;
+  if(pendingSignCount){
+    alerts.push({ color:"gold", text:`${pendingSignCount} ${pendingSignCount===1?'وثيقة تنتظر':'وثائق تنتظر'} التوقيع الإلكتروني` });
+  }
+  const recentlyApproved = approvedDocs
+    .filter(d => d.created_at && (now - new Date(d.created_at)) < 7*86400000)
+    .sort((a,b)=> new Date(b.created_at)-new Date(a.created_at))[0];
+  if(recentlyApproved){
+    alerts.push({ color:"green", text:`تم اعتماد "${recentlyApproved.document_name}" بالتوقيع الإلكتروني من جميع الأطراف` });
+  }
+  const soonReview = policies
+    .filter(p => p.review_date && (new Date(p.review_date)-now) < 30*86400000 && (new Date(p.review_date)-now) > 0)
+    .sort((a,b)=> new Date(a.review_date)-new Date(b.review_date))[0];
+  if(soonReview){
+    const daysLeft = Math.ceil((new Date(soonReview.review_date)-now)/86400000);
+    alerts.push({ color:"gold", text:`موعد مراجعة "${soonReview.policy_name}" خلال ${daysLeft} يومًا` });
+  }
+  const complianceGaps = compliance.filter(c => c.status !== "ملتزم").length;
+  if(complianceGaps){
+    alerts.push({ color:"gold", text:`${complianceGaps} ${complianceGaps===1?'بند امتثال':'بنود امتثال'} لم يكتمل بعد` });
+  }
+
+  const alertsBox = document.getElementById("dashAlerts");
+  if(alertsBox){
+    if(alerts.length===0){
+      alertsBox.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد تنبيهات حاليًا. كل شي على ما يرام ✅</div>';
+    } else {
+      alertsBox.innerHTML = alerts.slice(0,6).map(a =>
+        `<div class="alert-item"><div class="a-dot ${a.color}"></div><div><div class="a-text">${a.text}</div></div></div>`
+      ).join("");
+    }
+  }
+}
+function setText(id, val){ const el = document.getElementById(id); if(el) el.textContent = val; }
 
 async function loadMeetingsAll(){
   const emptyMsg = '<tr><td colspan="10" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد بيانات بعد</td></tr>';
@@ -4660,6 +4772,7 @@ function go(id, el){
   document.getElementById('psub').textContent=t[1];
   closeSidebar();
   if(blocked) return;
+  if(id==='dashboard') loadDashboard();
   if(id==='members') loadMembers();
   if(id==='governance') loadPolicies();
   if(id==='meetings' || id==='committees' || id==='agm') loadMeetingsAll();
