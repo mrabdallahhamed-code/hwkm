@@ -1430,16 +1430,9 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="card-body" id="pendingInvitesList"></div>
   </div>
 
-  <div class="card">
-    <div class="card-head"><span class="card-title">المستخدمون المسجّلون</span></div>
-    <div class="card-body" style="padding:0">
-      <table class="tbl">
-        <thead><tr><th>الاسم</th><th>البريد الإلكتروني</th><th>رقم الهوية</th><th>رقم الجوال</th><th>نوع الحساب</th><th>الدور / الصلاحية</th><th>إجراء</th></tr></thead>
-        <tbody id="usersTbody">
-          <tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
-        </tbody>
-      </table>
-    </div>
+  <div class="sec-title" style="margin-top:4px">👥 فريق حوكمة الشركة</div>
+  <div class="two-col" id="usersCardsGrid">
+    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
   </div>
   <div class="card" style="margin-top:14px">
     <div class="card-body" style="font-size:11.5px;color:var(--gray3);line-height:1.9">
@@ -2343,37 +2336,58 @@ async function deleteInvite(id){
   loadPendingInvites();
 }
 
+const ROLE_STYLE = {
+  "مدير النظام": { color: "var(--primary)", bg: "#EAF0F8", icon: "🛡️" },
+  "رئيس مجلس": { color: "var(--gold)", bg: "#FDF5DC", icon: "👑" },
+  "سكرتير المجلس": { color: "#8B2FC9", bg: "#F3E8FB", icon: "🗂️" },
+  "رئيس لجنة الترشيحات": { color: "var(--teal)", bg: "#E5F6F4", icon: "🎖️" },
+  "عضو لجنة الترشيحات": { color: "var(--teal)", bg: "#E5F6F4", icon: "🎗️" },
+  "عضو مجلس": { color: "var(--green)", bg: "#E8F8EF", icon: "👤" },
+  "مساهم": { color: "var(--gray3)", bg: "var(--offwhite)", icon: "💰" }
+};
+
 async function loadUsers(){
   loadPendingInvites();
-  const tbody = document.getElementById("usersTbody");
-  if(!tbody) return;
+  const grid = document.getElementById("usersCardsGrid");
+  if(!grid) return;
   if(getCurrentRole() !== 'مدير النظام'){
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--red);font-size:12px;padding:14px">هذه الصفحة متاحة لمدير النظام فقط</td></tr>';
+    grid.innerHTML = '<div style="text-align:center;color:var(--red);font-size:12px;padding:20px;grid-column:1/-1">هذه الصفحة متاحة لمدير النظام فقط</div>';
     return;
   }
   const { data, error } = await sb.from("user_profiles").select("*").eq("company_id", currentCompanyId).order("id",{ascending:true});
-  if(error){ tbody.innerHTML = errorRowHTML(7, error.message); return; }
-  if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(7, "لا يوجد مستخدمون مسجّلون بعد."); return; }
+  if(error){ grid.innerHTML = `<div style="color:var(--red);font-size:12px;padding:20px;grid-column:1/-1">تعذّر التحميل: ${error.message}</div>`; return; }
+  if(!data || data.length===0){ grid.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">لا يوجد أعضاء بالفريق بعد — استخدم "🔗 دعوة عضو جديد" لإضافة أول عضو.</div>'; return; }
+
   const roles = ['مدير النظام','رئيس مجلس','سكرتير المجلس','رئيس لجنة الترشيحات','عضو لجنة الترشيحات','عضو مجلس','مساهم'];
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
-  tbody.innerHTML = data.map(u => `<tr>
-    <td>${u.full_name||"—"}</td>
-    <td>${u.email||"—"}</td>
-    <td>${u.national_id||"—"}</td>
-    <td>${u.phone_number||"—"}</td>
-    <td>${u.account_type||"—"}</td>
-    <td>
-      <select onchange="updateUserRole(${u.id}, this.value)" style="font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid var(--gray1)">
-        ${roles.map(r=>`<option ${u.role===r?"selected":""}>${r}</option>`).join("")}
-      </select>
-    </td>
-    <td>
-      ${u.email===myEmail
-        ? '<span style="font-size:10.5px;color:var(--gray3)">(حسابك)</span>'
-        : `<button style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="deleteUserProfile(${u.id},'${(u.full_name||u.email||"").replace(/'/g,"")}')">🗑️ حذف</button>`}
-    </td>
-  </tr>`).join("");
+
+  grid.innerHTML = data.map(u => {
+    const st = ROLE_STYLE[u.role] || ROLE_STYLE["عضو مجلس"];
+    const initial = (u.full_name || u.email || "؟").trim().charAt(0);
+    const isMe = u.email === myEmail;
+    return `<div class="card" style="margin-bottom:16px;border-right:4px solid ${st.color}">
+      <div class="card-body">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,${st.color},${st.color});display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:900;color:#fff;flex-shrink:0">${initial}</div>
+          <div style="min-width:0;flex:1">
+            <div style="font-size:14px;font-weight:800;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.full_name||"—"} ${isMe?'<span style="font-size:10px;color:var(--gray3);font-weight:600">(حسابك)</span>':''}</div>
+            <div style="font-size:11.5px;color:var(--gray3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.email||"—"}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:14px;margin-top:12px;font-size:11px;color:var(--gray3)">
+          <span>📇 ${u.national_id||"—"}</span>
+          <span>📱 ${u.phone_number||"—"}</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;gap:8px">
+          <select onchange="updateUserRole(${u.id}, this.value)" style="font-size:11.5px;font-weight:700;padding:6px 10px;border-radius:8px;cursor:pointer;background:${st.bg};color:${st.color};border:1.5px solid ${st.color}55">
+            ${roles.map(r=>`<option ${u.role===r?"selected":""}>${ROLE_STYLE[r].icon} ${r}</option>`).join("")}
+          </select>
+          ${isMe ? "" : `<button style="background:#FDE8E8;color:var(--red);border:none;border-radius:8px;padding:6px 12px;font-size:11px;cursor:pointer;flex-shrink:0" onclick="deleteUserProfile(${u.id},'${(u.full_name||u.email||"").replace(/'/g,"")}')">🗑️ حذف</button>`}
+        </div>
+      </div>
+    </div>`;
+  }).join("");
 }
 
 async function deleteUserProfile(id, name){
