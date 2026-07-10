@@ -1416,7 +1416,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="card-head"><span class="card-title">المستخدمون المسجّلون</span></div>
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>الاسم</th><th>البريد الإلكتروني</th><th>نوع الحساب</th><th>الدور / الصلاحية</th></tr></thead>
+        <thead><tr><th>الاسم</th><th>البريد الإلكتروني</th><th>نوع الحساب</th><th>الدور / الصلاحية</th><th>إجراء</th></tr></thead>
         <tbody id="usersTbody">
           <tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
@@ -2070,13 +2070,15 @@ async function loadUsers(){
   const tbody = document.getElementById("usersTbody");
   if(!tbody) return;
   if(getCurrentRole() !== 'مدير النظام'){
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--red);font-size:12px;padding:14px">هذه الصفحة متاحة لمدير النظام فقط</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--red);font-size:12px;padding:14px">هذه الصفحة متاحة لمدير النظام فقط</td></tr>';
     return;
   }
   const { data, error } = await sb.from("user_profiles").select("*").order("id",{ascending:true});
-  if(error){ tbody.innerHTML = errorRowHTML(4, error.message); return; }
-  if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(4, "لا يوجد مستخدمون مسجّلون بعد."); return; }
+  if(error){ tbody.innerHTML = errorRowHTML(5, error.message); return; }
+  if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(5, "لا يوجد مستخدمون مسجّلون بعد."); return; }
   const roles = ['مدير النظام','رئيس مجلس','سكرتير المجلس','رئيس لجنة الترشيحات','عضو لجنة الترشيحات','عضو مجلس','مساهم'];
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
   tbody.innerHTML = data.map(u => `<tr>
     <td>${u.full_name||"—"}</td>
     <td>${u.email||"—"}</td>
@@ -2086,7 +2088,19 @@ async function loadUsers(){
         ${roles.map(r=>`<option ${u.role===r?"selected":""}>${r}</option>`).join("")}
       </select>
     </td>
+    <td>
+      ${u.email===myEmail
+        ? '<span style="font-size:10.5px;color:var(--gray3)">(حسابك)</span>'
+        : `<button style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="deleteUserProfile(${u.id},'${(u.full_name||u.email||"").replace(/'/g,"")}')">🗑️ حذف</button>`}
+    </td>
   </tr>`).join("");
+}
+
+async function deleteUserProfile(id, name){
+  if(!confirm(`هل تريد حذف "${name}" من المنصة؟ سيفقد وصوله لبيانات الشركة فورًا (هذا لا يحذف حساب الدخول نفسه من نظام المصادقة، فقط صلاحيته وبياناته على المنصة).`)) return;
+  const { error } = await sb.from("user_profiles").delete().eq("id", id);
+  if(error){ alert("تعذّر الحذف: " + error.message); return; }
+  loadUsers();
 }
 
 async function updateUserRole(id, role){
