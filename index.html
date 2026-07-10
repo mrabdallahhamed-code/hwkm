@@ -617,7 +617,15 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <option>جارِ التحميل...</option>
     </select>
     <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="openM('m-company')">+ شركة</button>
-    <button class="notif-btn">🔔<div class="notif-dot"></div></button>
+    <div style="position:relative">
+      <button class="notif-btn" onclick="toggleNotifPanel()">🔔<div class="notif-dot" id="notifDot" style="display:none"></div></button>
+      <div id="notifPanel" style="display:none;position:absolute;left:0;top:calc(100% + 8px);width:320px;max-height:420px;overflow-y:auto;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(13,36,71,0.18);z-index:200;padding:10px">
+        <div style="font-weight:800;font-size:13px;color:var(--dark);padding:6px 8px 10px;border-bottom:1px solid var(--gray1)">🔔 التنبيهات</div>
+        <div id="notifList" style="padding-top:6px">
+          <div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</div>
+        </div>
+      </div>
+    </div>
     <button class="btn btn-outline" onclick="openM('m-meeting')">+ اجتماع</button>
     <button class="btn btn-gold">📄 تقرير</button>
   </div>
@@ -1934,6 +1942,11 @@ function applyRolePermissions(){
 
   restrictMutatingButtons();
   startMutationGuard();
+  loadNotifications();
+  if(!window._notifIntervalStarted){
+    window._notifIntervalStarted = true;
+    setInterval(loadNotifications, 60000); // refresh every minute for a "live" feel
+  }
 }
 
 function isPageAllowed(pageId, role){
@@ -2497,6 +2510,109 @@ async function deleteMeeting(id){
 
 /* ══════════ DASHBOARD (real data pulled from every page) ══════════ */
 const AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+
+/* ══════════ NOTIFICATIONS (live-computed, no stored table — always fresh) ══════════ */
+function toggleNotifPanel(){
+  const panel = document.getElementById("notifPanel");
+  if(!panel) return;
+  const opening = panel.style.display === "none";
+  panel.style.display = opening ? "block" : "none";
+  if(opening) loadNotifications();
+}
+document.addEventListener('click', function(e){
+  const panel = document.getElementById("notifPanel");
+  if(!panel || panel.style.display === "none") return;
+  if(!panel.contains(e.target) && !e.target.closest('.notif-btn')) panel.style.display = "none";
+});
+
+async function loadNotifications(){
+  const list = document.getElementById("notifList");
+  const dot = document.getElementById("notifDot");
+  if(!list || !currentUserProfile) return;
+
+  const role = getCurrentRole();
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+  const items = [];
+
+  // 1) Consultation requests needing your action
+  if(role === 'مدير النظام' || role === 'رئيس مجلس'){
+    const { data: cr } = await sb.from("consultation_requests").select("*").eq("company_id", currentCompanyId);
+    (cr||[]).forEach(r => {
+      if(role==='مدير النظام' && r.status==='جديد') items.push({ icon:"💼", text:`طلب استشارة (${r.category}) ينتظر عرض سعر منك`, page:"consultants" });
+      if(role==='رئيس مجلس' && r.status==='عرض سعر مقدم') items.push({ icon:"💼", text:`طلب استشارة (${r.category}) ينتظر قرارك`, page:"consultants" });
+    });
+  }
+
+  if(role !== 'مساهم'){
+    // 2) Meeting requests needing your response
+    const { data: mr } = await sb.from("meeting_requests").select("*").eq("company_id", currentCompanyId).eq("status","قيد الموافقة");
+    if(mr && mr.length){
+      const ids = mr.map(r=>r.id);
+      const { data: myResponses } = await sb.from("meeting_request_responses").select("request_id").in("request_id", ids).eq("reviewer_email", myEmail||"");
+      const respondedIds = new Set((myResponses||[]).map(r=>r.request_id));
+      mr.forEach(r => { if(!respondedIds.has(r.id)) items.push({ icon:"🗳️", text:`طلب اجتماع "${r.title}" ينتظر موافقتك على الموعد`, page:"meetings" }); });
+    }
+
+    // 3) Policy reviews needing your response
+    const { data: pol } = await sb.from("policies").select("*").eq("company_id", currentCompanyId).eq("status","مرفوعة لمجلس الإدارة");
+    if(pol && pol.length){
+      const ids = pol.map(p=>p.id);
+      const { data: myPolReviews } = await sb.from("policy_reviews").select("policy_id").in("policy_id", ids).eq("reviewer_email", myEmail||"");
+      const reviewedIds = new Set((myPolReviews||[]).map(r=>r.policy_id));
+      pol.forEach(p => { if(!reviewedIds.has(p.id)) items.push({ icon:"📜", text:`سياسة "${p.policy_name}" تنتظر رأيك`, page:"governance" }); });
+    }
+
+    // 4) Appointment requests needing your review
+    const { data: ap } = await sb.from("appoint_requests").select("*").eq("company_id", currentCompanyId).eq("status","محال إلى مجلس الإدارة");
+    if(ap && ap.length){
+      const ids = ap.map(a=>a.id);
+      const { data: myApReviews } = await sb.from("appoint_request_reviews").select("request_id").in("request_id", ids).eq("reviewer_email", myEmail||"");
+      const reviewedIds = new Set((myApReviews||[]).map(r=>r.request_id));
+      ap.forEach(a => { if(!reviewedIds.has(a.id)) items.push({ icon:"👤", text:`طلب تعيين "${a.candidate_name}" ينتظر رأيك`, page:"appoint" }); });
+    }
+
+    // 5) Performance evaluations needing your input
+    const { data: pe } = await sb.from("performance_evaluations").select("*").eq("company_id", currentCompanyId).eq("status","مفتوح للتقييم");
+    if(pe && pe.length){
+      const ids = pe.map(p=>p.id);
+      const { data: myPeReviews } = await sb.from("performance_evaluation_reviews").select("evaluation_id").in("evaluation_id", ids).eq("reviewer_email", myEmail||"");
+      const reviewedIds = new Set((myPeReviews||[]).map(r=>r.evaluation_id));
+      pe.forEach(p => { if(!reviewedIds.has(p.id)) items.push({ icon:"📐", text:`تقييم أداء "${p.entity_name}" ينتظر تقييمك`, page:"perf" }); });
+    }
+
+    // 6) Documents needing your signature
+    const { data: docs } = await sb.from("signing_documents").select("*").eq("company_id", currentCompanyId).neq("status","مكتمل");
+    if(docs && docs.length){
+      const ids = docs.map(d=>d.id);
+      const { data: mySigs } = await sb.from("document_signatures").select("document_id").in("document_id", ids).eq("signer_email", myEmail||"");
+      const signedIds = new Set((mySigs||[]).map(s=>s.document_id));
+      docs.forEach(d => { if(!signedIds.has(d.id)) items.push({ icon:"✍️", text:`وثيقة "${d.document_name}" تنتظر توقيعك`, page:"signing" }); });
+    }
+  }
+
+  // 7) Upcoming meetings within 3 days (everyone with page access)
+  const { data: meetings } = await sb.from("meetings").select("*").eq("company_id", currentCompanyId);
+  const now = new Date();
+  (meetings||[]).forEach(m => {
+    if(!m.meeting_date) return;
+    const days = Math.ceil((new Date(m.meeting_date) - now) / 86400000);
+    if(days >= 0 && days <= 3){
+      items.push({ icon:"📅", text:`${m.title||"اجتماع"} خلال ${days===0?'اليوم':(days+' يوم')}`, page: m.meeting_type==="الجمعية العامة"?"agm":(m.meeting_type==="اجتماع لجنة"?"committees":"meetings") });
+    }
+  });
+
+  if(dot) dot.style.display = items.length ? "block" : "none";
+  if(items.length===0){
+    list.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:16px">لا توجد تنبيهات حاليًا ✅</div>';
+    return;
+  }
+  list.innerHTML = items.map(it => `
+    <div onclick="document.getElementById('notifPanel').style.display='none';go('${it.page}',null)" style="display:flex;gap:8px;align-items:flex-start;padding:8px;border-radius:8px;cursor:pointer" onmouseover="this.style.background='var(--offwhite)'" onmouseout="this.style.background='transparent'">
+      <span style="font-size:15px">${it.icon}</span>
+      <span style="font-size:12px;color:var(--dark);line-height:1.6">${it.text}</span>
+    </div>`).join("");
+}
 
 async function loadDashboard(){
   const [meetingsRes, risksRes, complianceRes, membersRes, committeesRes, signingRes, policiesRes] = await Promise.all([
