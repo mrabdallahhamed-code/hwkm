@@ -675,13 +675,9 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="card">
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>الاجتماع</th><th>التاريخ</th><th>الحضور</th><th>القرارات</th><th>المحضر</th><th>الملفات الداعمة</th><th>الحالة</th></tr></thead>
-        <tbody>
-          <tr><td>اجتماع مجلس الإدارة — Q4 2025</td><td>15 ديسمبر 2025</td><td>8/9</td><td>14 قراراً</td><td><span class="badge done">معتمد ✍️</span></td><td><button class="btn-xs primary">3 ملفات</button></td><td><span class="badge done">مكتمل</span></td></tr>
-          
-          <tr><td>اجتماع مجلس الإدارة — Q3 2025</td><td>18 سبتمبر 2025</td><td>9/9</td><td>11 قراراً</td><td><span class="badge done">معتمد ✍️</span></td><td><button class="btn-xs primary">4 ملفات</button></td><td><span class="badge done">مكتمل</span></td></tr>
-          <tr><td>اجتماع طارئ — مناقشة الاستراتيجية</td><td>5 أغسطس 2025</td><td>7/9</td><td>4 قرارات</td><td><span class="badge done">معتمد ✍️</span></td><td><button class="btn-xs primary">1 ملف</button></td><td><span class="badge done">مكتمل</span></td></tr>
-          <tr><td>اجتماع مجلس الإدارة — Q2 2025</td><td>20 يونيو 2025</td><td>9/9</td><td>9 قرارات</td><td><span class="badge done">معتمد ✍️</span></td><td><button class="btn-xs primary">3 ملفات</button></td><td><span class="badge done">مكتمل</span></td></tr>
+        <thead><tr><th>الاجتماع</th><th>النوع</th><th>التاريخ</th><th>الوقت</th><th>إجراء</th></tr></thead>
+        <tbody id="pastBoardMeetingsTbody">
+          <tr><td colspan="5" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
       </table>
     </div>
@@ -1028,7 +1024,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="card">
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>المنصب</th><th>الاسم</th><th>يتبع لـ</th><th>المستوى</th><th>إجراء</th></tr></thead>
+        <thead><tr><th>المنصب</th><th>الاسم</th><th>يتبع لـ</th><th>المستوى</th><th>تاريخ التعيين</th><th>إجراء</th></tr></thead>
         <tbody id="structureTbody">
           <tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
@@ -1714,6 +1710,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <input type="hidden" id="mst-id" value="" />
     <div class="fg"><label>المنصب</label><input class="fi" id="mst-title" placeholder="مثال: مدير إدارة المخاطر" /></div>
     <div class="fg"><label>اسم شاغل المنصب</label><input class="fi" id="mst-holder" placeholder="مثال: خالد العتيبي" /></div>
+    <div class="fg"><label>تاريخ التعيين</label><input type="date" class="fi" id="mst-appointment-date"/></div>
     <div class="fg"><label>يتبع لـ (المنصب الأعلى)</label>
       <select class="fs" id="mst-parent">
         <option value="">— بدون (أعلى مستوى في الهيكل) —</option>
@@ -2689,6 +2686,7 @@ async function loadMeetingsAll(){
   const agm = (data || []).filter(m => m.meeting_type === "الجمعية العامة");
 
   renderUpcomingMeetingCards(board);
+  renderPastBoardMeetingsTable(board);
   loadMeetingRequestsReview();
   loadBoardMinutes(board);
   renderAGMSection(agm);
@@ -2898,6 +2896,26 @@ async function computeAttendancePercentages(){
     ...m,
     pct: m.total ? Math.round((m.present/m.total)*100) : null
   }));
+}
+
+function renderPastBoardMeetingsTable(boardMeetings){
+  const tbody = document.getElementById("pastBoardMeetingsTbody");
+  if(!tbody) return;
+  const todayStr = new Date().toISOString().slice(0,10);
+  const past = boardMeetings
+    .filter(m => !m.meeting_date || m.meeting_date < todayStr)
+    .sort((a,b) => (b.meeting_date||"").localeCompare(a.meeting_date||""));
+  if(past.length === 0){
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا يوجد سجل اجتماعات مجلس سابقة بعد</td></tr>';
+    return;
+  }
+  tbody.innerHTML = past.map(m => {
+    const fileCount = [m.agenda_file_url,m.invitation_file_url,m.minutes_file_url].filter(Boolean).length;
+    return `<tr style="cursor:pointer" onclick="openMeetingDetailModal(${m.id})">
+      <td>${m.title||""}</td><td>${m.meeting_type||"—"}</td><td>${m.meeting_date||"—"}</td><td>${m.meeting_time||"—"}</td>
+      <td><button class="btn-xs primary" onclick="event.stopPropagation();openMeetingDetailModal(${m.id})">📂 الملفات ${fileCount ? `(${fileCount})` : ''}</button></td>
+    </tr>`;
+  }).join("");
 }
 
 function renderUpcomingMeetingCards(boardMeetings){
@@ -3983,16 +4001,16 @@ async function loadStructure(){
   const chartWrap = document.getElementById("orgTreeContainer");
   if(!tbody) return;
   const { data, error } = await sb.from("org_structure").select("*").eq("company_id", currentCompanyId).order("id",{ascending:true});
-  if(error){ tbody.innerHTML = errorRowHTML(5, error.message); if(chartWrap) chartWrap.innerHTML = ""; return; }
+  if(error){ tbody.innerHTML = errorRowHTML(6, error.message); if(chartWrap) chartWrap.innerHTML = ""; return; }
   structureCache = data || [];
   if(structureCache.length===0){
-    tbody.innerHTML = emptyRowHTML(5, 'لا توجد بيانات بعد. اضغط "+ إضافة منصب" للبدء.');
+    tbody.innerHTML = emptyRowHTML(6, 'لا توجد بيانات بعد. اضغط "+ إضافة منصب" للبدء.');
     if(chartWrap) chartWrap.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:30px">لا يوجد هيكل تنظيمي بعد. اضغط "+ إضافة منصب" لبدء بناء الهيكل.</div>';
     return;
   }
 
   tbody.innerHTML = structureCache.map(s => `<tr>
-    <td>${s.position_title||""}</td><td>${s.holder_name||"—"}</td><td>${s.parent_position||"—"}</td><td>${orgLevelLabel(s.level)}</td>
+    <td>${s.position_title||""}</td><td>${s.holder_name||"—"}</td><td>${s.parent_position||"—"}</td><td>${orgLevelLabel(s.level)}</td><td>${s.appointment_date||"—"}</td>
     <td>
       <button class="btn-xs primary" onclick="editStructure(${s.id})">✏️ تعديل</button>
       <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;margin-right:4px" onclick="deletePosition(${s.id})">🗑️ حذف</button>
@@ -4068,6 +4086,7 @@ function editStructure(id){
   document.getElementById("mst-title-h").textContent = "✏️ تعديل منصب";
   document.getElementById("mst-title").value = s.position_title || "";
   document.getElementById("mst-holder").value = s.holder_name || "";
+  document.getElementById("mst-appointment-date").value = s.appointment_date || "";
   populateParentPositionSelect(s.parent_position || "");
   document.getElementById("mst-level").value = s.level ?? "";
   openM("m-structure");
@@ -4077,16 +4096,17 @@ async function saveStructure(){
   const position_title = document.getElementById("mst-title").value.trim();
   if(!position_title){ alert("الرجاء إدخال اسم المنصب"); return; }
   const holder_name = document.getElementById("mst-holder").value.trim();
+  const appointment_date = document.getElementById("mst-appointment-date").value || null;
   const parent_position = document.getElementById("mst-parent").value.trim();
   const level = document.getElementById("mst-level").value ? Number(document.getElementById("mst-level").value) : null;
-  const payload = { position_title, holder_name, parent_position, level, company_id: currentCompanyId };
+  const payload = { position_title, holder_name, appointment_date, parent_position, level, company_id: currentCompanyId };
   const { error } = id
     ? await sb.from("org_structure").update(payload).eq("id", id)
     : await sb.from("org_structure").insert([payload]);
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
   document.getElementById("mst-id").value = "";
   document.getElementById("mst-title-h").textContent = "🌳 إضافة منصب في الهيكل التنظيمي";
-  document.getElementById("mst-title").value=""; document.getElementById("mst-holder").value=""; document.getElementById("mst-parent").value=""; document.getElementById("mst-level").value="";
+  document.getElementById("mst-title").value=""; document.getElementById("mst-holder").value=""; document.getElementById("mst-appointment-date").value=""; document.getElementById("mst-parent").value=""; document.getElementById("mst-level").value="";
   closeM("m-structure"); loadStructure();
 }
 
