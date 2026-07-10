@@ -679,9 +679,19 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
 <!-- ══ MEETINGS ══════════════════════════ -->
 <div id="p-meetings" class="page content">
-  <div class="sec-title">📅 الاجتماعات القادمة والجارية</div>
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span>📅 الاجتماعات القادمة والجارية</span>
+    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-meeting-request')">+ طلب اجتماع</button>
+  </div>
   <div class="meet-cards" id="upcomingMeetCards">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
+  </div>
+
+  <div class="card" style="margin-top:20px" id="meetingReqReviewCard">
+    <div class="card-head"><span class="card-title">🗳️ طلبات اجتماعات تحتاج رأيك</span></div>
+    <div class="card-body" id="meetingReqReviewBody" style="padding:14px">
+      <div style="text-align:center;color:var(--gray3);font-size:12px">جارِ التحميل...</div>
+    </div>
   </div>
 
   <div class="sec-title">📚 سجل الاجتماعات السابقة</div>
@@ -1799,6 +1809,19 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
+<div class="modal-bg" id="m-meeting-request">
+  <div class="modal">
+    <div class="modal-title">🗳️ طلب اجتماع جديد</div>
+    <div class="fg"><label>نوع الاجتماع</label><select class="fs" id="mtr-type"><option>اجتماع مجلس الإدارة الدوري</option><option>اجتماع طارئ</option></select></div>
+    <div class="fg"><label>عنوان الاجتماع</label><input class="fi" id="mtr-title" placeholder="مثال: اجتماع مجلس الإدارة — Q3 2026" /></div>
+    <div class="row2"><div class="fg"><label>الموعد المقترح</label><input type="date" class="fi" id="mtr-date"/></div><div class="fg"><label>الوقت المقترح</label><input type="time" class="fi" id="mtr-time"/></div></div>
+    <div class="fg"><label>طريقة الانعقاد</label><select class="fs" id="mtr-method"><option>عن بُعد (Zoom)</option><option>عن بُعد (Teams)</option><option>حضوري</option><option>هجين</option></select></div>
+    <div class="fg"><label>بنود الاجتماع / ملاحظات</label><textarea class="fta" id="mtr-notes" rows="2" placeholder="أهم بنود جدول الأعمال المقترحة..."></textarea></div>
+    <p style="font-size:11px;color:var(--gray3)">بعد الإرسال، يظهر الطلب لكل أعضاء المجلس ليوافقوا على الموعد أو يقترحوا موعدًا بديلًا. عند إجماع الكل على الموافقة، يتحول تلقائيًا لاجتماع مؤكد.</p>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-meeting-request')">إلغاء</button><button class="btn btn-gold" onclick="submitMeetingRequest()">📨 إرسال الطلب</button></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-perm-item">
   <div class="modal">
     <div class="modal-title">➕ إضافة بند صلاحية</div>
@@ -2424,6 +2447,7 @@ async function loadMeetingsAll(){
   if(agmWrap) agmWrap.innerHTML = agm.length ? agm.map(renderMeetingRow).join("") : emptyMsg;
 
   renderUpcomingMeetingCards(board);
+  loadMeetingRequestsReview();
 }
 
 /* Board-only cards: shows meetings from this calendar year that haven't happened yet
@@ -2524,6 +2548,135 @@ async function saveMeeting(){
   closeM("m-meeting");
   loadMeetingsAll();
   alert("تم حفظ الاجتماع بنجاح ✅ — ستجده في صفحته المخصصة حسب النوع");
+}
+
+/* ══════════ MEETING REQUESTS (board approves the proposed date) ══════════ */
+async function submitMeetingRequest(){
+  const title = document.getElementById("mtr-title").value.trim();
+  if(!title){ alert("الرجاء إدخال عنوان الاجتماع"); return; }
+  const meeting_type = document.getElementById("mtr-type").value;
+  const proposed_date = document.getElementById("mtr-date").value || null;
+  const proposed_time = document.getElementById("mtr-time").value || null;
+  const method = document.getElementById("mtr-method").value;
+  const notes = document.getElementById("mtr-notes").value.trim();
+  if(!proposed_date){ alert("الرجاء تحديد الموعد المقترح"); return; }
+
+  const { error } = await sb.from("meeting_requests").insert([{
+    title, meeting_type, proposed_date, proposed_time, method, notes, status: "قيد الموافقة", company_id: currentCompanyId
+  }]);
+  if(error){ alert("تعذّر إرسال الطلب: " + error.message); return; }
+
+  document.getElementById("mtr-title").value = "";
+  document.getElementById("mtr-notes").value = "";
+  closeM("m-meeting-request");
+  loadMeetingRequestsReview();
+  alert("تم إرسال طلب الاجتماع لأعضاء المجلس للموافقة على الموعد ✅");
+}
+
+async function loadMeetingRequestsReview(){
+  const card = document.getElementById("meetingReqReviewCard");
+  const box = document.getElementById("meetingReqReviewBody");
+  if(!box || !card) return;
+  const role = getCurrentRole();
+  if(role === 'مساهم'){ card.style.display = "none"; return; }
+  card.style.display = "block";
+
+  const { data: pending, error } = await sb.from("meeting_requests")
+    .select("*").eq("company_id", currentCompanyId).eq("status", "قيد الموافقة").order("id",{ascending:false});
+  if(error){ box.innerHTML = '<div style="color:var(--red);font-size:12px">تعذّر التحميل: '+error.message+'</div>'; return; }
+  if(!pending || pending.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px">لا توجد طلبات اجتماعات معلّقة حاليًا.</div>'; return; }
+
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+  const ids = pending.map(r=>r.id);
+  const { data: responses } = await sb.from("meeting_request_responses").select("*").in("request_id", ids);
+  const byReq = {};
+  (responses||[]).forEach(r => { if(!byReq[r.request_id]) byReq[r.request_id] = []; byReq[r.request_id].push(r); });
+
+  box.innerHTML = pending.map(req => {
+    const revs = byReq[req.id] || [];
+    const mine = myEmail ? revs.find(r=>r.reviewer_email===myEmail) : null;
+    const approvedCount = revs.filter(r=>r.response==="موافقة").length;
+    const altCount = revs.filter(r=>r.response==="تعديل الموعد").length;
+    const altList = revs.filter(r=>r.response==="تعديل الموعد").map(r=>
+      `<div style="font-size:10.5px;color:var(--gray3)">↳ ${r.reviewer_name||r.reviewer_email}: يقترح ${r.alt_date||"—"}${r.alt_time?(' — '+r.alt_time):''}${r.notes?(' ('+r.notes+')'):''}</div>`
+    ).join("");
+
+    return `<div style="border:1px solid var(--gray1);border-radius:10px;padding:12px;margin-bottom:14px">
+      <div style="font-weight:800;font-size:13px;color:var(--dark)">${req.title||""} <span style="font-size:11px;color:var(--gray3);font-weight:600">— ${req.meeting_type||""}</span></div>
+      <div style="font-size:12px;color:var(--dark);margin:6px 0">📅 الموعد المقترح: <b>${req.proposed_date||"—"}</b>${req.proposed_time?(' — الساعة '+req.proposed_time):''} · 📍 ${req.method||"—"}</div>
+      ${req.notes ? `<div style="font-size:11.5px;color:var(--gray3);margin-bottom:8px">📝 ${req.notes}</div>` : ""}
+      <div style="font-size:11px;color:var(--gray3);margin-bottom:8px">✅ موافقون: ${approvedCount} &nbsp;·&nbsp; 🔁 مقترحون موعدًا آخر: ${altCount}</div>
+      ${altList}
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+        <button class="btn-xs" style="background:${mine&&mine.response==='موافقة'?'linear-gradient(135deg,var(--primary),var(--accent))':'#E8F8EF'};color:${mine&&mine.response==='موافقة'?'#fff':'var(--green)'};border:none;border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer" onclick="respondMeetingRequest(${req.id},'موافقة')">✅ موافقة على الموعد</button>
+        <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer" onclick="toggleAltDateForm(${req.id})">🔁 اقتراح موعد بديل</button>
+      </div>
+      <div id="alt-form-${req.id}" style="display:none;margin-top:10px;padding:10px;background:var(--offwhite);border-radius:8px">
+        <div class="row2">
+          <div class="fg"><label style="font-size:11px">الموعد البديل</label><input type="date" class="fi" id="alt-date-${req.id}"/></div>
+          <div class="fg"><label style="font-size:11px">الوقت البديل</label><input type="time" class="fi" id="alt-time-${req.id}"/></div>
+        </div>
+        <textarea id="alt-notes-${req.id}" placeholder="سبب التعديل (اختياري)" rows="2" style="width:100%;border:1px solid var(--gray1);border-radius:8px;padding:8px;font-family:'Tajawal',sans-serif;font-size:12px;resize:none;margin-top:6px"></textarea>
+        <button class="btn-xs primary" style="margin-top:8px" onclick="respondMeetingRequest(${req.id},'تعديل الموعد')">📨 إرسال الاقتراح</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function toggleAltDateForm(requestId){
+  const el = document.getElementById("alt-form-"+requestId);
+  if(el) el.style.display = el.style.display === "none" ? "block" : "none";
+}
+
+async function respondMeetingRequest(requestId, response){
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+  if(!myEmail){ alert("تعذّر تحديد هويتك، الرجاء تسجيل الدخول من جديد"); return; }
+  const reviewer_name = currentUserProfile ? (currentUserProfile.full_name || myEmail) : myEmail;
+
+  let alt_date = null, alt_time = null, notes = null;
+  if(response === "تعديل الموعد"){
+    alt_date = document.getElementById("alt-date-"+requestId).value || null;
+    if(!alt_date){ alert("الرجاء تحديد الموعد البديل"); return; }
+    alt_time = document.getElementById("alt-time-"+requestId).value || null;
+    notes = document.getElementById("alt-notes-"+requestId).value.trim();
+  }
+
+  await sb.from("meeting_request_responses").delete().eq("request_id", requestId).eq("reviewer_email", myEmail);
+  const { error } = await sb.from("meeting_request_responses").insert([{
+    request_id: requestId, reviewer_email: myEmail, reviewer_name, response, alt_date, alt_time, notes, company_id: currentCompanyId
+  }]);
+  if(error){ alert("تعذّر حفظ ردّك: " + error.message); return; }
+
+  await recomputeMeetingRequestStatus(requestId);
+  loadMeetingRequestsReview();
+  loadMeetingsAll();
+}
+
+/* Only becomes a confirmed real meeting once every board member who responded approved
+   unanimously (no one proposed an alternate date), and all board members have responded. */
+async function recomputeMeetingRequestStatus(requestId){
+  const { data: revs, error } = await sb.from("meeting_request_responses").select("*").eq("request_id", requestId);
+  if(error || !revs || revs.length===0) return;
+  const anyAlt = revs.some(r => r.response === "تعديل الموعد");
+  if(anyAlt) return; // stays pending — needs discussion/a new proposed date
+
+  const { count } = await sb.from("board_members").select("*", { count: 'exact', head: true }).eq("company_id", currentCompanyId);
+  const totalMembers = count || 0;
+  const approvedEmails = new Set(revs.filter(r=>r.response==="موافقة").map(r=>r.reviewer_email));
+  if(totalMembers > 0 && approvedEmails.size < totalMembers) return; // not everyone has responded yet
+
+  const { data: req } = await sb.from("meeting_requests").select("*").eq("id", requestId).single();
+  if(!req) return;
+
+  const { error: insErr } = await sb.from("meetings").insert([{
+    title: req.title, meeting_type: req.meeting_type, meeting_date: req.proposed_date,
+    meeting_time: req.proposed_time, method: req.method, notes: req.notes, company_id: currentCompanyId
+  }]);
+  if(insErr) return;
+
+  await sb.from("meeting_requests").update({ status: "معتمد" }).eq("id", requestId);
 }
 
 /* ══════════ POLICIES (governance) ══════════ */
