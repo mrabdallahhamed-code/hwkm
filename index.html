@@ -680,47 +680,8 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <!-- ══ MEETINGS ══════════════════════════ -->
 <div id="p-meetings" class="page content">
   <div class="sec-title">📅 الاجتماعات القادمة والجارية</div>
-  <div class="meet-cards">
-    <div class="mc q1">
-      <div class="mc-bar"></div>
-      <div class="mc-type">Q1 2026 · اجتماع دوري</div>
-      <div class="mc-title">اجتماع مجلس الإدارة الفصلي الأول</div>
-      <div class="mc-detail">📅 25 مارس 2026 — الساعة 10:00 ص</div>
-      <div class="mc-detail">📍 عن بُعد عبر Zoom</div>
-      <div class="mc-detail">👥 9 أعضاء — النصاب: 6/9 ✅</div>
-      <div class="mc-detail">📋 12 بنداً في جدول الأعمال</div>
-      <div class="mc-actions">
-        <button class="btn-xs primary">📄 جدول الأعمال</button>
-        <button class="btn-xs gold">📋 المحضر</button>
-        <button class="btn-xs green">📨 دعوات</button>
-      </div>
-    </div>
-    <div class="mc q2">
-      <div class="mc-bar"></div>
-      <div class="mc-type">لجنة المراجعة · اجتماع دوري</div>
-      <div class="mc-title">اجتماع لجنة المراجعة والتدقيق</div>
-      <div class="mc-detail">📅 8 أبريل 2026 — الساعة 2:00 م</div>
-      <div class="mc-detail">📍 مقر الشركة — قاعة A</div>
-      <div class="mc-detail">👥 5 أعضاء — 3/5 مؤكدون</div>
-      <div class="mc-detail">📋 مراجعة تقارير التدقيق Q1</div>
-      <div class="mc-actions">
-        <button class="btn-xs primary">📄 تحضير</button>
-        <button class="btn-xs gold">📨 دعوات</button>
-      </div>
-    </div>
-    <div class="mc em">
-      <div class="mc-bar"></div>
-      <div class="mc-type">🔴 طارئ · عاجل</div>
-      <div class="mc-title">اجتماع طارئ — مخاطر تشغيلية حرجة</div>
-      <div class="mc-detail">📅 20 مارس 2026 — الساعة 4:00 م</div>
-      <div class="mc-detail">📍 عن بُعد عبر Teams</div>
-      <div class="mc-detail">👥 6 أعضاء مدعوون</div>
-      <div class="mc-detail">⚡ يستلزم قرارات فورية</div>
-      <div class="mc-actions">
-        <button class="btn-xs primary">⚡ تفاصيل</button>
-        <button class="btn-xs gold">📋 إعداد</button>
-      </div>
-    </div>
+  <div class="meet-cards" id="upcomingMeetCards">
+    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
   </div>
 
   <div class="sec-title">📚 سجل الاجتماعات السابقة</div>
@@ -2452,6 +2413,44 @@ async function loadMeetingsAll(){
   if(boardWrap) boardWrap.innerHTML = board.length ? board.map(renderMeetingRow).join("") : emptyMsg;
   if(committeeWrap) committeeWrap.innerHTML = committee.length ? committee.map(renderMeetingRow).join("") : emptyMsg;
   if(agmWrap) agmWrap.innerHTML = agm.length ? agm.map(renderMeetingRow).join("") : emptyMsg;
+
+  renderUpcomingMeetingCards(board);
+}
+
+/* Board-only cards: shows meetings from this calendar year that haven't happened yet
+   (today or later), sorted soonest-first. Committee/AGM meetings are intentionally
+   excluded here — they have their own dedicated pages. */
+function renderUpcomingMeetingCards(boardMeetings){
+  const wrap = document.getElementById("upcomingMeetCards");
+  if(!wrap) return;
+  const todayStr = new Date().toISOString().slice(0,10);
+  const currentYear = new Date().getFullYear();
+
+  const upcoming = boardMeetings
+    .filter(m => m.meeting_date && m.meeting_date >= todayStr && new Date(m.meeting_date).getFullYear() === currentYear)
+    .sort((a,b) => (a.meeting_date||"").localeCompare(b.meeting_date||""));
+
+  if(upcoming.length === 0){
+    wrap.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">لا توجد اجتماعات مجلس قادمة هذا العام حاليًا.</div>';
+    return;
+  }
+
+  wrap.innerHTML = upcoming.map(m => {
+    const isEmergency = m.meeting_type === "اجتماع طارئ";
+    return `<div class="mc ${isEmergency ? 'em' : 'q1'}">
+      <div class="mc-bar"></div>
+      <div class="mc-type">${isEmergency ? '🔴 طارئ · عاجل' : (m.meeting_type||'')}</div>
+      <div class="mc-title">${m.title||""}</div>
+      <div class="mc-detail">📅 ${m.meeting_date||"—"}${m.meeting_time ? (" — الساعة "+m.meeting_time) : ""}</div>
+      <div class="mc-detail">📍 ${m.method||"—"}</div>
+      ${m.notes ? `<div class="mc-detail">📝 ${m.notes}</div>` : ""}
+      <div class="mc-actions">
+        ${fileCell(m.id,'agenda_file_url',m.agenda_file_url)}
+        ${fileCell(m.id,'minutes_file_url',m.minutes_file_url)}
+        ${fileCell(m.id,'invitation_file_url',m.invitation_file_url)}
+      </div>
+    </div>`;
+  }).join("");
 }
 
 async function saveMeeting(){
