@@ -1790,6 +1790,15 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
+<div class="modal-bg" id="m-meeting-view">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title" id="mdView-title">تفاصيل الاجتماع</div>
+    <div style="font-size:12px;color:var(--gray3);margin-bottom:16px" id="mdView-meta"></div>
+    <div id="mdView-files"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-meeting-view')">إغلاق</button></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-perm-item">
   <div class="modal">
     <div class="modal-title">➕ إضافة بند صلاحية</div>
@@ -2433,6 +2442,34 @@ function fileCellCard(id, field, url, label){
   </div>`;
 }
 
+let upcomingMeetingsCache = [];
+
+/* Spacious, single-column version used inside the detail modal (roomy, not cramped) */
+function fileRowWide(id, field, url, label){
+  return `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
+    <div style="font-size:13px;font-weight:800;color:var(--dark)">${label}</div>
+    <div style="display:flex;gap:8px">
+      ${url ? `<a class="btn btn-outline" style="font-size:11px;padding:6px 14px" href="${url}" target="_blank" rel="noopener">📥 تحميل</a>` : ""}
+      <label class="btn ${url?'btn-ghost':'btn-gold'}" style="font-size:11px;padding:6px 14px;cursor:pointer">📎 ${url?'استبدال':'رفع ملف'}<input type="file" style="display:none" onchange="uploadMeetingFile(${id},'${field}',this);setTimeout(()=>openMeetingDetailModal(${id}),400)"></label>
+      ${url ? `<button class="btn btn-ghost" style="font-size:11px;padding:6px 14px;color:var(--red)" onclick="deleteMeetingFile(${id},'${field}');setTimeout(()=>openMeetingDetailModal(${id}),400)">🗑️ حذف</button>` : ""}
+    </div>
+  </div>`;
+}
+
+function openMeetingDetailModal(id){
+  const m = upcomingMeetingsCache.find(x => x.id === id);
+  if(!m) return;
+  document.getElementById("mdView-title").textContent = m.title||"";
+  document.getElementById("mdView-meta").innerHTML =
+    `📅 ${m.meeting_date||"—"}${m.meeting_time?(" — الساعة "+m.meeting_time):""} &nbsp;·&nbsp; 📍 ${m.method||"—"}` +
+    (m.notes ? `<br>📝 ${m.notes}` : "");
+  document.getElementById("mdView-files").innerHTML =
+    fileRowWide(m.id,'agenda_file_url',m.agenda_file_url,'📄 جدول الأعمال') +
+    fileRowWide(m.id,'invitation_file_url',m.invitation_file_url,'📨 الدعوة') +
+    fileRowWide(m.id,'minutes_file_url',m.minutes_file_url,'📋 المحضر');
+  openM("m-meeting-view");
+}
+
 function renderUpcomingMeetingCards(boardMeetings){
   const wrap = document.getElementById("upcomingMeetCards");
   if(!wrap) return;
@@ -2442,6 +2479,7 @@ function renderUpcomingMeetingCards(boardMeetings){
   const upcoming = boardMeetings
     .filter(m => m.meeting_date && m.meeting_date >= todayStr && new Date(m.meeting_date).getFullYear() === currentYear)
     .sort((a,b) => (a.meeting_date||"").localeCompare(b.meeting_date||""));
+  upcomingMeetingsCache = upcoming;
 
   if(upcoming.length === 0){
     wrap.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">لا توجد اجتماعات مجلس قادمة هذا العام حاليًا.</div>';
@@ -2450,7 +2488,8 @@ function renderUpcomingMeetingCards(boardMeetings){
 
   wrap.innerHTML = upcoming.map(m => {
     const isEmergency = m.meeting_type === "اجتماع طارئ";
-    return `<div class="mc ${isEmergency ? 'em' : 'q1'}">
+    const fileCount = [m.agenda_file_url,m.invitation_file_url,m.minutes_file_url].filter(Boolean).length;
+    return `<div class="mc ${isEmergency ? 'em' : 'q1'}" style="cursor:pointer" onclick="openMeetingDetailModal(${m.id})">
       <div class="mc-bar"></div>
       <div class="mc-type">${isEmergency ? '🔴 طارئ · عاجل' : (m.meeting_type||'')}</div>
       <div class="mc-title">${m.title||""}</div>
@@ -2458,9 +2497,7 @@ function renderUpcomingMeetingCards(boardMeetings){
       <div class="mc-detail">📍 ${m.method||"—"}</div>
       ${m.notes ? `<div class="mc-detail">📝 ${m.notes}</div>` : ""}
       <div class="mc-actions">
-        ${fileCellCard(m.id,'agenda_file_url',m.agenda_file_url,'جدول الأعمال')}
-        ${fileCellCard(m.id,'invitation_file_url',m.invitation_file_url,'الدعوة')}
-        ${fileCellCard(m.id,'minutes_file_url',m.minutes_file_url,'المحضر')}
+        <button class="btn-xs primary" style="width:100%" onclick="event.stopPropagation();openMeetingDetailModal(${m.id})">📂 عرض التفاصيل والملفات ${fileCount ? `(${fileCount})` : ''}</button>
       </div>
     </div>`;
   }).join("");
@@ -4136,4 +4173,3 @@ function closeSidebar(){
 </script>
 </body>
 </html>
- 
