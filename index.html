@@ -1019,7 +1019,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
     <span>🌳 دليل المناصب التنظيمية</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mst-id').value='';document.getElementById('mst-title-h').textContent='🌳 إضافة منصب في الهيكل التنظيمي';document.getElementById('mst-leadership').checked=true;populateParentPositionSelect();openM('m-structure')">+ إضافة منصب</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="generateBaseStructure()">🏗️ توليد الهيكل الأساسي حسب نوع الشركة</button>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mst-id').value='';document.getElementById('mst-title-h').textContent='🌳 إضافة منصب في الهيكل التنظيمي';document.getElementById('mst-leadership').checked=true;document.getElementById('mst-is-body').checked=false;toggleBodyFields();populateParentPositionSelect();openM('m-structure')">+ إضافة منصب</button>
+    </div>
   </div>
   <div class="card">
     <div class="card-body" style="padding:0">
@@ -1688,9 +1691,13 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="modal">
     <div class="modal-title" id="mst-title-h">🌳 إضافة منصب في الهيكل التنظيمي</div>
     <input type="hidden" id="mst-id" value="" />
-    <div class="fg"><label>المنصب</label><input class="fi" id="mst-title" placeholder="مثال: مدير إدارة المخاطر" /></div>
-    <div class="fg"><label>اسم شاغل المنصب</label><input class="fi" id="mst-holder" placeholder="مثال: خالد العتيبي" /></div>
-    <div class="fg"><label>تاريخ التعيين</label><input type="date" class="fi" id="mst-appointment-date"/></div>
+    <div class="fg" style="display:flex;align-items:center;gap:8px;background:var(--offwhite);padding:10px 12px;border-radius:8px">
+      <input type="checkbox" id="mst-is-body" style="width:16px;height:16px" onchange="toggleBodyFields()" />
+      <label for="mst-is-body" style="margin:0;font-size:12px;cursor:pointer">هذه جهة/مجلس (مثل: مجلس الإدارة، اللجان، الجمعية العامة) — بدون اسم شخص، تظهر بالشجرة فقط</label>
+    </div>
+    <div class="fg"><label>المنصب / اسم الجهة</label><input class="fi" id="mst-title" placeholder="مثال: مدير إدارة المخاطر" /></div>
+    <div class="fg" id="mst-holder-field"><label>اسم شاغل المنصب</label><input class="fi" id="mst-holder" placeholder="مثال: خالد العتيبي" /></div>
+    <div class="fg" id="mst-date-field"><label>تاريخ التعيين</label><input type="date" class="fi" id="mst-appointment-date"/></div>
     <div class="fg"><label>يتبع لـ (المنصب الأعلى)</label>
       <select class="fs" id="mst-parent">
         <option value="">— بدون (أعلى مستوى في الهيكل) —</option>
@@ -2248,6 +2255,7 @@ function isMutatingOnclick(val){
     || /^saveMeetingAttendance\(/.test(val)
     || /^openNewCommitteeModal\(/.test(val)
     || /^openNewGovEvalModal\(/.test(val)
+    || /^generateBaseStructure\(/.test(val)
     || /^openNewCompanyModal\(/.test(val)
     || /^openInviteModal\(/.test(val)
     || /^openEditCompanyModal\(/.test(val)
@@ -5518,16 +5526,53 @@ async function loadStructure(){
     return;
   }
 
-  tbody.innerHTML = structureCache.map(s => `<tr>
+  tbody.innerHTML = structureCache.filter(s => !s.is_body).map(s => `<tr>
     <td>${s.position_title||""}</td><td>${s.holder_name||"—"}</td><td>${s.parent_position||"—"}</td><td>${orgLevelLabel(s.level)}</td><td>${s.appointment_date||"—"}</td>
     <td>${s.is_leadership !== false ? '<span style="color:var(--green)">✓ نعم</span>' : '<span style="color:var(--gray3)">— لا</span>'}</td>
     <td>
       <button class="btn-xs primary" onclick="editStructure(${s.id})">✏️ تعديل</button>
       <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;margin-right:4px" onclick="deletePosition(${s.id})">🗑️ حذف</button>
     </td>
-  </tr>`).join("");
+  </tr>`).join("") || emptyRowHTML(7, "لا يوجد مناصب أفراد بعد (المجالس والجهات تظهر بالشجرة فقط).");
 
   if(chartWrap) chartWrap.innerHTML = renderOrgTree(structureCache.filter(s => s.is_leadership !== false));
+}
+
+async function generateBaseStructure(){
+  const { data: company } = await sb.from("companies").select("company_type").eq("id", currentCompanyId).single();
+  const type = company ? company.company_type : "مساهمة غير مدرجة";
+
+  let rows = [];
+  if(type === "مؤسسة فردية"){
+    if(!confirm('سيُضاف منصب "المالك" كأعلى نقطة بالهيكل (بدون مجلس أو جمعية، حسب طبيعة المؤسسة الفردية). متابعة؟')) return;
+    rows = [
+      { position_title: "المالك", parent_position: "", level: 1, is_body: false, is_leadership: true }
+    ];
+  } else if(type === "ذات مسؤولية محدودة"){
+    if(!confirm('سيُضاف: جمعية الشركاء ← مجلس المديرين (برئيسه) ← الرئيس التنفيذي. متابعة؟')) return;
+    rows = [
+      { position_title: "جمعية الشركاء", parent_position: "", level: 1, is_body: true },
+      { position_title: "مجلس المديرين", parent_position: "جمعية الشركاء", level: 2, is_body: true },
+      { position_title: "رئيس مجلس المديرين", parent_position: "مجلس المديرين", level: 2, is_body: false, is_leadership: true },
+      { position_title: "الرئيس التنفيذي", parent_position: "مجلس المديرين", level: 4, is_body: false, is_leadership: true }
+    ];
+  } else {
+    // مساهمة مدرجة / مساهمة غير مدرجة (default)
+    if(!confirm('سيُضاف: الجمعية العامة ← مجلس الإدارة (برئيسه واللجان المنبثقة) ← الرئيس التنفيذي. متابعة؟')) return;
+    rows = [
+      { position_title: "الجمعية العامة", parent_position: "", level: 1, is_body: true },
+      { position_title: "مجلس الإدارة", parent_position: "الجمعية العامة", level: 2, is_body: true },
+      { position_title: "رئيس مجلس الإدارة", parent_position: "مجلس الإدارة", level: 2, is_body: false, is_leadership: true },
+      { position_title: "اللجان المنبثقة", parent_position: "مجلس الإدارة", level: 3, is_body: true },
+      { position_title: "الرئيس التنفيذي", parent_position: "مجلس الإدارة", level: 4, is_body: false, is_leadership: true }
+    ];
+  }
+
+  const payload = rows.map(r => ({ ...r, company_id: currentCompanyId }));
+  const { error } = await sb.from("org_structure").insert(payload);
+  if(error){ alert("تعذّر توليد الهيكل الأساسي: " + error.message); return; }
+  alert("تم توليد الهيكل الأساسي ✅ — أضف بقية المناصب (نواب الرئيس، المدراء...) وتأكد كل واحد يتبع للجهة الصح.");
+  loadStructure();
 }
 
 async function deletePosition(id){
@@ -5561,6 +5606,11 @@ function renderOrgTree(rows){
     const small = depth > 0;
     const pad = small ? "8px 12px" : "10px 20px";
     const fs = small ? "11px" : "13px";
+    if(s.is_body){
+      return `<div style="display:inline-block;background:#fff;color:var(--primary);border:2px solid var(--gold);border-radius:10px;padding:${pad};font-size:${fs};font-weight:800;box-shadow:0 2px 8px rgba(212,175,55,0.2);min-width:120px;white-space:nowrap;text-align:center">
+        🏛️ ${s.position_title||""}
+      </div>`;
+    }
     return `<div style="display:inline-block;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;border-radius:10px;padding:${pad};font-size:${fs};font-weight:800;box-shadow:0 2px 8px rgba(26,58,107,0.25);min-width:120px;white-space:nowrap;text-align:center">
       ${s.position_title||""}
     </div>`;
@@ -5594,6 +5644,13 @@ function autoToggleLeadership(){
   document.getElementById("mst-leadership").checked = level <= 5;
 }
 
+function toggleBodyFields(){
+  const isBody = document.getElementById("mst-is-body").checked;
+  document.getElementById("mst-holder-field").style.display = isBody ? "none" : "block";
+  document.getElementById("mst-date-field").style.display = isBody ? "none" : "block";
+  if(isBody){ document.getElementById("mst-holder").value = ""; document.getElementById("mst-appointment-date").value = ""; }
+}
+
 function editStructure(id){
   const s = structureCache.find(x => x.id === id);
   if(!s) return;
@@ -5605,25 +5662,28 @@ function editStructure(id){
   populateParentPositionSelect(s.parent_position || "");
   document.getElementById("mst-level").value = s.level ?? "";
   document.getElementById("mst-leadership").checked = s.is_leadership !== false;
+  document.getElementById("mst-is-body").checked = !!s.is_body;
+  toggleBodyFields();
   openM("m-structure");
 }
 async function saveStructure(){
   const id = document.getElementById("mst-id").value;
   const position_title = document.getElementById("mst-title").value.trim();
   if(!position_title){ alert("الرجاء إدخال اسم المنصب"); return; }
-  const holder_name = document.getElementById("mst-holder").value.trim();
-  const appointment_date = document.getElementById("mst-appointment-date").value || null;
+  const is_body = document.getElementById("mst-is-body").checked;
+  const holder_name = is_body ? "" : document.getElementById("mst-holder").value.trim();
+  const appointment_date = is_body ? null : (document.getElementById("mst-appointment-date").value || null);
   const parent_position = document.getElementById("mst-parent").value.trim();
   const level = document.getElementById("mst-level").value ? Number(document.getElementById("mst-level").value) : null;
   const is_leadership = document.getElementById("mst-leadership").checked;
-  const payload = { position_title, holder_name, appointment_date, parent_position, level, is_leadership, company_id: currentCompanyId };
+  const payload = { position_title, holder_name, appointment_date, parent_position, level, is_leadership, is_body, company_id: currentCompanyId };
   const { error } = id
     ? await sb.from("org_structure").update(payload).eq("id", id)
     : await sb.from("org_structure").insert([payload]);
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
   document.getElementById("mst-id").value = "";
   document.getElementById("mst-title-h").textContent = "🌳 إضافة منصب في الهيكل التنظيمي";
-  document.getElementById("mst-title").value=""; document.getElementById("mst-holder").value=""; document.getElementById("mst-appointment-date").value=""; document.getElementById("mst-parent").value=""; document.getElementById("mst-level").value=""; document.getElementById("mst-leadership").checked = true;
+  document.getElementById("mst-title").value=""; document.getElementById("mst-holder").value=""; document.getElementById("mst-appointment-date").value=""; document.getElementById("mst-parent").value=""; document.getElementById("mst-level").value=""; document.getElementById("mst-leadership").checked = true; document.getElementById("mst-is-body").checked = false; toggleBodyFields();
   closeM("m-structure"); loadStructure();
 }
 
