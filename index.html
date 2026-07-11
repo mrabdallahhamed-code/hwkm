@@ -641,7 +641,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
         <div class="user-av" id="sidebarUserAv">م</div>
         <div><div class="user-name" id="sidebarUserName">مستخدم</div><div class="user-role" id="sidebarUserRole">—</div></div>
       </div>
-      <button onclick="logout()" title="تسجيل الخروج" style="background:none;border:none;color:var(--gray2);cursor:pointer;font-size:16px">⏻</button>
+      <div style="display:flex;align-items:center;gap:6px">
+        <button onclick="openSecurityModal()" title="الأمان والتحقق بخطوتين" style="background:none;border:none;color:var(--gray2);cursor:pointer;font-size:16px">🔐</button>
+        <button onclick="logout()" title="تسجيل الخروج" style="background:none;border:none;color:var(--gray2);cursor:pointer;font-size:16px">⏻</button>
+      </div>
     </div>
   </div>
 </nav>
@@ -1798,6 +1801,21 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 </div>
 
 <!-- Add committee modal -->
+<div class="modal-bg" id="m-charter">
+  <div class="modal">
+    <div class="modal-title" id="mch-title-h">📜 ميثاق اللجنة</div>
+    <input type="hidden" id="mch-committee-id" value="" />
+    <div class="fg"><label>الغرض والهدف من اللجنة</label><textarea class="fta" id="mch-purpose" rows="2" placeholder="لماذا أُنشئت هذه اللجنة، والدور الذي تلعبه بالحوكمة العامة للشركة"></textarea></div>
+    <div class="fg"><label>الاختصاصات والصلاحيات</label><textarea class="fta" id="mch-authorities" rows="3" placeholder="ما الذي تملك اللجنة صلاحية اتخاذ قرار بشأنه، وما الذي يحتاج رفعًا لمجلس الإدارة"></textarea></div>
+    <div class="fg"><label>التشكيل وعضوية اللجنة</label><textarea class="fta" id="mch-composition" rows="2" placeholder="عدد الأعضاء، الشروط المطلوبة لعضويتها، مدة العضوية"></textarea></div>
+    <div class="fg"><label>تنظيم الاجتماعات</label><textarea class="fta" id="mch-meetings-rules" rows="2" placeholder="عدد الاجتماعات السنوية الأدنى، نصاب الانعقاد، آلية الدعوة"></textarea></div>
+    <div class="fg"><label>آلية رفع التقارير لمجلس الإدارة</label><textarea class="fta" id="mch-reporting" rows="2"></textarea></div>
+    <div class="fg"><label>تاريخ اعتماد الميثاق</label><input type="date" class="fi" id="mch-approved-date"/></div>
+    <div class="fg"><label>ملف الميثاق الرسمي (اختياري)</label><input type="file" class="fi" id="mch-file"/></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-charter')">إلغاء</button><button class="btn btn-gold" onclick="saveCharter()">✅ حفظ الميثاق</button></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-committee">
   <div class="modal">
     <div class="modal-title" id="mcm-title-h">📋 إضافة لجنة</div>
@@ -2142,6 +2160,47 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
+<div class="modal-bg" id="m-security">
+  <div class="modal">
+    <div class="modal-title">🔐 الأمان — التحقق بخطوتين</div>
+    <div id="secStatusLoading" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</div>
+
+    <div id="secEnabled" style="display:none">
+      <div style="background:#E8F8EF;border-radius:10px;padding:14px;text-align:center;margin-bottom:12px">
+        <div style="font-size:26px">✅</div>
+        <div style="font-size:13px;font-weight:700;color:var(--green);margin-top:4px">التحقق بخطوتين مفعّل على حسابك</div>
+      </div>
+      <p style="font-size:11.5px;color:var(--gray3)">في كل مرة تسجّل دخول، بيُطلب منك إدخال رمز من تطبيق المصادقة بعد كلمة المرور.</p>
+      <button class="btn" style="width:100%;background:#FDE8E8;color:var(--red)" onclick="disableMfa()">إلغاء التفعيل</button>
+    </div>
+
+    <div id="secSetupStep1" style="display:none">
+      <p style="font-size:12.5px;color:var(--dark)">١) افتح تطبيق مصادقة على جوالك (Google Authenticator، Microsoft Authenticator، أو أي تطبيق مشابه) وامسح الرمز التالي:</p>
+      <div style="text-align:center;margin:14px 0" id="mfaQrBox"></div>
+      <p style="font-size:11px;color:var(--gray3);text-align:center">أو أدخل هذا المفتاح يدويًا: <b id="mfaSecretKey" style="user-select:all"></b></p>
+      <div class="fg"><label>٢) أدخل الرمز المكوّن من 6 أرقام من التطبيق</label><input class="fi" id="mfaEnrollCode" maxlength="6" placeholder="000000" style="text-align:center;letter-spacing:4px;font-size:16px"></div>
+      <button class="btn btn-gold" style="width:100%" onclick="confirmMfaEnroll()">✅ تفعيل التحقق بخطوتين</button>
+    </div>
+
+    <div id="secSetupStart" style="display:none">
+      <p style="font-size:12px;color:var(--gray3);margin-bottom:12px">حماية إضافية لحسابك — يُطلب منك رمز من جوالك بعد كلمة المرور عند كل تسجيل دخول.</p>
+      <button class="btn btn-gold" style="width:100%" onclick="startMfaEnroll()">🔐 تفعيل التحقق بخطوتين</button>
+    </div>
+
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-security')">إغلاق</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-mfa-challenge">
+  <div class="modal">
+    <div class="modal-title">🔐 التحقق بخطوتين</div>
+    <p style="font-size:12.5px;color:var(--dark)">أدخل الرمز المكوّن من 6 أرقام من تطبيق المصادقة على جوالك.</p>
+    <div class="fg"><input class="fi" id="mfaLoginCode" maxlength="6" placeholder="000000" style="text-align:center;letter-spacing:4px;font-size:18px"></div>
+    <div id="mfaLoginError" style="color:var(--red);font-size:11.5px;display:none;margin-bottom:8px"></div>
+    <div class="modal-foot"><button class="btn btn-gold" style="width:100%" onclick="verifyMfaLogin()">تأكيد الدخول</button></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-invite">
   <div class="modal">
     <div class="modal-title" id="mi-title-h">🔗 دعوة عضو جديد</div>
@@ -2313,6 +2372,14 @@ async function handleAuth(){
   if(authMode === "login"){
     const { error } = await sb.auth.signInWithPassword({ email, password });
     if(error){ showLoginMsg("خطأ: " + error.message, false); return; }
+
+    // If this account has 2FA enabled, the session is only at AAL1 (password-only) right
+    // after sign-in — require the TOTP code before letting them into the app.
+    const { data: aal } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+    if(aal && aal.nextLevel === "aal2" && aal.currentLevel !== aal.nextLevel){
+      openM("m-mfa-challenge");
+      return;
+    }
     showApp();
   } else {
     const account_type = document.getElementById("signupAccountType").value;
@@ -2497,6 +2564,8 @@ function isMutatingOnchange(val){
     || /^uploadAGMSupportingDoc\(/.test(val)
     || /^uploadDocumentTemplate\(/.test(val)
     || /^handlePdfFileSelect\(/.test(val)
+    || /^openCharterModal\(/.test(val)
+    || /^saveCharter\(/.test(val)
     || /^updateUserRole\(/.test(val)
     || /^updateRequestStatus\(/.test(val)
     || /^savePermCell\(/.test(val);
@@ -3487,6 +3556,80 @@ async function applyCompanyTypeVisibility(){
   });
 }
 
+/* ══════════ TWO-FACTOR AUTHENTICATION (Supabase MFA / TOTP) ══════════ */
+let pendingMfaFactorId = null;
+
+async function openSecurityModal(){
+  document.getElementById("secStatusLoading").style.display = "block";
+  document.getElementById("secEnabled").style.display = "none";
+  document.getElementById("secSetupStep1").style.display = "none";
+  document.getElementById("secSetupStart").style.display = "none";
+  openM("m-security");
+
+  const { data, error } = await sb.auth.mfa.listFactors();
+  document.getElementById("secStatusLoading").style.display = "none";
+  if(error){ alert("تعذّر تحميل حالة الأمان: " + error.message); closeM("m-security"); return; }
+  const verified = (data.totp || []).find(f => f.status === "verified");
+  if(verified){
+    document.getElementById("secEnabled").style.display = "block";
+    pendingMfaFactorId = verified.id;
+  } else {
+    document.getElementById("secSetupStart").style.display = "block";
+  }
+}
+
+async function startMfaEnroll(){
+  const { data, error } = await sb.auth.mfa.enroll({ factorType: "totp" });
+  if(error){ alert("تعذّر بدء التفعيل: " + error.message); return; }
+  pendingMfaFactorId = data.id;
+  document.getElementById("mfaQrBox").innerHTML = `<img src="${data.totp.qr_code}" style="width:180px;height:180px;border:1px solid var(--gray1);border-radius:8px" alt="QR"/>`;
+  document.getElementById("mfaSecretKey").textContent = data.totp.secret;
+  document.getElementById("secSetupStart").style.display = "none";
+  document.getElementById("secSetupStep1").style.display = "block";
+}
+
+async function confirmMfaEnroll(){
+  const code = document.getElementById("mfaEnrollCode").value.trim();
+  if(!code || code.length !== 6){ alert("أدخل رمز مكوّن من 6 أرقام"); return; }
+  const { data: challenge, error: chErr } = await sb.auth.mfa.challenge({ factorId: pendingMfaFactorId });
+  if(chErr){ alert("تعذّر التحقق: " + chErr.message); return; }
+  const { error: vErr } = await sb.auth.mfa.verify({ factorId: pendingMfaFactorId, challengeId: challenge.id, code });
+  if(vErr){ alert("الرمز غير صحيح: " + vErr.message); return; }
+  logActivity("صلاحيات", "الأمان", currentUserProfile?currentUserProfile.full_name:"", "تفعيل التحقق بخطوتين");
+  alert("تم تفعيل التحقق بخطوتين بنجاح ✅");
+  closeM("m-security");
+}
+
+async function disableMfa(){
+  if(!confirm("إلغاء تفعيل التحقق بخطوتين؟ حسابك سيعتمد على كلمة المرور فقط بعدها.")) return;
+  const { error } = await sb.auth.mfa.unenroll({ factorId: pendingMfaFactorId });
+  if(error){ alert("تعذّر الإلغاء: " + error.message); return; }
+  logActivity("صلاحيات", "الأمان", currentUserProfile?currentUserProfile.full_name:"", "إلغاء التحقق بخطوتين");
+  alert("تم إلغاء التحقق بخطوتين.");
+  closeM("m-security");
+}
+
+async function verifyMfaLogin(){
+  const code = document.getElementById("mfaLoginCode").value.trim();
+  const errBox = document.getElementById("mfaLoginError");
+  errBox.style.display = "none";
+  if(!code || code.length !== 6){ errBox.textContent = "أدخل رمز مكوّن من 6 أرقام"; errBox.style.display = "block"; return; }
+
+  const { data: factors, error: fErr } = await sb.auth.mfa.listFactors();
+  if(fErr){ errBox.textContent = fErr.message; errBox.style.display = "block"; return; }
+  const factor = (factors.totp || []).find(f => f.status === "verified");
+  if(!factor){ errBox.textContent = "تعذّر تحديد وسيلة التحقق"; errBox.style.display = "block"; return; }
+
+  const { data: challenge, error: chErr } = await sb.auth.mfa.challenge({ factorId: factor.id });
+  if(chErr){ errBox.textContent = chErr.message; errBox.style.display = "block"; return; }
+  const { error: vErr } = await sb.auth.mfa.verify({ factorId: factor.id, challengeId: challenge.id, code });
+  if(vErr){ errBox.textContent = "رمز غير صحيح، حاول مجددًا."; errBox.style.display = "block"; return; }
+
+  document.getElementById("mfaLoginCode").value = "";
+  closeM("m-mfa-challenge");
+  showApp();
+}
+
 async function logout(){
   await sb.auth.signOut();
   currentUserProfile = null;
@@ -3513,6 +3656,12 @@ async function showApp(){
 async function checkSession(){
   const { data } = await sb.auth.getSession();
   if(data && data.session){
+    const { data: aal } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+    if(aal && aal.nextLevel === "aal2" && aal.currentLevel !== aal.nextLevel){
+      document.getElementById("loginScreen").style.display = "flex";
+      openM("m-mfa-challenge");
+      return;
+    }
     showApp();
   } else {
     document.getElementById("loginScreen").style.display = "flex";
@@ -5814,6 +5963,7 @@ async function loadCommittees(){
   wrap.innerHTML = committeesCache.map(c => {
     const color = catColors[c.category] || "var(--gray3)";
     const memberCount = countByCommittee[c.id] || 0;
+    const hasCharter = !!(c.charter_purpose || c.charter_authorities || c.charter_composition);
     return `<div class="card" style="margin-bottom:16px;border-right:4px solid ${color}">
       <div class="card-body">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
@@ -5827,11 +5977,48 @@ async function loadCommittees(){
         <div style="font-size:12px;color:var(--gray3);margin-bottom:4px">👤 رئيس اللجنة: <b style="color:var(--dark)">${c.chairman_name||"—"}</b></div>
         <div style="font-size:12px;color:var(--gray3);margin-bottom:4px">👥 عدد الأعضاء المحددين: <b style="color:var(--dark)">${memberCount}</b></div>
         <div style="font-size:12px;color:var(--gray3);margin-bottom:8px">📅 تاريخ التعيين: ${c.appointment_date||"—"}</div>
-        ${c.scope ? `<div style="font-size:11.5px;color:var(--gray3);background:var(--offwhite);border-radius:8px;padding:8px">${c.scope}</div>` : ""}
+        ${c.scope ? `<div style="font-size:11.5px;color:var(--gray3);background:var(--offwhite);border-radius:8px;padding:8px;margin-bottom:8px">${c.scope}</div>` : ""}
+        <button class="btn-xs" style="width:100%;background:${hasCharter?'#E8F8EF':'var(--offwhite)'};color:${hasCharter?'var(--green)':'var(--dark)'};border:1px solid ${hasCharter?'transparent':'var(--gray1)'};border-radius:6px;padding:6px;font-size:11px;cursor:pointer" onclick="openCharterModal(${c.id})">📜 ${hasCharter?'عرض/تعديل الميثاق ✅':'إعداد ميثاق اللجنة'}</button>
       </div>
     </div>`;
   }).join("");
 }
+function openCharterModal(committeeId){
+  const c = committeesCache.find(x => x.id === committeeId);
+  if(!c) return;
+  document.getElementById("mch-committee-id").value = committeeId;
+  document.getElementById("mch-title-h").textContent = "📜 ميثاق — " + (c.committee_name||"");
+  document.getElementById("mch-purpose").value = c.charter_purpose || "";
+  document.getElementById("mch-authorities").value = c.charter_authorities || "";
+  document.getElementById("mch-composition").value = c.charter_composition || "";
+  document.getElementById("mch-meetings-rules").value = c.charter_meetings_rules || "";
+  document.getElementById("mch-reporting").value = c.charter_reporting || "";
+  document.getElementById("mch-approved-date").value = c.charter_approved_date || "";
+  document.getElementById("mch-file").value = "";
+  openM("m-charter");
+}
+
+async function saveCharter(){
+  const committeeId = Number(document.getElementById("mch-committee-id").value);
+  const fileInput = document.getElementById("mch-file");
+  const file_url = await uploadFile(fileInput, "charters");
+  const payload = {
+    charter_purpose: document.getElementById("mch-purpose").value.trim(),
+    charter_authorities: document.getElementById("mch-authorities").value.trim(),
+    charter_composition: document.getElementById("mch-composition").value.trim(),
+    charter_meetings_rules: document.getElementById("mch-meetings-rules").value.trim(),
+    charter_reporting: document.getElementById("mch-reporting").value.trim(),
+    charter_approved_date: document.getElementById("mch-approved-date").value || null
+  };
+  if(file_url) payload.charter_file_url = file_url;
+  const { error } = await sb.from("committees").update(payload).eq("id", committeeId);
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  const c = committeesCache.find(x => x.id === committeeId);
+  logActivity("تعديل", "ميثاق لجنة", c?c.committee_name:"", "");
+  closeM("m-charter");
+  loadCommittees();
+}
+
 function editCommittee(id){
   const c = committeesCache.find(x => x.id === id);
   if(!c) return;
