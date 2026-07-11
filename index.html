@@ -4525,34 +4525,36 @@ function renderPoliciesFiltered(){
       <span style="font-weight:900;font-size:14px;color:var(--primary)">${cat}</span>
       <span style="flex:1;height:1px;background:var(--gray1)"></span>
     </div>
-    <div class="two-col">`;
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;align-items:stretch">`;
 
     groups[cat].forEach(p => {
       const stageIdx = POLICY_STAGES.indexOf(p.status);
       const nextBtn = (stageIdx >= 0 && stageIdx < POLICY_STAGES.length-1)
         ? `<button class="btn-xs primary" style="width:100%;margin-top:8px" onclick="advancePolicyStage(${p.id})">⏩ نقل إلى: ${POLICY_STAGES[stageIdx+1]}</button>`
         : "";
-      html += `<div class="card" style="margin-bottom:16px">
-        <div class="card-body">
+      html += `<div class="card" style="margin:0;display:flex;flex-direction:column">
+        <div class="card-body" style="display:flex;flex-direction:column;flex:1">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-            <div>
-              <div style="font-weight:800;font-size:13.5px;color:var(--dark)">${p.policy_name||""}</div>
+            <div style="min-width:0">
+              <div style="font-weight:800;font-size:13.5px;color:var(--dark);word-break:break-word">${p.policy_name||""}</div>
               <div style="font-size:11px;color:var(--gray3);margin-top:2px">${p.policy_type||"—"}</div>
             </div>
-            ${statusBadge(p.status)}
+            <div style="flex-shrink:0">${statusBadge(p.status)}</div>
           </div>
           ${policyStageStepper(p.status)}
-          <div style="font-size:11px;color:var(--gray3);display:flex;gap:14px;margin-top:6px">
+          <div style="font-size:11px;color:var(--gray3);display:flex;gap:14px;margin-top:6px;flex-wrap:wrap">
             <span>📅 اعتماد: ${p.approval_date||"—"}</span>
             <span>🔁 مراجعة: ${p.review_date||"—"}</span>
           </div>
-          <div style="display:flex;gap:6px;margin-top:10px;align-items:center">
-            ${downloadBtn(p.file_url)}
-            <button class="btn-xs primary" onclick="editPolicy(${p.id})">✏️ تعديل</button>
-            <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="openPolicyHistoryModal(${p.id})">🕒 السجل</button>
-            <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="deletePolicy(${p.id})">🗑️ حذف</button>
+          <div style="margin-top:auto;padding-top:10px">
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              ${downloadBtn(p.file_url)}
+              <button class="btn-xs primary" onclick="editPolicy(${p.id})">✏️ تعديل</button>
+              <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="openPolicyHistoryModal(${p.id})">🕒 السجل</button>
+              <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="deletePolicy(${p.id})">🗑️ حذف</button>
+            </div>
+            ${nextBtn}
           </div>
-          ${nextBtn}
         </div>
       </div>`;
     });
