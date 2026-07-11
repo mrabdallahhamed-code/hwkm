@@ -1021,7 +1021,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <span>🌳 دليل المناصب التنظيمية</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="generateBaseStructure()">🏗️ توليد الهيكل الأساسي حسب نوع الشركة</button>
-      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mst-id').value='';document.getElementById('mst-title-h').textContent='🌳 إضافة منصب في الهيكل التنظيمي';document.getElementById('mst-leadership').checked=true;document.getElementById('mst-is-body').checked=false;toggleBodyFields();populateParentPositionSelect();openM('m-structure')">+ إضافة منصب</button>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mst-id').value='';document.getElementById('mst-title-h').textContent='🌳 إضافة منصب في الهيكل التنظيمي';document.getElementById('mst-leadership').checked=true;document.getElementById('mst-is-body').checked=false;toggleBodyFields();document.getElementById('mst-delete-btn').style.display='none';populateParentPositionSelect();openM('m-structure')">+ إضافة منصب</button>
     </div>
   </div>
   <div class="card">
@@ -1717,7 +1717,11 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <input type="checkbox" id="mst-leadership" checked style="width:16px;height:16px" />
       <label for="mst-leadership" style="margin:0;font-size:12px;cursor:pointer">إظهار هذا المنصب بشجرة الهيكل (للقيادات والمدراء فقط — الموظفون يظهرون بالجدول أدناه بدون الشجرة)</label>
     </div>
-    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-structure')">إلغاء</button><button class="btn btn-gold" onclick="saveStructure()">✅ حفظ المنصب</button></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeM('m-structure')">إلغاء</button>
+      <button id="mst-delete-btn" class="btn" style="background:#FDE8E8;color:var(--red);display:none" onclick="deleteStructureFromModal()">🗑️ حذف هذا العنصر</button>
+      <button class="btn btn-gold" onclick="saveStructure()">✅ حفظ المنصب</button>
+    </div>
   </div>
 </div>
 
@@ -5544,12 +5548,12 @@ async function generateBaseStructure(){
 
   let rows = [];
   if(type === "مؤسسة فردية"){
-    if(!confirm('سيُضاف منصب "المالك" كأعلى نقطة بالهيكل (بدون مجلس أو جمعية، حسب طبيعة المؤسسة الفردية). متابعة؟')) return;
+    if(!confirm('سيُضاف منصب "المالك" كأعلى نقطة بالهيكل (بدون مجلس أو جمعية، حسب طبيعة المؤسسة الفردية). أي عنصر قديم بنفس الاسم سيُستبدل تلقائيًا بالنسخة الصحيحة. متابعة؟')) return;
     rows = [
       { position_title: "المالك", parent_position: "", level: 1, is_body: false, is_leadership: true }
     ];
   } else if(type === "ذات مسؤولية محدودة"){
-    if(!confirm('سيُضاف: جمعية الشركاء ← مجلس المديرين (برئيسه) ← الرئيس التنفيذي. متابعة؟')) return;
+    if(!confirm('سيُضاف: جمعية الشركاء ← مجلس المديرين (برئيسه) ← الرئيس التنفيذي. أي عنصر قديم بنفس الاسم سيُستبدل تلقائيًا بالنسخة الصحيحة. متابعة؟')) return;
     rows = [
       { position_title: "جمعية الشركاء", parent_position: "", level: 1, is_body: true },
       { position_title: "مجلس المديرين", parent_position: "جمعية الشركاء", level: 2, is_body: true },
@@ -5558,7 +5562,7 @@ async function generateBaseStructure(){
     ];
   } else {
     // مساهمة مدرجة / مساهمة غير مدرجة (default)
-    if(!confirm('سيُضاف: الجمعية العامة ← مجلس الإدارة (برئيسه واللجان المنبثقة) ← الرئيس التنفيذي. متابعة؟')) return;
+    if(!confirm('سيُضاف: الجمعية العامة ← مجلس الإدارة (برئيسه واللجان المنبثقة) ← الرئيس التنفيذي. أي عنصر قديم بنفس الاسم سيُستبدل تلقائيًا بالنسخة الصحيحة. متابعة؟')) return;
     rows = [
       { position_title: "الجمعية العامة", parent_position: "", level: 1, is_body: true },
       { position_title: "مجلس الإدارة", parent_position: "الجمعية العامة", level: 2, is_body: true },
@@ -5567,6 +5571,12 @@ async function generateBaseStructure(){
       { position_title: "الرئيس التنفيذي", parent_position: "مجلس الإدارة", level: 4, is_body: false, is_leadership: true }
     ];
   }
+
+  // Replace-by-name: remove any existing position/body with the exact same title first, so
+  // regenerating doesn't create duplicates or leave a mis-wired older copy behind — while
+  // any custom positions the company added themselves (different titles) stay untouched.
+  const titles = rows.map(r => r.position_title);
+  await sb.from("org_structure").delete().eq("company_id", currentCompanyId).in("position_title", titles);
 
   const payload = rows.map(r => ({ ...r, company_id: currentCompanyId }));
   const { error } = await sb.from("org_structure").insert(payload);
@@ -5607,11 +5617,11 @@ function renderOrgTree(rows){
     const pad = small ? "8px 12px" : "10px 20px";
     const fs = small ? "11px" : "13px";
     if(s.is_body){
-      return `<div style="display:inline-block;background:#fff;color:var(--primary);border:2px solid var(--gold);border-radius:10px;padding:${pad};font-size:${fs};font-weight:800;box-shadow:0 2px 8px rgba(212,175,55,0.2);min-width:120px;white-space:nowrap;text-align:center">
+      return `<div onclick="editStructure(${s.id})" style="cursor:pointer;display:inline-block;background:#fff;color:var(--primary);border:2px solid var(--gold);border-radius:10px;padding:${pad};font-size:${fs};font-weight:800;box-shadow:0 2px 8px rgba(212,175,55,0.2);min-width:120px;white-space:nowrap;text-align:center" title="اضغط للتعديل أو الحذف">
         🏛️ ${s.position_title||""}
       </div>`;
     }
-    return `<div style="display:inline-block;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;border-radius:10px;padding:${pad};font-size:${fs};font-weight:800;box-shadow:0 2px 8px rgba(26,58,107,0.25);min-width:120px;white-space:nowrap;text-align:center">
+    return `<div onclick="editStructure(${s.id})" style="cursor:pointer;display:inline-block;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;border-radius:10px;padding:${pad};font-size:${fs};font-weight:800;box-shadow:0 2px 8px rgba(26,58,107,0.25);min-width:120px;white-space:nowrap;text-align:center" title="اضغط للتعديل أو الحذف">
       ${s.position_title||""}
     </div>`;
   }
@@ -5664,7 +5674,18 @@ function editStructure(id){
   document.getElementById("mst-leadership").checked = s.is_leadership !== false;
   document.getElementById("mst-is-body").checked = !!s.is_body;
   toggleBodyFields();
+  document.getElementById("mst-delete-btn").style.display = "inline-block";
   openM("m-structure");
+}
+
+async function deleteStructureFromModal(){
+  const id = document.getElementById("mst-id").value;
+  if(!id) return;
+  if(!confirm("حذف هذا العنصر سيفصله عن الهيكل. المناصب التابعة له ستحتاج إعادة ربط يدويًا. متابعة؟")) return;
+  const { error } = await sb.from("org_structure").delete().eq("id", id);
+  if(error){ alert("تعذّر الحذف: " + error.message); return; }
+  closeM("m-structure");
+  loadStructure();
 }
 async function saveStructure(){
   const id = document.getElementById("mst-id").value;
@@ -5683,7 +5704,7 @@ async function saveStructure(){
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
   document.getElementById("mst-id").value = "";
   document.getElementById("mst-title-h").textContent = "🌳 إضافة منصب في الهيكل التنظيمي";
-  document.getElementById("mst-title").value=""; document.getElementById("mst-holder").value=""; document.getElementById("mst-appointment-date").value=""; document.getElementById("mst-parent").value=""; document.getElementById("mst-level").value=""; document.getElementById("mst-leadership").checked = true; document.getElementById("mst-is-body").checked = false; toggleBodyFields();
+  document.getElementById("mst-title").value=""; document.getElementById("mst-holder").value=""; document.getElementById("mst-appointment-date").value=""; document.getElementById("mst-parent").value=""; document.getElementById("mst-level").value=""; document.getElementById("mst-leadership").checked = true; document.getElementById("mst-is-body").checked = false; toggleBodyFields(); document.getElementById("mst-delete-btn").style.display = "none";
   closeM("m-structure"); loadStructure();
 }
 
