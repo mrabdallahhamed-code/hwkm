@@ -6229,13 +6229,15 @@ async function exportUsersList(){
 }
 
 /* ══════════ EMAIL NOTIFICATIONS (via Supabase Edge Function + Resend) ══════════ */
+// The Edge Functions gateway still validates against the legacy JWT-format anon key, not the
+// newer "sb_publishable_..." key used for regular database calls — kept separate on purpose.
+const LEGACY_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9tZGRua29mc2R0d2Zqa3hka3R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1MzE5OTcsImV4cCI6MjA5OTEwNzk5N30.mZFiuj3C8PcQ0ShSYkYQWpJDA6gNr5mjFbNVaGhkhlQ";
+
 async function sendNotificationEmail(to, subject, html){
   try{
-    const { data: sessionData } = await sb.auth.getSession();
-    const token = sessionData && sessionData.session ? sessionData.session.access_token : SUPABASE_KEY;
     const res = await fetch(`${SUPABASE_URL}/functions/v1/send-notification-email`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}`, "apikey": SUPABASE_KEY },
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${LEGACY_ANON_KEY}`, "apikey": LEGACY_ANON_KEY },
       body: JSON.stringify({ to, subject, html })
     });
     const data = await res.json();
