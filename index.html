@@ -510,6 +510,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <script src="https://unpkg.com/pizzip@3.2.0/dist/pizzip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://unpkg.com/docxtemplater@3.69.0/build/docxtemplater.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -655,6 +656,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     </div>
   </div>
   <div class="tb-right">
+    <div style="position:relative">
+      <input id="globalSearchInput" class="search-in" placeholder="🔍 ابحث بالمنصة..." oninput="handleGlobalSearchInput(this.value)" onfocus="handleGlobalSearchInput(this.value)">
+      <div id="globalSearchResults" style="display:none;position:absolute;top:calc(100% + 6px);left:0;width:340px;max-height:420px;overflow-y:auto;background:#fff;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,0.18);z-index:500;padding:6px"></div>
+    </div>
     <select id="companySwitcher" onchange="switchCompany(this.value)" style="font-family:'Tajawal',sans-serif;font-size:12px;padding:6px 10px;border-radius:8px;border:1.5px solid var(--gray1);background:#fff;color:var(--dark);max-width:180px">
       <option>جارِ التحميل...</option>
     </select>
@@ -738,7 +743,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <div id="p-meetings" class="page content">
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
     <span>📅 الاجتماعات القادمة والجارية</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-meeting-request')">+ طلب اجتماع</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportMeetingsList()">📥 تصدير Excel</button>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-meeting-request')">+ طلب اجتماع</button>
+    </div>
   </div>
   <div class="meet-cards" id="upcomingMeetCards">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
@@ -780,7 +788,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <div id="p-members" class="page content">
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
     <span>👥 أعضاء مجلس الإدارة</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mm-id').value='';document.getElementById('mm-title').textContent='👤 إضافة عضو مجلس إدارة';openM('m-member')">+ إضافة عضو</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportMembers()">📥 تصدير Excel</button>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mm-id').value='';document.getElementById('mm-title').textContent='👤 إضافة عضو مجلس إدارة';openM('m-member')">+ إضافة عضو</button>
+    </div>
   </div>
 
   <!-- Members Grid (loaded live from Supabase) -->
@@ -810,7 +821,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     </div>
   </div>
 
-  <div class="sec-title">⚠️ سجل المخاطر المؤسسية</div>
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span>⚠️ سجل المخاطر المؤسسية</span>
+    <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportRisksList()">📥 تصدير Excel</button>
+  </div>
   <div class="risk-grid" id="riskCardsGrid">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
   </div>
@@ -910,7 +924,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <div id="p-committees" class="page content">
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
     <span>🏛️ اللجان المتخصصة</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openNewCommitteeModal()">+ إضافة لجنة</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportCommitteesList()">📥 تصدير Excel</button>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openNewCommitteeModal()">+ إضافة لجنة</button>
+    </div>
   </div>
   <div id="committeesCards" class="two-col">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
@@ -989,6 +1006,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openTransferModal()">🔄 نقل ملكية</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px;color:var(--red)" onclick="deleteAllShareholders()">🗑️ حذف الكل</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openPdfImportModal()">📄 استيراد من PDF</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportShareholdersList()">📥 تصدير Excel</button>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openNewShareholderModal()">+ إضافة مساهم</button>
     </div>
   </div>
@@ -1027,7 +1045,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <div id="p-governance" class="page content">
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
     <span>🏛️ السياسات والحوكمة</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mp-id').value='';document.getElementById('mp-title-h').textContent='🏛️ إضافة سياسة جديدة';document.getElementById('mp-name').value='';document.getElementById('mp-type').value='';document.getElementById('mp-approval').value='';document.getElementById('mp-review').value='';openM('m-policy')">+ إضافة سياسة</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportPoliciesList()">📥 تصدير Excel</button>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mp-id').value='';document.getElementById('mp-title-h').textContent='🏛️ إضافة سياسة جديدة';document.getElementById('mp-name').value='';document.getElementById('mp-type').value='';document.getElementById('mp-approval').value='';document.getElementById('mp-review').value='';openM('m-policy')">+ إضافة سياسة</button>
+    </div>
   </div>
   <div style="background:linear-gradient(135deg,var(--primary),var(--primary2));border-radius:14px;padding:16px 18px;margin-bottom:18px;box-shadow:0 6px 20px rgba(26,58,107,0.18)">
     <div style="position:relative">
@@ -1054,7 +1075,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <div id="p-archive" class="page content">
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
     <span>🗄️ الأرشيف والوثائق</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-archive')">+ رفع وثيقة</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportArchiveList()">📥 تصدير Excel</button>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-archive')">+ رفع وثيقة</button>
+    </div>
   </div>
 
   <div style="background:linear-gradient(135deg,var(--primary),var(--primary2));border-radius:14px;padding:16px 18px;margin-bottom:18px;box-shadow:0 6px 20px rgba(26,58,107,0.18)">
@@ -1502,7 +1526,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <div id="p-users" class="page content">
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
     <span>🛡️ إدارة الصلاحيات</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openInviteModal()">🔗 دعوة عضو جديد</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportUsersList()">📥 تصدير Excel</button>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openInviteModal()">🔗 دعوة عضو جديد</button>
+    </div>
   </div>
 
   <div class="card" id="pendingInvitesCard" style="margin-bottom:16px;display:none">
@@ -5933,6 +5960,138 @@ async function loadStructure(){
 
 /* ══════════ SHAREHOLDERS REGISTRY (real ownership + transfer history) ══════════ */
 let shareholdersCache = [];
+
+/* ══════════ GLOBAL SEARCH (across all major entities) ══════════ */
+let globalSearchDebounce = null;
+function handleGlobalSearchInput(val){
+  clearTimeout(globalSearchDebounce);
+  const box = document.getElementById("globalSearchResults");
+  if(!val || val.trim().length < 2){ if(box) box.style.display = "none"; return; }
+  globalSearchDebounce = setTimeout(() => runGlobalSearch(val.trim()), 300);
+}
+
+/* ══════════ EXCEL EXPORT (generic, works for any table/cache) ══════════ */
+function exportToExcel(data, columns, filename){
+  if(!data || data.length === 0){ alert("لا توجد بيانات للتصدير."); return; }
+  const rows = data.map(row => {
+    const out = {};
+    columns.forEach(c => { out[c.label] = typeof c.value === "function" ? c.value(row) : (row[c.key] ?? ""); });
+    return out;
+  });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws["!cols"] = columns.map(() => ({ wch: 22 }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "البيانات");
+  XLSX.writeFile(wb, `${filename}.xlsx`);
+}
+
+function exportMembers(){
+  exportToExcel(membersCache, [
+    { label:"الاسم", key:"name" }, { label:"المنصب", key:"position" }, { label:"المستوى", key:"position_level" },
+    { label:"الحالة", key:"status" }, { label:"تنفيذي؟", key:"is_executive" }, { label:"تاريخ الانضمام", key:"join_date" }
+  ], "أعضاء مجلس الإدارة");
+}
+function exportMeetingsList(){
+  exportToExcel(allMeetingsCache, [
+    { label:"العنوان", key:"title" }, { label:"النوع", key:"meeting_type" }, { label:"التاريخ", key:"meeting_date" },
+    { label:"الوقت", key:"meeting_time" }, { label:"الطريقة", key:"method" }, { label:"الحالة", key:"status" }
+  ], "الاجتماعات");
+}
+function exportPoliciesList(){
+  exportToExcel(policiesCache, [
+    { label:"الاسم", key:"policy_name" }, { label:"النوع", key:"policy_type" }, { label:"الفئة", key:"category" },
+    { label:"الحالة", key:"status" }, { label:"تاريخ الاعتماد", key:"approval_date" }, { label:"تاريخ المراجعة", key:"review_date" }
+  ], "السياسات");
+}
+function exportRisksList(){
+  exportToExcel(risksCache, [
+    { label:"الاسم", key:"risk_name" }, { label:"الفئة", key:"category" }, { label:"الاحتمالية", key:"probability" },
+    { label:"التأثير", key:"impact" }, { label:"المسؤول", key:"owner" }, { label:"الحالة", key:"status" }
+  ], "المخاطر");
+}
+function exportCommitteesList(){
+  exportToExcel(committeesCache, [
+    { label:"اسم اللجنة", key:"committee_name" }, { label:"الرئيس", key:"chairman_name" },
+    { label:"الفئة", key:"category" }, { label:"النطاق", key:"scope" }
+  ], "اللجان");
+}
+function exportShareholdersList(){
+  exportToExcel(shareholdersCache, [
+    { label:"الاسم", key:"name" }, { label:"الجنسية", key:"nationality" }, { label:"محل الإقامة", key:"place_of_residence" },
+    { label:"المهنة", key:"profession" }, { label:"رقم الشهادة", key:"certificate_number" }, { label:"عدد الأسهم", key:"shares_count" },
+    { label:"القيمة المدفوعة", key:"paid_value" }, { label:"تاريخ انتقال الملكية", key:"ownership_transfer_date" }
+  ], "سجل المساهمين");
+}
+function exportArchiveList(){
+  exportToExcel(archiveDocsCache, [
+    { label:"اسم الوثيقة", key:"document_name" }, { label:"الفئة", key:"category" },
+    { label:"تاريخ الرفع", key:"created_at", value: r => r.created_at ? new Date(r.created_at).toLocaleDateString('ar-SA') : "" }
+  ], "الأرشيف");
+}
+async function exportUsersList(){
+  const { data } = await sb.from("user_profiles").select("*").eq("company_id", currentCompanyId);
+  exportToExcel(data||[], [
+    { label:"الاسم", key:"full_name" }, { label:"الإيميل", key:"email" }, { label:"الدور", key:"role" },
+    { label:"رقم الهوية", key:"national_id" }, { label:"الجوال", key:"phone_number" }
+  ], "فريق حوكمة الشركة");
+}
+
+async function runGlobalSearch(q){
+  const box = document.getElementById("globalSearchResults");
+  if(!box || !currentCompanyId) return;
+  box.style.display = "block";
+  box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ البحث...</div>';
+
+  const like = `%${q}%`;
+  const [members, meetings, policies, risks, committees, archive, shareholders, structure, signing] = await Promise.all([
+    sb.from("board_members").select("id,name").eq("company_id",currentCompanyId).ilike("name", like).limit(5),
+    sb.from("meetings").select("id,title").eq("company_id",currentCompanyId).ilike("title", like).limit(5),
+    sb.from("policies").select("id,policy_name").eq("company_id",currentCompanyId).ilike("policy_name", like).limit(5),
+    sb.from("risks").select("id,risk_name").eq("company_id",currentCompanyId).ilike("risk_name", like).limit(5),
+    sb.from("committees").select("id,committee_name").eq("company_id",currentCompanyId).ilike("committee_name", like).limit(5),
+    sb.from("archive_documents").select("id,document_name").eq("company_id",currentCompanyId).ilike("document_name", like).limit(5),
+    sb.from("shareholders").select("id,name").eq("company_id",currentCompanyId).ilike("name", like).limit(5),
+    sb.from("org_structure").select("id,position_title,holder_name").eq("company_id",currentCompanyId).or(`position_title.ilike.${like},holder_name.ilike.${like}`).limit(5),
+    sb.from("signing_documents").select("id,document_name").eq("company_id",currentCompanyId).ilike("document_name", like).limit(5)
+  ]);
+
+  const groups = [
+    { label:"أعضاء المجلس", icon:"👤", page:"members", items:(members.data||[]).map(r=>r.name) },
+    { label:"الاجتماعات", icon:"📅", page:"meetings", items:(meetings.data||[]).map(r=>r.title) },
+    { label:"السياسات", icon:"📜", page:"governance", items:(policies.data||[]).map(r=>r.policy_name) },
+    { label:"المخاطر", icon:"⚠️", page:"risks", items:(risks.data||[]).map(r=>r.risk_name) },
+    { label:"اللجان", icon:"🏛️", page:"committees", items:(committees.data||[]).map(r=>r.committee_name) },
+    { label:"الأرشيف", icon:"🗄️", page:"archive", items:(archive.data||[]).map(r=>r.document_name) },
+    { label:"المساهمون", icon:"📇", page:"shareholders", items:(shareholders.data||[]).map(r=>r.name) },
+    { label:"الهيكل التنظيمي", icon:"🌳", page:"structure", items:(structure.data||[]).map(r=>r.position_title+(r.holder_name?(' — '+r.holder_name):'')) },
+    { label:"التوقيع الإلكتروني", icon:"✍️", page:"signing", items:(signing.data||[]).map(r=>r.document_name) }
+  ].filter(g => g.items.length > 0);
+
+  if(groups.length === 0){
+    box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد نتائج مطابقة.</div>';
+    return;
+  }
+
+  box.innerHTML = groups.map(g => `
+    <div style="padding:8px 8px 4px;font-size:10.5px;font-weight:700;color:var(--gray3)">${g.icon} ${g.label}</div>
+    ${g.items.map(item => `<div onclick="go('${g.page}',null);closeGlobalSearch()" style="padding:8px 10px;font-size:12.5px;color:var(--dark);cursor:pointer;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" onmouseover="this.style.background='var(--offwhite)'" onmouseout="this.style.background=''">${item}</div>`).join("")}
+  `).join("");
+}
+
+function closeGlobalSearch(){
+  const box = document.getElementById("globalSearchResults");
+  const input = document.getElementById("globalSearchInput");
+  if(box) box.style.display = "none";
+  if(input) input.value = "";
+}
+
+document.addEventListener("click", (e) => {
+  const box = document.getElementById("globalSearchResults");
+  const input = document.getElementById("globalSearchInput");
+  if(box && input && box.style.display !== "none" && !box.contains(e.target) && e.target !== input){
+    box.style.display = "none";
+  }
+});
 
 async function loadShareholders(){
   const tbody = document.getElementById("shareholdersRegistryTbody");
