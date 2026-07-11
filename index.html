@@ -597,6 +597,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="nav-group-label">الاجتماعات والتصويت</div>
     <div class="nav-item" onclick="go('meetings',this)"><span class="ni-icon">📅</span><span class="ni-text">اجتماعات المجلس</span><span class="ni-badge gold">3</span></div>
     <div class="nav-item" onclick="go('agm',this)"><span class="ni-icon">🤝</span><span class="ni-text">الجمعيات العامة</span><span class="ni-badge red">1</span></div>
+    <div class="nav-item" onclick="go('shareholders',this)"><span class="ni-icon">📇</span><span class="ni-text">سجل المساهمين</span></div>
     <div class="nav-item" onclick="go('committees',this)"><span class="ni-icon">📋</span><span class="ni-text">اللجان</span><span class="ni-badge blue">4</span></div>
     <div class="nav-item" onclick="go('voting',this)"><span class="ni-icon">🗳️</span><span class="ni-text">التصويت الإلكتروني</span><div class="pulse"></div></div>
     <div class="nav-item" onclick="go('signing',this)"><span class="ni-icon">✍️</span><span class="ni-text">التوقيع الإلكتروني</span><span class="ni-badge red">2</span></div>
@@ -972,6 +973,46 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <table class="tbl">
         <thead><tr><th>الجمعية</th><th>التاريخ</th><th>النوع</th><th>نسبة المشاركة بالتصويت</th><th>الحالة</th><th>إجراء</th></tr></thead>
         <tbody id="pastAGMTbody">
+          <tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SHAREHOLDERS REGISTRY ═══════════════ -->
+<div id="p-shareholders" class="page content">
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span>📇 سجل المساهمين</span>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openTransferModal()">🔄 نقل ملكية</button>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openNewShareholderModal()">+ إضافة مساهم</button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-body" id="shareholdersSummary">
+      <div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-body" style="padding:0">
+      <table class="tbl">
+        <thead><tr><th>اسم المساهم</th><th>رقم الهوية/السجل</th><th>عدد الأسهم</th><th>نسبة الملكية</th><th>جوال</th><th>إيميل</th><th>إجراء</th></tr></thead>
+        <tbody id="shareholdersTbody">
+          <tr><td colspan="7" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="sec-title" style="margin-top:20px">🔄 سجل تحويلات الملكية</div>
+  <div class="card">
+    <div class="card-body" style="padding:0">
+      <table class="tbl">
+        <thead><tr><th>التاريخ</th><th>من</th><th>إلى</th><th>عدد الأسهم</th><th>نوع التحويل</th><th>ملاحظات</th></tr></thead>
+        <tbody id="shareTransfersTbody">
           <tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
       </table>
@@ -1990,6 +2031,47 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 </div>
 
 <!-- Add company modal -->
+<div class="modal-bg" id="m-shareholder">
+  <div class="modal">
+    <div class="modal-title" id="msh-title-h">+ إضافة مساهم</div>
+    <input type="hidden" id="msh-id" value="" />
+    <div class="fg"><label>اسم المساهم</label><input class="fi" id="msh-name" placeholder="مثال: عبدالله الحامد"/></div>
+    <div class="fg"><label>رقم الهوية/السجل</label><input class="fi" id="msh-idnum" placeholder="مثال: 1012345678"/></div>
+    <div class="fg"><label>عدد الأسهم</label><input type="number" class="fi" id="msh-shares" placeholder="مثال: 5000"/></div>
+    <div class="row2">
+      <div class="fg"><label>الجوال</label><input class="fi" id="msh-phone"/></div>
+      <div class="fg"><label>الإيميل</label><input type="email" class="fi" id="msh-email"/></div>
+    </div>
+    <div class="fg"><label>ملاحظات</label><textarea class="fta" id="msh-notes" rows="2"></textarea></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-shareholder')">إلغاء</button><button class="btn btn-gold" onclick="saveShareholder()">✅ حفظ</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-transfer">
+  <div class="modal">
+    <div class="modal-title">🔄 نقل ملكية أسهم</div>
+    <div class="fg"><label>من</label>
+      <select class="fs" id="mtr-from">
+        <option value="">— إصدار جديد (بدون مساهم مصدر) —</option>
+      </select>
+    </div>
+    <div class="fg"><label>إلى (مساهم موجود)</label>
+      <select class="fs" id="mtr-to" onchange="document.getElementById('mtr-to-new').style.display=this.value==='__new__'?'block':'none'">
+        <option value="">— اختر —</option>
+        <option value="__new__">➕ مساهم جديد...</option>
+      </select>
+    </div>
+    <div class="fg" id="mtr-to-new" style="display:none"><label>اسم المساهم الجديد</label><input class="fi" id="mtr-to-new-name" placeholder="مثال: سارة العتيبي"/></div>
+    <div class="fg"><label>عدد الأسهم المنقولة</label><input type="number" class="fi" id="mtr-shares" placeholder="مثال: 1000"/></div>
+    <div class="fg"><label>نوع التحويل</label>
+      <select class="fs" id="mtr-type"><option>بيع</option><option>هبة</option><option>إرث</option><option>تأسيس</option><option>أخرى</option></select>
+    </div>
+    <div class="fg"><label>تاريخ التحويل</label><input type="date" class="fi" id="mtr-date"/></div>
+    <div class="fg"><label>ملاحظات</label><textarea class="fta" id="mtr-notes" rows="2"></textarea></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-transfer')">إلغاء</button><button class="btn btn-gold" onclick="executeShareTransfer()">✅ تنفيذ التحويل</button></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-invite">
   <div class="modal">
     <div class="modal-title" id="mi-title-h">🔗 دعوة عضو جديد</div>
@@ -2324,6 +2406,10 @@ function isMutatingOnclick(val){
     || /^openNewGovEvalModal\(/.test(val)
     || /^generateBaseStructure\(/.test(val)
     || /^saveDisclosure\(/.test(val)
+    || /^openNewShareholderModal\(/.test(val)
+    || /^openTransferModal\(/.test(val)
+    || /^saveShareholder\(/.test(val)
+    || /^executeShareTransfer\(/.test(val)
     || /^openNewCompanyModal\(/.test(val)
     || /^openInviteModal\(/.test(val)
     || /^openEditCompanyModal\(/.test(val)
@@ -2665,6 +2751,7 @@ function reloadCurrentPageData(){
   if(id==='companyrequest') loadCompanyRequestPage();
   if(id==='companyrequests') loadCompanyRequestsReview();
   if(id==='activitylog') loadActivityLog();
+  if(id==='shareholders') loadShareholders();
 }
 
 const REPORT_MANUAL_FIELDS = [
@@ -3312,7 +3399,7 @@ async function saveCompany(){
 
 /* Company-type-aware navigation: sole proprietorships have no board/shareholders, so
    board/committee/AGM-related pages are irrelevant and get hidden from the sidebar. */
-const SOLE_PROP_HIDDEN_PAGES = ['meetings','committees','agm','voting','members','appoint','perf'];
+const SOLE_PROP_HIDDEN_PAGES = ['meetings','committees','agm','voting','members','appoint','perf','shareholders'];
 async function applyCompanyTypeVisibility(){
   if(!currentCompanyId) return;
   const { data: c } = await sb.from("companies").select("company_type").eq("id", currentCompanyId).single();
@@ -5798,6 +5885,183 @@ async function loadStructure(){
   if(chartWrap) chartWrap.innerHTML = renderOrgTree(structureCache.filter(s => s.is_leadership !== false));
 }
 
+/* ══════════ SHAREHOLDERS REGISTRY (real ownership + transfer history) ══════════ */
+let shareholdersCache = [];
+
+async function loadShareholders(){
+  const tbody = document.getElementById("shareholdersTbody");
+  if(!tbody) return;
+  const [{ data, error }, { data: company }] = await Promise.all([
+    sb.from("shareholders").select("*").eq("company_id", currentCompanyId).order("shares_count",{ascending:false}),
+    sb.from("companies").select("total_shares,name").eq("id", currentCompanyId).single()
+  ]);
+  if(error){ tbody.innerHTML = errorRowHTML(7, error.message); return; }
+  shareholdersCache = data || [];
+  const totalRegistered = shareholdersCache.reduce((s,x)=>s+(Number(x.shares_count)||0),0);
+  const companyTotal = company ? Number(company.total_shares)||0 : 0;
+
+  const summaryBox = document.getElementById("shareholdersSummary");
+  if(summaryBox){
+    const diff = companyTotal - totalRegistered;
+    summaryBox.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+      <div style="text-align:center"><div style="font-size:22px;font-weight:900;color:var(--primary)">${totalRegistered.toLocaleString('ar-SA')}</div><div style="font-size:11px;color:var(--gray3)">إجمالي الأسهم المسجّلة</div></div>
+      <div style="text-align:center"><div style="font-size:22px;font-weight:900;color:var(--gold)">${companyTotal.toLocaleString('ar-SA')}</div><div style="font-size:11px;color:var(--gray3)">إجمالي أسهم الشركة</div></div>
+      <div style="text-align:center"><div style="font-size:22px;font-weight:900;color:${diff===0?'var(--green)':'var(--red)'}">${diff===0?'✅ مطابق':diff.toLocaleString('ar-SA')}</div><div style="font-size:11px;color:var(--gray3)">${diff===0?'السجل مطابق لإجمالي الشركة':(diff>0?'أسهم غير موزّعة بعد':'زيادة عن إجمالي الشركة!')}</div></div>
+    </div>`;
+  }
+
+  if(shareholdersCache.length===0){
+    tbody.innerHTML = emptyRowHTML(7, 'لا يوجد مساهمون مسجّلون بعد. اضغط "+ إضافة مساهم" للبدء.');
+  } else {
+    tbody.innerHTML = shareholdersCache.map(s => {
+      const pct = companyTotal ? ((Number(s.shares_count)||0)/companyTotal*100).toFixed(2) : "—";
+      return `<tr>
+        <td>${s.name||""}</td><td>${s.id_number||"—"}</td><td>${(Number(s.shares_count)||0).toLocaleString('ar-SA')}</td>
+        <td>${pct!=="—"?pct+"%":"—"}</td><td>${s.phone||"—"}</td><td>${s.email||"—"}</td>
+        <td>
+          <button class="btn-xs primary" onclick="editShareholder(${s.id})">✏️ تعديل</button>
+          <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;margin-right:4px" onclick="deleteShareholder(${s.id})">🗑️ حذف</button>
+        </td>
+      </tr>`;
+    }).join("");
+  }
+
+  loadShareTransfers();
+}
+
+async function loadShareTransfers(){
+  const tbody = document.getElementById("shareTransfersTbody");
+  if(!tbody) return;
+  const { data, error } = await sb.from("share_transfers").select("*").eq("company_id", currentCompanyId).order("transfer_date",{ascending:false});
+  if(error){ tbody.innerHTML = errorRowHTML(6, error.message); return; }
+  if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(6, "لا توجد تحويلات مسجّلة بعد."); return; }
+  const nameOf = id => { const s = shareholdersCache.find(x=>x.id===id); return s ? s.name : (id ? "—" : "إصدار جديد"); };
+  tbody.innerHTML = data.map(t => `<tr>
+    <td>${t.transfer_date||"—"}</td><td>${nameOf(t.from_shareholder_id)}</td><td>${nameOf(t.to_shareholder_id)}</td>
+    <td>${(Number(t.shares_count)||0).toLocaleString('ar-SA')}</td><td>${t.transfer_type||"—"}</td><td style="font-size:11px;color:var(--gray3)">${t.notes||""}</td>
+  </tr>`).join("");
+}
+
+function openNewShareholderModal(){
+  document.getElementById("msh-id").value = "";
+  document.getElementById("msh-title-h").textContent = "+ إضافة مساهم";
+  document.getElementById("msh-name").value = ""; document.getElementById("msh-idnum").value = "";
+  document.getElementById("msh-shares").value = ""; document.getElementById("msh-phone").value = "";
+  document.getElementById("msh-email").value = ""; document.getElementById("msh-notes").value = "";
+  openM("m-shareholder");
+}
+
+function editShareholder(id){
+  const s = shareholdersCache.find(x => x.id === id);
+  if(!s) return;
+  document.getElementById("msh-id").value = s.id;
+  document.getElementById("msh-title-h").textContent = "✏️ تعديل مساهم";
+  document.getElementById("msh-name").value = s.name || "";
+  document.getElementById("msh-idnum").value = s.id_number || "";
+  document.getElementById("msh-shares").value = s.shares_count ?? "";
+  document.getElementById("msh-phone").value = s.phone || "";
+  document.getElementById("msh-email").value = s.email || "";
+  document.getElementById("msh-notes").value = s.notes || "";
+  openM("m-shareholder");
+}
+
+async function saveShareholder(){
+  const id = document.getElementById("msh-id").value;
+  const name = document.getElementById("msh-name").value.trim();
+  if(!name){ alert("الرجاء إدخال اسم المساهم"); return; }
+  const payload = {
+    name, id_number: document.getElementById("msh-idnum").value.trim(),
+    shares_count: Number(document.getElementById("msh-shares").value) || 0,
+    phone: document.getElementById("msh-phone").value.trim(),
+    email: document.getElementById("msh-email").value.trim(),
+    notes: document.getElementById("msh-notes").value.trim(),
+    company_id: currentCompanyId
+  };
+  const { error } = id
+    ? await sb.from("shareholders").update(payload).eq("id", id)
+    : await sb.from("shareholders").insert([payload]);
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  logActivity(id?"تعديل":"إنشاء", "مساهم", name, "");
+  closeM("m-shareholder");
+  loadShareholders();
+}
+
+async function deleteShareholder(id){
+  const s = shareholdersCache.find(x=>x.id===id);
+  if(!confirm(`حذف المساهم "${s?s.name:''}"؟ هذا لا يحذف سجل التحويلات القديمة المرتبطة به.`)) return;
+  const { error } = await sb.from("shareholders").delete().eq("id", id);
+  if(error){ alert("تعذّر الحذف: " + error.message); return; }
+  logActivity("حذف", "مساهم", s?s.name:"", "");
+  loadShareholders();
+}
+
+function openTransferModal(){
+  const fromSel = document.getElementById("mtr-from");
+  const toSel = document.getElementById("mtr-to");
+  fromSel.innerHTML = '<option value="">— إصدار جديد (بدون مساهم مصدر) —</option>' +
+    shareholdersCache.map(s => `<option value="${s.id}">${s.name} (${(Number(s.shares_count)||0).toLocaleString('ar-SA')} سهم)</option>`).join("");
+  toSel.innerHTML = '<option value="">— اختر —</option><option value="__new__">➕ مساهم جديد...</option>' +
+    shareholdersCache.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
+  document.getElementById("mtr-to-new").style.display = "none";
+  document.getElementById("mtr-to-new-name").value = "";
+  document.getElementById("mtr-shares").value = "";
+  document.getElementById("mtr-notes").value = "";
+  document.getElementById("mtr-date").value = new Date().toISOString().slice(0,10);
+  openM("m-transfer");
+}
+
+async function executeShareTransfer(){
+  const fromId = document.getElementById("mtr-from").value ? Number(document.getElementById("mtr-from").value) : null;
+  const toVal = document.getElementById("mtr-to").value;
+  const shares = Number(document.getElementById("mtr-shares").value);
+  const transfer_type = document.getElementById("mtr-type").value;
+  const transfer_date = document.getElementById("mtr-date").value || null;
+  const notes = document.getElementById("mtr-notes").value.trim();
+
+  if(!shares || shares <= 0){ alert("الرجاء إدخال عدد أسهم صحيح"); return; }
+  if(!toVal){ alert("الرجاء تحديد الطرف المستلم"); return; }
+
+  const fromShareholder = fromId ? shareholdersCache.find(s => s.id === fromId) : null;
+  if(fromShareholder && (Number(fromShareholder.shares_count)||0) < shares){
+    alert(`"${fromShareholder.name}" يملك ${fromShareholder.shares_count} سهم فقط — لا يمكن نقل ${shares} سهم.`);
+    return;
+  }
+
+  let toId;
+  let toName;
+  if(toVal === "__new__"){
+    const newName = document.getElementById("mtr-to-new-name").value.trim();
+    if(!newName){ alert("الرجاء إدخال اسم المساهم الجديد"); return; }
+    const { data: created, error: cErr } = await sb.from("shareholders").insert([{ name: newName, shares_count: shares, company_id: currentCompanyId }]).select().single();
+    if(cErr){ alert("تعذّر إنشاء المساهم الجديد: " + cErr.message); return; }
+    toId = created.id; toName = newName;
+  } else {
+    toId = Number(toVal);
+    const toShareholder = shareholdersCache.find(s => s.id === toId);
+    toName = toShareholder ? toShareholder.name : "";
+    const newCount = (Number(toShareholder.shares_count)||0) + shares;
+    const { error: uErr } = await sb.from("shareholders").update({ shares_count: newCount }).eq("id", toId);
+    if(uErr){ alert("تعذّر تحديث رصيد المستلم: " + uErr.message); return; }
+  }
+
+  if(fromShareholder){
+    const newFromCount = (Number(fromShareholder.shares_count)||0) - shares;
+    const { error: fErr } = await sb.from("shareholders").update({ shares_count: newFromCount }).eq("id", fromShareholder.id);
+    if(fErr){ alert("تعذّر تحديث رصيد المصدر: " + fErr.message); return; }
+  }
+
+  const { error: tErr } = await sb.from("share_transfers").insert([{
+    company_id: currentCompanyId, from_shareholder_id: fromShareholder?fromShareholder.id:null, to_shareholder_id: toId,
+    shares_count: shares, transfer_type, transfer_date, notes
+  }]);
+  if(tErr){ alert("تم تحديث الأرصدة لكن تعذّر تسجيل حركة التحويل: " + tErr.message); }
+
+  logActivity("تعديل", "نقل ملكية", `${fromShareholder?fromShareholder.name:'إصدار جديد'} ← ${toName}`, `${shares} سهم — ${transfer_type}`);
+  alert("تم تنفيذ التحويل بنجاح ✅");
+  closeM("m-transfer");
+  loadShareholders();
+}
+
 async function generateBaseStructure(){
   const { data: company } = await sb.from("companies").select("company_type").eq("id", currentCompanyId).single();
   const type = company ? company.company_type : "مساهمة غير مدرجة";
@@ -7176,6 +7440,7 @@ function go(id, el){
   if(id==='companyrequest') loadCompanyRequestPage();
   if(id==='companyrequests') loadCompanyRequestsReview();
   if(id==='activitylog') loadActivityLog();
+  if(id==='shareholders') loadShareholders();
   if(id==='members') loadMembers();
   if(id==='governance') loadPolicies();
   if(id==='meetings' || id==='committees' || id==='agm') loadMeetingsAll();
