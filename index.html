@@ -1009,7 +1009,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <div id="p-structure" class="page content">
   <div class="sec-title">🌳 الهيكل التنظيمي للشركة</div>
   <div class="card" style="margin-bottom:18px">
-    <div class="card-head"><span class="card-title">شركة أسس الأنظمة الجديدة</span><span class="badge info">هيكل تفاعلي</span></div>
+    <div class="card-head"><span class="card-title">القيادات العليا والإدارات — هيكل تفاعلي</span><span class="badge info">بالمناصب فقط</span></div>
     <div class="card-body">
       <div style="overflow-x:auto">
         <div id="orgTreeContainer" style="min-width:700px;padding:10px 0">جارِ التحميل...</div>
@@ -1019,12 +1019,12 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
     <span>🌳 دليل المناصب التنظيمية</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mst-id').value='';document.getElementById('mst-title-h').textContent='🌳 إضافة منصب في الهيكل التنظيمي';populateParentPositionSelect();openM('m-structure')">+ إضافة منصب</button>
+    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mst-id').value='';document.getElementById('mst-title-h').textContent='🌳 إضافة منصب في الهيكل التنظيمي';document.getElementById('mst-leadership').checked=true;populateParentPositionSelect();openM('m-structure')">+ إضافة منصب</button>
   </div>
   <div class="card">
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>المنصب</th><th>الاسم</th><th>يتبع لـ</th><th>المستوى</th><th>تاريخ التعيين</th><th>إجراء</th></tr></thead>
+        <thead><tr><th>المنصب</th><th>الاسم</th><th>يتبع لـ</th><th>المستوى</th><th>تاريخ التعيين</th><th>بالشجرة</th><th>إجراء</th></tr></thead>
         <tbody id="structureTbody">
           <tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
@@ -1697,7 +1697,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       </select>
     </div>
     <div class="fg"><label>المستوى التنظيمي</label>
-      <select class="fs" id="mst-level">
+      <select class="fs" id="mst-level" onchange="autoToggleLeadership()">
         <option value="1">1 — الجمعية العامة</option>
         <option value="2">2 — مجلس الإدارة</option>
         <option value="3" selected>3 — اللجان المنبثقة</option>
@@ -1705,6 +1705,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
         <option value="5">5 — نواب الرئيس / الإدارة العليا</option>
         <option value="6">6 — الإدارات والأقسام الفرعية</option>
       </select>
+    </div>
+    <div class="fg" style="display:flex;align-items:center;gap:8px;background:var(--offwhite);padding:10px 12px;border-radius:8px">
+      <input type="checkbox" id="mst-leadership" checked style="width:16px;height:16px" />
+      <label for="mst-leadership" style="margin:0;font-size:12px;cursor:pointer">إظهار هذا المنصب بشجرة الهيكل (للقيادات والمدراء فقط — الموظفون يظهرون بالجدول أدناه بدون الشجرة)</label>
     </div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-structure')">إلغاء</button><button class="btn btn-gold" onclick="saveStructure()">✅ حفظ المنصب</button></div>
   </div>
@@ -5506,23 +5510,24 @@ async function loadStructure(){
   const chartWrap = document.getElementById("orgTreeContainer");
   if(!tbody) return;
   const { data, error } = await sb.from("org_structure").select("*").eq("company_id", currentCompanyId).order("id",{ascending:true});
-  if(error){ tbody.innerHTML = errorRowHTML(6, error.message); if(chartWrap) chartWrap.innerHTML = ""; return; }
+  if(error){ tbody.innerHTML = errorRowHTML(7, error.message); if(chartWrap) chartWrap.innerHTML = ""; return; }
   structureCache = data || [];
   if(structureCache.length===0){
-    tbody.innerHTML = emptyRowHTML(6, 'لا توجد بيانات بعد. اضغط "+ إضافة منصب" للبدء.');
+    tbody.innerHTML = emptyRowHTML(7, 'لا توجد بيانات بعد. اضغط "+ إضافة منصب" للبدء.');
     if(chartWrap) chartWrap.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:30px">لا يوجد هيكل تنظيمي بعد. اضغط "+ إضافة منصب" لبدء بناء الهيكل.</div>';
     return;
   }
 
   tbody.innerHTML = structureCache.map(s => `<tr>
     <td>${s.position_title||""}</td><td>${s.holder_name||"—"}</td><td>${s.parent_position||"—"}</td><td>${orgLevelLabel(s.level)}</td><td>${s.appointment_date||"—"}</td>
+    <td>${s.is_leadership !== false ? '<span style="color:var(--green)">✓ نعم</span>' : '<span style="color:var(--gray3)">— لا</span>'}</td>
     <td>
       <button class="btn-xs primary" onclick="editStructure(${s.id})">✏️ تعديل</button>
       <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;margin-right:4px" onclick="deletePosition(${s.id})">🗑️ حذف</button>
     </td>
   </tr>`).join("");
 
-  if(chartWrap) chartWrap.innerHTML = renderOrgTree(structureCache);
+  if(chartWrap) chartWrap.innerHTML = renderOrgTree(structureCache.filter(s => s.is_leadership !== false));
 }
 
 async function deletePosition(id){
@@ -5556,8 +5561,8 @@ function renderOrgTree(rows){
     const small = depth > 0;
     const pad = small ? "8px 12px" : "10px 20px";
     const fs = small ? "11px" : "13px";
-    return `<div style="display:inline-block;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;border-radius:10px;padding:${pad};font-size:${fs};font-weight:800;box-shadow:0 2px 8px rgba(26,58,107,0.25);min-width:120px;white-space:nowrap">
-      ${s.position_title||""}<br><span style="font-size:10px;font-weight:600;opacity:0.9">${s.holder_name||"شاغر"}</span>
+    return `<div style="display:inline-block;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;border-radius:10px;padding:${pad};font-size:${fs};font-weight:800;box-shadow:0 2px 8px rgba(26,58,107,0.25);min-width:120px;white-space:nowrap;text-align:center">
+      ${s.position_title||""}
     </div>`;
   }
 
@@ -5584,6 +5589,11 @@ function renderOrgTree(rows){
   return `<div style="display:flex;justify-content:center;gap:40px;align-items:flex-start">${roots.map(r => renderNode(r, 0)).join("")}</div>`;
 }
 
+function autoToggleLeadership(){
+  const level = Number(document.getElementById("mst-level").value);
+  document.getElementById("mst-leadership").checked = level <= 5;
+}
+
 function editStructure(id){
   const s = structureCache.find(x => x.id === id);
   if(!s) return;
@@ -5594,6 +5604,7 @@ function editStructure(id){
   document.getElementById("mst-appointment-date").value = s.appointment_date || "";
   populateParentPositionSelect(s.parent_position || "");
   document.getElementById("mst-level").value = s.level ?? "";
+  document.getElementById("mst-leadership").checked = s.is_leadership !== false;
   openM("m-structure");
 }
 async function saveStructure(){
@@ -5604,14 +5615,15 @@ async function saveStructure(){
   const appointment_date = document.getElementById("mst-appointment-date").value || null;
   const parent_position = document.getElementById("mst-parent").value.trim();
   const level = document.getElementById("mst-level").value ? Number(document.getElementById("mst-level").value) : null;
-  const payload = { position_title, holder_name, appointment_date, parent_position, level, company_id: currentCompanyId };
+  const is_leadership = document.getElementById("mst-leadership").checked;
+  const payload = { position_title, holder_name, appointment_date, parent_position, level, is_leadership, company_id: currentCompanyId };
   const { error } = id
     ? await sb.from("org_structure").update(payload).eq("id", id)
     : await sb.from("org_structure").insert([payload]);
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
   document.getElementById("mst-id").value = "";
   document.getElementById("mst-title-h").textContent = "🌳 إضافة منصب في الهيكل التنظيمي";
-  document.getElementById("mst-title").value=""; document.getElementById("mst-holder").value=""; document.getElementById("mst-appointment-date").value=""; document.getElementById("mst-parent").value=""; document.getElementById("mst-level").value="";
+  document.getElementById("mst-title").value=""; document.getElementById("mst-holder").value=""; document.getElementById("mst-appointment-date").value=""; document.getElementById("mst-parent").value=""; document.getElementById("mst-level").value=""; document.getElementById("mst-leadership").checked = true;
   closeM("m-structure"); loadStructure();
 }
 
