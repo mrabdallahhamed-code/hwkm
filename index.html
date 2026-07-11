@@ -999,11 +999,11 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 
   <div class="card" style="margin-bottom:18px">
-    <div class="card-body" style="padding:0">
-      <table class="tbl">
-        <thead><tr><th>اسم المساهم</th><th>رقم الهوية/السجل</th><th>عدد الأسهم</th><th>نسبة الملكية</th><th>جوال</th><th>إيميل</th><th>إجراء</th></tr></thead>
-        <tbody id="shareholdersTbody">
-          <tr><td colspan="7" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+    <div class="card-body" style="padding:0;overflow-x:auto">
+      <table class="tbl" style="min-width:1100px">
+        <thead><tr><th>اسم المساهم</th><th>الجنسية</th><th>محل الإقامة</th><th>المهنة</th><th>رقم الشهادة</th><th>عدد الأسهم</th><th>نسبة الملكية</th><th>القيمة المدفوعة</th><th>تاريخ انتقال الملكية</th><th>إجراء</th></tr></thead>
+        <tbody id="shareholdersRegistryTbody">
+          <tr><td colspan="10" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
       </table>
     </div>
@@ -2034,7 +2034,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
 <!-- Add company modal -->
 <div class="modal-bg" id="m-pdf-import">
-  <div class="modal" style="max-width:700px">
+  <div class="modal" style="max-width:1150px">
     <div class="modal-title">📄 استيراد سجل المساهمين من PDF</div>
     <div id="pdfImportStep1">
       <div class="fg"><label>اختر ملف PDF</label><input type="file" accept=".pdf" class="fi" id="pdfImportFile" onchange="handlePdfFileSelect(this)"></div>
@@ -2043,8 +2043,8 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     </div>
     <div id="pdfImportStep2" style="display:none">
       <p style="font-size:11.5px;color:var(--dark);font-weight:700;margin-bottom:8px">راجع وصحّح البيانات قبل الاستيراد:</p>
-      <div style="display:grid;grid-template-columns:2fr 1.3fr 1fr 0.4fr;gap:6px;font-size:10.5px;color:var(--gray3);font-weight:700;padding:0 4px 4px">
-        <span>الاسم</span><span>رقم الهوية/السجل</span><span>عدد الأسهم</span><span></span>
+      <div style="display:grid;grid-template-columns:repeat(8,1fr) 0.35fr;gap:5px;font-size:9.5px;color:var(--gray3);font-weight:700;padding:0 4px 4px">
+        <span>الاسم</span><span>الجنسية</span><span>محل الإقامة</span><span>المهنة</span><span>رقم الشهادة</span><span>عدد الأسهم</span><span>القيمة المدفوعة</span><span>تاريخ الانتقال</span><span></span>
       </div>
       <div id="pdfImportRows" style="max-height:320px;overflow-y:auto"></div>
       <button class="btn-xs primary" style="margin-top:8px" onclick="addImportRow()">+ إضافة صف يدويًا</button>
@@ -2061,10 +2061,27 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="modal-title" id="msh-title-h">+ إضافة مساهم</div>
     <input type="hidden" id="msh-id" value="" />
     <div class="fg"><label>اسم المساهم</label><input class="fi" id="msh-name" placeholder="مثال: عبدالله الحامد"/></div>
-    <div class="fg"><label>رقم الهوية/السجل</label><input class="fi" id="msh-idnum" placeholder="مثال: 1012345678"/></div>
-    <div class="fg"><label>عدد الأسهم</label><input type="number" class="fi" id="msh-shares" placeholder="مثال: 5000"/></div>
     <div class="row2">
-      <div class="fg"><label>الجوال</label><input class="fi" id="msh-phone"/></div>
+      <div class="fg"><label>الجنسية</label><input class="fi" id="msh-nationality"/></div>
+      <div class="fg"><label>محل الإقامة</label><input class="fi" id="msh-residence"/></div>
+    </div>
+    <div class="row2">
+      <div class="fg"><label>المهنة</label><input class="fi" id="msh-profession"/></div>
+      <div class="fg"><label>رقم الشهادة</label><input class="fi" id="msh-certificate"/></div>
+    </div>
+    <div class="row2">
+      <div class="fg"><label>عدد الأسهم</label><input type="number" class="fi" id="msh-shares" placeholder="مثال: 5000"/></div>
+      <div class="fg"><label>القيمة المدفوعة (ريال)</label><input type="number" class="fi" id="msh-paidvalue"/></div>
+    </div>
+    <div class="fg"><label>تاريخ انتقال الملكية</label><input type="date" class="fi" id="msh-transferdate"/></div>
+
+    <div style="border-top:1px dashed var(--gray1);margin:14px 0 10px;padding-top:10px;font-size:11.5px;font-weight:700;color:var(--gray3)">بيانات إضافية (تُعبّى يدويًا)</div>
+    <div class="row2">
+      <div class="fg"><label>رقم الهوية</label><input class="fi" id="msh-nationalid"/></div>
+      <div class="fg"><label>رقم الجوال</label><input class="fi" id="msh-phone"/></div>
+    </div>
+    <div class="row2">
+      <div class="fg"><label>تاريخ انتهاء الهوية</label><input type="date" class="fi" id="msh-idexpiry"/></div>
       <div class="fg"><label>الإيميل</label><input type="email" class="fi" id="msh-email"/></div>
     </div>
     <div class="fg"><label>ملاحظات</label><textarea class="fta" id="msh-notes" rows="2"></textarea></div>
@@ -2076,23 +2093,23 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="modal">
     <div class="modal-title">🔄 نقل ملكية أسهم</div>
     <div class="fg"><label>من</label>
-      <select class="fs" id="mtr-from">
+      <select class="fs" id="shtr-from">
         <option value="">— إصدار جديد (بدون مساهم مصدر) —</option>
       </select>
     </div>
     <div class="fg"><label>إلى (مساهم موجود)</label>
-      <select class="fs" id="mtr-to" onchange="document.getElementById('mtr-to-new').style.display=this.value==='__new__'?'block':'none'">
+      <select class="fs" id="shtr-to" onchange="document.getElementById('shtr-to-new').style.display=this.value==='__new__'?'block':'none'">
         <option value="">— اختر —</option>
         <option value="__new__">➕ مساهم جديد...</option>
       </select>
     </div>
-    <div class="fg" id="mtr-to-new" style="display:none"><label>اسم المساهم الجديد</label><input class="fi" id="mtr-to-new-name" placeholder="مثال: سارة العتيبي"/></div>
-    <div class="fg"><label>عدد الأسهم المنقولة</label><input type="number" class="fi" id="mtr-shares" placeholder="مثال: 1000"/></div>
+    <div class="fg" id="shtr-to-new" style="display:none"><label>اسم المساهم الجديد</label><input class="fi" id="shtr-to-new-name" placeholder="مثال: سارة العتيبي"/></div>
+    <div class="fg"><label>عدد الأسهم المنقولة</label><input type="number" class="fi" id="shtr-shares" placeholder="مثال: 1000"/></div>
     <div class="fg"><label>نوع التحويل</label>
-      <select class="fs" id="mtr-type"><option>بيع</option><option>هبة</option><option>إرث</option><option>تأسيس</option><option>أخرى</option></select>
+      <select class="fs" id="shtr-type"><option>بيع</option><option>هبة</option><option>إرث</option><option>تأسيس</option><option>أخرى</option></select>
     </div>
-    <div class="fg"><label>تاريخ التحويل</label><input type="date" class="fi" id="mtr-date"/></div>
-    <div class="fg"><label>ملاحظات</label><textarea class="fta" id="mtr-notes" rows="2"></textarea></div>
+    <div class="fg"><label>تاريخ التحويل</label><input type="date" class="fi" id="shtr-date"/></div>
+    <div class="fg"><label>ملاحظات</label><textarea class="fta" id="shtr-notes" rows="2"></textarea></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-transfer')">إلغاء</button><button class="btn btn-gold" onclick="executeShareTransfer()">✅ تنفيذ التحويل</button></div>
   </div>
 </div>
@@ -5917,13 +5934,13 @@ async function loadStructure(){
 let shareholdersCache = [];
 
 async function loadShareholders(){
-  const tbody = document.getElementById("shareholdersTbody");
+  const tbody = document.getElementById("shareholdersRegistryTbody");
   if(!tbody) return;
   const [{ data, error }, { data: company }] = await Promise.all([
     sb.from("shareholders").select("*").eq("company_id", currentCompanyId).order("shares_count",{ascending:false}),
     sb.from("companies").select("total_shares,name").eq("id", currentCompanyId).single()
   ]);
-  if(error){ tbody.innerHTML = errorRowHTML(7, error.message); return; }
+  if(error){ tbody.innerHTML = errorRowHTML(10, error.message); return; }
   shareholdersCache = data || [];
   const totalRegistered = shareholdersCache.reduce((s,x)=>s+(Number(x.shares_count)||0),0);
   const companyTotal = company ? Number(company.total_shares)||0 : 0;
@@ -5939,13 +5956,14 @@ async function loadShareholders(){
   }
 
   if(shareholdersCache.length===0){
-    tbody.innerHTML = emptyRowHTML(7, 'لا يوجد مساهمون مسجّلون بعد. اضغط "+ إضافة مساهم" للبدء.');
+    tbody.innerHTML = emptyRowHTML(10, 'لا يوجد مساهمون مسجّلون بعد. اضغط "+ إضافة مساهم" للبدء.');
   } else {
     tbody.innerHTML = shareholdersCache.map(s => {
       const pct = companyTotal ? ((Number(s.shares_count)||0)/companyTotal*100).toFixed(2) : "—";
       return `<tr>
-        <td>${s.name||""}</td><td>${s.id_number||"—"}</td><td>${(Number(s.shares_count)||0).toLocaleString('ar-SA')}</td>
-        <td>${pct!=="—"?pct+"%":"—"}</td><td>${s.phone||"—"}</td><td>${s.email||"—"}</td>
+        <td>${s.name||""}</td><td>${s.nationality||"—"}</td><td>${s.place_of_residence||"—"}</td><td>${s.profession||"—"}</td><td>${s.certificate_number||"—"}</td>
+        <td>${(Number(s.shares_count)||0).toLocaleString('ar-SA')}</td><td>${pct!=="—"?pct+"%":"—"}</td>
+        <td>${s.paid_value!=null?Number(s.paid_value).toLocaleString('ar-SA'):"—"}</td><td>${s.ownership_transfer_date||"—"}</td>
         <td>
           <button class="btn-xs primary" onclick="editShareholder(${s.id})">✏️ تعديل</button>
           <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;margin-right:4px" onclick="deleteShareholder(${s.id})">🗑️ حذف</button>
@@ -5973,9 +5991,7 @@ async function loadShareTransfers(){
 function openNewShareholderModal(){
   document.getElementById("msh-id").value = "";
   document.getElementById("msh-title-h").textContent = "+ إضافة مساهم";
-  document.getElementById("msh-name").value = ""; document.getElementById("msh-idnum").value = "";
-  document.getElementById("msh-shares").value = ""; document.getElementById("msh-phone").value = "";
-  document.getElementById("msh-email").value = ""; document.getElementById("msh-notes").value = "";
+  ["msh-name","msh-nationality","msh-residence","msh-profession","msh-certificate","msh-shares","msh-paidvalue","msh-transferdate","msh-nationalid","msh-phone","msh-idexpiry","msh-email","msh-notes"].forEach(id => { document.getElementById(id).value = ""; });
   openM("m-shareholder");
 }
 
@@ -5985,9 +6001,16 @@ function editShareholder(id){
   document.getElementById("msh-id").value = s.id;
   document.getElementById("msh-title-h").textContent = "✏️ تعديل مساهم";
   document.getElementById("msh-name").value = s.name || "";
-  document.getElementById("msh-idnum").value = s.id_number || "";
+  document.getElementById("msh-nationality").value = s.nationality || "";
+  document.getElementById("msh-residence").value = s.place_of_residence || "";
+  document.getElementById("msh-profession").value = s.profession || "";
+  document.getElementById("msh-certificate").value = s.certificate_number || "";
   document.getElementById("msh-shares").value = s.shares_count ?? "";
-  document.getElementById("msh-phone").value = s.phone || "";
+  document.getElementById("msh-paidvalue").value = s.paid_value ?? "";
+  document.getElementById("msh-transferdate").value = s.ownership_transfer_date || "";
+  document.getElementById("msh-nationalid").value = s.national_id || "";
+  document.getElementById("msh-phone").value = s.phone_number || s.phone || "";
+  document.getElementById("msh-idexpiry").value = s.id_expiry_date || "";
   document.getElementById("msh-email").value = s.email || "";
   document.getElementById("msh-notes").value = s.notes || "";
   openM("m-shareholder");
@@ -5998,9 +6021,17 @@ async function saveShareholder(){
   const name = document.getElementById("msh-name").value.trim();
   if(!name){ alert("الرجاء إدخال اسم المساهم"); return; }
   const payload = {
-    name, id_number: document.getElementById("msh-idnum").value.trim(),
+    name,
+    nationality: document.getElementById("msh-nationality").value.trim(),
+    place_of_residence: document.getElementById("msh-residence").value.trim(),
+    profession: document.getElementById("msh-profession").value.trim(),
+    certificate_number: document.getElementById("msh-certificate").value.trim(),
     shares_count: Number(document.getElementById("msh-shares").value) || 0,
-    phone: document.getElementById("msh-phone").value.trim(),
+    paid_value: document.getElementById("msh-paidvalue").value ? Number(document.getElementById("msh-paidvalue").value) : null,
+    ownership_transfer_date: document.getElementById("msh-transferdate").value || null,
+    national_id: document.getElementById("msh-nationalid").value.trim(),
+    phone_number: document.getElementById("msh-phone").value.trim(),
+    id_expiry_date: document.getElementById("msh-idexpiry").value || null,
     email: document.getElementById("msh-email").value.trim(),
     notes: document.getElementById("msh-notes").value.trim(),
     company_id: currentCompanyId
@@ -6024,27 +6055,27 @@ async function deleteShareholder(id){
 }
 
 function openTransferModal(){
-  const fromSel = document.getElementById("mtr-from");
-  const toSel = document.getElementById("mtr-to");
+  const fromSel = document.getElementById("shtr-from");
+  const toSel = document.getElementById("shtr-to");
   fromSel.innerHTML = '<option value="">— إصدار جديد (بدون مساهم مصدر) —</option>' +
     shareholdersCache.map(s => `<option value="${s.id}">${s.name} (${(Number(s.shares_count)||0).toLocaleString('ar-SA')} سهم)</option>`).join("");
   toSel.innerHTML = '<option value="">— اختر —</option><option value="__new__">➕ مساهم جديد...</option>' +
     shareholdersCache.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
-  document.getElementById("mtr-to-new").style.display = "none";
-  document.getElementById("mtr-to-new-name").value = "";
-  document.getElementById("mtr-shares").value = "";
-  document.getElementById("mtr-notes").value = "";
-  document.getElementById("mtr-date").value = new Date().toISOString().slice(0,10);
+  document.getElementById("shtr-to-new").style.display = "none";
+  document.getElementById("shtr-to-new-name").value = "";
+  document.getElementById("shtr-shares").value = "";
+  document.getElementById("shtr-notes").value = "";
+  document.getElementById("shtr-date").value = new Date().toISOString().slice(0,10);
   openM("m-transfer");
 }
 
 async function executeShareTransfer(){
-  const fromId = document.getElementById("mtr-from").value ? Number(document.getElementById("mtr-from").value) : null;
-  const toVal = document.getElementById("mtr-to").value;
-  const shares = Number(document.getElementById("mtr-shares").value);
-  const transfer_type = document.getElementById("mtr-type").value;
-  const transfer_date = document.getElementById("mtr-date").value || null;
-  const notes = document.getElementById("mtr-notes").value.trim();
+  const fromId = document.getElementById("shtr-from").value ? Number(document.getElementById("shtr-from").value) : null;
+  const toVal = document.getElementById("shtr-to").value;
+  const shares = Number(document.getElementById("shtr-shares").value);
+  const transfer_type = document.getElementById("shtr-type").value;
+  const transfer_date = document.getElementById("shtr-date").value || null;
+  const notes = document.getElementById("shtr-notes").value.trim();
 
   if(!shares || shares <= 0){ alert("الرجاء إدخال عدد أسهم صحيح"); return; }
   if(!toVal){ alert("الرجاء تحديد الطرف المستلم"); return; }
@@ -6058,7 +6089,7 @@ async function executeShareTransfer(){
   let toId;
   let toName;
   if(toVal === "__new__"){
-    const newName = document.getElementById("mtr-to-new-name").value.trim();
+    const newName = document.getElementById("shtr-to-new-name").value.trim();
     if(!newName){ alert("الرجاء إدخال اسم المساهم الجديد"); return; }
     const { data: created, error: cErr } = await sb.from("shareholders").insert([{ name: newName, shares_count: shares, company_id: currentCompanyId }]).select().single();
     if(cErr){ alert("تعذّر إنشاء المساهم الجديد: " + cErr.message); return; }
@@ -6140,20 +6171,44 @@ async function handlePdfFileSelect(input){
    trailing number (shares count) on each line; everything before the ID becomes the name.
    Lines that don't match a recognizable pattern are skipped — the person reviews the result
    and adds/fixes rows manually before anything is written to the database. */
+/* Targets the registry's real column layout:
+   مسلسل | الاسم | الجنسية | محل الإقامة | المهنة | رقم الشهادة | عدد الأسهم | القيمة المدفوعة | تاريخ انتقال الملكية
+   Reliably peeling a trailing date, then two numbers, then a certificate number from the END
+   of each line is much sturdier than guessing at the free-text columns (name/nationality/
+   residence/profession), which are left for the person to fill in during review instead of
+   risking a wrong automatic split. */
 function parsePdfTextToRows(text){
   const rows = [];
   const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+  const dateRe = /(\d{1,4}[\/\-]\d{1,2}[\/\-]\d{1,4})\s*$/;
+  const numRe = /([\d,٬.]+)\s*$/;
+
   lines.forEach(line => {
-    const idMatch = line.match(/\b\d{8,10}\b/);
-    if(!idMatch) return;
-    const afterId = line.slice(idMatch.index + idMatch[0].length);
-    const sharesMatch = afterId.match(/[\d,٬]+/);
-    const name = line.slice(0, idMatch.index).replace(/[|,:\-–]+$/,"").trim();
-    if(!name) return;
+    if(/مسلسل|الجنسية.*محل|رقم الشهادة/.test(line)) return; // skip header row
+    let rest = line;
+    let ownership_transfer_date = "";
+    const dm = rest.match(dateRe);
+    if(dm){ ownership_transfer_date = dm[1]; rest = rest.slice(0, dm.index).trim(); }
+
+    let paid_value = "";
+    const nm1 = rest.match(numRe);
+    if(nm1){ paid_value = nm1[1].replace(/[,٬]/g,""); rest = rest.slice(0, nm1.index).trim(); }
+
+    let shares_count = "";
+    const nm2 = rest.match(numRe);
+    if(nm2){ shares_count = nm2[1].replace(/[,٬]/g,""); rest = rest.slice(0, nm2.index).trim(); }
+
+    let certificate_number = "";
+    const cm = rest.match(/(\d{4,})\s*$/);
+    if(cm){ certificate_number = cm[1]; rest = rest.slice(0, cm.index).trim(); }
+
+    // Drop a leading serial number token (مسلسل), if present
+    rest = rest.replace(/^\d+\s+/, "").trim();
+
+    if(!rest && !shares_count) return; // nothing usable on this line
     rows.push({
-      name,
-      id_number: idMatch[0],
-      shares_count: sharesMatch ? sharesMatch[0].replace(/[,٬]/g,"") : ""
+      name: rest, nationality: "", place_of_residence: "", profession: "",
+      certificate_number, shares_count, paid_value, ownership_transfer_date
     });
   });
   return rows;
@@ -6165,17 +6220,16 @@ function renderPdfImportRows(){
     box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">ما قدرنا نتعرف على صفوف تلقائيًا — أضف الصفوف يدويًا بالزر تحت.</div>';
     return;
   }
+  const fields = ["name","nationality","place_of_residence","profession","certificate_number","shares_count","paid_value","ownership_transfer_date"];
   box.innerHTML = pdfImportRowsData.map((r, i) => `
-    <div style="display:grid;grid-template-columns:2fr 1.3fr 1fr 0.4fr;gap:6px;margin-bottom:6px;align-items:center">
-      <input class="fi" style="margin:0;padding:6px 8px;font-size:11.5px" value="${(r.name||"").replace(/"/g,'&quot;')}" oninput="pdfImportRowsData[${i}].name=this.value">
-      <input class="fi" style="margin:0;padding:6px 8px;font-size:11.5px" value="${r.id_number||""}" oninput="pdfImportRowsData[${i}].id_number=this.value">
-      <input class="fi" type="number" style="margin:0;padding:6px 8px;font-size:11.5px" value="${r.shares_count||""}" oninput="pdfImportRowsData[${i}].shares_count=this.value">
+    <div style="display:grid;grid-template-columns:repeat(8,1fr) 0.35fr;gap:5px;margin-bottom:6px;align-items:center">
+      ${fields.map(f => `<input class="fi" style="margin:0;padding:6px 6px;font-size:10.5px" value="${(r[f]||"").toString().replace(/"/g,'&quot;')}" oninput="pdfImportRowsData[${i}].${f}=this.value">`).join("")}
       <button style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px;font-size:11px;cursor:pointer" onclick="removeImportRow(${i})">✕</button>
     </div>`).join("");
 }
 
 function addImportRow(){
-  pdfImportRowsData.push({ name:"", id_number:"", shares_count:"" });
+  pdfImportRowsData.push({ name:"", nationality:"", place_of_residence:"", profession:"", certificate_number:"", shares_count:"", paid_value:"", ownership_transfer_date:"" });
   renderPdfImportRows();
 }
 function removeImportRow(i){
@@ -6188,8 +6242,15 @@ async function confirmPdfImport(){
   if(validRows.length===0){ alert("لا توجد صفوف صالحة للاستيراد"); return; }
   if(!confirm(`سيتم إضافة ${validRows.length} مساهم جديد لسجل المساهمين. متابعة؟`)) return;
   const payload = validRows.map(r => ({
-    name: r.name.trim(), id_number: (r.id_number||"").trim(),
-    shares_count: Number(r.shares_count) || 0, company_id: currentCompanyId
+    name: r.name.trim(),
+    nationality: (r.nationality||"").trim(),
+    place_of_residence: (r.place_of_residence||"").trim(),
+    profession: (r.profession||"").trim(),
+    certificate_number: (r.certificate_number||"").trim(),
+    shares_count: Number(r.shares_count) || 0,
+    paid_value: r.paid_value ? Number(r.paid_value) : null,
+    ownership_transfer_date: r.ownership_transfer_date ? normalizeImportedDate(r.ownership_transfer_date) : null,
+    company_id: currentCompanyId
   }));
   const { error } = await sb.from("shareholders").insert(payload);
   if(error){ alert("تعذّر الاستيراد: " + error.message); return; }
@@ -6197,6 +6258,17 @@ async function confirmPdfImport(){
   alert(`تم استيراد ${validRows.length} مساهم بنجاح ✅`);
   closeM("m-pdf-import");
   loadShareholders();
+}
+
+/* Accepts common day/month/year variants (with / or -) and normalizes to YYYY-MM-DD for the
+   date input; if the format can't be confidently parsed, returns null rather than guessing. */
+function normalizeImportedDate(raw){
+  const m = raw.match(/^(\d{1,4})[\/\-](\d{1,2})[\/\-](\d{1,4})$/);
+  if(!m) return null;
+  let [, a, b, c] = m;
+  if(a.length === 4) return `${a}-${b.padStart(2,'0')}-${c.padStart(2,'0')}`;
+  if(c.length === 4) return `${c}-${b.padStart(2,'0')}-${a.padStart(2,'0')}`;
+  return null;
 }
 
 async function generateBaseStructure(){
