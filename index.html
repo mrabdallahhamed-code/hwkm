@@ -987,6 +987,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <span>📇 سجل المساهمين</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openTransferModal()">🔄 نقل ملكية</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px;color:var(--red)" onclick="deleteAllShareholders()">🗑️ حذف الكل</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openPdfImportModal()">📄 استيراد من PDF</button>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openNewShareholderModal()">+ إضافة مساهم</button>
     </div>
@@ -6051,6 +6052,17 @@ async function deleteShareholder(id){
   const { error } = await sb.from("shareholders").delete().eq("id", id);
   if(error){ alert("تعذّر الحذف: " + error.message); return; }
   logActivity("حذف", "مساهم", s?s.name:"", "");
+  loadShareholders();
+}
+
+async function deleteAllShareholders(){
+  if(shareholdersCache.length===0){ alert("لا يوجد مساهمون لحذفهم."); return; }
+  if(!confirm(`⚠️ سيتم حذف جميع المساهمين المسجّلين (${shareholdersCache.length}) نهائيًا. هذا الإجراء لا يمكن التراجع عنه. متابعة؟`)) return;
+  if(!confirm("تأكيد أخير: هل أنت متأكد فعلاً؟ سجل تحويلات الملكية القديمة سيبقى لكن أسماء المساهمين المرتبطة به ستفقد.")) return;
+  const { error } = await sb.from("shareholders").delete().eq("company_id", currentCompanyId);
+  if(error){ alert("تعذّر الحذف: " + error.message); return; }
+  logActivity("حذف", "مساهمون", "الكل", `حذف جماعي لـ ${shareholdersCache.length} مساهم`);
+  alert("تم حذف جميع المساهمين ✅");
   loadShareholders();
 }
 
