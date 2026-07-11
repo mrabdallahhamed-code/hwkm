@@ -619,6 +619,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="nav-group" id="adminNavGroup" style="display:none">
     <div class="nav-group-label">الإدارة</div>
     <div class="nav-item" onclick="go('users',this)"><span class="ni-icon">🛡️</span><span class="ni-text">إدارة الصلاحيات</span></div>
+    <div class="nav-item" onclick="go('activitylog',this)"><span class="ni-icon">📜</span><span class="ni-text">سجل النشاط</span></div>
   </div>
 
   <div class="nav-group" id="companyRequestNavGroup" style="display:none">
@@ -1522,9 +1523,35 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
+<!-- ══ ACTIVITY LOG ══════════════════════════ -->
+<div id="p-activitylog" class="page content">
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span>📜 سجل النشاط</span>
+  </div>
+  <div style="background:linear-gradient(135deg,var(--primary),var(--primary2));border-radius:14px;padding:16px 18px;margin-bottom:18px;box-shadow:0 6px 20px rgba(26,58,107,0.18)">
+    <div style="position:relative">
+      <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:14px;opacity:0.7;pointer-events:none">🔍</span>
+      <input id="activityLogSearchInput" placeholder="ابحث بالمستخدم أو العنصر..." oninput="renderActivityLogFiltered()"
+        style="width:100%;padding:11px 42px 11px 14px;border-radius:10px;border:none;font-family:'Tajawal',sans-serif;font-size:13px;background:rgba(255,255,255,0.95);color:var(--dark);outline:none">
+    </div>
+    <div id="activityLogTypePills" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"></div>
+  </div>
+  <div class="card">
+    <div class="card-body" style="padding:0">
+      <table class="tbl">
+        <thead><tr><th>الوقت</th><th>المستخدم</th><th>الإجراء</th><th>العنصر</th><th>التفاصيل</th></tr></thead>
+        <tbody id="activityLogTbody">
+          <tr><td colspan="5" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 </main>
 
 <!-- MODALS -->
+
 <div class="modal-bg" id="m-meeting">
   <div class="modal">
     <div class="modal-title">📅 إضافة اجتماع جديد</div>
@@ -1552,6 +1579,20 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 </div>
 
 <!-- Add member modal -->
+<div class="modal-bg" id="m-disclosure">
+  <div class="modal">
+    <div class="modal-title" id="mdis-title-h">📋 إفصاح عضو مجلس الإدارة</div>
+    <input type="hidden" id="mdis-member-id" value="" />
+    <div class="fg"><label>عضويات ومناصب بمجالس إدارة أخرى</label><textarea class="fta" id="mdis-directorships" rows="2" placeholder="اذكر أي شركات أخرى العضو عضو أو رئيس مجلس إدارة فيها، أو اكتب: لا يوجد"></textarea></div>
+    <div class="fg"><label>علاقات مع أطراف ذات صلة</label><textarea class="fta" id="mdis-related" rows="2" placeholder="أي علاقة عمل أو تعاقد بين العضو (أو أقاربه) والشركة، أو اكتب: لا يوجد"></textarea></div>
+    <div class="fg"><label>مصالح مالية قد تتعارض مع عمل الشركة</label><textarea class="fta" id="mdis-financial" rows="2" placeholder="ملكية أسهم بشركات منافسة أو موردة، أو اكتب: لا يوجد"></textarea></div>
+    <div class="fg"><label>علاقات قرابة مع أعضاء مجلس أو تنفيذيين آخرين</label><textarea class="fta" id="mdis-family" rows="2" placeholder="أو اكتب: لا يوجد"></textarea></div>
+    <div class="fg"><label>ملاحظات عامة إضافية</label><textarea class="fta" id="mdis-notes" rows="2"></textarea></div>
+    <div class="fg"><label>تاريخ الإفصاح</label><input type="date" class="fi" id="mdis-date"/></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-disclosure')">إلغاء</button><button class="btn btn-gold" onclick="saveDisclosure()">✅ حفظ الإفصاح</button></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-member">
   <div class="modal">
     <div class="modal-title" id="mm-title">👤 إضافة عضو مجلس إدارة</div>
@@ -2261,6 +2302,7 @@ function isPageAllowed(pageId, role){
   if(pageId === 'companyrequest') return true;
   if(hasNoCompany && !isPlatformAdmin) return false;
   if(pageId === 'users') return role === 'مدير النظام';
+  if(pageId === 'activitylog') return role === 'مدير النظام';
   if(role === 'مساهم') return SHAREHOLDER_PAGES.includes(pageId);
   if(currentCompanyType === 'مؤسسة فردية' && SOLE_PROP_HIDDEN_PAGES.includes(pageId)) return false;
   return true;
@@ -2281,6 +2323,7 @@ function isMutatingOnclick(val){
     || /^openNewCommitteeModal\(/.test(val)
     || /^openNewGovEvalModal\(/.test(val)
     || /^generateBaseStructure\(/.test(val)
+    || /^saveDisclosure\(/.test(val)
     || /^openNewCompanyModal\(/.test(val)
     || /^openInviteModal\(/.test(val)
     || /^openEditCompanyModal\(/.test(val)
@@ -2368,6 +2411,7 @@ async function linkExistingAccount(){
 
   const { error } = await sb.from("user_profiles").update({ company_id: currentCompanyId, role }).ilike("email", email);
   if(error){ alert("تعذّر الربط: " + error.message); return; }
+  logActivity("صلاحيات", "مستخدم", existing.full_name||email, `ربط حساب موجود بدور "${role}"`);
   alert(`تم ربط "${existing.full_name||email}" بشركتك ✅ — عليه تسجيل خروج ثم دخول من جديد ليرى شركتك.`);
   document.getElementById("mi-existing-email").value = "";
   closeM("m-invite");
@@ -2390,6 +2434,7 @@ async function generateInvite(){
 
   const { error } = await sb.from("company_invites").insert([{ company_id: currentCompanyId, invite_code, suggested_role, created_by: myEmail }]);
   if(error){ alert("تعذّر توليد الدعوة: " + error.message); return; }
+  logActivity("دعوة", "رابط دعوة", invite_code, `بدور "${suggested_role}"`);
 
   const link = `${window.location.origin}${window.location.pathname}?invite=${invite_code}`;
   document.getElementById("mi-link").value = link;
@@ -2441,6 +2486,64 @@ const ROLE_STYLE = {
   "عضو مجلس": { color: "var(--green)", bg: "#E8F8EF", icon: "👤" },
   "مساهم": { color: "var(--gray3)", bg: "var(--offwhite)", icon: "💰" }
 };
+
+/* ══════════ ACTIVITY LOG (universal, non-blocking) ══════════ */
+async function logActivity(action_type, entity_type, entity_label, details){
+  try{
+    if(!currentCompanyId) return;
+    const { data: userData } = await sb.auth.getUser();
+    const actor_email = userData && userData.user ? userData.user.email : null;
+    const actor_name = currentUserProfile ? (currentUserProfile.full_name || actor_email) : actor_email;
+    await sb.from("activity_log").insert([{ company_id: currentCompanyId, actor_email, actor_name, action_type, entity_type, entity_label: entity_label||"", details: details||"" }]);
+  }catch(e){ /* logging must never block the actual action */ }
+}
+
+let activityLogCache = [];
+let activityLogActiveType = "الكل";
+const ACTIVITY_TYPE_ICONS = { "إنشاء":"➕", "تعديل":"✏️", "حذف":"🗑️", "دعوة":"🔗", "صلاحيات":"🛡️", "موافقة":"✅", "رفض":"❌", "توقيع":"✍️" };
+
+async function loadActivityLog(){
+  const tbody = document.getElementById("activityLogTbody");
+  if(!tbody) return;
+  const { data, error } = await sb.from("activity_log").select("*").eq("company_id", currentCompanyId).order("created_at",{ascending:false}).limit(300);
+  if(error){ tbody.innerHTML = errorRowHTML(5, error.message); return; }
+  activityLogCache = data || [];
+  renderActivityLogPills();
+  renderActivityLogFiltered();
+}
+
+function renderActivityLogPills(){
+  const box = document.getElementById("activityLogTypePills");
+  if(!box) return;
+  const types = [...new Set(activityLogCache.map(a => a.action_type))];
+  const pill = (label, key, count) => {
+    const active = activityLogActiveType === key;
+    const icon = ACTIVITY_TYPE_ICONS[key] || "•";
+    return `<button onclick="setActivityLogType('${key}')" style="font-size:11.5px;font-weight:700;padding:7px 14px;border-radius:20px;cursor:pointer;border:none;background:${active?'#fff':'rgba(255,255,255,0.18)'};color:${active?'var(--primary)':'#fff'}">${key==='الكل'?'📜':icon} ${label}${count!=null?` (${count})`:''}</button>`;
+  };
+  let html = pill("الكل", "الكل", activityLogCache.length);
+  types.forEach(t => { html += pill(t, t, activityLogCache.filter(a=>a.action_type===t).length); });
+  box.innerHTML = html;
+}
+function setActivityLogType(t){ activityLogActiveType = t; renderActivityLogPills(); renderActivityLogFiltered(); }
+
+function renderActivityLogFiltered(){
+  const tbody = document.getElementById("activityLogTbody");
+  if(!tbody) return;
+  const search = (document.getElementById("activityLogSearchInput")?.value || "").trim().toLowerCase();
+  let list = activityLogCache;
+  if(activityLogActiveType !== "الكل") list = list.filter(a => a.action_type === activityLogActiveType);
+  if(search) list = list.filter(a => (a.actor_name||"").toLowerCase().includes(search) || (a.entity_label||"").toLowerCase().includes(search));
+  if(activityLogCache.length===0){ tbody.innerHTML = emptyRowHTML(5, "لا يوجد نشاط مسجّل بعد."); return; }
+  if(list.length===0){ tbody.innerHTML = emptyRowHTML(5, "لا توجد نتائج مطابقة."); return; }
+  tbody.innerHTML = list.map(a => `<tr>
+    <td style="font-size:11px;color:var(--gray3);white-space:nowrap">${new Date(a.created_at).toLocaleString('ar-SA')}</td>
+    <td>${a.actor_name||a.actor_email||"—"}</td>
+    <td>${ACTIVITY_TYPE_ICONS[a.action_type]||''} ${a.action_type||""} ${a.entity_type||""}</td>
+    <td>${a.entity_label||"—"}</td>
+    <td style="font-size:11px;color:var(--gray3)">${a.details||""}</td>
+  </tr>`).join("");
+}
 
 async function loadUsers(){
   loadPendingInvites();
@@ -2494,12 +2597,15 @@ async function deleteUserProfile(id, name){
   if(!confirm(`هل تريد حذف "${name}" من المنصة؟ سيفقد وصوله لبيانات الشركة فورًا (هذا لا يحذف حساب الدخول نفسه من نظام المصادقة، فقط صلاحيته وبياناته على المنصة).`)) return;
   const { error } = await sb.from("user_profiles").delete().eq("id", id);
   if(error){ alert("تعذّر الحذف: " + error.message); return; }
+  logActivity("حذف", "مستخدم", name, "إزالة من فريق الشركة");
   loadUsers();
 }
 
 async function updateUserRole(id, role){
+  const { data: target } = await sb.from("user_profiles").select("full_name,email").eq("id", id).single();
   const { error } = await sb.from("user_profiles").update({ role }).eq("id", id);
   if(error){ alert("تعذّر التحديث: " + error.message); return; }
+  logActivity("صلاحيات", "مستخدم", target ? (target.full_name||target.email) : "", `تغيير الدور إلى "${role}"`);
   loadUsers();
 }
 async function loadCompanies(preferredCompanyId){
@@ -2558,6 +2664,7 @@ function reloadCurrentPageData(){
   if(id==='dashboard') loadDashboard();
   if(id==='companyrequest') loadCompanyRequestPage();
   if(id==='companyrequests') loadCompanyRequestsReview();
+  if(id==='activitylog') loadActivityLog();
 }
 
 const REPORT_MANUAL_FIELDS = [
@@ -3156,6 +3263,7 @@ async function approveCompanyRequest(requestId){
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
   await sb.from("company_requests").update({ status: "معتمد", reviewed_at: new Date().toISOString(), reviewed_by: myEmail, company_id: newCompany.id }).eq("id", requestId);
+  await sb.from("activity_log").insert([{ company_id: newCompany.id, actor_email: myEmail, actor_name: "مالك المنصة", action_type: "إنشاء", entity_type: "شركة", entity_label: newCompany.name, details: "تمت الموافقة على طلب الإدراج" }]);
 
   alert("تم إنشاء الشركة وربط المستخدم بها كمدير نظام ✅");
   loadCompanyRequestsReview();
@@ -3260,6 +3368,7 @@ if('serviceWorker' in navigator){
 
 /* ══════════ BOARD MEMBERS ══════════ */
 let membersCache = [];
+let disclosuresCache = [];
 const memberColors = [
   "linear-gradient(135deg,var(--primary),var(--accent))",
   "linear-gradient(135deg,#8B2FC9,#B56AE8)",
@@ -3270,7 +3379,10 @@ const memberColors = [
 
 async function loadMembers(){
   const grid = document.getElementById("membersGrid");
-  const { data, error } = await sb.from("board_members").select("*").eq("company_id", currentCompanyId).order("id", { ascending: true });
+  const [{ data, error }, { data: disclosures }] = await Promise.all([
+    sb.from("board_members").select("*").eq("company_id", currentCompanyId).order("id", { ascending: true }),
+    sb.from("board_member_disclosures").select("*").eq("company_id", currentCompanyId)
+  ]);
   if(error){
     grid.innerHTML = '<div style="font-size:12px;color:var(--red);padding:12px">تعذّر تحميل الأعضاء: '+error.message+'</div>';
     return;
@@ -3280,22 +3392,67 @@ async function loadMembers(){
     return;
   }
   membersCache = data;
+  disclosuresCache = disclosures || [];
   grid.innerHTML = data.map((m, i) => {
     const initial = (m.name || "?").trim().charAt(0);
     const bg = memberColors[i % memberColors.length];
     const status = m.status || "—";
     const execBadge = m.is_executive === "تنفيذي" ? '<span class="badge pending">تنفيذي</span>' : '<span class="badge info">غير تنفيذي</span>';
     const committeeBadge = m.committee_member === "نعم" ? '<span class="badge done">عضو لجنة</span>' : "";
+    const hasDisclosure = disclosuresCache.some(d => d.member_id === m.id);
+    const disclosureBadge = hasDisclosure ? '<span class="badge done">✅ أُفصح</span>' : '<span class="badge urgent">⚠️ لم يُفصح</span>';
     return `<div class="memcard">
       <div class="mem-av" style="background:${bg}">${initial}</div>
       <div class="mem-name">${m.name || ""}</div><div class="mem-role">${m.position_level || "عضو"} — ${m.position || ""}</div>
       <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;margin:4px 0">
         <span class="badge info">${status}</span>${execBadge}${committeeBadge}
       </div>
+      <div style="display:flex;justify-content:center;margin:2px 0">${disclosureBadge}</div>
       <div class="mem-stats"><div><div class="ms-v">${m.join_date || "—"}</div><div class="ms-l">الانضمام</div></div></div>
-      <button class="btn-xs primary" style="margin-top:8px;width:100%" onclick="editMember(${m.id})">✏️ تعديل</button>
+      <div style="display:flex;gap:6px;margin-top:8px;width:100%">
+        <button class="btn-xs primary" style="flex:1" onclick="editMember(${m.id})">✏️ تعديل</button>
+        <button class="btn-xs" style="flex:1;background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer" onclick="openDisclosureModal(${m.id})">📋 إفصاح</button>
+      </div>
     </div>`;
   }).join("");
+}
+
+function openDisclosureModal(memberId){
+  const m = membersCache.find(x => x.id === memberId);
+  if(!m) return;
+  const existing = disclosuresCache.find(d => d.member_id === memberId);
+  document.getElementById("mdis-member-id").value = memberId;
+  document.getElementById("mdis-title-h").textContent = "📋 إفصاح — " + (m.name||"");
+  document.getElementById("mdis-directorships").value = existing ? (existing.other_directorships||"") : "";
+  document.getElementById("mdis-related").value = existing ? (existing.related_party_relationships||"") : "";
+  document.getElementById("mdis-financial").value = existing ? (existing.financial_interests||"") : "";
+  document.getElementById("mdis-family").value = existing ? (existing.family_relationships||"") : "";
+  document.getElementById("mdis-notes").value = existing ? (existing.general_notes||"") : "";
+  document.getElementById("mdis-date").value = existing ? (existing.disclosed_at||"") : new Date().toISOString().slice(0,10);
+  openM("m-disclosure");
+}
+
+async function saveDisclosure(){
+  const member_id = Number(document.getElementById("mdis-member-id").value);
+  const existing = disclosuresCache.find(d => d.member_id === member_id);
+  const payload = {
+    member_id, company_id: currentCompanyId,
+    other_directorships: document.getElementById("mdis-directorships").value.trim(),
+    related_party_relationships: document.getElementById("mdis-related").value.trim(),
+    financial_interests: document.getElementById("mdis-financial").value.trim(),
+    family_relationships: document.getElementById("mdis-family").value.trim(),
+    general_notes: document.getElementById("mdis-notes").value.trim(),
+    disclosed_at: document.getElementById("mdis-date").value || null,
+    updated_at: new Date().toISOString()
+  };
+  const { error } = existing
+    ? await sb.from("board_member_disclosures").update(payload).eq("id", existing.id)
+    : await sb.from("board_member_disclosures").insert([payload]);
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  const m = membersCache.find(x => x.id === member_id);
+  logActivity("تعديل", "إفصاح عضو", m?m.name:"", "تحديث الإفصاح الشامل");
+  closeM("m-disclosure");
+  loadMembers();
 }
 
 function editMember(id){
@@ -4718,8 +4875,10 @@ async function recomputePolicyStage(policyId){
 
 async function deletePolicy(id){
   if(!confirm("هل أنت متأكد من حذف هذه السياسة؟")) return;
+  const p = policiesCache.find(x=>x.id===id);
   const { error } = await sb.from("policies").delete().eq("id", id);
   if(error){ alert("تعذّر الحذف: " + error.message); return; }
+  logActivity("حذف", "سياسة", p?p.policy_name:"", "");
   loadPolicies();
 }
 
@@ -4975,8 +5134,10 @@ function editRisk(id){
 
 async function deleteRisk(id){
   if(!confirm("هل أنت متأكد من حذف هذا الخطر؟")) return;
+  const r = risksCache.find(x=>x.id===id);
   const { error } = await sb.from("risks").delete().eq("id", id);
   if(error){ alert("تعذّر الحذف: " + error.message); return; }
+  logActivity("حذف", "خطر", r?r.risk_name:"", "");
   loadRisks();
 }
 
@@ -7014,6 +7175,7 @@ function go(id, el){
   if(id==='dashboard') loadDashboard();
   if(id==='companyrequest') loadCompanyRequestPage();
   if(id==='companyrequests') loadCompanyRequestsReview();
+  if(id==='activitylog') loadActivityLog();
   if(id==='members') loadMembers();
   if(id==='governance') loadPolicies();
   if(id==='meetings' || id==='committees' || id==='agm') loadMeetingsAll();
