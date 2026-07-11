@@ -6231,9 +6231,11 @@ async function exportUsersList(){
 /* ══════════ EMAIL NOTIFICATIONS (via Supabase Edge Function + Resend) ══════════ */
 async function sendNotificationEmail(to, subject, html){
   try{
+    const { data: sessionData } = await sb.auth.getSession();
+    const token = sessionData && sessionData.session ? sessionData.session.access_token : SUPABASE_KEY;
     const res = await fetch(`${SUPABASE_URL}/functions/v1/send-notification-email`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SUPABASE_KEY}` },
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}`, "apikey": SUPABASE_KEY },
       body: JSON.stringify({ to, subject, html })
     });
     const data = await res.json();
