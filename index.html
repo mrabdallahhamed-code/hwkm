@@ -677,10 +677,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <!-- ══ DASHBOARD ══════════════════════════ -->
 <div id="p-dashboard" class="page active content">
   <div class="kpi-grid">
-    <div class="kpi blue"><div class="kpi-stripe"></div><div class="kpi-label">اجتماعات هذا الربع</div><div class="kpi-val" id="kpi-meetings-q">—</div><div class="kpi-foot" id="kpi-meetings-q-foot">جارِ التحميل...</div><div class="kpi-icon">📅</div></div>
-    <div class="kpi gold"><div class="kpi-stripe"></div><div class="kpi-label">محاضر معتمدة</div><div class="kpi-val" id="kpi-minutes">—</div><div class="kpi-foot" id="kpi-minutes-foot">جارِ التحميل...</div><div class="kpi-icon">📄</div></div>
-    <div class="kpi green"><div class="kpi-stripe"></div><div class="kpi-label">نسبة الامتثال</div><div class="kpi-val" id="kpi-compliance">—</div><div class="kpi-foot" id="kpi-compliance-foot">جارِ التحميل...</div><div class="kpi-icon">✅</div></div>
-    <div class="kpi red"><div class="kpi-stripe"></div><div class="kpi-label">مخاطر مفتوحة</div><div class="kpi-val" id="kpi-risks">—</div><div class="kpi-foot" id="kpi-risks-foot">جارِ التحميل...</div><div class="kpi-icon">⚠️</div></div>
+    <div class="kpi blue" style="cursor:pointer" onclick="go('meetings',null)"><div class="kpi-stripe"></div><div class="kpi-label">اجتماعات هذا الربع</div><div class="kpi-val" id="kpi-meetings-q">—</div><div class="kpi-foot" id="kpi-meetings-q-foot">جارِ التحميل...</div><div class="kpi-icon">📅</div></div>
+    <div class="kpi gold" style="cursor:pointer" onclick="go('signing',null)"><div class="kpi-stripe"></div><div class="kpi-label">محاضر معتمدة</div><div class="kpi-val" id="kpi-minutes">—</div><div class="kpi-foot" id="kpi-minutes-foot">جارِ التحميل...</div><div class="kpi-icon">📄</div></div>
+    <div class="kpi green" style="cursor:pointer" onclick="go('compliance',null)"><div class="kpi-stripe"></div><div class="kpi-label">نسبة الامتثال</div><div class="kpi-val" id="kpi-compliance">—</div><div class="kpi-foot" id="kpi-compliance-foot">جارِ التحميل...</div><div class="kpi-icon">✅</div></div>
+    <div class="kpi red" style="cursor:pointer" onclick="go('risks',null)"><div class="kpi-stripe"></div><div class="kpi-label">مخاطر مفتوحة</div><div class="kpi-val" id="kpi-risks">—</div><div class="kpi-foot" id="kpi-risks-foot">جارِ التحميل...</div><div class="kpi-icon">⚠️</div></div>
   </div>
 
   <div class="stats-bar">
@@ -704,6 +704,27 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="card">
       <div class="card-head"><span class="card-title">🔔 التنبيهات التنفيذية</span></div>
       <div class="card-body" id="dashAlerts">
+        <div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="two-col" style="margin-top:18px">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">🔥 أعلى المخاطر</span>
+        <button class="btn-xs primary" onclick="go('risks',null)">عرض المصفوفة الكاملة</button>
+      </div>
+      <div class="card-body" id="dashTopRisks">
+        <div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">🔍 حالة التدقيق الداخلي</span>
+        <button class="btn-xs primary" onclick="go('audit',null)">عرض الكل</button>
+      </div>
+      <div class="card-body" id="dashAuditStatus">
         <div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</div>
       </div>
     </div>
@@ -1167,11 +1188,11 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <div id="p-audit" class="page content">
   <div class="sec-title">🔍 التدقيق الداخلي</div>
 
-  <div class="stats-bar" id="auditStatsBar" style="margin-bottom:18px">
-    <div class="sb-item"><div class="sb-val" id="audit-stat-open">—</div><div class="sb-lbl">مفتوحة</div></div>
-    <div class="sb-item"><div class="sb-val" id="audit-stat-progress">—</div><div class="sb-lbl">قيد المتابعة</div></div>
-    <div class="sb-item"><div class="sb-val" id="audit-stat-closed">—</div><div class="sb-lbl">مغلقة</div></div>
-    <div class="sb-item"><div class="sb-val" id="audit-stat-total">—</div><div class="sb-lbl">إجمالي البنود</div></div>
+  <div id="auditStatsBar" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px">
+    <div style="background:#FDE8E8;border-radius:10px;padding:14px;text-align:center"><div style="font-size:24px;font-weight:900;color:var(--red)" id="audit-stat-open">—</div><div style="font-size:11px;color:var(--gray3);margin-top:2px">مفتوحة</div></div>
+    <div style="background:#FEF3E2;border-radius:10px;padding:14px;text-align:center"><div style="font-size:24px;font-weight:900;color:var(--gold)" id="audit-stat-progress">—</div><div style="font-size:11px;color:var(--gray3);margin-top:2px">قيد المتابعة</div></div>
+    <div style="background:#E5F6F4;border-radius:10px;padding:14px;text-align:center"><div style="font-size:24px;font-weight:900;color:var(--teal)" id="audit-stat-closed">—</div><div style="font-size:11px;color:var(--gray3);margin-top:2px">مغلقة</div></div>
+    <div style="background:var(--offwhite);border-radius:10px;padding:14px;text-align:center"><div style="font-size:24px;font-weight:900;color:var(--primary)" id="audit-stat-total">—</div><div style="font-size:11px;color:var(--gray3);margin-top:2px">إجمالي البنود</div></div>
   </div>
 
   <div class="sec-title">📋 متابعة توصيات التدقيق</div>
@@ -3473,15 +3494,56 @@ async function loadNotifications(){
     </div>`).join("");
 }
 
+function renderDashTopRisks(risks){
+  const box = document.getElementById("dashTopRisks");
+  if(!box) return;
+  if(risks.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد مخاطر مسجّلة بعد.</div>'; return; }
+  const severity = r => (r.impact==="عالٍ"?2:r.impact==="متوسط"?1:0) * 100 + (r.probability||0);
+  const top = [...risks].sort((a,b)=>severity(b)-severity(a)).slice(0,5);
+  box.innerHTML = top.map(r => {
+    const color = riskSeverityColor(r.impact, r.probability);
+    return `<div onclick="go('risks',null)" style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--gray1);cursor:pointer">
+      <div style="display:flex;align-items:center;gap:8px;min-width:0">
+        <span style="width:9px;height:9px;border-radius:50%;background:${color};flex-shrink:0"></span>
+        <span style="font-size:12px;font-weight:600;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.risk_name||""}</span>
+      </div>
+      <span style="font-size:10.5px;color:var(--gray3);flex-shrink:0">${r.impact||"—"} · ${r.probability!=null?r.probability+'%':'—'}</span>
+    </div>`;
+  }).join("");
+}
+
+function renderDashAuditStatus(items){
+  const box = document.getElementById("dashAuditStatus");
+  if(!box) return;
+  if(items.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد بنود تدقيق مسجّلة بعد.</div>'; return; }
+  const open = items.filter(i=>i.status==="مفتوحة").length;
+  const inProgress = items.filter(i=>i.status==="قيد المتابعة").length;
+  const closed = items.filter(i=>i.status==="مغلقة").length;
+  const total = items.length;
+  const pct = total ? Math.round((closed/total)*100) : 0;
+  const openItems = items.filter(i=>i.status!=="مغلقة").slice(0,3);
+  box.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+      <div style="font-size:26px;font-weight:900;color:var(--teal)">${pct}%</div>
+      <div style="flex:1">
+        <div style="height:8px;background:var(--offwhite);border-radius:4px;overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--teal)"></div></div>
+        <div style="font-size:10.5px;color:var(--gray3);margin-top:4px">${closed} مغلقة · ${inProgress} قيد المتابعة · ${open} مفتوحة</div>
+      </div>
+    </div>
+    ${openItems.map(i => `<div onclick="go('audit',null)" style="padding:6px 0;border-top:1px solid var(--gray1);cursor:pointer;font-size:11.5px;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🔸 ${i.item||""}</div>`).join("")}
+  `;
+}
+
 async function loadDashboard(){
-  const [meetingsRes, risksRes, complianceRes, membersRes, committeesRes, signingRes, policiesRes] = await Promise.all([
+  const [meetingsRes, risksRes, complianceRes, membersRes, committeesRes, signingRes, policiesRes, auditRes] = await Promise.all([
     sb.from("meetings").select("*").eq("company_id", currentCompanyId),
     sb.from("risks").select("*").eq("company_id", currentCompanyId),
     sb.from("compliance_items").select("*").eq("company_id", currentCompanyId),
     sb.from("board_members").select("*").eq("company_id", currentCompanyId),
     sb.from("committees").select("*").eq("company_id", currentCompanyId),
     sb.from("signing_documents").select("*").eq("company_id", currentCompanyId),
-    sb.from("policies").select("*").eq("company_id", currentCompanyId)
+    sb.from("policies").select("*").eq("company_id", currentCompanyId),
+    sb.from("audit_items").select("*").eq("company_id", currentCompanyId)
   ]);
 
   const meetings = meetingsRes.data || [];
@@ -3491,6 +3553,9 @@ async function loadDashboard(){
   const committeesData = committeesRes.data || [];
   const signingDocs = signingRes.data || [];
   const policies = policiesRes.data || [];
+  const auditItems = auditRes.data || [];
+  renderDashTopRisks(risks);
+  renderDashAuditStatus(auditItems);
 
   const now = new Date();
   const todayStr = now.toISOString().slice(0,10);
@@ -4780,10 +4845,10 @@ function riskProbCol(p){ return p==null ? 1 : (p>=67 ? 2 : (p>=34 ? 1 : 0)); } /
 function riskSeverityColor(impact, probability){
   const highImpact = impact === "عالٍ";
   const highProb = (probability||0) >= 67;
-  if(highImpact && highProb) return "#C0392B";
-  if(highImpact || highProb) return "#E67E22";
-  if(impact === "منخفض" && (probability||0) < 34) return "#27AE60";
-  return "#F1C40F";
+  if(highImpact && highProb) return "var(--primary)";
+  if(highImpact || highProb) return "var(--gold)";
+  if(impact === "منخفض" && (probability||0) < 34) return "var(--teal)";
+  return "#8B6F1F";
 }
 
 async function loadRisks(){
@@ -4809,43 +4874,71 @@ async function loadRisks(){
   renderRiskCards(risksCache);
 }
 
+/* Heat-map style matrix: a single continuous navy→gold→maroon gradient across the grid
+   (instead of discrete red/orange/green zone blocks) so severity reads as a smooth scale
+   consistent with the platform's own palette. Every risk pill is clickable — jumps straight
+   into editing that risk, so the matrix works as a real navigation surface, not just a chart. */
 function renderRiskMatrix(risks){
   const grid = document.getElementById("riskMatrixGrid");
   if(!grid) return;
-  // 3x3 buckets: [impactRow][probCol], impactRow 0=عالي(top) .. 2=منخفض(bottom)
   const buckets = [[[],[],[]],[[],[],[]],[[],[],[]]];
   risks.forEach(r => {
     const row = RISK_IMPACT_ROW[r.impact] ?? 1;
     const col = riskProbCol(r.probability);
     buckets[row][col].push(r);
   });
-  const bg = { high:"#FDE8E8", mid:"#FEF3E2", low:"#E8F8EF" };
-  const border = { high:"#E8A0A0", mid:"#F0C070", low:"#A0D8B0" };
-  const cellStyle = (row) => row===0 ? {bg:bg.high,bd:border.high} : row===1 ? {bg:bg.mid,bd:border.mid} : {bg:bg.low,bd:border.low};
+  // cellHeat: 0 (safe, low-left) → 1 (critical, high-right/top)
+  const cellHeat = (row, col) => (col + (2 - row)) / 4;
+  const heatColor = (t) => {
+    // teal → gold → deep maroon
+    if(t <= 0.5){
+      const k = t / 0.5;
+      return lerpColor("1C7C74", "BE9B3B", k);
+    }
+    const k = (t - 0.5) / 0.5;
+    return lerpColor("BE9B3B", "7A1F2B", k);
+  };
+  function lerpColor(c1, c2, t){
+    const a = parseInt(c1,16), b = parseInt(c2,16);
+    const ar=(a>>16)&255, ag=(a>>8)&255, ab=a&255;
+    const br=(b>>16)&255, bg=(b>>8)&255, bb=b&255;
+    const r = Math.round(ar+(br-ar)*t), g = Math.round(ag+(bg-ag)*t), bl = Math.round(ab+(bb-ab)*t);
+    return `rgb(${r},${g},${bl})`;
+  }
 
-  let html = '<div style="display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--gray3);writing-mode:vertical-rl;transform:rotate(180deg)">عالي</div>';
-  [0,1,2].forEach(col => {
-    const s = cellStyle(0);
-    html += `<div style="background:${s.bg};border-radius:8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px;padding:6px;border:1px solid ${s.bd}">
-      ${buckets[0][col].map(r => `<div style="background:${riskSeverityColor(r.impact,r.probability)};color:#fff;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;white-space:nowrap" title="${r.risk_name}">${r.risk_name}</div>`).join("")}
-    </div>`;
+  const rowLabels = ["عالي","متوسط","منخفض"];
+  let html = '';
+  [0,1,2].forEach(row => {
+    html += `<div style="display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--gray3)">${rowLabels[row]}</div>`;
+    [0,1,2].forEach(col => {
+      const color = heatColor(cellHeat(row,col));
+      html += `<div style="background:${color};opacity:0.13;border-radius:10px;position:relative;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:5px;padding:8px;min-height:64px;border:1.5px solid ${color}">
+      </div>`;
+    });
   });
-  html += '<div style="display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--gray3);writing-mode:vertical-rl;transform:rotate(180deg)">متوسط</div>';
-  [0,1,2].forEach(col => {
-    const s = cellStyle(1);
-    html += `<div style="background:${s.bg};border-radius:8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px;padding:6px;border:1px solid ${s.bd}">
-      ${buckets[1][col].map(r => `<div style="background:${riskSeverityColor(r.impact,r.probability)};color:#fff;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;white-space:nowrap" title="${r.risk_name}">${r.risk_name}</div>`).join("")}
-    </div>`;
-  });
-  html += '<div style="display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--gray3);writing-mode:vertical-rl;transform:rotate(180deg)">منخفض</div>';
-  [0,1,2].forEach(col => {
-    const s = cellStyle(2);
-    html += `<div style="background:${s.bg};border-radius:8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px;padding:6px;border:1px solid ${s.bd}">
-      ${buckets[2][col].map(r => `<div style="background:${riskSeverityColor(r.impact,r.probability)};color:#fff;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;white-space:nowrap" title="${r.risk_name}">${r.risk_name}</div>`).join("")}
-    </div>`;
-  });
-  html += '<div></div><div style="text-align:center;font-size:9px;color:var(--gray3);padding-top:4px">منخفض</div><div style="text-align:center;font-size:9px;color:var(--gray3);padding-top:4px">متوسط</div><div style="text-align:center;font-size:9px;color:var(--gray3);padding-top:4px">عالي</div>';
   grid.innerHTML = html;
+
+  // Overlay pills as a second pass so their solid backgrounds aren't diluted by the cell opacity
+  const cells = grid.querySelectorAll('div[style*="min-height:64px"]');
+  let ci = 0;
+  [0,1,2].forEach(row => {
+    [0,1,2].forEach(col => {
+      const cell = cells[ci++];
+      buckets[row][col].forEach(r => {
+        const pill = document.createElement("div");
+        pill.title = r.risk_name + " — اضغط للتعديل";
+        pill.textContent = r.risk_name;
+        pill.style.cssText = `background:${riskSeverityColor(r.impact,r.probability)};color:#fff;border-radius:20px;padding:4px 10px;font-size:10.5px;font-weight:700;white-space:nowrap;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.15)`;
+        pill.onclick = () => editRisk(r.id);
+        cell.appendChild(pill);
+      });
+    });
+  });
+
+  const footRow = document.createElement("div");
+  footRow.style.cssText = "grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:2px";
+  footRow.innerHTML = '<div style="text-align:center;font-size:10px;color:var(--gray3);font-weight:700">منخفض</div><div style="text-align:center;font-size:10px;color:var(--gray3);font-weight:700">متوسط</div><div style="text-align:center;font-size:10px;color:var(--gray3);font-weight:700">عالي</div>';
+  grid.appendChild(footRow);
 }
 
 function renderRiskCards(risks){
@@ -6313,10 +6406,17 @@ function renderAuditFollowup(items){
     const order = { "مفتوحة":0, "قيد المتابعة":1, "مغلقة":2 };
     return (order[a.status]??3) - (order[b.status]??3);
   });
+  const dotColor = { "مفتوحة":"var(--red)", "قيد المتابعة":"var(--gold)", "مغلقة":"var(--teal)" };
   box.innerHTML = sorted.map(a => {
-    const dot = a.status==="مفتوحة" ? "red" : a.status==="قيد المتابعة" ? "gold" : "green";
+    const color = dotColor[a.status] || "var(--gray3)";
     const mark = a.status==="مغلقة" ? " ✅" : "";
-    return `<div class="alert-item"><div class="a-dot ${dot}"></div><div><div class="a-text">${a.item}${mark}</div><div class="a-time">${a.recommendation||""} — ${a.status}</div></div></div>`;
+    return `<div onclick="editAudit(${a.id})" style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray1);cursor:pointer">
+      <span style="width:9px;height:9px;border-radius:50%;background:${color};margin-top:5px;flex-shrink:0"></span>
+      <div style="min-width:0">
+        <div style="font-size:12.5px;font-weight:700;color:var(--dark)">${a.item||""}${mark}</div>
+        <div style="font-size:11px;color:var(--gray3);margin-top:2px">${a.recommendation||""} — ${a.status||""}</div>
+      </div>
+    </div>`;
   }).join("");
 }
 
