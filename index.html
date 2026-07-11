@@ -5553,11 +5553,10 @@ async function generateBaseStructure(){
       { position_title: "المالك", parent_position: "", level: 1, is_body: false, is_leadership: true }
     ];
   } else if(type === "ذات مسؤولية محدودة"){
-    if(!confirm('سيُضاف: جمعية الشركاء ← مجلس المديرين (برئيسه) ← الرئيس التنفيذي. أي عنصر قديم بنفس الاسم سيُستبدل تلقائيًا بالنسخة الصحيحة. متابعة؟')) return;
+    if(!confirm('سيُضاف: جمعية الشركاء ← مجلس المديرين ← الرئيس التنفيذي. أي عنصر قديم بنفس الاسم سيُستبدل تلقائيًا بالنسخة الصحيحة. متابعة؟')) return;
     rows = [
       { position_title: "جمعية الشركاء", parent_position: "", level: 1, is_body: true },
       { position_title: "مجلس المديرين", parent_position: "جمعية الشركاء", level: 2, is_body: true },
-      { position_title: "رئيس مجلس المديرين", parent_position: "مجلس المديرين", level: 2, is_body: false, is_leadership: true },
       { position_title: "الرئيس التنفيذي", parent_position: "مجلس المديرين", level: 4, is_body: false, is_leadership: true }
     ];
   } else {
