@@ -6177,38 +6177,62 @@ async function handlePdfFileSelect(input){
    of each line is much sturdier than guessing at the free-text columns (name/nationality/
    residence/profession), which are left for the person to fill in during review instead of
    risking a wrong automatic split. */
+function toEnglishDigits(s){
+  if(!s) return "";
+  const map = { "٠":"0","١":"1","٢":"2","٣":"3","٤":"4","٥":"5","٦":"6","٧":"7","٨":"8","٩":"9" };
+  return s.replace(/[٠-٩]/g, d => map[d]);
+}
+function stripCommas(s){ return toEnglishDigits(s).replace(/[,٬]/g,""); }
+
+/* Tuned for registries whose PDF export wraps each shareholder's cells across several lines
+   and scrambles the Hijri date into fragments (a known artifact of RTL text extraction).
+   Anchors on the profession word ("مساهم" etc.) which reliably appears once per record on the
+   line holding the numeric values, then reconstructs the name and nationality/residence from
+   the lines that follow — up to the next anchor. Always meant to be reviewed, not trusted blindly. */
 function parsePdfTextToRows(text){
   const rows = [];
   const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
-  const dateRe = /(\d{1,4}[\/\-]\d{1,2}[\/\-]\d{1,4})\s*$/;
-  const numRe = /([\d,٬.]+)\s*$/;
+  const PROFESSIONS = /مساهم|موظف|متقاعد|طالب|أعمال حرة|ربة منزل|عسكري|طبيب|مهندس/;
 
-  lines.forEach(line => {
-    if(/مسلسل|الجنسية.*محل|رقم الشهادة/.test(line)) return; // skip header row
-    let rest = line;
-    let ownership_transfer_date = "";
-    const dm = rest.match(dateRe);
-    if(dm){ ownership_transfer_date = dm[1]; rest = rest.slice(0, dm.index).trim(); }
+  const anchorIdx = [];
+  lines.forEach((line, i) => { if(PROFESSIONS.test(line) && /[\d٠-٩]/.test(line)) anchorIdx.push(i); });
 
-    let paid_value = "";
-    const nm1 = rest.match(numRe);
-    if(nm1){ paid_value = nm1[1].replace(/[,٬]/g,""); rest = rest.slice(0, nm1.index).trim(); }
+  anchorIdx.forEach((idx, k) => {
+    const dataLine = lines[idx];
+    const blockEnd = anchorIdx[k+1] !== undefined ? anchorIdx[k+1] : lines.length;
+    const block = lines.slice(idx+1, blockEnd);
 
-    let shares_count = "";
-    const nm2 = rest.match(numRe);
-    if(nm2){ shares_count = nm2[1].replace(/[,٬]/g,""); rest = rest.slice(0, nm2.index).trim(); }
+    const profMatch = dataLine.match(PROFESSIONS);
+    const profession = profMatch ? profMatch[0] : "";
 
-    let certificate_number = "";
-    const cm = rest.match(/(\d{4,})\s*$/);
-    if(cm){ certificate_number = cm[1]; rest = rest.slice(0, cm.index).trim(); }
+    const allNums = dataLine.match(/[\d٠-٩]+(?:[,٬][\d٠-٩]+)*/g) || [];
+    const paidToken = allNums.find(n => /[,٬]/.test(n)) || "";
+    const remaining = allNums.filter(n => n !== paidToken);
+    // Remaining bare numbers (excluding the paid value) are typically: hijri year fragment,
+    // day/month fragments, shares count, certificate number — sorted longest-first tends to
+    // put the shares count (usually 4-5 digits) and certificate number ahead of 1-2 digit
+    // day/month fragments and the 4-digit hijri year.
+    const sorted = [...remaining].sort((a,b)=>stripCommas(b).length - stripCommas(a).length);
+    const shares_count = sorted[0] ? stripCommas(sorted[0]) : "";
+    // Certificate number and the hijri date fragments are all short 1-2 digit tokens once the
+    // date gets scrambled by RTL extraction — too ambiguous to guess reliably, so they're left
+    // blank here rather than risk assigning the wrong number. Fill them in during review.
 
-    // Drop a leading serial number token (مسلسل), if present
-    rest = rest.replace(/^\d+\s+/, "").trim();
+    const countryLines = block.filter(l => /المملكة|السعودية|العربية|الإمارات|الكويت|قطر|البحرين|مصر|الأردن/.test(l));
+    const nameLines = block.filter(l =>
+      !/المملكة|السعودية|العربية|الإمارات|الكويت|قطر|البحرين|مصر|الأردن/.test(l) &&
+      !PROFESSIONS.test(l) &&
+      !/^[\d٠-٩\s\/\-هـ]+$/.test(l)
+    );
+    const name = nameLines.join(" ").replace(/^[\d٠-٩]+\s*/, "").replace(/\s*[\d٠-٩]+$/, "").trim();
+    const nationality = countryLines.slice(0,2).join(" ").trim();
+    const place_of_residence = countryLines.slice(2,4).join(" ").trim() || nationality;
 
-    if(!rest && !shares_count) return; // nothing usable on this line
+    if(!name && !shares_count) return;
     rows.push({
-      name: rest, nationality: "", place_of_residence: "", profession: "",
-      certificate_number, shares_count, paid_value, ownership_transfer_date
+      name, nationality, place_of_residence, profession,
+      certificate_number: "", shares_count,
+      paid_value: stripCommas(paidToken), ownership_transfer_date: ""
     });
   });
   return rows;
