@@ -508,6 +508,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 .login-msg{font-size:12px;text-align:center;border-radius:8px;padding:8px;margin-bottom:12px;display:none;}
 </style>
 <script src="https://unpkg.com/pizzip@3.2.0/dist/pizzip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://unpkg.com/docxtemplater@3.69.0/build/docxtemplater.js"></script>
 </head>
 <body>
@@ -986,6 +987,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <span>📇 سجل المساهمين</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openTransferModal()">🔄 نقل ملكية</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openPdfImportModal()">📄 استيراد من PDF</button>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openNewShareholderModal()">+ إضافة مساهم</button>
     </div>
   </div>
@@ -2031,6 +2033,29 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 </div>
 
 <!-- Add company modal -->
+<div class="modal-bg" id="m-pdf-import">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-title">📄 استيراد سجل المساهمين من PDF</div>
+    <div id="pdfImportStep1">
+      <div class="fg"><label>اختر ملف PDF</label><input type="file" accept=".pdf" class="fi" id="pdfImportFile" onchange="handlePdfFileSelect(this)"></div>
+      <p style="font-size:11px;color:var(--gray3)">سيحاول النظام قراءة الأسماء والأرقام تلقائيًا من الملف، وتقدر تراجع وتصحح كل صف قبل التأكيد النهائي.</p>
+      <div id="pdfImportLoading" style="display:none;text-align:center;color:var(--gray3);font-size:12px;padding:20px">⏳ جارِ قراءة الملف...</div>
+    </div>
+    <div id="pdfImportStep2" style="display:none">
+      <p style="font-size:11.5px;color:var(--dark);font-weight:700;margin-bottom:8px">راجع وصحّح البيانات قبل الاستيراد:</p>
+      <div style="display:grid;grid-template-columns:2fr 1.3fr 1fr 0.4fr;gap:6px;font-size:10.5px;color:var(--gray3);font-weight:700;padding:0 4px 4px">
+        <span>الاسم</span><span>رقم الهوية/السجل</span><span>عدد الأسهم</span><span></span>
+      </div>
+      <div id="pdfImportRows" style="max-height:320px;overflow-y:auto"></div>
+      <button class="btn-xs primary" style="margin-top:8px" onclick="addImportRow()">+ إضافة صف يدويًا</button>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeM('m-pdf-import')">إلغاء</button>
+      <button class="btn btn-gold" id="pdfImportConfirmBtn" style="display:none" onclick="confirmPdfImport()">✅ تأكيد الاستيراد</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-shareholder">
   <div class="modal">
     <div class="modal-title" id="msh-title-h">+ إضافة مساهم</div>
@@ -2410,6 +2435,8 @@ function isMutatingOnclick(val){
     || /^openTransferModal\(/.test(val)
     || /^saveShareholder\(/.test(val)
     || /^executeShareTransfer\(/.test(val)
+    || /^openPdfImportModal\(/.test(val)
+    || /^confirmPdfImport\(/.test(val)
     || /^openNewCompanyModal\(/.test(val)
     || /^openInviteModal\(/.test(val)
     || /^openEditCompanyModal\(/.test(val)
@@ -2424,6 +2451,7 @@ function isMutatingOnchange(val){
     || /^uploadMeetingFile\(/.test(val)
     || /^uploadAGMSupportingDoc\(/.test(val)
     || /^uploadDocumentTemplate\(/.test(val)
+    || /^handlePdfFileSelect\(/.test(val)
     || /^updateUserRole\(/.test(val)
     || /^updateRequestStatus\(/.test(val)
     || /^savePermCell\(/.test(val);
@@ -6059,6 +6087,115 @@ async function executeShareTransfer(){
   logActivity("تعديل", "نقل ملكية", `${fromShareholder?fromShareholder.name:'إصدار جديد'} ← ${toName}`, `${shares} سهم — ${transfer_type}`);
   alert("تم تنفيذ التحويل بنجاح ✅");
   closeM("m-transfer");
+  loadShareholders();
+}
+
+/* ══════════ PDF IMPORT (best-effort extraction, always reviewed before commit) ══════════ */
+let pdfImportRowsData = [];
+
+function openPdfImportModal(){
+  document.getElementById("pdfImportFile").value = "";
+  document.getElementById("pdfImportStep1").style.display = "block";
+  document.getElementById("pdfImportStep2").style.display = "none";
+  document.getElementById("pdfImportLoading").style.display = "none";
+  document.getElementById("pdfImportConfirmBtn").style.display = "none";
+  pdfImportRowsData = [];
+  openM("m-pdf-import");
+}
+
+async function handlePdfFileSelect(input){
+  if(!input.files || !input.files[0]) return;
+  document.getElementById("pdfImportLoading").style.display = "block";
+  try{
+    const arrayBuffer = await input.files[0].arrayBuffer();
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let fullText = "";
+    for(let p = 1; p <= pdf.numPages; p++){
+      const page = await pdf.getPage(p);
+      const content = await page.getTextContent();
+      const lines = {};
+      content.items.forEach(item => {
+        const y = Math.round(item.transform[5]);
+        if(!lines[y]) lines[y] = [];
+        lines[y].push(item.str);
+      });
+      const sortedY = Object.keys(lines).map(Number).sort((a,b)=>b-a);
+      sortedY.forEach(y => { fullText += lines[y].join(" ") + "\n"; });
+    }
+    pdfImportRowsData = parsePdfTextToRows(fullText);
+    renderPdfImportRows();
+    document.getElementById("pdfImportStep1").style.display = "none";
+    document.getElementById("pdfImportStep2").style.display = "block";
+    document.getElementById("pdfImportConfirmBtn").style.display = "inline-block";
+  }catch(e){
+    alert("تعذّرت قراءة الملف: " + e.message + " — تأكد أنه ملف PDF سليم، أو أضف الصفوف يدويًا.");
+    document.getElementById("pdfImportStep2").style.display = "block";
+    document.getElementById("pdfImportConfirmBtn").style.display = "inline-block";
+  }
+  document.getElementById("pdfImportLoading").style.display = "none";
+}
+
+/* Heuristic only: looks for a long digit sequence (ID/CR number, 8-10 digits) and a shorter
+   trailing number (shares count) on each line; everything before the ID becomes the name.
+   Lines that don't match a recognizable pattern are skipped — the person reviews the result
+   and adds/fixes rows manually before anything is written to the database. */
+function parsePdfTextToRows(text){
+  const rows = [];
+  const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+  lines.forEach(line => {
+    const idMatch = line.match(/\b\d{8,10}\b/);
+    if(!idMatch) return;
+    const afterId = line.slice(idMatch.index + idMatch[0].length);
+    const sharesMatch = afterId.match(/[\d,٬]+/);
+    const name = line.slice(0, idMatch.index).replace(/[|,:\-–]+$/,"").trim();
+    if(!name) return;
+    rows.push({
+      name,
+      id_number: idMatch[0],
+      shares_count: sharesMatch ? sharesMatch[0].replace(/[,٬]/g,"") : ""
+    });
+  });
+  return rows;
+}
+
+function renderPdfImportRows(){
+  const box = document.getElementById("pdfImportRows");
+  if(pdfImportRowsData.length===0){
+    box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">ما قدرنا نتعرف على صفوف تلقائيًا — أضف الصفوف يدويًا بالزر تحت.</div>';
+    return;
+  }
+  box.innerHTML = pdfImportRowsData.map((r, i) => `
+    <div style="display:grid;grid-template-columns:2fr 1.3fr 1fr 0.4fr;gap:6px;margin-bottom:6px;align-items:center">
+      <input class="fi" style="margin:0;padding:6px 8px;font-size:11.5px" value="${(r.name||"").replace(/"/g,'&quot;')}" oninput="pdfImportRowsData[${i}].name=this.value">
+      <input class="fi" style="margin:0;padding:6px 8px;font-size:11.5px" value="${r.id_number||""}" oninput="pdfImportRowsData[${i}].id_number=this.value">
+      <input class="fi" type="number" style="margin:0;padding:6px 8px;font-size:11.5px" value="${r.shares_count||""}" oninput="pdfImportRowsData[${i}].shares_count=this.value">
+      <button style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px;font-size:11px;cursor:pointer" onclick="removeImportRow(${i})">✕</button>
+    </div>`).join("");
+}
+
+function addImportRow(){
+  pdfImportRowsData.push({ name:"", id_number:"", shares_count:"" });
+  renderPdfImportRows();
+}
+function removeImportRow(i){
+  pdfImportRowsData.splice(i,1);
+  renderPdfImportRows();
+}
+
+async function confirmPdfImport(){
+  const validRows = pdfImportRowsData.filter(r => r.name && r.name.trim());
+  if(validRows.length===0){ alert("لا توجد صفوف صالحة للاستيراد"); return; }
+  if(!confirm(`سيتم إضافة ${validRows.length} مساهم جديد لسجل المساهمين. متابعة؟`)) return;
+  const payload = validRows.map(r => ({
+    name: r.name.trim(), id_number: (r.id_number||"").trim(),
+    shares_count: Number(r.shares_count) || 0, company_id: currentCompanyId
+  }));
+  const { error } = await sb.from("shareholders").insert(payload);
+  if(error){ alert("تعذّر الاستيراد: " + error.message); return; }
+  logActivity("إنشاء", "استيراد مساهمين", `${validRows.length} مساهم`, "استيراد من PDF");
+  alert(`تم استيراد ${validRows.length} مساهم بنجاح ✅`);
+  closeM("m-pdf-import");
   loadShareholders();
 }
 
