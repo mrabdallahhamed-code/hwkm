@@ -2566,6 +2566,7 @@ function isMutatingOnchange(val){
     || /^handlePdfFileSelect\(/.test(val)
     || /^openCharterModal\(/.test(val)
     || /^saveCharter\(/.test(val)
+    || /^sendMeetingReminderEmails\(/.test(val)
     || /^updateUserRole\(/.test(val)
     || /^updateRequestStatus\(/.test(val)
     || /^savePermCell\(/.test(val);
@@ -4296,6 +4297,10 @@ function openMeetingDetailModal(id){
     `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
       <div style="font-size:13px;font-weight:800;color:var(--dark)">📝 توليد المحضر تلقائيًا (Word)</div>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateMeetingMinutesDoc(${m.id})">📝 توليد Word</button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
+      <div style="font-size:13px;font-weight:800;color:var(--dark)">📧 إرسال تذكير بريدي لفريق الشركة</div>
+      <button class="btn" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);font-size:11px;padding:6px 14px" onclick="sendMeetingReminderEmails(${m.id})">📧 إرسال</button>
     </div>`;
   currentAttendanceMeetingId = id;
   loadMeetingAttendanceSection(id);
@@ -6221,6 +6226,50 @@ async function exportUsersList(){
     { label:"الاسم", key:"full_name" }, { label:"الإيميل", key:"email" }, { label:"الدور", key:"role" },
     { label:"رقم الهوية", key:"national_id" }, { label:"الجوال", key:"phone_number" }
   ], "فريق حوكمة الشركة");
+}
+
+/* ══════════ EMAIL NOTIFICATIONS (via Supabase Edge Function + Resend) ══════════ */
+async function sendNotificationEmail(to, subject, html){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/send-notification-email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SUPABASE_KEY}` },
+      body: JSON.stringify({ to, subject, html })
+    });
+    const data = await res.json();
+    if(!res.ok){ throw new Error(data.error || data.message || "فشل الإرسال"); }
+    return { success: true, data };
+  }catch(e){
+    return { success: false, error: e.message };
+  }
+}
+
+async function sendMeetingReminderEmails(meetingId){
+  const m = allMeetingsCache.find(x => x.id === meetingId) || (await sb.from("meetings").select("*").eq("id", meetingId).single()).data;
+  if(!m){ alert("تعذّر تحديد الاجتماع"); return; }
+  const { data: team } = await sb.from("user_profiles").select("email,full_name").eq("company_id", currentCompanyId);
+  const recipients = (team||[]).filter(t => t.email);
+  if(recipients.length === 0){ alert("لا يوجد أعضاء فريق لديهم إيميل مسجّل."); return; }
+
+  if(!confirm(`سيتم إرسال تذكير بريدي لـ${recipients.length} عضو فريق. متابعة؟`)) return;
+
+  const subject = `تذكير: ${m.title || "اجتماع"} — ${m.meeting_date || ""}`;
+  const html = `
+    <div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px">
+      <h2 style="color:#1A3A6B">📅 تذكير باجتماع قادم</h2>
+      <p><b>العنوان:</b> ${m.title||""}</p>
+      <p><b>التاريخ:</b> ${m.meeting_date||"—"} &nbsp; <b>الوقت:</b> ${m.meeting_time||"—"}</p>
+      <p><b>الطريقة:</b> ${m.method||"—"}</p>
+      <p style="color:#8B95A5;font-size:12px;margin-top:20px">هذه رسالة تلقائية من منصّة حوكم.</p>
+    </div>`;
+
+  let sent = 0, failed = 0;
+  for(const r of recipients){
+    const result = await sendNotificationEmail(r.email, subject, html);
+    if(result.success) sent++; else failed++;
+  }
+  alert(`تم الإرسال: ${sent} ناجح${failed?`، ${failed} فشل (على الأغلب بسبب قيود النطاق التجريبي بـResend)`:''}`);
+  logActivity("إنشاء", "تذكير بريدي", m.title||"", `أُرسل لـ${sent} من ${recipients.length}`);
 }
 
 async function runGlobalSearch(q){
