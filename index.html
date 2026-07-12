@@ -2792,7 +2792,7 @@ async function logActivity(action_type, entity_type, entity_label, details){
 
 let activityLogCache = [];
 let activityLogActiveType = "الكل";
-const ACTIVITY_TYPE_ICONS = { "إنشاء":"➕", "تعديل":"✏️", "حذف":"🗑️", "دعوة":"🔗", "صلاحيات":"🛡️", "موافقة":"✅", "رفض":"❌", "توقيع":"✍️" };
+const ACTIVITY_TYPE_ICONS = { "إنشاء":"➕", "تعديل":"✏️", "حذف":"🗑️", "دعوة":"🔗", "صلاحيات":"🛡️", "موافقة":"✅", "رفض":"❌", "توقيع":"✍️", "دخول":"🔓" };
 
 async function loadActivityLog(){
   const tbody = document.getElementById("activityLogTbody");
@@ -3752,6 +3752,7 @@ async function showApp(){
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("appWrapper").style.display = "block";
   await loadCurrentUserProfile();
+  logActivity("دخول", "تسجيل دخول", currentUserProfile ? (currentUserProfile.full_name || currentUserProfile.email) : "", "دخول للمنصة");
 }
 
 /* ══════════ FORGOT / RESET PASSWORD ══════════ */
