@@ -4313,6 +4313,13 @@ function openMeetingDetailModal(id){
     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
       <div style="font-size:13px;font-weight:800;color:var(--dark)">📧 إرسال تذكير بريدي لفريق الشركة</div>
       <button class="btn" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);font-size:11px;padding:6px 14px" onclick="sendMeetingReminderEmails(${m.id})">📧 إرسال</button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0">
+      <div style="font-size:13px;font-weight:800;color:var(--dark)">📆 إضافة للتقويم الشخصي</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer" onclick="addToCalendar(${m.id},'google',false)">Google</button>
+        <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer" onclick="addToCalendar(${m.id},'outlook',false)">Outlook</button>
+      </div>
     </div>`;
   currentAttendanceMeetingId = id;
   loadMeetingAttendanceSection(id);
@@ -4583,6 +4590,13 @@ async function openAGMDetailModal(id){
     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
       <div style="font-size:13px;font-weight:800;color:var(--dark)">📧 إرسال تذكير بريدي لفريق الشركة</div>
       <button class="btn" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);font-size:11px;padding:6px 14px" onclick="sendMeetingReminderEmails(${m.id})">📧 إرسال</button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
+      <div style="font-size:13px;font-weight:800;color:var(--dark)">📆 إضافة للتقويم الشخصي</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer" onclick="addToCalendar(${m.id},'google',true)">Google</button>
+        <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer" onclick="addToCalendar(${m.id},'outlook',true)">Outlook</button>
+      </div>
     </div>
     <div style="padding:12px 0">
       <div style="font-size:13px;font-weight:800;color:var(--dark);margin-bottom:8px">📎 الوثائق الداعمة</div>
@@ -6380,6 +6394,31 @@ async function sendMeetingReminderEmails(meetingId){
   }
   alert(`تم الإرسال: ${sent} ناجح${failed?`، ${failed} فشل (على الأغلب بسبب قيود النطاق التجريبي بـResend)`:''}`);
   logActivity("إنشاء", "تذكير بريدي", m.title||"", `أُرسل لـ${sent} من ${recipients.length}`);
+}
+
+/* ══════════ ADD TO CALENDAR (URL-based, no API/OAuth needed) ══════════ */
+function getCalendarLinks(meetingId, isAgm){
+  const cache = isAgm ? agmMeetingsCache : allMeetingsCache;
+  const m = (cache||[]).find(x => x.id === meetingId);
+  if(!m || !m.meeting_date) return null;
+  const [y, mo, da] = m.meeting_date.split("-").map(Number);
+  const [hh, mm] = (m.meeting_time || "09:00").split(":").map(Number);
+  const startDate = new Date(y, mo - 1, da, hh || 9, mm || 0);
+  const endDate = new Date(startDate.getTime() + 60 * 60000);
+  const pad = n => String(n).padStart(2, "0");
+  const fmt = d => `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
+  const title = m.title || "اجتماع";
+  const details = `اجتماع عبر منصة حوكم${m.method ? (" — " + m.method) : ""}`;
+  return {
+    google: `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${fmt(startDate)}/${fmt(endDate)}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(m.method||"")}`,
+    outlook: `https://outlook.live.com/calendar/0/deeplink/compose?subject=${encodeURIComponent(title)}&startdt=${startDate.toISOString()}&enddt=${endDate.toISOString()}&body=${encodeURIComponent(details)}&location=${encodeURIComponent(m.method||"")}&path=/calendar/action/compose&rru=addevent`
+  };
+}
+
+function addToCalendar(meetingId, provider, isAgm){
+  const links = getCalendarLinks(meetingId, isAgm);
+  if(!links){ alert("تعذّر تحديد بيانات الاجتماع (تأكد من وجود تاريخ محدد له)."); return; }
+  window.open(links[provider], "_blank");
 }
 
 async function runGlobalSearch(q){
