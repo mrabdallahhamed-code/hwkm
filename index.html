@@ -4314,12 +4314,16 @@ function openMeetingDetailModal(id){
       <div style="font-size:13px;font-weight:800;color:var(--dark)">📧 إرسال تذكير بريدي لفريق الشركة</div>
       <button class="btn" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);font-size:11px;padding:6px 14px" onclick="sendMeetingReminderEmails(${m.id})">📧 إرسال</button>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
       <div style="font-size:13px;font-weight:800;color:var(--dark)">📆 إضافة للتقويم الشخصي</div>
       <div style="display:flex;gap:6px">
         <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer" onclick="addToCalendar(${m.id},'google',false)">Google</button>
         <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer" onclick="addToCalendar(${m.id},'outlook',false)">Outlook</button>
       </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0">
+      <div style="font-size:13px;font-weight:800;color:var(--dark)">📱 مشاركة عبر واتساب</div>
+      <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer" onclick="shareMeetingViaWhatsApp(${m.id},false)">📱 مشاركة</button>
     </div>`;
   currentAttendanceMeetingId = id;
   loadMeetingAttendanceSection(id);
@@ -4597,6 +4601,10 @@ async function openAGMDetailModal(id){
         <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer" onclick="addToCalendar(${m.id},'google',true)">Google</button>
         <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer" onclick="addToCalendar(${m.id},'outlook',true)">Outlook</button>
       </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
+      <div style="font-size:13px;font-weight:800;color:var(--dark)">📱 مشاركة عبر واتساب</div>
+      <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer" onclick="shareMeetingViaWhatsApp(${m.id},true)">📱 مشاركة</button>
     </div>
     <div style="padding:12px 0">
       <div style="font-size:13px;font-weight:800;color:var(--dark);margin-bottom:8px">📎 الوثائق الداعمة</div>
@@ -6419,6 +6427,15 @@ function addToCalendar(meetingId, provider, isAgm){
   const links = getCalendarLinks(meetingId, isAgm);
   if(!links){ alert("تعذّر تحديد بيانات الاجتماع (تأكد من وجود تاريخ محدد له)."); return; }
   window.open(links[provider], "_blank");
+}
+
+function shareMeetingViaWhatsApp(meetingId, isAgm){
+  const cache = isAgm ? agmMeetingsCache : allMeetingsCache;
+  const m = (cache||[]).find(x => x.id === meetingId);
+  if(!m){ alert("تعذّر تحديد الاجتماع"); return; }
+  const companyName = document.getElementById("reportCompanyName1")?.textContent || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "";
+  const text = `📅 *تذكير باجتماع*\n\n*${m.title||"اجتماع"}*\n🗓️ التاريخ: ${m.meeting_date||"—"}\n⏰ الوقت: ${m.meeting_time||"—"}\n📍 الطريقة: ${m.method||"—"}\n\n${companyName ? "— "+companyName+" عبر منصة حوكم" : "— منصة حوكم"}`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
 }
 
 async function runGlobalSearch(q){
