@@ -6237,7 +6237,7 @@ async function sendNotificationEmail(to, subject, html){
   try{
     const res = await fetch(`${SUPABASE_URL}/functions/v1/send-notification-email`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${LEGACY_ANON_KEY}`, "apikey": LEGACY_ANON_KEY },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ to, subject, html })
     });
     const data = await res.json();
