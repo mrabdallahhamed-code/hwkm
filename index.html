@@ -2352,8 +2352,12 @@ async function uploadFile(inputEl, folder){
   const path = folder + "/" + safeName;
   const { error } = await sb.storage.from("documents").upload(path, file);
   if(error){ alert("تعذّر رفع الملف: " + error.message); return null; }
-  const { data } = sb.storage.from("documents").getPublicUrl(path);
-  return data.publicUrl;
+  // The bucket is private now — generate a long-lived signed URL (10 years) instead of a
+  // permanent public one, so the same stored file_url string keeps working everywhere in the
+  // app exactly as before, but is no longer openly accessible to anyone off the internet.
+  const { data, error: signErr } = await sb.storage.from("documents").createSignedUrl(path, 315360000);
+  if(signErr || !data){ alert("تعذّر إنشاء رابط آمن للملف: " + (signErr?.message||"")); return null; }
+  return data.signedUrl;
 }
 function downloadBtn(url){
   return url
