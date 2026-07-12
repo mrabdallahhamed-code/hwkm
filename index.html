@@ -590,10 +590,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="nav-group">
     <div class="nav-group-label">الحوكمة المؤسسية</div>
     <div class="nav-item" onclick="go('governance',this)"><span class="ni-icon">🏛️</span><span class="ni-text">السياسات والحوكمة</span><span class="ni-badge blue">5</span></div>
-    <div class="nav-item" onclick="go('structure',this)"><span class="ni-icon">🌳</span><span class="ni-text">الهيكل التنظيمي</span></div>
+    <div class="nav-item" onclick="go('structure',this)"><span class="ni-icon">🌳</span><span class="ni-text">الهيكل التنظيمي</span><span class="ni-badge red" id="structureNavBadge" style="display:none"></span></div>
     <div class="nav-item" onclick="go('members',this)"><span class="ni-icon">👥</span><span class="ni-text">أعضاء المجلس</span><span class="ni-badge gold">5</span></div>
     <div class="nav-item" onclick="go('appoint',this)"><span class="ni-icon">➕</span><span class="ni-text">طلب تعيين عضو</span></div>
-    <div class="nav-item" onclick="go('permissions',this)"><span class="ni-icon">🔑</span><span class="ni-text">مصفوفة الصلاحيات</span></div>
+    <div class="nav-item" onclick="go('permissions',this)"><span class="ni-icon">🔑</span><span class="ni-text">مصفوفة الصلاحيات</span><span class="ni-badge red" id="permissionsNavBadge" style="display:none"></span></div>
     <div class="nav-item" onclick="go('perf',this)"><span class="ni-icon">📐</span><span class="ni-text">تقييم الأداء</span></div>
   </div>
 
@@ -1830,7 +1830,12 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="fg"><label>آلية رفع التقارير لمجلس الإدارة</label><textarea class="fta" id="mch-reporting" rows="2"></textarea></div>
     <div class="fg"><label>تاريخ اعتماد الميثاق</label><input type="date" class="fi" id="mch-approved-date"/></div>
     <div class="fg"><label>ملف الميثاق الرسمي (اختياري)</label><input type="file" class="fi" id="mch-file"/></div>
-    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-charter')">إلغاء</button><button class="btn btn-gold" onclick="saveCharter()">✅ حفظ الميثاق</button></div>
+    <div id="charterApprovalStatus" style="margin-bottom:10px"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeM('m-charter')">إلغاء</button>
+      <button class="btn" style="background:var(--gold);color:#fff" onclick="requestCharterApproval()">📤 طلب موافقة من المجلس</button>
+      <button class="btn btn-gold" onclick="saveCharter()">✅ حفظ الميثاق</button>
+    </div>
   </div>
 </div>
 
@@ -2521,6 +2526,7 @@ async function loadCurrentUserProfile(){
   }
   await loadCompanies(currentUserProfile ? currentUserProfile.company_id : null);
   applyRolePermissions();
+  checkPendingApprovalBadges();
 }
 
 /* ══════════ ROLES & PERMISSIONS ══════════ */
@@ -2639,6 +2645,8 @@ function isMutatingOnchange(val){
     || /^sendPermissionItemNotification\(/.test(val)
     || /^sendPermissionItemWhatsApp\(/.test(val)
     || /^requestBoardApproval\(/.test(val)
+    || /^sendApprovalReminder\(/.test(val)
+    || /^requestCharterApproval\(/.test(val)
     || /^updateUserRole\(/.test(val)
     || /^updateRequestStatus\(/.test(val)
     || /^savePermCell\(/.test(val);
@@ -6183,6 +6191,7 @@ function openCharterModal(committeeId){
   document.getElementById("mch-approved-date").value = c.charter_approved_date || "";
   document.getElementById("mch-file").value = "";
   openM("m-charter");
+  renderCharterApprovalStatus(committeeId);
 }
 
 async function saveCharter(){
@@ -6793,6 +6802,118 @@ async function requestBoardApproval(type){
   logActivity("إنشاء", "طلب موافقة", fullTitle, `أُرسل لـ${board.length} عضو مجلس`);
   alert("تم إرسال طلب الموافقة لأعضاء المجلس ✅");
   renderApprovalStatus(type, isMatrix ? "matrixApprovalStatus" : "structureApprovalStatus");
+  checkPendingApprovalBadges();
+}
+
+async function requestCharterApproval(){
+  const committeeId = Number(document.getElementById("mch-committee-id").value);
+  const c = committeesCache.find(x => x.id === committeeId);
+  if(!c){ alert("تعذّر تحديد اللجنة"); return; }
+  if(!c.charter_purpose && !c.charter_authorities && !c.charter_composition){
+    if(!confirm("لم تحفظ الميثاق بعد — هل تريد المتابعة بطلب الموافقة على آخر نسخة محفوظة على أي حال؟")) return;
+  }
+  if(!confirm(`سيتم توليد نسخة PDF من ميثاق "${c.committee_name}" وإرسال طلب موافقة لأعضاء المجلس. متابعة؟`)) return;
+
+  const board = await getBoardApprovers();
+  if(board.length === 0){ alert("لا يوجد أعضاء مجلس مسجّلين لديهم حساب بالمنصة."); return; }
+
+  const companyName = document.getElementById("reportCompanyName1")?.textContent || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "";
+  const dateNow = new Date().toLocaleDateString("ar-SA");
+  const title = `طلب موافقة على ميثاق لجنة ${c.committee_name}`;
+
+  const boardListHtml = board.map(b => `<tr>
+    <td style="border:1px solid #ccc;padding:6px">${b.full_name||b.email||""}</td>
+    <td style="border:1px solid #ccc;padding:6px">${b.role||""}</td>
+    <td style="border:1px solid #ccc;padding:6px;width:130px"></td>
+  </tr>`).join("");
+
+  const wrapper = document.createElement("div");
+  wrapper.style.cssText = "direction:rtl;text-align:right;font-family:Tajawal,Arial,sans-serif;padding:20px;color:#0D2447;background:#fff";
+  wrapper.innerHTML = `
+    <h1 style="color:#1A3A6B;font-size:20px;border-bottom:3px solid #D4AF37;padding-bottom:10px">${title} — ${companyName}</h1>
+    <p><b>تاريخ الطلب:</b> ${dateNow}</p>
+    <h3 style="color:#1A3A6B;margin-top:20px">الغرض والهدف من اللجنة</h3><p>${(c.charter_purpose||"—").replace(/\n/g,"<br>")}</p>
+    <h3 style="color:#1A3A6B;margin-top:16px">الاختصاصات والصلاحيات</h3><p>${(c.charter_authorities||"—").replace(/\n/g,"<br>")}</p>
+    <h3 style="color:#1A3A6B;margin-top:16px">التشكيل وعضوية اللجنة</h3><p>${(c.charter_composition||"—").replace(/\n/g,"<br>")}</p>
+    <h3 style="color:#1A3A6B;margin-top:16px">تنظيم الاجتماعات</h3><p>${(c.charter_meetings_rules||"—").replace(/\n/g,"<br>")}</p>
+    <h3 style="color:#1A3A6B;margin-top:16px">آلية رفع التقارير لمجلس الإدارة</h3><p>${(c.charter_reporting||"—").replace(/\n/g,"<br>")}</p>
+    <h3 style="color:#1A3A6B;margin-top:24px">أعضاء المجلس المطلوب موافقتهم</h3>
+    <table style="width:100%;border-collapse:collapse;margin-top:8px">
+      <thead><tr>
+        <th style="border:1px solid #ccc;padding:6px;background:#1A3A6B;color:#fff">الاسم</th>
+        <th style="border:1px solid #ccc;padding:6px;background:#1A3A6B;color:#fff">الصفة</th>
+        <th style="border:1px solid #ccc;padding:6px;background:#1A3A6B;color:#fff">التوقيع</th>
+      </tr></thead>
+      <tbody>${boardListHtml}</tbody>
+    </table>`;
+  document.body.appendChild(wrapper);
+  let pdfBlob;
+  try{
+    pdfBlob = await html2pdf().from(wrapper).set({ margin: 10, html2canvas: { scale: 2 }, jsPDF: { unit: "mm", format: "a4", orientation: "portrait" } }).outputPdf("blob");
+  }catch(e){
+    document.body.removeChild(wrapper);
+    alert("تعذّر توليد ملف PDF: " + e.message);
+    return;
+  }
+  document.body.removeChild(wrapper);
+
+  const fileUrl = await uploadBlobToStorage(pdfBlob, "approvals", "committee-charter.pdf");
+  if(!fileUrl) return;
+
+  const fullTitle = title + " — " + companyName + " — " + dateNow;
+  const { error } = await sb.from("approval_requests").insert([{
+    company_id: currentCompanyId, request_type: "charter", committee_id: committeeId, title: fullTitle,
+    requested_by: currentUserProfile ? (currentUserProfile.full_name||currentUserProfile.email) : "", pdf_url: fileUrl
+  }]);
+  if(error){ alert("تعذّر إنشاء طلب الموافقة: " + error.message); return; }
+
+  logActivity("إنشاء", "طلب موافقة", fullTitle, `أُرسل لـ${board.length} عضو مجلس`);
+  alert("تم إرسال طلب الموافقة لأعضاء المجلس ✅");
+  renderCharterApprovalStatus(committeeId);
+  loadCommittees();
+}
+
+async function renderCharterApprovalStatus(committeeId){
+  const box = document.getElementById("charterApprovalStatus");
+  if(!box) return;
+  const { data: reqs } = await sb.from("approval_requests").select("*").eq("company_id", currentCompanyId).eq("request_type", "charter").eq("committee_id", committeeId).order("created_at",{ascending:false}).limit(1);
+  if(!reqs || reqs.length === 0){ box.innerHTML = ""; return; }
+  const req = reqs[0];
+  const board = await getBoardApprovers();
+  const { data: votes } = await sb.from("approval_votes").select("reviewer_email").eq("request_id", req.id);
+  const votedEmails = new Set((votes||[]).map(v => (v.reviewer_email||"").toLowerCase()));
+  const totalBoard = board.length;
+  const votedCount = board.filter(b => votedEmails.has((b.email||"").toLowerCase())).length;
+
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : "";
+  const iAlreadyVoted = votedEmails.has((myEmail||"").toLowerCase());
+  const amIBoardMember = board.some(b => (b.email||"").toLowerCase() === (myEmail||"").toLowerCase());
+
+  if(req.status === "معتمد"){
+    box.innerHTML = `<div style="background:#E8F8EF;border-radius:8px;padding:10px;font-size:11.5px">✅ تمت موافقة المجلس على هذا الميثاق بتاريخ ${req.approved_at?new Date(req.approved_at).toLocaleDateString('ar-SA'):"—"} — انتقل تلقائيًا للتوقيع الإلكتروني.</div>`;
+    return;
+  }
+  box.innerHTML = `<div style="background:#FEF3E2;border-radius:8px;padding:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:11.5px;margin-bottom:6px">
+      <b style="color:#8B6F1F">⏳ بانتظار موافقة المجلس (${votedCount}/${totalBoard})</b>
+      <button class="btn-xs" style="background:#E8F0FA;color:var(--primary);border:none;border-radius:6px;padding:3px 8px;font-size:10.5px;cursor:pointer" onclick="sendApprovalReminder(${req.id})">🔔 تذكير</button>
+    </div>
+    ${amIBoardMember && !iAlreadyVoted ? `<button class="btn btn-gold" style="width:100%;font-size:11px;padding:6px" onclick="castApprovalVote(${req.id})">✅ الموافقة على هذا الميثاق</button>` : ""}
+    ${amIBoardMember && iAlreadyVoted ? `<div style="text-align:center;color:var(--green);font-size:11px">✅ لقد وافقت بالفعل</div>` : ""}
+  </div>`;
+}
+
+async function checkPendingApprovalBadges(){
+  if(!currentCompanyId) return;
+  const { data: pending } = await sb.from("approval_requests").select("request_type").eq("company_id", currentCompanyId).eq("status", "قيد المراجعة");
+  const counts = { structure: 0, matrix: 0 };
+  (pending||[]).forEach(r => { if(counts[r.request_type] !== undefined) counts[r.request_type]++; });
+
+  const structBadge = document.getElementById("structureNavBadge");
+  if(structBadge){ structBadge.style.display = counts.structure > 0 ? "inline-block" : "none"; structBadge.textContent = counts.structure; }
+  const permBadge = document.getElementById("permissionsNavBadge");
+  if(permBadge){ permBadge.style.display = counts.matrix > 0 ? "inline-block" : "none"; permBadge.textContent = counts.matrix; }
 }
 
 async function renderApprovalStatus(type, containerId){
@@ -6823,11 +6944,38 @@ async function renderApprovalStatus(type, containerId){
   box.innerHTML = `<div style="background:#FEF3E2;border-radius:10px;padding:14px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
       <b style="color:#8B6F1F;font-size:12.5px">⏳ بانتظار موافقة المجلس (${votedCount}/${totalBoard})</b>
-      <a href="${req.pdf_url}" target="_blank" class="btn-xs primary" style="text-decoration:none">📄 عرض الملف</a>
+      <div style="display:flex;gap:6px">
+        <button class="btn-xs" style="background:#E8F0FA;color:var(--primary);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="sendApprovalReminder(${req.id})">🔔 تذكير</button>
+        <a href="${req.pdf_url}" target="_blank" class="btn-xs primary" style="text-decoration:none">📄 عرض الملف</a>
+      </div>
     </div>
     ${amIBoardMember && !iAlreadyVoted ? `<button class="btn btn-gold" style="width:100%" onclick="castApprovalVote(${req.id})">✅ الموافقة على هذا الطلب</button>` : ""}
     ${amIBoardMember && iAlreadyVoted ? `<div style="text-align:center;color:var(--green);font-size:12px">✅ لقد وافقت بالفعل — بانتظار بقية الأعضاء</div>` : ""}
   </div>`;
+}
+
+async function sendApprovalReminder(requestId){
+  const { data: req } = await sb.from("approval_requests").select("*").eq("id", requestId).single();
+  if(!req){ alert("تعذّر تحديد الطلب"); return; }
+  const board = await getBoardApprovers();
+  const { data: votes } = await sb.from("approval_votes").select("reviewer_email").eq("request_id", requestId);
+  const votedEmails = new Set((votes||[]).map(v => (v.reviewer_email||"").toLowerCase()));
+  const pending = board.filter(b => b.email && !votedEmails.has(b.email.toLowerCase()));
+  if(pending.length === 0){ alert("كل الأعضاء وافقوا بالفعل ✅"); return; }
+
+  const subject = `تذكير موافقة: ${req.title}`;
+  const html = `
+    <div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px">
+      <h2 style="color:#1A3A6B">📤 تذكير بطلب موافقة معلّق</h2>
+      <p><b>الطلب:</b> ${req.title}</p>
+      <p>الرجاء الدخول للمنصة ومراجعة الطلب والموافقة عليه.</p>
+      <p style="color:#8B95A5;font-size:12px;margin-top:20px">هذه رسالة تلقائية من منصّة حوكم.</p>
+    </div>`;
+  await sendBulkEmails(pending.map(t => ({ email: t.email })), subject, html, "تذكير موافقة");
+  logActivity("إنشاء", "تذكير موافقة", req.title, `أُرسل لـ${pending.length} عضو لم يوافقوا بعد`);
+
+  const text = `📤 *تذكير بطلب موافقة معلّق*\n\n*${req.title}*\n\nالرجاء الدخول للمنصة ومراجعته والموافقة عليه.\n\n— منصة حوكم`;
+  openWhatsAppShareModal(text, pending.map(t => t.email));
 }
 
 async function castApprovalVote(requestId){
@@ -6848,8 +6996,11 @@ async function castApprovalVote(requestId){
 
   if(allVoted && req.status !== "معتمد"){
     await sb.from("approval_requests").update({ status: "معتمد", approved_at: new Date().toISOString() }).eq("id", requestId);
+    const docTypeLabel = req.request_type === "matrix" ? "موافقة مجلس — مصفوفة صلاحيات"
+      : req.request_type === "structure" ? "موافقة مجلس — هيكل تنظيمي"
+      : "موافقة مجلس — ميثاق لجنة";
     await sb.from("signing_documents").insert([{
-      document_name: req.title, doc_type: req.request_type === "matrix" ? "موافقة مجلس — مصفوفة صلاحيات" : "موافقة مجلس — هيكل تنظيمي",
+      document_name: req.title, doc_type: docTypeLabel,
       signers_total: board.length, signers_done: 0, status: "قيد التوقيع", file_url: req.pdf_url, company_id: currentCompanyId
     }]);
     logActivity("موافقة", "طلب موافقة", req.title, "اكتملت موافقة المجلس — انتقل تلقائيًا للتوقيع الإلكتروني");
@@ -6857,7 +7008,9 @@ async function castApprovalVote(requestId){
   } else {
     alert("تم تسجيل موافقتك ✅");
   }
-  renderApprovalStatus(req.request_type, req.request_type === "matrix" ? "matrixApprovalStatus" : "structureApprovalStatus");
+  if(req.request_type === "charter") renderCharterApprovalStatus(req.committee_id);
+  else renderApprovalStatus(req.request_type, req.request_type === "matrix" ? "matrixApprovalStatus" : "structureApprovalStatus");
+  checkPendingApprovalBadges();
 }
 
 async function runGlobalSearch(q){
