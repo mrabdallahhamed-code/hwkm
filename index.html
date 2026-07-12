@@ -4568,6 +4568,10 @@ async function openAGMDetailModal(id){
       <div style="font-size:13px;font-weight:800;color:var(--dark)">🗳️ محضر فرز الأصوات (تلقائي من التصويت)</div>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateVoteMinutesPDF(${m.id})">🖨️ توليد PDF</button>
     </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
+      <div style="font-size:13px;font-weight:800;color:var(--dark)">📧 إرسال تذكير بريدي لفريق الشركة</div>
+      <button class="btn" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);font-size:11px;padding:6px 14px" onclick="sendMeetingReminderEmails(${m.id})">📧 إرسال</button>
+    </div>
     <div style="padding:12px 0">
       <div style="font-size:13px;font-weight:800;color:var(--dark);margin-bottom:8px">📎 الوثائق الداعمة</div>
       <div id="agmView-supdocs"></div>
