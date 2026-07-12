@@ -558,6 +558,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <input type="password" id="loginPassword" placeholder="••••••••" />
     </div>
     <button class="login-btn" id="loginBtn" onclick="handleAuth()">تسجيل الدخول</button>
+    <div id="forgotPasswordLink" style="text-align:center;margin-top:10px;font-size:12px;color:var(--gray3);cursor:pointer" onclick="openForgotPasswordModal()">نسيت كلمة المرور؟</div>
     <div class="login-switch" id="authSwitch" onclick="toggleAuthMode()">ليس لديك حساب؟ <b>إنشاء حساب جديد</b></div>
   </div>
 </div>
@@ -2147,6 +2148,27 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
+<div class="modal-bg" id="m-forgot-password">
+  <div class="modal">
+    <div class="modal-title">🔑 نسيت كلمة المرور</div>
+    <p style="font-size:12.5px;color:var(--gray3)">أدخل بريدك الإلكتروني، وسنرسل لك رابط لإعادة تعيين كلمة المرور.</p>
+    <div class="fg"><label>البريد الإلكتروني</label><input type="email" class="fi" id="forgot-email" placeholder="example@email.com"/></div>
+    <div id="forgot-msg" style="font-size:11.5px;display:none;margin-bottom:8px"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-forgot-password')">إلغاء</button><button class="btn btn-gold" onclick="sendPasswordResetEmail()">📨 إرسال رابط إعادة التعيين</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-reset-password">
+  <div class="modal">
+    <div class="modal-title">🔑 تعيين كلمة مرور جديدة</div>
+    <p style="font-size:12.5px;color:var(--gray3)">أدخل كلمة مرور جديدة لحسابك.</p>
+    <div class="fg"><label>كلمة المرور الجديدة</label><input type="password" class="fi" id="reset-new-password" placeholder="••••••••"/></div>
+    <div class="fg"><label>تأكيد كلمة المرور</label><input type="password" class="fi" id="reset-confirm-password" placeholder="••••••••"/></div>
+    <div id="reset-msg" style="font-size:11.5px;display:none;margin-bottom:8px"></div>
+    <div class="modal-foot"><button class="btn btn-gold" style="width:100%" onclick="confirmPasswordReset()">✅ تعيين كلمة المرور</button></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-edit-profile">
   <div class="modal">
     <div class="modal-title" id="mep-title-h">✏️ تعديل بيانات العضو</div>
@@ -3731,6 +3753,49 @@ async function showApp(){
   document.getElementById("appWrapper").style.display = "block";
   await loadCurrentUserProfile();
 }
+
+/* ══════════ FORGOT / RESET PASSWORD ══════════ */
+function openForgotPasswordModal(){
+  document.getElementById("forgot-email").value = document.getElementById("loginEmail")?.value || "";
+  document.getElementById("forgot-msg").style.display = "none";
+  openM("m-forgot-password");
+}
+
+async function sendPasswordResetEmail(){
+  const email = document.getElementById("forgot-email").value.trim();
+  const msgEl = document.getElementById("forgot-msg");
+  if(!email){ msgEl.textContent = "الرجاء إدخال بريد إلكتروني صحيح"; msgEl.style.color = "var(--red)"; msgEl.style.display = "block"; return; }
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname });
+  if(error){ msgEl.textContent = "تعذّر الإرسال: " + error.message; msgEl.style.color = "var(--red)"; msgEl.style.display = "block"; return; }
+  msgEl.textContent = "✅ تم إرسال رابط إعادة التعيين إلى بريدك — تحقق من صندوق الوارد (والمزعج/السبام).";
+  msgEl.style.color = "var(--green)"; msgEl.style.display = "block";
+}
+
+async function confirmPasswordReset(){
+  const pw = document.getElementById("reset-new-password").value;
+  const pw2 = document.getElementById("reset-confirm-password").value;
+  const msgEl = document.getElementById("reset-msg");
+  if(!pw || pw.length < 6){ msgEl.textContent = "كلمة المرور يجب أن تكون 6 أحرف على الأقل"; msgEl.style.color = "var(--red)"; msgEl.style.display = "block"; return; }
+  if(pw !== pw2){ msgEl.textContent = "كلمتا المرور غير متطابقتين"; msgEl.style.color = "var(--red)"; msgEl.style.display = "block"; return; }
+  const { error } = await sb.auth.updateUser({ password: pw });
+  if(error){ msgEl.textContent = "تعذّر تعيين كلمة المرور: " + error.message; msgEl.style.color = "var(--red)"; msgEl.style.display = "block"; return; }
+  closeM("m-reset-password");
+  alert("تم تعيين كلمة المرور بنجاح ✅ يمكنك الآن استخدام المنصة.");
+  showApp();
+}
+
+// When the person clicks the reset link in their email, Supabase redirects back here and
+// fires a PASSWORD_RECOVERY auth event — catch it and show the "set a new password" modal
+// instead of the normal app/login screen.
+sb.auth.onAuthStateChange((event, session) => {
+  if(event === "PASSWORD_RECOVERY"){
+    document.getElementById("loginScreen").style.display = "flex";
+    document.getElementById("reset-msg").style.display = "none";
+    document.getElementById("reset-new-password").value = "";
+    document.getElementById("reset-confirm-password").value = "";
+    openM("m-reset-password");
+  }
+});
 
 async function checkSession(){
   const { data } = await sb.auth.getSession();
