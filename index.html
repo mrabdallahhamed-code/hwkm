@@ -1102,7 +1102,13 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <div id="p-structure" class="page content">
   <div class="sec-title">🌳 الهيكل التنظيمي للشركة</div>
   <div class="card" style="margin-bottom:18px">
-    <div class="card-head"><span class="card-title">القيادات العليا والإدارات — هيكل تفاعلي</span><span class="badge info">بالمناصب فقط</span></div>
+    <div class="card-head">
+      <span class="card-title">القيادات العليا والإدارات — هيكل تفاعلي</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="badge info">بالمناصب فقط</span>
+        <button class="btn-xs primary" onclick="exportOrgTreePDF()">📥 تحميل PDF</button>
+      </div>
+    </div>
     <div class="card-body">
       <div style="overflow-x:auto">
         <div id="orgTreeContainer" style="min-width:700px;padding:10px 0">جارِ التحميل...</div>
@@ -1113,6 +1119,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
     <span>🌳 دليل المناصب التنظيمية</span>
     <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportPositionsList()">📥 تصدير Excel</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="generateBaseStructure()">🏗️ توليد الهيكل الأساسي حسب نوع الشركة</button>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mst-id').value='';document.getElementById('mst-title-h').textContent='🌳 إضافة منصب في الهيكل التنظيمي';document.getElementById('mst-leadership').checked=true;document.getElementById('mst-is-body').checked=false;toggleBodyFields();document.getElementById('mst-delete-btn').style.display='none';populateParentPositionSelect();openM('m-structure')">+ إضافة منصب</button>
     </div>
@@ -1134,6 +1141,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <span>🔑 مصفوفة الصلاحيات</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="generatePermissionsReport()">🖨️ تحميل تقرير PDF</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportPermissionsMatrix()">📥 تصدير Excel</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openPermHoldersManager()">✏️ تعديل الجهات</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openPermItemsManager()">✏️ تعديل البنود</button>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openPermItemModal()">+ إضافة بند</button>
@@ -1601,6 +1609,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <div id="p-activitylog" class="page content">
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
     <span>📜 سجل النشاط</span>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportActivityLogPDF()">🖨️ تحميل PDF</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportActivityLogExcel()">📥 تصدير Excel</button>
+    </div>
   </div>
   <div style="background:linear-gradient(135deg,var(--primary),var(--primary2));border-radius:14px;padding:16px 18px;margin-bottom:18px;box-shadow:0 6px 20px rgba(26,58,107,0.18)">
     <div style="position:relative">
@@ -6226,6 +6238,94 @@ function exportArchiveList(){
     { label:"تاريخ الرفع", key:"created_at", value: r => r.created_at ? new Date(r.created_at).toLocaleDateString('ar-SA') : "" }
   ], "الأرشيف");
 }
+function exportPositionsList(){
+  exportToExcel(structureCache, [
+    { label:"المنصب / اسم الجهة", key:"position_title" }, { label:"الاسم", key:"holder_name" },
+    { label:"يتبع لـ", key:"parent_position" }, { label:"المستوى", key:"level", value: r => orgLevelLabel(r.level) },
+    { label:"تاريخ التعيين", key:"appointment_date" }, { label:"جهة/مجلس؟", key:"is_body", value: r => r.is_body ? "نعم" : "لا" },
+    { label:"بالشجرة؟", key:"is_leadership", value: r => r.is_leadership !== false ? "نعم" : "لا" }
+  ], "دليل المناصب التنظيمية");
+}
+
+function exportOrgTreePDF(){
+  const container = document.getElementById("orgTreeContainer");
+  if(!container || !container.innerHTML.trim()){ alert("لا توجد شجرة لتصديرها."); return; }
+  const w = window.open("", "_blank");
+  if(!w){ alert("المتصفح منع فتح نافذة التصدير — الرجاء السماح بالنوافذ المنبثقة ثم المحاولة مرة أخرى."); return; }
+  const companyName = document.getElementById("reportCompanyName1")?.textContent || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "الشركة";
+  const dateNow = new Date().toLocaleDateString("ar-SA");
+  w.document.open();
+  w.document.write(`
+    <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>الهيكل التنظيمي — ${companyName}</title>
+    <style>
+      body{font-family:'Tajawal',Arial,sans-serif;padding:30px;color:#0D2447}
+      h1{color:#1A3A6B;font-size:20px;border-bottom:3px solid #D4AF37;padding-bottom:10px}
+      .tree-wrap{overflow-x:auto;margin-top:20px}
+    </style></head><body>
+    <h1>🌳 الهيكل التنظيمي — ${companyName}</h1>
+    <p>تاريخ التصدير: ${dateNow}</p>
+    <div class="tree-wrap">${container.innerHTML}</div>
+    <script>window.onload=function(){setTimeout(function(){window.print()},400)}<\/script>
+    </body></html>
+  `);
+  w.document.close();
+}
+
+async function exportPermissionsMatrix(){
+  await loadPermissionsMatrix();
+  const table = document.getElementById("permMatrixTable");
+  if(!table){ alert("تعذّر تحميل مصفوفة الصلاحيات."); return; }
+  const clone = table.cloneNode(true);
+  clone.querySelectorAll('button').forEach(b => b.remove());
+  clone.querySelectorAll('select').forEach(sel => {
+    const span = document.createElement('span');
+    span.textContent = sel.value || "—";
+    sel.parentNode.replaceChild(span, sel);
+  });
+  const ws = XLSX.utils.table_to_sheet(clone);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "مصفوفة الصلاحيات");
+  XLSX.writeFile(wb, "مصفوفة الصلاحيات.xlsx");
+}
+
+function exportActivityLogExcel(){
+  exportToExcel(activityLogCache, [
+    { label:"الوقت", key:"created_at", value: r => r.created_at ? new Date(r.created_at).toLocaleString('ar-SA') : "" },
+    { label:"المستخدم", key:"actor_name" }, { label:"نوع الإجراء", key:"action_type" },
+    { label:"العنصر", key:"entity_type" }, { label:"اسم العنصر", key:"entity_label" }, { label:"التفاصيل", key:"details" }
+  ], "سجل النشاط");
+}
+
+function exportActivityLogPDF(){
+  if(!activityLogCache || activityLogCache.length === 0){ alert("لا يوجد نشاط لتصديره."); return; }
+  const w = window.open("", "_blank");
+  if(!w){ alert("المتصفح منع فتح نافذة التصدير — الرجاء السماح بالنوافذ المنبثقة ثم المحاولة مرة أخرى."); return; }
+  const companyName = document.getElementById("reportCompanyName1")?.textContent || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "الشركة";
+  const dateNow = new Date().toLocaleDateString("ar-SA");
+  const rows = activityLogCache.map(a => `<tr>
+    <td>${new Date(a.created_at).toLocaleString('ar-SA')}</td><td>${a.actor_name||a.actor_email||"—"}</td>
+    <td>${a.action_type||""} ${a.entity_type||""}</td><td>${a.entity_label||"—"}</td><td>${a.details||""}</td>
+  </tr>`).join("");
+  w.document.open();
+  w.document.write(`
+    <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>سجل النشاط — ${companyName}</title>
+    <style>
+      body{font-family:'Tajawal',Arial,sans-serif;padding:30px;color:#0D2447}
+      h1{color:#1A3A6B;font-size:20px;border-bottom:3px solid #D4AF37;padding-bottom:10px}
+      table{width:100%;border-collapse:collapse;margin-top:14px}
+      th,td{border:1px solid #ccc;padding:8px;text-align:right;font-size:11px}
+      th{background:#1A3A6B;color:#fff}
+    </style></head><body>
+    <h1>📜 سجل النشاط — ${companyName}</h1>
+    <p>تاريخ التصدير: ${dateNow}</p>
+    <table><thead><tr><th>الوقت</th><th>المستخدم</th><th>الإجراء</th><th>العنصر</th><th>التفاصيل</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>
+    </body></html>
+  `);
+  w.document.close();
+}
+
 async function exportUsersList(){
   const { data } = await sb.from("user_profiles").select("*").eq("company_id", currentCompanyId);
   exportToExcel(data||[], [
