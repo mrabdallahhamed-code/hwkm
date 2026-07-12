@@ -932,7 +932,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openNewCommitteeModal()">+ إضافة لجنة</button>
     </div>
   </div>
-  <div id="committeesCards" class="two-col">
+  <div id="committeesCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;align-items:stretch">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
   </div>
 
@@ -1508,7 +1508,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <span>🤝 وساطة — مقدّمو الخدمات</span>
     <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-provider-add')">+ إضافة</button>
   </div>
-  <div id="providersGrid" class="two-col" style="margin-bottom:20px">
+  <div id="providersGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;align-items:stretch;margin-bottom:20px">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
   </div>
 
@@ -5424,14 +5424,16 @@ function renderRiskCards(risks){
   if(risks.length===0){ wrap.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">لا توجد مخاطر مسجّلة بعد.</div>'; return; }
   wrap.innerHTML = risks.map(r => {
     const color = riskSeverityColor(r.impact, r.probability);
-    const cls = color==="#C0392B" ? "hi" : color==="#27AE60" ? "lo" : "md";
-    const emoji = color==="#C0392B" ? "🔴" : color==="#27AE60" ? "🟢" : "🟡";
+    const highImpact = r.impact === "عالٍ";
+    const highProb = (r.probability||0) >= 67;
+    const cls = (highImpact && highProb) ? "hi" : (r.impact === "منخفض" && (r.probability||0) < 34) ? "lo" : "md";
+    const emoji = cls === "hi" ? "🔴" : cls === "lo" ? "🟢" : "🟡";
     return `<div class="rcard ${cls}">
-      <div class="rlevel">${emoji} ${r.status||"—"}</div>
+      <div class="rlevel" style="color:${color}">${emoji} ${r.status||"—"}</div>
       <div class="rname">${r.risk_name||""}</div>
       <div class="rmeta">التأثير: ${r.impact||"—"} · الاحتمالية: ${r.probability!=null?r.probability+"%":"—"}</div>
       <div class="rmeta" style="margin-top:4px">المالك: ${r.owner||"—"}</div>
-      <div class="rprog"><div class="rprog-fill" style="width:${r.probability||0}%"></div></div>
+      <div class="rprog"><div class="rprog-fill" style="width:${r.probability||0}%;background:${color}"></div></div>
     </div>`;
   }).join("");
 }
@@ -5973,8 +5975,8 @@ async function loadCommittees(){
     const color = catColors[c.category] || "var(--gray3)";
     const memberCount = countByCommittee[c.id] || 0;
     const hasCharter = !!(c.charter_purpose || c.charter_authorities || c.charter_composition);
-    return `<div class="card" style="margin-bottom:16px;border-right:4px solid ${color}">
-      <div class="card-body">
+    return `<div class="card" style="margin:0;border-right:4px solid ${color};display:flex;flex-direction:column">
+      <div class="card-body" style="display:flex;flex-direction:column;flex:1">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
           <div style="font-size:11px;font-weight:800;color:${color};margin-bottom:4px">${c.category||"لجنة"}</div>
           <div style="display:flex;gap:6px">
@@ -5987,7 +5989,7 @@ async function loadCommittees(){
         <div style="font-size:12px;color:var(--gray3);margin-bottom:4px">👥 عدد الأعضاء المحددين: <b style="color:var(--dark)">${memberCount}</b></div>
         <div style="font-size:12px;color:var(--gray3);margin-bottom:8px">📅 تاريخ التعيين: ${c.appointment_date||"—"}</div>
         ${c.scope ? `<div style="font-size:11.5px;color:var(--gray3);background:var(--offwhite);border-radius:8px;padding:8px;margin-bottom:8px">${c.scope}</div>` : ""}
-        <button class="btn-xs" style="width:100%;background:${hasCharter?'#E8F8EF':'var(--offwhite)'};color:${hasCharter?'var(--green)':'var(--dark)'};border:1px solid ${hasCharter?'transparent':'var(--gray1)'};border-radius:6px;padding:6px;font-size:11px;cursor:pointer" onclick="openCharterModal(${c.id})">📜 ${hasCharter?'عرض/تعديل الميثاق ✅':'إعداد ميثاق اللجنة'}</button>
+        <button class="btn-xs" style="width:100%;margin-top:auto;background:${hasCharter?'#E8F8EF':'var(--offwhite)'};color:${hasCharter?'var(--green)':'var(--dark)'};border:1px solid ${hasCharter?'transparent':'var(--gray1)'};border-radius:6px;padding:6px;font-size:11px;cursor:pointer" onclick="openCharterModal(${c.id})">📜 ${hasCharter?'عرض/تعديل الميثاق ✅':'إعداد ميثاق اللجنة'}</button>
       </div>
     </div>`;
   }).join("");
@@ -7744,13 +7746,13 @@ async function loadServiceProviders(){
   if(providersCache.length===0){ grid.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">لا توجد جهات مضافة بعد. اضغط "+ إضافة" للبدء.</div>'; return; }
 
   const canRequest = FULL_ACCESS_ROLES.includes(getCurrentRole());
-  grid.innerHTML = providersCache.map(p => `<div class="card" style="margin-bottom:16px">
-    <div class="card-body">
+  grid.innerHTML = providersCache.map(p => `<div class="card" style="margin:0;display:flex;flex-direction:column">
+    <div class="card-body" style="display:flex;flex-direction:column;flex:1">
       <div style="font-weight:800;font-size:13.5px;color:var(--dark)">${p.entity_name||""}</div>
       <div style="font-size:11.5px;color:var(--gray3);margin-top:4px">🛠️ ${p.service_provided||"—"}</div>
       <div style="font-size:11.5px;color:var(--gray3);margin-top:2px">🏷️ ${p.activity_type||"—"}</div>
       <div style="font-size:11px;color:var(--gray3);margin-top:2px">📄 س.ت: ${p.cr_number||"—"}</div>
-      ${canRequest ? `<button class="btn-xs gold" style="width:100%;margin-top:10px" onclick="requestService(${p.id})">🤝 اطلب الخدمة</button>` : ""}
+      ${canRequest ? `<button class="btn-xs gold" style="width:100%;margin-top:auto;padding-top:10px" onclick="requestService(${p.id})">🤝 اطلب الخدمة</button>` : ""}
     </div>
   </div>`).join("");
 }
@@ -7928,7 +7930,7 @@ async function loadPerf(){
 
   // Polished progress-bar cards (one per evaluation)
   if(cardsWrap){
-    cardsWrap.innerHTML = '<div class="two-col">' + data.map(p => {
+    cardsWrap.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px;align-items:stretch">' + data.map(p => {
       const revs = reviewsByEval[p.id] || [];
       const icon = p.entity_type === "تنفيذي" ? "👔" : (p.entity_type === "لجنة" ? "🏛️" : "🧑‍💼");
       const uniqueReviewers = new Set(revs.map(r=>r.reviewer_email)).size;
@@ -7951,12 +7953,12 @@ async function loadPerf(){
         ? `<button class="btn btn-gold" style="font-size:11px;padding:6px 14px;margin-top:10px;width:100%" onclick="closePerfEvaluation(${p.id})">🔒 إغلاق واعتماد النتيجة النهائية</button>`
         : "";
 
-      return `<div class="card" style="margin-bottom:16px">
+      return `<div class="card" style="margin:0;display:flex;flex-direction:column">
         <div class="card-head"><span class="card-title">${icon} ${p.entity_name||""} <span style="font-size:11px;color:var(--gray3);font-weight:600">— ${p.period||""}</span></span>${statusBadge}</div>
-        <div class="card-body">
+        <div class="card-body" style="display:flex;flex-direction:column;flex:1">
           ${bars || '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا توجد تقييمات مسجّلة من الأعضاء بعد.</div>'}
           <div style="font-size:11px;color:var(--gray3);margin-top:8px">👥 عدد المقيّمين: ${uniqueReviewers}${p.score!=null ? " · الدرجة الإجمالية: "+Number(p.score).toFixed(1)+"/5 — "+(PERF_SCORE_LABELS[Math.round(p.score)]||"") : ""}</div>
-          ${closeBtn}
+          <div style="margin-top:auto;padding-top:8px">${closeBtn}</div>
         </div>
       </div>`;
     }).join("") + '</div>';
