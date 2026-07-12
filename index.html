@@ -511,6 +511,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://unpkg.com/docxtemplater@3.69.0/build/docxtemplater.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -1123,8 +1124,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportPositionsList()">📥 تصدير Excel</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="generateBaseStructure()">🏗️ توليد الهيكل الأساسي حسب نوع الشركة</button>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mst-id').value='';document.getElementById('mst-title-h').textContent='🌳 إضافة منصب في الهيكل التنظيمي';document.getElementById('mst-leadership').checked=true;document.getElementById('mst-is-body').checked=false;toggleBodyFields();document.getElementById('mst-delete-btn').style.display='none';populateParentPositionSelect();openM('m-structure')">+ إضافة منصب</button>
+      <button class="btn" style="background:var(--gold);color:#fff;font-size:11px;padding:6px 14px" onclick="requestBoardApproval('structure')">📤 طلب موافقة من المجلس</button>
     </div>
   </div>
+  <div id="structureApprovalStatus" style="margin-bottom:14px"></div>
   <div class="card">
     <div class="card-body" style="padding:0">
       <table class="tbl">
@@ -1146,8 +1149,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openPermHoldersManager()">✏️ تعديل الجهات</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openPermItemsManager()">✏️ تعديل البنود</button>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openPermItemModal()">+ إضافة بند</button>
+      <button class="btn" style="background:var(--gold);color:#fff;font-size:11px;padding:6px 14px" onclick="requestBoardApproval('matrix')">📤 طلب موافقة من المجلس</button>
     </div>
   </div>
+  <div id="matrixApprovalStatus" style="margin-bottom:14px"></div>
   <div class="card">
     <div class="card-body" style="padding:0;overflow-x:auto">
       <table class="tbl" style="min-width:800px" id="permMatrixTable">
@@ -2630,6 +2635,10 @@ function isMutatingOnchange(val){
     || /^openCharterModal\(/.test(val)
     || /^saveCharter\(/.test(val)
     || /^sendMeetingReminderEmails\(/.test(val)
+    || /^sendPolicyApprovalReminder\(/.test(val)
+    || /^sendPermissionItemNotification\(/.test(val)
+    || /^sendPermissionItemWhatsApp\(/.test(val)
+    || /^requestBoardApproval\(/.test(val)
     || /^updateUserRole\(/.test(val)
     || /^updateRequestStatus\(/.test(val)
     || /^savePermCell\(/.test(val);
@@ -2980,8 +2989,8 @@ function reloadCurrentPageData(){
   if(id==='compliance') loadCompliance();
   if(id==='signing') loadSigning();
   if(id==='committees') loadCommittees();
-  if(id==='structure') loadStructure();
-  if(id==='permissions') loadPermissionsMatrix();
+  if(id==='structure'){ loadStructure(); renderApprovalStatus('structure','structureApprovalStatus'); }
+  if(id==='permissions'){ loadPermissionsMatrix(); renderApprovalStatus('matrix','matrixApprovalStatus'); }
   if(id==='voting') loadVotingPage();
   if(id==='audit') loadAudit();
   if(id==='consultants') loadConsultantsPage();
@@ -5258,6 +5267,7 @@ function renderPoliciesFiltered(){
               <button class="btn-xs primary" onclick="editPolicy(${p.id})">✏️ تعديل</button>
               <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="openPolicyHistoryModal(${p.id})">🕒 السجل</button>
               <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="deletePolicy(${p.id})">🗑️ حذف</button>
+              ${stageIdx < POLICY_STAGES.length-1 ? `<button class="btn-xs" style="background:#E8F0FA;color:var(--primary);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="sendPolicyApprovalReminder(${p.id})">🔔 تذكير الموافقة</button>` : ""}
             </div>
             ${nextBtn}
           </div>
@@ -6508,6 +6518,18 @@ async function sendNotificationEmail(to, subject, html){
   }
 }
 
+async function sendBulkEmails(recipients, subject, html, confirmLabel){
+  if(!recipients || recipients.length === 0){ alert("لا يوجد مستلمين لديهم إيميل مسجّل."); return; }
+  if(!confirm(`سيتم إرسال ${confirmLabel||"تذكير بريدي"} لـ${recipients.length} شخص. متابعة؟`)) return;
+  let sent = 0, failed = 0;
+  for(const r of recipients){
+    const result = await sendNotificationEmail(r.email, subject, html);
+    if(result.success) sent++; else failed++;
+  }
+  alert(`تم الإرسال: ${sent} ناجح${failed?`، ${failed} فشل`:''}`);
+  return { sent, failed };
+}
+
 async function sendMeetingReminderEmails(meetingId){
   const m = allMeetingsCache.find(x => x.id === meetingId) || (await sb.from("meetings").select("*").eq("id", meetingId).single()).data;
   if(!m){ alert("تعذّر تحديد الاجتماع"); return; }
@@ -6563,28 +6585,39 @@ function addToCalendar(meetingId, provider, isAgm){
 
 let waShareText = "";
 
-async function shareMeetingViaWhatsApp(meetingId, isAgm){
-  const cache = isAgm ? agmMeetingsCache : allMeetingsCache;
-  const m = (cache||[]).find(x => x.id === meetingId);
-  if(!m){ alert("تعذّر تحديد الاجتماع"); return; }
-  const companyName = document.getElementById("reportCompanyName1")?.textContent || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "";
-  waShareText = `📅 *تذكير باجتماع*\n\n*${m.title||"اجتماع"}*\n🗓️ التاريخ: ${m.meeting_date||"—"}\n⏰ الوقت: ${m.meeting_time||"—"}\n📍 الطريقة: ${m.method||"—"}\n\n${companyName ? "— "+companyName+" عبر منصة حوكم" : "— منصة حوكم"}`;
+async function openWhatsAppShareModal(text, recipientEmails){
+  waShareText = text;
   document.getElementById("wa-share-text").value = waShareText;
 
   const box = document.getElementById("wa-team-list");
   box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:11.5px;padding:10px">جارِ التحميل...</div>';
   openM("m-whatsapp-share");
 
-  const { data: team } = await sb.from("user_profiles").select("full_name,phone_number").eq("company_id", currentCompanyId);
-  const withPhones = (team||[]).filter(t => t.phone_number && t.phone_number.trim());
+  let query = sb.from("user_profiles").select("full_name,phone_number,email").eq("company_id", currentCompanyId);
+  const { data: team } = await query;
+  let list = team || [];
+  if(recipientEmails && recipientEmails.length){
+    const set = new Set(recipientEmails.map(e => (e||"").toLowerCase()));
+    list = list.filter(t => set.has((t.email||"").toLowerCase()));
+  }
+  const withPhones = list.filter(t => t.phone_number && t.phone_number.trim());
   if(withPhones.length === 0){
-    box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:11.5px;padding:10px">لا يوجد أعضاء فريق لديهم رقم جوال مسجّل حاليًا.</div>';
+    box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:11.5px;padding:10px">لا يوجد أعضاء لديهم رقم جوال مسجّل حاليًا ضمن هذه القائمة.</div>';
     return;
   }
   box.innerHTML = withPhones.map(t => `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--gray1)">
     <span style="font-size:12px;color:var(--dark)">${t.full_name||"—"}</span>
     <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="openDirectWhatsApp('${(t.phone_number||"").replace(/'/g,"")}')">📱 إرسال</button>
   </div>`).join("");
+}
+
+async function shareMeetingViaWhatsApp(meetingId, isAgm){
+  const cache = isAgm ? agmMeetingsCache : allMeetingsCache;
+  const m = (cache||[]).find(x => x.id === meetingId);
+  if(!m){ alert("تعذّر تحديد الاجتماع"); return; }
+  const companyName = document.getElementById("reportCompanyName1")?.textContent || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "";
+  const text = `📅 *تذكير باجتماع*\n\n*${m.title||"اجتماع"}*\n🗓️ التاريخ: ${m.meeting_date||"—"}\n⏰ الوقت: ${m.meeting_time||"—"}\n📍 الطريقة: ${m.method||"—"}\n\n${companyName ? "— "+companyName+" عبر منصة حوكم" : "— منصة حوكم"}`;
+  openWhatsAppShareModal(text, null);
 }
 
 function normalizeSaudiPhone(phone){
@@ -6607,6 +6640,224 @@ function copyWhatsAppText(){
     const ta = document.getElementById("wa-share-text");
     ta.select(); document.execCommand("copy"); alert("تم نسخ النص ✅");
   });
+}
+
+/* ══════════ APPROVAL REMINDERS (policies + permissions) ══════════ */
+async function sendPolicyApprovalReminder(policyId){
+  const p = policiesCache.find(x => x.id === policyId);
+  if(!p){ alert("تعذّر تحديد السياسة"); return; }
+  const [{ data: team }, { data: reviews }] = await Promise.all([
+    sb.from("user_profiles").select("email,full_name,phone_number").eq("company_id", currentCompanyId),
+    sb.from("policy_reviews").select("reviewer_email").eq("policy_id", policyId)
+  ]);
+  const reviewedEmails = new Set((reviews||[]).map(r => (r.reviewer_email||"").toLowerCase()));
+  const pending = (team||[]).filter(t => t.email && !reviewedEmails.has(t.email.toLowerCase()));
+  if(pending.length === 0){ alert("كل الأعضاء راجعوا هذه السياسة بالفعل ✅"); return; }
+
+  const subject = `تذكير موافقة: ${p.policy_name || "سياسة"}`;
+  const html = `
+    <div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px">
+      <h2 style="color:#1A3A6B">🏛️ تذكير بمراجعة سياسة معلّقة</h2>
+      <p><b>السياسة:</b> ${p.policy_name||""}</p>
+      <p><b>المرحلة الحالية:</b> ${p.status||"—"}</p>
+      <p>الرجاء الدخول للمنصة ومراجعة السياسة والتصويت عليها.</p>
+      <p style="color:#8B95A5;font-size:12px;margin-top:20px">هذه رسالة تلقائية من منصّة حوكم.</p>
+    </div>`;
+  await sendBulkEmails(pending.map(t => ({ email: t.email })), subject, html, "تذكير موافقة سياسة");
+  logActivity("إنشاء", "تذكير موافقة", p.policy_name, `أُرسل لـ${pending.length} عضو لم يراجعوا بعد`);
+
+  const text = `🏛️ *تذكير بمراجعة سياسة*\n\n*${p.policy_name||""}*\nالمرحلة: ${p.status||"—"}\n\nالرجاء الدخول للمنصة ومراجعتها.\n\n— منصة حوكم`;
+  openWhatsAppShareModal(text, pending.map(t => t.email));
+}
+
+async function sendPermissionItemNotification(itemId){
+  const { data: item } = await sb.from("permission_items").select("*").eq("id", itemId).single();
+  if(!item){ return; }
+  const { data: team } = await sb.from("user_profiles").select("email,full_name,phone_number").eq("company_id", currentCompanyId);
+  const recipients = (team||[]).filter(t => t.email);
+  if(recipients.length === 0) return;
+
+  const subject = `بند صلاحية جديد: ${item.item_name || ""}`;
+  const html = `
+    <div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px">
+      <h2 style="color:#1A3A6B">🔑 بند جديد بمصفوفة الصلاحيات</h2>
+      <p><b>البند:</b> ${item.item_name||""}</p>
+      <p><b>الفئة:</b> ${item.category||"—"}</p>
+      <p>الرجاء مراجعة مصفوفة الصلاحيات بالمنصة والاطّلاع على البند الجديد.</p>
+      <p style="color:#8B95A5;font-size:12px;margin-top:20px">هذه رسالة تلقائية من منصّة حوكم.</p>
+    </div>`;
+  await sendBulkEmails(recipients.map(t => ({ email: t.email })), subject, html, "إشعار بند صلاحية جديد");
+  logActivity("إنشاء", "إشعار صلاحيات", item.item_name, `أُرسل لـ${recipients.length} عضو`);
+}
+
+function sendPermissionItemWhatsApp(itemId){
+  const item = permItemsCache?.find(x => x.id === itemId);
+  if(!item){ alert("تعذّر تحديد البند"); return; }
+  const text = `🔑 *بند جديد بمصفوفة الصلاحيات*\n\n*${item.item_name||""}*\nالفئة: ${item.category||"—"}\n\nالرجاء مراجعتها بالمنصة.\n\n— منصة حوكم`;
+  openWhatsAppShareModal(text, null);
+}
+
+/* ══════════ BOARD APPROVAL WORKFLOW (permissions matrix + org structure) ══════════ */
+async function uploadBlobToStorage(blob, folder, filename){
+  const safeName = Date.now() + "_" + filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const path = folder + "/" + safeName;
+  const { error } = await sb.storage.from("documents").upload(path, blob);
+  if(error){ alert("تعذّر رفع الملف: " + error.message); return null; }
+  const { data, error: signErr } = await sb.storage.from("documents").createSignedUrl(path, 315360000);
+  if(signErr || !data){ alert("تعذّر إنشاء رابط آمن للملف: " + (signErr?.message||"")); return null; }
+  return data.signedUrl;
+}
+
+// "Board" pool = any team member whose role relates to the board (chairman/secretary/member) or
+// the system admin — matches how the rest of the platform already treats board-related roles.
+async function getBoardApprovers(){
+  const { data } = await sb.from("user_profiles").select("full_name,email,role")
+    .eq("company_id", currentCompanyId).or("role.ilike.%مجلس%,role.eq.مدير النظام");
+  return data || [];
+}
+
+async function requestBoardApproval(type){
+  const isMatrix = type === "matrix";
+  const title = isMatrix ? "طلب موافقة على مصفوفة الصلاحيات" : "طلب موافقة على الهيكل التنظيمي";
+  if(!confirm(`سيتم توليد نسخة PDF من ${isMatrix?"مصفوفة الصلاحيات":"الهيكل التنظيمي"} الحالية وإرسال طلب موافقة لأعضاء المجلس. متابعة؟`)) return;
+
+  const board = await getBoardApprovers();
+  if(board.length === 0){ alert("لا يوجد أعضاء مجلس مسجّلين لديهم حساب بالمنصة — أضفهم أولًا من صفحة إدارة الصلاحيات."); return; }
+
+  const companyName = document.getElementById("reportCompanyName1")?.textContent || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "";
+  const dateNow = new Date().toLocaleDateString("ar-SA");
+
+  let bodyContent = "";
+  if(isMatrix){
+    await loadPermissionsMatrix();
+    const table = document.getElementById("permMatrixTable");
+    if(!table){ alert("تعذّر تحميل مصفوفة الصلاحيات."); return; }
+    const clone = table.cloneNode(true);
+    clone.querySelectorAll("button").forEach(b => b.remove());
+    clone.querySelectorAll("select").forEach(sel => {
+      const span = document.createElement("span");
+      span.textContent = sel.value || "—";
+      sel.parentNode.replaceChild(span, sel);
+    });
+    clone.querySelectorAll("th,td").forEach(c => { c.style.border = "1px solid #ccc"; c.style.padding = "6px"; c.style.fontSize = "11px"; });
+    clone.style.cssText = "width:100%;border-collapse:collapse";
+    bodyContent = clone.outerHTML;
+  } else {
+    const container = document.getElementById("orgTreeContainer");
+    if(!container || !container.innerHTML.trim()){ alert("لا توجد شجرة هيكل تنظيمي لتصديرها."); return; }
+    bodyContent = container.innerHTML;
+  }
+
+  const boardListHtml = board.map(b => `<tr>
+    <td style="border:1px solid #ccc;padding:6px">${b.full_name||b.email||""}</td>
+    <td style="border:1px solid #ccc;padding:6px">${b.role||""}</td>
+    <td style="border:1px solid #ccc;padding:6px;width:130px"></td>
+  </tr>`).join("");
+
+  const wrapper = document.createElement("div");
+  wrapper.style.cssText = "direction:rtl;text-align:right;font-family:Tajawal,Arial,sans-serif;padding:20px;color:#0D2447;background:#fff";
+  wrapper.innerHTML = `
+    <h1 style="color:#1A3A6B;font-size:20px;border-bottom:3px solid #D4AF37;padding-bottom:10px">${title} — ${companyName}</h1>
+    <p><b>تاريخ الطلب:</b> ${dateNow}</p>
+    <div style="overflow-x:auto;margin:16px 0">${bodyContent}</div>
+    <h3 style="color:#1A3A6B;margin-top:24px">أعضاء المجلس المطلوب موافقتهم</h3>
+    <table style="width:100%;border-collapse:collapse;margin-top:8px">
+      <thead><tr>
+        <th style="border:1px solid #ccc;padding:6px;background:#1A3A6B;color:#fff">الاسم</th>
+        <th style="border:1px solid #ccc;padding:6px;background:#1A3A6B;color:#fff">الصفة</th>
+        <th style="border:1px solid #ccc;padding:6px;background:#1A3A6B;color:#fff">التوقيع</th>
+      </tr></thead>
+      <tbody>${boardListHtml}</tbody>
+    </table>`;
+  document.body.appendChild(wrapper);
+  let pdfBlob;
+  try{
+    pdfBlob = await html2pdf().from(wrapper).set({ margin: 10, html2canvas: { scale: 2 }, jsPDF: { unit: "mm", format: "a4", orientation: "portrait" } }).outputPdf("blob");
+  }catch(e){
+    document.body.removeChild(wrapper);
+    alert("تعذّر توليد ملف PDF: " + e.message);
+    return;
+  }
+  document.body.removeChild(wrapper);
+
+  const fileUrl = await uploadBlobToStorage(pdfBlob, "approvals", (isMatrix?"permissions-matrix":"org-structure")+".pdf");
+  if(!fileUrl) return;
+
+  const fullTitle = title + " — " + companyName + " — " + dateNow;
+  const { error } = await sb.from("approval_requests").insert([{
+    company_id: currentCompanyId, request_type: type, title: fullTitle,
+    requested_by: currentUserProfile ? (currentUserProfile.full_name||currentUserProfile.email) : "", pdf_url: fileUrl
+  }]);
+  if(error){ alert("تعذّر إنشاء طلب الموافقة: " + error.message); return; }
+
+  logActivity("إنشاء", "طلب موافقة", fullTitle, `أُرسل لـ${board.length} عضو مجلس`);
+  alert("تم إرسال طلب الموافقة لأعضاء المجلس ✅");
+  renderApprovalStatus(type, isMatrix ? "matrixApprovalStatus" : "structureApprovalStatus");
+}
+
+async function renderApprovalStatus(type, containerId){
+  const box = document.getElementById(containerId);
+  if(!box) return;
+  const { data: reqs } = await sb.from("approval_requests").select("*").eq("company_id", currentCompanyId).eq("request_type", type).order("created_at",{ascending:false}).limit(1);
+  if(!reqs || reqs.length === 0){ box.innerHTML = ""; return; }
+  const req = reqs[0];
+  const board = await getBoardApprovers();
+  const { data: votes } = await sb.from("approval_votes").select("reviewer_email").eq("request_id", req.id);
+  const votedEmails = new Set((votes||[]).map(v => (v.reviewer_email||"").toLowerCase()));
+  const totalBoard = board.length;
+  const votedCount = board.filter(b => votedEmails.has((b.email||"").toLowerCase())).length;
+
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : "";
+  const iAlreadyVoted = votedEmails.has((myEmail||"").toLowerCase());
+  const amIBoardMember = board.some(b => (b.email||"").toLowerCase() === (myEmail||"").toLowerCase());
+
+  if(req.status === "معتمد"){
+    box.innerHTML = `<div style="background:#E8F8EF;border-radius:10px;padding:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div style="font-size:12.5px"><b style="color:var(--green)">✅ تمت موافقة المجلس</b> بتاريخ ${req.approved_at?new Date(req.approved_at).toLocaleDateString('ar-SA'):"—"} — انتقل الملف تلقائيًا لصفحة التوقيع الإلكتروني.</div>
+      <a href="${req.pdf_url}" target="_blank" class="btn-xs primary" style="text-decoration:none">📄 عرض الملف</a>
+    </div>`;
+    return;
+  }
+
+  box.innerHTML = `<div style="background:#FEF3E2;border-radius:10px;padding:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+      <b style="color:#8B6F1F;font-size:12.5px">⏳ بانتظار موافقة المجلس (${votedCount}/${totalBoard})</b>
+      <a href="${req.pdf_url}" target="_blank" class="btn-xs primary" style="text-decoration:none">📄 عرض الملف</a>
+    </div>
+    ${amIBoardMember && !iAlreadyVoted ? `<button class="btn btn-gold" style="width:100%" onclick="castApprovalVote(${req.id})">✅ الموافقة على هذا الطلب</button>` : ""}
+    ${amIBoardMember && iAlreadyVoted ? `<div style="text-align:center;color:var(--green);font-size:12px">✅ لقد وافقت بالفعل — بانتظار بقية الأعضاء</div>` : ""}
+  </div>`;
+}
+
+async function castApprovalVote(requestId){
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : "";
+  if(!myEmail) return;
+  const { error } = await sb.from("approval_votes").insert([{
+    request_id: requestId, reviewer_email: myEmail,
+    reviewer_name: currentUserProfile ? currentUserProfile.full_name : myEmail, company_id: currentCompanyId
+  }]);
+  if(error){ alert("تعذّر تسجيل موافقتك: " + error.message); return; }
+
+  const { data: req } = await sb.from("approval_requests").select("*").eq("id", requestId).single();
+  const board = await getBoardApprovers();
+  const { data: votes } = await sb.from("approval_votes").select("reviewer_email").eq("request_id", requestId);
+  const votedEmails = new Set((votes||[]).map(v => (v.reviewer_email||"").toLowerCase()));
+  const allVoted = board.length > 0 && board.every(b => votedEmails.has((b.email||"").toLowerCase()));
+
+  if(allVoted && req.status !== "معتمد"){
+    await sb.from("approval_requests").update({ status: "معتمد", approved_at: new Date().toISOString() }).eq("id", requestId);
+    await sb.from("signing_documents").insert([{
+      document_name: req.title, doc_type: req.request_type === "matrix" ? "موافقة مجلس — مصفوفة صلاحيات" : "موافقة مجلس — هيكل تنظيمي",
+      signers_total: board.length, signers_done: 0, status: "قيد التوقيع", file_url: req.pdf_url, company_id: currentCompanyId
+    }]);
+    logActivity("موافقة", "طلب موافقة", req.title, "اكتملت موافقة المجلس — انتقل تلقائيًا للتوقيع الإلكتروني");
+    alert("🎉 اكتملت موافقة جميع أعضاء المجلس! تم نقل الملف تلقائيًا لصفحة التوقيع الإلكتروني.");
+  } else {
+    alert("تم تسجيل موافقتك ✅");
+  }
+  renderApprovalStatus(req.request_type, req.request_type === "matrix" ? "matrixApprovalStatus" : "structureApprovalStatus");
 }
 
 async function runGlobalSearch(q){
@@ -7567,6 +7818,13 @@ async function savePermItem(){
   document.getElementById("mpi-name").value = "";
   closeM("m-perm-item");
   loadPermissionsMatrix();
+
+  if(confirm(`تم إضافة البند "${item_name}" ✅\n\nهل تريد إشعار الفريق بالبريد الإلكتروني؟`)){
+    await sendPermissionItemNotification(newItem.id);
+  }
+  if(confirm("هل تريد أيضًا مشاركته عبر واتساب؟")){
+    sendPermissionItemWhatsApp(newItem.id);
+  }
 }
 
 async function deletePermItem(id){
@@ -8475,8 +8733,8 @@ function go(id, el){
   if(id==='compliance') loadCompliance();
   if(id==='signing') loadSigning();
   if(id==='committees') loadCommittees();
-  if(id==='structure') loadStructure();
-  if(id==='permissions') loadPermissionsMatrix();
+  if(id==='structure'){ loadStructure(); renderApprovalStatus('structure','structureApprovalStatus'); }
+  if(id==='permissions'){ loadPermissionsMatrix(); renderApprovalStatus('matrix','matrixApprovalStatus'); }
   if(id==='voting') loadVotingPage();
   if(id==='audit') loadAudit();
   if(id==='consultants') loadConsultantsPage();
