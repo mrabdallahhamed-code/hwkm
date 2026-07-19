@@ -655,6 +655,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <header class="topbar" id="topbar">
   <div class="tb-left">
     <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+    <button class="menu-btn" onclick="go('dashboard',null)" title="لوحة التحكم الرئيسية" style="margin-left:2px">🏠</button>
     <div>
       <div class="page-title" id="ptitle">لوحة التحكم الرئيسية</div>
       <div class="page-sub" id="psub">نظرة شاملة على حوكمة شركة أسس الأنظمة الجديدة — مارس 2026</div>
@@ -2380,6 +2381,12 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 async function uploadFile(inputEl, folder){
   const file = inputEl.files && inputEl.files[0];
   if(!file) return null;
+  const MAX_SIZE = 50 * 1024 * 1024; // 50MB — current plan's hard limit
+  if(file.size > MAX_SIZE){
+    alert(`تعذّر الرفع: حجم الملف (${(file.size/1024/1024).toFixed(1)} ميجا) أكبر من الحد المسموح حاليًا (٥٠ ميجا). الرجاء ضغط الملف أو تصغير حجمه والمحاولة مجددًا.`);
+    inputEl.value = "";
+    return null;
+  }
   const safeName = Date.now() + "_" + file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
   const path = folder + "/" + safeName;
   const { error } = await sb.storage.from("documents").upload(path, file);
@@ -6708,6 +6715,11 @@ function sendPermissionItemWhatsApp(itemId){
 
 /* ══════════ BOARD APPROVAL WORKFLOW (permissions matrix + org structure) ══════════ */
 async function uploadBlobToStorage(blob, folder, filename){
+  const MAX_SIZE = 50 * 1024 * 1024;
+  if(blob.size > MAX_SIZE){
+    alert(`تعذّر الرفع: الملف الناتج (${(blob.size/1024/1024).toFixed(1)} ميجا) أكبر من الحد المسموح حاليًا (٥٠ ميجا).`);
+    return null;
+  }
   const safeName = Date.now() + "_" + filename.replace(/[^a-zA-Z0-9._-]/g, "_");
   const path = folder + "/" + safeName;
   const { error } = await sb.storage.from("documents").upload(path, blob);
