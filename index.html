@@ -6443,50 +6443,51 @@ function downloadIndicatorsTemplate(){
 
   const finRows = [
     ["الفترة (مثال: الربع الأول 2026)", ""],
-    ["الإيرادات (ريال)", ""],
-    ["صافي الربح / الخسارة (ريال)", ""],
-    ["التدفق النقدي التشغيلي (ريال)", ""],
+    ["التدفق النقدي من الأنشطة التشغيلية (ريال)", ""],
+    ["التدفق النقدي من الأنشطة الاستثمارية (ريال)", ""],
+    ["التدفق النقدي من الأنشطة التمويلية (ريال)", ""],
     ["إجمالي الأصول (ريال)", ""],
-    ["إجمالي الخصوم (ريال)", ""],
-    ["حقوق الملكية (ريال)", ""],
-    ["الميزانية المعتمدة (ريال)", ""],
-    ["المصروفات الفعلية (ريال)", ""],
-    ["تفسير أي انحراف جوهري عن الميزانية أو التوقعات (إن وجد)", ""]
+    ["إجمالي حقوق الملكية (ريال)", ""]
   ];
   const wsFin = XLSX.utils.aoa_to_sheet(finRows);
-  wsFin["!cols"] = [{ wch: 55 }, { wch: 25 }];
+  wsFin["!cols"] = [{ wch: 50 }, { wch: 25 }];
   XLSX.utils.book_append_sheet(wb, wsFin, "المالية");
 
+  const revRows = [
+    ["الإيرادات (ريال)", ""],
+    ["تكلفة الإيرادات (ريال)", ""]
+  ];
+  const wsRev = XLSX.utils.aoa_to_sheet(revRows);
+  wsRev["!cols"] = [{ wch: 35 }, { wch: 25 }];
+  XLSX.utils.book_append_sheet(wb, wsRev, "الإيرادات");
+
   const salesRows = [
-    ["إجمالي المبيعات (ريال)", ""],
-    ["أعلى 5 عملاء — اسم العميل", "المبلغ (ريال)"],
-    ["عميل 1", ""], ["عميل 2", ""], ["عميل 3", ""], ["عميل 4", ""], ["عميل 5", ""],
-    ["الذمم المدينة أقل من 30 يوم (ريال)", ""],
-    ["الذمم المدينة من 30 إلى 90 يوم (ريال)", ""],
-    ["الذمم المدينة أكثر من 90 يوم (ريال)", ""]
+    ["عدد العملاء الجدد المضافين هذه الفترة", ""],
+    ["مبلغ مبيعات العملاء الجدد (ريال)", ""],
+    ["عدد العقود المجدّدة هذه الفترة", ""],
+    ["مبلغ العقود المجدّدة (ريال)", ""]
   ];
   const wsSales = XLSX.utils.aoa_to_sheet(salesRows);
-  wsSales["!cols"] = [{ wch: 40 }, { wch: 25 }];
+  wsSales["!cols"] = [{ wch: 45 }, { wch: 25 }];
   XLSX.utils.book_append_sheet(wb, wsSales, "المبيعات والعملاء");
 
-  const purchRows = [
-    ["إجمالي المشتريات (ريال)", ""],
-    ["أعلى الموردين — اسم المورد", "المبلغ (ريال)"],
-    ["مورد 1", ""], ["مورد 2", ""], ["مورد 3", ""], ["مورد 4", ""], ["مورد 5", ""],
-    ["تعاقدات مع أطراف ذات علاقة (إن وجدت — اذكرها، أو اكتب: لا يوجد)", ""]
+  const suppRows = [
+    ["عدد الموردين الجدد (دخلوا هذه الفترة)", ""],
+    ["عدد الموردين الذين توقف التعامل معهم (خرجوا هذه الفترة)", ""],
+    ["إجمالي عدد الموردين الحاليين", ""]
   ];
-  const wsPurch = XLSX.utils.aoa_to_sheet(purchRows);
-  wsPurch["!cols"] = [{ wch: 45 }, { wch: 25 }];
-  XLSX.utils.book_append_sheet(wb, wsPurch, "المشتريات والموردون");
+  const wsSupp = XLSX.utils.aoa_to_sheet(suppRows);
+  wsSupp["!cols"] = [{ wch: 50 }, { wch: 25 }];
+  XLSX.utils.book_append_sheet(wb, wsSupp, "الموردون");
 
   const hrRows = [
-    ["عدد الموظفين", ""],
-    ["نسبة السعودة (%)", ""],
-    ["معدل الدوران الوظيفي (%)", ""],
-    ["إجمالي التعويضات والأجور (ريال)", ""]
+    ["هل يوجد قضايا قائمة؟ (اكتب: نعم أو لا)", ""],
+    ["إجمالي المبالغ المترتبة على القضايا (ريال) — إن وجدت", ""],
+    ["إجمالي المرتبات (ريال)", ""],
+    ["إجمالي التأمينات (ريال)", ""]
   ];
   const wsHR = XLSX.utils.aoa_to_sheet(hrRows);
-  wsHR["!cols"] = [{ wch: 35 }, { wch: 25 }];
+  wsHR["!cols"] = [{ wch: 50 }, { wch: 25 }];
   XLSX.utils.book_append_sheet(wb, wsHR, "الموارد البشرية");
 
   XLSX.writeFile(wb, "قالب-المؤشرات-المالية-والتشغيلية.xlsx");
@@ -6506,26 +6507,25 @@ async function handleIndicatorsUpload(input){
     const wb = XLSX.read(buf, { type: "array" });
 
     const fin = XLSX.utils.sheet_to_json(wb.Sheets["المالية"], { header: 1 });
+    const rev = XLSX.utils.sheet_to_json(wb.Sheets["الإيرادات"], { header: 1 });
     const sales = XLSX.utils.sheet_to_json(wb.Sheets["المبيعات والعملاء"], { header: 1 });
-    const purch = XLSX.utils.sheet_to_json(wb.Sheets["المشتريات والموردون"], { header: 1 });
+    const supp = XLSX.utils.sheet_to_json(wb.Sheets["الموردون"], { header: 1 });
     const hr = XLSX.utils.sheet_to_json(wb.Sheets["الموارد البشرية"], { header: 1 });
-    if(!fin || !sales || !purch || !hr){ alert("الملف لا يطابق شكل القالب المتوقع — الرجاء استخدام القالب المُحمَّل من المنصة بدون تغيير أسماء الأوراق."); return; }
-
-    const topCustomers = [2,3,4,5,6].map(i => ({ name: sales[i]?.[0]||"", amount: numOrNull(sales[i]?.[1]) })).filter(c => c.name);
-    const topSuppliers = [2,3,4,5,6].map(i => ({ name: purch[i]?.[0]||"", amount: numOrNull(purch[i]?.[1]) })).filter(c => c.name);
+    if(!fin || !rev || !sales || !supp || !hr){ alert("الملف لا يطابق شكل القالب المتوقع — الرجاء استخدام القالب المُحمَّل من المنصة بدون تغيير أسماء الأوراق."); return; }
 
     const fileUrl = await uploadBlobToStorage(file, "indicators", file.name);
 
     const payload = {
       company_id: currentCompanyId,
       period_label: fin[0]?.[1] || "",
-      revenue: numOrNull(fin[1]?.[1]), net_profit: numOrNull(fin[2]?.[1]), operating_cash_flow: numOrNull(fin[3]?.[1]),
-      total_assets: numOrNull(fin[4]?.[1]), total_liabilities: numOrNull(fin[5]?.[1]), total_equity: numOrNull(fin[6]?.[1]),
-      approved_budget: numOrNull(fin[7]?.[1]), actual_expenses: numOrNull(fin[8]?.[1]), variance_explanation: fin[9]?.[1] || "",
-      total_sales: numOrNull(sales[0]?.[1]), top_customers: topCustomers,
-      receivables_under_30: numOrNull(sales[7]?.[1]), receivables_30_90: numOrNull(sales[8]?.[1]), receivables_over_90: numOrNull(sales[9]?.[1]),
-      total_procurement: numOrNull(purch[0]?.[1]), top_suppliers: topSuppliers, related_party_contracts: purch[7]?.[1] || "",
-      employee_count: numOrNull(hr[0]?.[1]), saudization_pct: numOrNull(hr[1]?.[1]), turnover_rate: numOrNull(hr[2]?.[1]), total_compensation: numOrNull(hr[3]?.[1]),
+      cash_flow_operating: numOrNull(fin[1]?.[1]), cash_flow_investing: numOrNull(fin[2]?.[1]), cash_flow_financing: numOrNull(fin[3]?.[1]),
+      total_assets: numOrNull(fin[4]?.[1]), total_equity: numOrNull(fin[5]?.[1]),
+      revenue: numOrNull(rev[0]?.[1]), cost_of_revenue: numOrNull(rev[1]?.[1]),
+      new_customers_count: numOrNull(sales[0]?.[1]), new_customers_amount: numOrNull(sales[1]?.[1]),
+      renewed_contracts_count: numOrNull(sales[2]?.[1]), renewed_contracts_amount: numOrNull(sales[3]?.[1]),
+      new_suppliers_count: numOrNull(supp[0]?.[1]), dropped_suppliers_count: numOrNull(supp[1]?.[1]), total_suppliers_count: numOrNull(supp[2]?.[1]),
+      has_legal_cases: hr[0]?.[1] || "", legal_cases_amount: numOrNull(hr[1]?.[1]),
+      total_salaries: numOrNull(hr[2]?.[1]), total_insurance: numOrNull(hr[3]?.[1]),
       uploaded_by: currentUserProfile ? (currentUserProfile.full_name||currentUserProfile.email) : "", source_file_url: fileUrl
     };
 
@@ -6567,9 +6567,13 @@ async function loadIndicatorsReport(){
     return;
   }
   const cur = data[0], prev = data[1] || {};
-
-  const custRows = (cur.top_customers||[]).map(c => `<tr><td>${c.name}</td><td>${fmtNum(c.amount)} ريال</td><td>${cur.total_sales?((c.amount/cur.total_sales)*100).toFixed(1)+"%":"—"}</td></tr>`).join("");
-  const suppRows = (cur.top_suppliers||[]).map(c => `<tr><td>${c.name}</td><td>${fmtNum(c.amount)} ريال</td><td>${cur.total_procurement?((c.amount/cur.total_procurement)*100).toFixed(1)+"%":"—"}</td></tr>`).join("");
+  const grossProfit = (cur.revenue!=null && cur.cost_of_revenue!=null) ? cur.revenue - cur.cost_of_revenue : null;
+  const prevGrossProfit = (prev.revenue!=null && prev.cost_of_revenue!=null) ? prev.revenue - prev.cost_of_revenue : null;
+  const netCashFlow = [cur.cash_flow_operating, cur.cash_flow_investing, cur.cash_flow_financing].every(v=>v!=null)
+    ? cur.cash_flow_operating + cur.cash_flow_investing + cur.cash_flow_financing : null;
+  const prevNetCashFlow = [prev.cash_flow_operating, prev.cash_flow_investing, prev.cash_flow_financing].every(v=>v!=null)
+    ? prev.cash_flow_operating + prev.cash_flow_investing + prev.cash_flow_financing : null;
+  const netSupplierChange = (cur.new_suppliers_count!=null && cur.dropped_suppliers_count!=null) ? cur.new_suppliers_count - cur.dropped_suppliers_count : null;
 
   box.innerHTML = `
     <div style="background:linear-gradient(135deg,var(--primary),var(--primary2));border-radius:12px;padding:14px 18px;margin-bottom:16px;color:#fff;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
@@ -6578,47 +6582,54 @@ async function loadIndicatorsReport(){
     </div>
 
     <div class="two-col" style="margin-bottom:16px">
-      <div class="card"><div class="card-head"><span class="card-title">💰 المالية</span></div>
+      <div class="card"><div class="card-head"><span class="card-title">💰 التدفقات النقدية والأصول وحقوق الملكية</span></div>
         <div class="card-body">
-          ${indicatorRow("الإيرادات", cur.revenue, prev.revenue, true)}
-          ${indicatorRow("صافي الربح / الخسارة", cur.net_profit, prev.net_profit, true)}
-          ${indicatorRow("التدفق النقدي التشغيلي", cur.operating_cash_flow, prev.operating_cash_flow, true)}
+          ${indicatorRow("التدفق النقدي التشغيلي", cur.cash_flow_operating, prev.cash_flow_operating, true)}
+          ${indicatorRow("التدفق النقدي الاستثماري", cur.cash_flow_investing, prev.cash_flow_investing, true)}
+          ${indicatorRow("التدفق النقدي التمويلي", cur.cash_flow_financing, prev.cash_flow_financing, true)}
+          ${indicatorRow("صافي التدفق النقدي", netCashFlow, prevNetCashFlow, true)}
           ${indicatorRow("إجمالي الأصول", cur.total_assets, prev.total_assets, true)}
-          ${indicatorRow("إجمالي الخصوم", cur.total_liabilities, prev.total_liabilities, true)}
-          ${indicatorRow("حقوق الملكية", cur.total_equity, prev.total_equity, true)}
-          ${indicatorRow("الميزانية المعتمدة", cur.approved_budget, prev.approved_budget, true)}
-          ${indicatorRow("المصروفات الفعلية", cur.actual_expenses, prev.actual_expenses, true)}
-          ${cur.variance_explanation ? `<div style="font-size:11.5px;color:var(--gray3);background:var(--offwhite);border-radius:8px;padding:8px;margin-top:8px"><b>تفسير الانحراف:</b> ${cur.variance_explanation}</div>` : ""}
+          ${indicatorRow("إجمالي حقوق الملكية", cur.total_equity, prev.total_equity, true)}
         </div>
       </div>
-      <div class="card"><div class="card-head"><span class="card-title">👥 الموارد البشرية</span></div>
+      <div class="card"><div class="card-head"><span class="card-title">📈 الإيرادات</span></div>
         <div class="card-body">
-          ${indicatorRow("عدد الموظفين", cur.employee_count, prev.employee_count, false)}
-          ${indicatorRow("نسبة السعودة", cur.saudization_pct, prev.saudization_pct, false)}
-          ${indicatorRow("معدل الدوران الوظيفي", cur.turnover_rate, prev.turnover_rate, false)}
-          ${indicatorRow("إجمالي التعويضات والأجور", cur.total_compensation, prev.total_compensation, true)}
+          ${indicatorRow("الإيرادات", cur.revenue, prev.revenue, true)}
+          ${indicatorRow("تكلفة الإيرادات", cur.cost_of_revenue, prev.cost_of_revenue, true)}
+          ${indicatorRow("مجمل الربح (محسوب تلقائيًا)", grossProfit, prevGrossProfit, true)}
         </div>
       </div>
     </div>
 
-    <div class="two-col">
+    <div class="two-col" style="margin-bottom:16px">
       <div class="card"><div class="card-head"><span class="card-title">🧾 المبيعات والعملاء</span></div>
         <div class="card-body">
-          ${indicatorRow("إجمالي المبيعات", cur.total_sales, prev.total_sales, true)}
-          ${indicatorRow("ذمم أقل من 30 يوم", cur.receivables_under_30, prev.receivables_under_30, true)}
-          ${indicatorRow("ذمم من 30 إلى 90 يوم", cur.receivables_30_90, prev.receivables_30_90, true)}
-          ${indicatorRow("ذمم أكثر من 90 يوم", cur.receivables_over_90, prev.receivables_over_90, true)}
-          ${custRows ? `<div style="font-size:11px;font-weight:700;color:var(--gray3);margin-top:10px">أعلى العملاء (نسبة من الإيرادات)</div>
-            <table class="tbl" style="margin-top:6px"><thead><tr><th>العميل</th><th>المبلغ</th><th>النسبة</th></tr></thead><tbody>${custRows}</tbody></table>` : ""}
+          ${indicatorRow("عدد العملاء الجدد", cur.new_customers_count, prev.new_customers_count, false)}
+          ${indicatorRow("مبلغ مبيعات العملاء الجدد", cur.new_customers_amount, prev.new_customers_amount, true)}
+          ${indicatorRow("عدد العقود المجدّدة", cur.renewed_contracts_count, prev.renewed_contracts_count, false)}
+          ${indicatorRow("مبلغ العقود المجدّدة", cur.renewed_contracts_amount, prev.renewed_contracts_amount, true)}
         </div>
       </div>
-      <div class="card"><div class="card-head"><span class="card-title">📦 المشتريات والموردون</span></div>
+      <div class="card"><div class="card-head"><span class="card-title">📦 الموردون ومعدل دورانهم</span></div>
         <div class="card-body">
-          ${indicatorRow("إجمالي المشتريات", cur.total_procurement, prev.total_procurement, true)}
-          ${cur.related_party_contracts ? `<div style="font-size:11.5px;color:var(--gray3);background:var(--offwhite);border-radius:8px;padding:8px;margin:8px 0"><b>أطراف ذات علاقة:</b> ${cur.related_party_contracts}</div>` : ""}
-          ${suppRows ? `<div style="font-size:11px;font-weight:700;color:var(--gray3);margin-top:6px">أعلى الموردين (نسبة من المشتريات)</div>
-            <table class="tbl" style="margin-top:6px"><thead><tr><th>المورد</th><th>المبلغ</th><th>النسبة</th></tr></thead><tbody>${suppRows}</tbody></table>` : ""}
+          ${indicatorRow("عدد الموردين الجدد", cur.new_suppliers_count, prev.new_suppliers_count, false)}
+          ${indicatorRow("عدد الموردين المتوقفين", cur.dropped_suppliers_count, prev.dropped_suppliers_count, false)}
+          ${indicatorRow("صافي التغيّر بعدد الموردين", netSupplierChange, null, false)}
+          ${indicatorRow("إجمالي عدد الموردين الحاليين", cur.total_suppliers_count, prev.total_suppliers_count, false)}
         </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-title">👥 الموارد البشرية</span></div>
+      <div class="card-body">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--gray1)">
+          <span style="font-size:12px;color:var(--gray3)">هل يوجد قضايا قائمة؟</span>
+          <span style="font-size:13px;font-weight:700;color:${cur.has_legal_cases==='نعم'?'var(--red)':'var(--green)'}">${cur.has_legal_cases||"—"}</span>
+        </div>
+        ${cur.has_legal_cases==='نعم' ? indicatorRow("إجمالي المبالغ المترتبة على القضايا", cur.legal_cases_amount, prev.legal_cases_amount, true) : ""}
+        ${indicatorRow("إجمالي المرتبات", cur.total_salaries, prev.total_salaries, true)}
+        ${indicatorRow("إجمالي التأمينات", cur.total_insurance, prev.total_insurance, true)}
       </div>
     </div>`;
 }
