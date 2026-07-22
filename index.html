@@ -1053,6 +1053,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
     <span>📊 المؤشرات المالية والتشغيلية</span>
     <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" id="indicatorsPdfBtn" style="font-size:11px;padding:6px 14px;display:none" onclick="exportIndicatorsPDF()">🖨️ تحميل تقرير PDF</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="downloadIndicatorsTemplate()">📥 تحميل قالب Excel فارغ</button>
       <label class="btn btn-gold" style="font-size:11px;padding:6px 14px;cursor:pointer">📤 رفع الملف المعبّى<input type="file" accept=".xlsx" style="display:none" onchange="handleIndicatorsUpload(this)"></label>
     </div>
@@ -2663,6 +2664,7 @@ function isMutatingOnchange(val){
     || /^uploadDocumentTemplate\(/.test(val)
     || /^handlePdfFileSelect\(/.test(val)
     || /^handleIndicatorsUpload\(/.test(val)
+    || /^exportIndicatorsPDF\(/.test(val)
     || /^openCharterModal\(/.test(val)
     || /^saveCharter\(/.test(val)
     || /^sendMeetingReminderEmails\(/.test(val)
@@ -6595,7 +6597,18 @@ async function handleIndicatorsUpload(input){
       uploaded_by: currentUserProfile ? (currentUserProfile.full_name||currentUserProfile.email) : "", source_file_url: fileUrl
     };
 
-    const { error } = await sb.from("financial_indicators_reports").insert([payload]);
+    let error;
+    if(payload.period_label){
+      const { data: existing } = await sb.from("financial_indicators_reports").select("id").eq("company_id", currentCompanyId).eq("period_label", payload.period_label).limit(1);
+      if(existing && existing.length){
+        if(!confirm(`يوجد تقرير محفوظ مسبقًا لنفس الفترة "${payload.period_label}" — هل تريد استبداله بالبيانات الجديدة؟`)){ return; }
+        ({ error } = await sb.from("financial_indicators_reports").update(payload).eq("id", existing[0].id));
+      } else {
+        ({ error } = await sb.from("financial_indicators_reports").insert([payload]));
+      }
+    } else {
+      ({ error } = await sb.from("financial_indicators_reports").insert([payload]));
+    }
     if(error){ alert("تعذّر حفظ البيانات: " + error.message); return; }
     logActivity("إنشاء", "تقرير مجلس شامل", payload.period_label || "فترة جديدة", "استيراد من Excel");
     alert("تم رفع البيانات وحفظها بنجاح ✅");
@@ -6635,7 +6648,39 @@ function miniTable(rows, col1, col2, totalForPct){
   return `<table class="tbl" style="margin-top:6px"><thead><tr><th>${col1}</th><th>${col2}</th><th>النسبة</th></tr></thead><tbody>${body}</tbody></table>`;
 }
 
+function exportIndicatorsPDF(){
+  const reportBox = document.getElementById("indicatorsReport");
+  if(!reportBox || !reportBox.innerHTML.trim() || reportBox.querySelector(".sec-title")===null && !reportBox.querySelector(".card")){ alert("لا توجد بيانات مرفوعة بعد لتصديرها."); return; }
+  const w = window.open("", "_blank");
+  if(!w){ alert("المتصفح منع فتح نافذة التصدير — الرجاء السماح بالنوافذ المنبثقة ثم المحاولة مرة أخرى."); return; }
+  const companyName = document.getElementById("reportCompanyName1")?.textContent || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "الشركة";
+  const dateNow = new Date().toLocaleDateString("ar-SA");
+  w.document.open();
+  w.document.write(`
+    <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>تقرير المؤشرات المالية والتشغيلية — ${companyName}</title>
+    <style>
+      body{font-family:'Tajawal',Arial,sans-serif;padding:30px;color:#0D2447}
+      h1{color:#1A3A6B;font-size:20px;border-bottom:3px solid #D4AF37;padding-bottom:10px}
+      .sec-title{font-size:14px;font-weight:800;color:#1A3A6B;margin:18px 0 8px}
+      table{width:100%;border-collapse:collapse;margin-top:8px}
+      th,td{border:1px solid #ccc;padding:6px;text-align:right;font-size:11px}
+      th{background:#1A3A6B;color:#fff}
+      .card{border:1px solid #eee;border-radius:8px;padding:10px;margin-bottom:12px}
+      .two-col{display:flex;gap:16px} .two-col>*{flex:1}
+      a{display:none}
+    </style></head><body>
+    <h1>📊 تقرير المؤشرات المالية والتشغيلية — ${companyName}</h1>
+    <p>تاريخ التصدير: ${dateNow}</p>
+    ${reportBox.innerHTML}
+    <script>window.onload=function(){setTimeout(function(){window.print()},400)}<\/script>
+    </body></html>
+  `);
+  w.document.close();
+}
+
 async function loadIndicatorsReport(){
+  const pdfBtn = document.getElementById("indicatorsPdfBtn");
+  if(pdfBtn) pdfBtn.style.display = FULL_ACCESS_ROLES.includes(getCurrentRole()) ? "inline-block" : "none";
   const box = document.getElementById("indicatorsReport");
   if(!box) return;
   const { data, error } = await sb.from("financial_indicators_reports").select("*").eq("company_id", currentCompanyId).order("created_at",{ascending:false}).limit(2);
