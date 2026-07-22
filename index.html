@@ -6441,35 +6441,63 @@ function exportArchiveList(){
 function downloadIndicatorsTemplate(){
   const wb = XLSX.utils.book_new();
 
-  const finRows = [
+  const execRows = [
     ["الفترة (مثال: الربع الأول 2026)", ""],
-    ["إجمالي الإيرادات (ريال)", ""],
-    ["إجمالي المصروفات (ريال)", ""],
-    ["الميزانية المعتمدة للإيرادات (ريال)", ""],
-    ["الميزانية المعتمدة للمصروفات (ريال)", ""],
+    ["مستوى السيولة (مثال: مريحة / متوسطة / ضعيفة)", ""],
+    ["أهم التغيرات الجوهرية خلال الفترة", ""],
+    ["أبرز النقاط (يمكن كتابة عدة نقاط بنفس الخانة)", ""]
+  ];
+  const wsExec = XLSX.utils.aoa_to_sheet(execRows);
+  wsExec["!cols"] = [{ wch: 50 }, { wch: 35 }];
+  XLSX.utils.book_append_sheet(wb, wsExec, "الملخص التنفيذي");
+
+  const finRows = [
+    ["الإيرادات (ريال)", ""],
     ["تكلفة المبيعات (ريال)", ""],
-    ["المصروفات التشغيلية (ريال)", ""],
-    ["ملاحظات الملخص التنفيذي (أسباب ارتفاع المصروفات أو تحسن الإيرادات)", ""],
-    ["تحليل الانحرافات (أسباب الفروقات عن الميزانية والتوصيات)", ""]
+    ["المصروفات الثابتة (ريال)", ""],
+    ["المصروفات المتغيّرة (ريال)", ""],
+    ["الميزانية المعتمدة — إيرادات (ريال)", ""],
+    ["الميزانية المعتمدة — مصروفات (ريال)", ""],
+    ["حجم الاستثمار / رأس المال المستثمر (ريال)", ""],
+    ["تحليل الانحرافات (أسباب الزيادة أو الانخفاض، والعوامل المؤثرة)", ""]
   ];
   const wsFin = XLSX.utils.aoa_to_sheet(finRows);
   wsFin["!cols"] = [{ wch: 55 }, { wch: 30 }];
   XLSX.utils.book_append_sheet(wb, wsFin, "الأداء المالي");
 
   const cashRows = [
-    ["الرصيد البنكي الحالي (ريال)", ""],
-    ["النقد المتاح (ريال)", ""],
-    ["إجمالي التدفقات النقدية الداخلة (ريال)", ""],
-    ["إجمالي التدفقات النقدية الخارجة (ريال)", ""],
+    ["الرصيد النقدي الحالي (ريال)", ""],
+    ["السيولة المتاحة (ريال)", ""],
+    ["التدفق النقدي التشغيلي (ريال)", ""],
+    ["التدفق النقدي الاستثماري (ريال)", ""],
+    ["التدفق النقدي التمويلي (ريال)", ""],
     ["توقع التدفق النقدي — الشهر القادم (ريال)", ""],
     ["توقع التدفق النقدي — الشهر الثاني (ريال)", ""],
     ["توقع التدفق النقدي — الشهر الثالث (ريال)", ""],
-    ["المخاطر المتعلقة بنقص السيولة (إن وجدت)", ""],
-    ["التوصيات (تسريع التحصيل، تأجيل مصروفات...)", ""]
+    ["مخاطر السيولة (تأخر تحصيل، التزامات قصيرة الأجل...)", ""],
+    ["الإجراءات التصحيحية (تحسين تحصيل، إعادة جدولة...)", ""]
   ];
   const wsCash = XLSX.utils.aoa_to_sheet(cashRows);
-  wsCash["!cols"] = [{ wch: 50 }, { wch: 30 }];
-  XLSX.utils.book_append_sheet(wb, wsCash, "التدفقات النقدية");
+  wsCash["!cols"] = [{ wch: 55 }, { wch: 30 }];
+  XLSX.utils.book_append_sheet(wb, wsCash, "السيولة والتدفقات النقدية");
+
+  const revRows = [
+    ["الإيرادات حسب المنتج/الخدمة — الاسم", "المبلغ (ريال)"],
+    ["منتج/خدمة 1", ""], ["منتج/خدمة 2", ""], ["منتج/خدمة 3", ""], ["منتج/خدمة 4", ""], ["منتج/خدمة 5", ""],
+    ["الإيرادات حسب الفرع/المنطقة/القناة — الاسم", "المبلغ (ريال)"],
+    ["فرع/قناة 1", ""], ["فرع/قناة 2", ""], ["فرع/قناة 3", ""], ["فرع/قناة 4", ""], ["فرع/قناة 5", ""],
+    ["الإيرادات حسب العملاء — اسم العميل", "المبلغ (ريال)"],
+    ["عميل 1", ""], ["عميل 2", ""], ["عميل 3", ""], ["عميل 4", ""], ["عميل 5", ""],
+    ["توقع متفائل للإيرادات القادمة (ريال)", ""],
+    ["توقع واقعي للإيرادات القادمة (ريال)", ""],
+    ["توقع متحفظ للإيرادات القادمة (ريال)", ""],
+    ["أفضل قطاع/نشاط أداءً", ""],
+    ["أسوأ قطاع/نشاط أداءً", ""],
+    ["فرص النمو والتوسع", ""]
+  ];
+  const wsRev = XLSX.utils.aoa_to_sheet(revRows);
+  wsRev["!cols"] = [{ wch: 42 }, { wch: 25 }];
+  XLSX.utils.book_append_sheet(wb, wsRev, "الإيرادات والنمو");
 
   const hrRows = [
     ["عدد الموظفين الحالي", ""],
@@ -6496,36 +6524,12 @@ function downloadIndicatorsTemplate(){
     ["عدد أوامر الشراء المغلقة", ""],
     ["تقييم الموردين (الجودة، الالتزام، الأسعار)", ""],
     ["التوفير الناتج عن التفاوض (ريال)", ""],
-    ["المشاكل والتحديات (تأخير الموردين، ارتفاع الأسعار...)", ""],
-    ["التوصيات (تغيير موردين، إعادة تفاوض...)", ""]
+    ["المخاطر والتحديات (تأخر التوريد، الاعتماد على مورد واحد...)", ""],
+    ["الإجراءات (تحسين العقود، تنويع الموردين...)", ""]
   ];
   const wsPurch = XLSX.utils.aoa_to_sheet(purchRows);
   wsPurch["!cols"] = [{ wch: 55 }, { wch: 25 }];
-  XLSX.utils.book_append_sheet(wb, wsPurch, "المشتريات");
-
-  const revRows = [
-    ["الإيرادات حسب النشاط/المنتج — الاسم", "المبلغ (ريال)"],
-    ["نشاط 1", ""], ["نشاط 2", ""], ["نشاط 3", ""], ["نشاط 4", ""], ["نشاط 5", ""],
-    ["الإيرادات حسب العملاء — اسم العميل", "المبلغ (ريال)"],
-    ["عميل 1", ""], ["عميل 2", ""], ["عميل 3", ""], ["عميل 4", ""], ["عميل 5", ""],
-    ["أفضل قطاع/نشاط أداءً", ""],
-    ["أسوأ قطاع/نشاط أداءً", ""],
-    ["توقعات الإيرادات المستقبلية", ""],
-    ["فرص النمو والتوسع", ""]
-  ];
-  const wsRev = XLSX.utils.aoa_to_sheet(revRows);
-  wsRev["!cols"] = [{ wch: 40 }, { wch: 25 }];
-  XLSX.utils.book_append_sheet(wb, wsRev, "الإيرادات");
-
-  const boardRows = [
-    ["أهم النقاط (أبرز النتائج مثل نمو الإيرادات أو ارتفاع التكاليف)", ""],
-    ["المخاطر الرئيسية التي تواجه الشركة", ""],
-    ["القرارات التي تحتاج موافقة مجلس الإدارة", ""],
-    ["التوصيات الاستراتيجية لتحسين الأداء", ""]
-  ];
-  const wsBoard = XLSX.utils.aoa_to_sheet(boardRows);
-  wsBoard["!cols"] = [{ wch: 55 }, { wch: 35 }];
-  XLSX.utils.book_append_sheet(wb, wsBoard, "ملخص مجلس الإدارة");
+  XLSX.utils.book_append_sheet(wb, wsPurch, "المشتريات وسلسلة الإمداد");
 
   XLSX.writeFile(wb, "قالب-تقرير-مجلس-الإدارة-الشامل.xlsx");
 }
@@ -6543,33 +6547,40 @@ async function handleIndicatorsUpload(input){
     const buf = await file.arrayBuffer();
     const wb = XLSX.read(buf, { type: "array" });
 
+    const exec = XLSX.utils.sheet_to_json(wb.Sheets["الملخص التنفيذي"], { header: 1 });
     const fin = XLSX.utils.sheet_to_json(wb.Sheets["الأداء المالي"], { header: 1 });
-    const cash = XLSX.utils.sheet_to_json(wb.Sheets["التدفقات النقدية"], { header: 1 });
+    const cash = XLSX.utils.sheet_to_json(wb.Sheets["السيولة والتدفقات النقدية"], { header: 1 });
+    const rev = XLSX.utils.sheet_to_json(wb.Sheets["الإيرادات والنمو"], { header: 1 });
     const hr = XLSX.utils.sheet_to_json(wb.Sheets["الموارد البشرية"], { header: 1 });
-    const purch = XLSX.utils.sheet_to_json(wb.Sheets["المشتريات"], { header: 1 });
-    const rev = XLSX.utils.sheet_to_json(wb.Sheets["الإيرادات"], { header: 1 });
-    const board = XLSX.utils.sheet_to_json(wb.Sheets["ملخص مجلس الإدارة"], { header: 1 });
-    if(!fin || !cash || !hr || !purch || !rev || !board){ alert("الملف لا يطابق شكل القالب المتوقع — الرجاء استخدام القالب المُحمَّل من المنصة بدون تغيير أسماء الأوراق."); return; }
+    const purch = XLSX.utils.sheet_to_json(wb.Sheets["المشتريات وسلسلة الإمداد"], { header: 1 });
+    if(!exec || !fin || !cash || !rev || !hr || !purch){ alert("الملف لا يطابق شكل القالب المتوقع — الرجاء استخدام القالب المُحمَّل من المنصة بدون تغيير أسماء الأوراق."); return; }
 
+    const revByProduct = [1,2,3,4,5].map(i => ({ name: rev[i]?.[0]||"", amount: numOrNull(rev[i]?.[1]) })).filter(s => s.name && s.amount != null);
+    const revByBranch = [7,8,9,10,11].map(i => ({ name: rev[i]?.[0]||"", amount: numOrNull(rev[i]?.[1]) })).filter(s => s.name && s.amount != null);
+    const revByCustomer = [13,14,15,16,17].map(i => ({ name: rev[i]?.[0]||"", amount: numOrNull(rev[i]?.[1]) })).filter(s => s.name && s.amount != null);
     const deptBreakdown = [5,6,7,8,9].map(i => ({ name: hr[i]?.[0]||"", count: numOrNull(hr[i]?.[1]) })).filter(d => d.count != null);
     const supplierAnalysis = [2,3,4,5,6].map(i => ({ name: purch[i]?.[0]||"", amount: numOrNull(purch[i]?.[1]) })).filter(s => s.name && s.amount != null);
-    const revByActivity = [1,2,3,4,5].map(i => ({ name: rev[i]?.[0]||"", amount: numOrNull(rev[i]?.[1]) })).filter(s => s.name && s.amount != null);
-    const revByCustomer = [7,8,9,10,11].map(i => ({ name: rev[i]?.[0]||"", amount: numOrNull(rev[i]?.[1]) })).filter(s => s.name && s.amount != null);
 
     const fileUrl = await uploadBlobToStorage(file, "indicators", file.name);
 
     const payload = {
       company_id: currentCompanyId,
-      period_label: fin[0]?.[1] || "",
-      revenue: numOrNull(fin[1]?.[1]), total_expenses: numOrNull(fin[2]?.[1]),
-      budgeted_revenue: numOrNull(fin[3]?.[1]), budgeted_expenses: numOrNull(fin[4]?.[1]),
-      cost_of_revenue: numOrNull(fin[5]?.[1]), operating_expenses: numOrNull(fin[6]?.[1]),
-      executive_summary_notes: fin[7]?.[1] || "", variance_analysis_notes: fin[8]?.[1] || "",
+      period_label: exec[0]?.[1] || "",
+      liquidity_level: exec[1]?.[1] || "", key_material_changes: exec[2]?.[1] || "", executive_highlights: exec[3]?.[1] || "",
+
+      revenue: numOrNull(fin[0]?.[1]), cost_of_revenue: numOrNull(fin[1]?.[1]),
+      fixed_costs: numOrNull(fin[2]?.[1]), variable_costs: numOrNull(fin[3]?.[1]),
+      budgeted_revenue: numOrNull(fin[4]?.[1]), budgeted_expenses: numOrNull(fin[5]?.[1]),
+      investment_amount: numOrNull(fin[6]?.[1]), variance_analysis_notes: fin[7]?.[1] || "",
 
       bank_balance: numOrNull(cash[0]?.[1]), available_cash: numOrNull(cash[1]?.[1]),
-      cash_in_total: numOrNull(cash[2]?.[1]), cash_out_total: numOrNull(cash[3]?.[1]),
-      cash_forecast_month1: numOrNull(cash[4]?.[1]), cash_forecast_month2: numOrNull(cash[5]?.[1]), cash_forecast_month3: numOrNull(cash[6]?.[1]),
-      cash_flow_risks: cash[7]?.[1] || "", cash_flow_recommendations: cash[8]?.[1] || "",
+      cash_flow_operating: numOrNull(cash[2]?.[1]), cash_flow_investing: numOrNull(cash[3]?.[1]), cash_flow_financing: numOrNull(cash[4]?.[1]),
+      cash_forecast_month1: numOrNull(cash[5]?.[1]), cash_forecast_month2: numOrNull(cash[6]?.[1]), cash_forecast_month3: numOrNull(cash[7]?.[1]),
+      cash_flow_risks: cash[8]?.[1] || "", cash_flow_recommendations: cash[9]?.[1] || "",
+
+      revenue_by_activity: revByProduct, revenue_by_branch: revByBranch, revenue_by_customer: revByCustomer,
+      revenue_forecast_optimistic: numOrNull(rev[18]?.[1]), revenue_forecast_realistic: numOrNull(rev[19]?.[1]), revenue_forecast_conservative: numOrNull(rev[20]?.[1]),
+      best_performing_segment: rev[21]?.[1] || "", worst_performing_segment: rev[22]?.[1] || "", growth_opportunities_notes: rev[23]?.[1] || "",
 
       current_employee_count: numOrNull(hr[0]?.[1]), new_hires_count: numOrNull(hr[1]?.[1]), resignations_count: numOrNull(hr[2]?.[1]),
       resignation_reasons: hr[3]?.[1] || "", department_breakdown: deptBreakdown,
@@ -6580,13 +6591,6 @@ async function handleIndicatorsUpload(input){
       purchase_orders_open: numOrNull(purch[7]?.[1]), purchase_orders_closed: numOrNull(purch[8]?.[1]),
       supplier_evaluation_notes: purch[9]?.[1] || "", procurement_savings: numOrNull(purch[10]?.[1]),
       procurement_challenges: purch[11]?.[1] || "", procurement_recommendations: purch[12]?.[1] || "",
-
-      revenue_by_activity: revByActivity, revenue_by_customer: revByCustomer,
-      best_performing_segment: rev[12]?.[1] || "", worst_performing_segment: rev[13]?.[1] || "",
-      revenue_forecast_notes: rev[14]?.[1] || "", growth_opportunities_notes: rev[15]?.[1] || "",
-
-      board_key_highlights: board[0]?.[1] || "", board_key_risks: board[1]?.[1] || "",
-      board_decisions_needed: board[2]?.[1] || "", board_strategic_recommendations: board[3]?.[1] || "",
 
       uploaded_by: currentUserProfile ? (currentUserProfile.full_name||currentUserProfile.email) : "", source_file_url: fileUrl
     };
@@ -6638,17 +6642,28 @@ async function loadIndicatorsReport(){
   }
   const cur = data[0], prev = data[1] || {};
 
-  const netProfit = (cur.revenue!=null && cur.total_expenses!=null) ? cur.revenue - cur.total_expenses : null;
-  const prevNetProfit = (prev.revenue!=null && prev.total_expenses!=null) ? prev.revenue - prev.total_expenses : null;
+  const totalExpenses = (cur.fixed_costs!=null && cur.variable_costs!=null) ? cur.fixed_costs + cur.variable_costs : null;
+  const prevTotalExpenses = (prev.fixed_costs!=null && prev.variable_costs!=null) ? prev.fixed_costs + prev.variable_costs : null;
   const grossProfit = (cur.revenue!=null && cur.cost_of_revenue!=null) ? cur.revenue - cur.cost_of_revenue : null;
-  const profitMargin = (netProfit!=null && cur.revenue) ? (netProfit/cur.revenue*100).toFixed(1) : null;
-  const expenseRatio = (cur.total_expenses!=null && cur.revenue) ? (cur.total_expenses/cur.revenue*100).toFixed(1) : null;
+  const netProfit = (cur.revenue!=null && totalExpenses!=null) ? cur.revenue - totalExpenses : null;
+  const prevNetProfit = (prev.revenue!=null && prevTotalExpenses!=null) ? prev.revenue - prevTotalExpenses : null;
+  const grossMargin = (grossProfit!=null && cur.revenue) ? (grossProfit/cur.revenue*100).toFixed(1) : null;
+  const netMargin = (netProfit!=null && cur.revenue) ? (netProfit/cur.revenue*100).toFixed(1) : null;
+  const expenseRatio = (totalExpenses!=null && cur.revenue) ? (totalExpenses/cur.revenue*100).toFixed(1) : null;
   const revenueGrowth = (cur.revenue!=null && prev.revenue) ? (((cur.revenue-prev.revenue)/Math.abs(prev.revenue))*100).toFixed(1) : null;
   const revVsBudget = (cur.revenue!=null && cur.budgeted_revenue) ? (((cur.revenue-cur.budgeted_revenue)/Math.abs(cur.budgeted_revenue))*100).toFixed(1) : null;
-  const expVsBudget = (cur.total_expenses!=null && cur.budgeted_expenses) ? (((cur.total_expenses-cur.budgeted_expenses)/Math.abs(cur.budgeted_expenses))*100).toFixed(1) : null;
+  const expVsBudget = (totalExpenses!=null && cur.budgeted_expenses) ? (((totalExpenses-cur.budgeted_expenses)/Math.abs(cur.budgeted_expenses))*100).toFixed(1) : null;
+  const roi = (netProfit!=null && cur.investment_amount) ? (netProfit/cur.investment_amount*100).toFixed(1) : null;
+  const breakEven = (cur.fixed_costs!=null && cur.variable_costs!=null && cur.revenue) ?
+    (cur.fixed_costs / (1 - (cur.variable_costs/cur.revenue))) : null;
 
-  const netCash = (cur.cash_in_total!=null && cur.cash_out_total!=null) ? cur.cash_in_total - cur.cash_out_total : null;
-  const prevNetCash = (prev.cash_in_total!=null && prev.cash_out_total!=null) ? prev.cash_in_total - prev.cash_out_total : null;
+  const netCash = [cur.cash_flow_operating, cur.cash_flow_investing, cur.cash_flow_financing].every(v=>v!=null)
+    ? cur.cash_flow_operating + cur.cash_flow_investing + cur.cash_flow_financing : null;
+  const prevNetCash = [prev.cash_flow_operating, prev.cash_flow_investing, prev.cash_flow_financing].every(v=>v!=null)
+    ? prev.cash_flow_operating + prev.cash_flow_investing + prev.cash_flow_financing : null;
+
+  const topCustomerPct = (cur.revenue_by_customer && cur.revenue_by_customer[0] && cur.revenue) ? (cur.revenue_by_customer[0].amount/cur.revenue*100).toFixed(1) : null;
+  const topSupplierPct = (cur.supplier_analysis && cur.supplier_analysis[0] && cur.total_procurement) ? (cur.supplier_analysis[0].amount/cur.total_procurement*100).toFixed(1) : null;
 
   const turnoverRate = (cur.resignations_count!=null && cur.current_employee_count) ? (cur.resignations_count/cur.current_employee_count*100).toFixed(1) : null;
   const avgSalary = (cur.total_salaries!=null && cur.current_employee_count) ? (cur.total_salaries/cur.current_employee_count) : null;
@@ -6660,54 +6675,87 @@ async function loadIndicatorsReport(){
       ${cur.source_file_url ? `<a href="${cur.source_file_url}" target="_blank" style="color:#fff;font-size:11px;text-decoration:underline">📄 الملف المرفوع الأصلي</a>` : ""}
     </div>
 
-    <div class="sec-title" style="font-size:14px;margin-top:0">١) الأداء المالي الشهري</div>
+    <div class="sec-title" style="font-size:14px;margin-top:0">أولًا) الملخص التنفيذي</div>
+    <div class="card" style="margin-bottom:16px"><div class="card-body">
+      ${indicatorRow("إجمالي الإيرادات", cur.revenue, prev.revenue, true)}
+      ${indicatorRow("صافي الربح / الخسارة", netProfit, prevNetProfit, true)}
+      ${indicatorRow("نسبة النمو", revenueGrowth!=null?revenueGrowth+"%":null, null, false)}
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--gray1)">
+        <span style="font-size:12px;color:var(--gray3)">مستوى السيولة</span>
+        <span style="font-size:13px;font-weight:700;color:var(--dark)">${cur.liquidity_level||"—"}</span>
+      </div>
+      ${noteBox("أهم التغيرات الجوهرية", cur.key_material_changes)}
+      ${noteBox("أبرز النقاط", cur.executive_highlights)}
+    </div></div>
+
+    <div class="sec-title" style="font-size:14px">ثانيًا) الأداء المالي</div>
     <div class="two-col" style="margin-bottom:16px">
       <div class="card"><div class="card-head"><span class="card-title">قائمة الدخل</span></div>
         <div class="card-body">
-          ${indicatorRow("إجمالي الإيرادات", cur.revenue, prev.revenue, true)}
+          ${indicatorRow("الإيرادات", cur.revenue, prev.revenue, true)}
           ${indicatorRow("تكلفة المبيعات", cur.cost_of_revenue, prev.cost_of_revenue, true)}
-          ${indicatorRow("إجمالي الربح", grossProfit, null, true)}
-          ${indicatorRow("المصروفات التشغيلية", cur.operating_expenses, prev.operating_expenses, true)}
-          ${indicatorRow("إجمالي المصروفات", cur.total_expenses, prev.total_expenses, true)}
-          ${indicatorRow("صافي الربح / الخسارة", netProfit, prevNetProfit, true)}
+          ${indicatorRow("مجمل الربح", grossProfit, null, true)}
+          ${indicatorRow("المصروفات الثابتة", cur.fixed_costs, prev.fixed_costs, true)}
+          ${indicatorRow("المصروفات المتغيّرة", cur.variable_costs, prev.variable_costs, true)}
+          ${indicatorRow("صافي الربح", netProfit, prevNetProfit, true)}
           ${indicatorRow("الميزانية المعتمدة — إيرادات", cur.budgeted_revenue, null, true)}
           ${indicatorRow("الميزانية المعتمدة — مصروفات", cur.budgeted_expenses, null, true)}
-          ${noteBox("ملاحظات الملخص التنفيذي", cur.executive_summary_notes)}
           ${noteBox("تحليل الانحرافات", cur.variance_analysis_notes)}
         </div>
       </div>
-      <div class="card"><div class="card-head"><span class="card-title">مؤشرات الأداء المالية</span></div>
+      <div class="card"><div class="card-head"><span class="card-title">الربحية ومؤشرات الأداء</span></div>
         <div class="card-body">
-          ${indicatorRow("هامش الربح", profitMargin!=null?profitMargin+"%":null, null, false)}
+          ${indicatorRow("هامش الربح الإجمالي", grossMargin!=null?grossMargin+"%":null, null, false)}
+          ${indicatorRow("هامش الربح الصافي", netMargin!=null?netMargin+"%":null, null, false)}
           ${indicatorRow("نسبة المصروفات إلى الإيرادات", expenseRatio!=null?expenseRatio+"%":null, null, false)}
-          ${indicatorRow("معدل نمو الإيرادات (عن الفترة السابقة)", revenueGrowth!=null?revenueGrowth+"%":null, null, false)}
+          ${indicatorRow("معدل نمو الإيرادات", revenueGrowth!=null?revenueGrowth+"%":null, null, false)}
           ${indicatorRow("انحراف الإيرادات عن الميزانية", revVsBudget!=null?revVsBudget+"%":null, null, false)}
           ${indicatorRow("انحراف المصروفات عن الميزانية", expVsBudget!=null?expVsBudget+"%":null, null, false)}
+          ${indicatorRow("العائد على الاستثمار (ROI)", roi!=null?roi+"%":null, null, false)}
+          ${indicatorRow("نقطة التعادل (مبيعات)", breakEven, null, true)}
         </div>
       </div>
     </div>
 
-    <div class="sec-title" style="font-size:14px">٢) التدفقات النقدية</div>
+    <div class="sec-title" style="font-size:14px">ثالثًا) السيولة والتدفقات النقدية</div>
     <div class="card" style="margin-bottom:16px"><div class="card-body">
       <div class="two-col">
         <div>
-          ${indicatorRow("الرصيد البنكي الحالي", cur.bank_balance, prev.bank_balance, true)}
-          ${indicatorRow("النقد المتاح", cur.available_cash, prev.available_cash, true)}
-          ${indicatorRow("إجمالي التدفقات الداخلة", cur.cash_in_total, prev.cash_in_total, true)}
-          ${indicatorRow("إجمالي التدفقات الخارجة", cur.cash_out_total, prev.cash_out_total, true)}
+          ${indicatorRow("الرصيد النقدي الحالي", cur.bank_balance, prev.bank_balance, true)}
+          ${indicatorRow("السيولة المتاحة", cur.available_cash, prev.available_cash, true)}
+          ${indicatorRow("التدفق التشغيلي", cur.cash_flow_operating, prev.cash_flow_operating, true)}
+          ${indicatorRow("التدفق الاستثماري", cur.cash_flow_investing, prev.cash_flow_investing, true)}
+          ${indicatorRow("التدفق التمويلي", cur.cash_flow_financing, prev.cash_flow_financing, true)}
           ${indicatorRow("صافي التدفق النقدي", netCash, prevNetCash, true)}
         </div>
         <div>
           ${indicatorRow("توقع الشهر القادم", cur.cash_forecast_month1, null, true)}
           ${indicatorRow("توقع الشهر الثاني", cur.cash_forecast_month2, null, true)}
           ${indicatorRow("توقع الشهر الثالث", cur.cash_forecast_month3, null, true)}
-          ${noteBox("المخاطر", cur.cash_flow_risks)}
-          ${noteBox("التوصيات", cur.cash_flow_recommendations)}
+          ${noteBox("مخاطر السيولة", cur.cash_flow_risks)}
+          ${noteBox("الإجراءات التصحيحية", cur.cash_flow_recommendations)}
         </div>
       </div>
     </div></div>
 
-    <div class="sec-title" style="font-size:14px">٣) الموارد البشرية</div>
+    <div class="sec-title" style="font-size:14px">رابعًا) الإيرادات والنمو</div>
+    <div class="card" style="margin-bottom:16px"><div class="card-body">
+      <div style="font-size:11px;font-weight:700;color:var(--gray3)">الإيرادات حسب المنتج/الخدمة</div>
+      ${miniTable(cur.revenue_by_activity, "المنتج/الخدمة", "المبلغ", cur.revenue)}
+      <div style="font-size:11px;font-weight:700;color:var(--gray3);margin-top:12px">الإيرادات حسب الفرع/المنطقة/القناة</div>
+      ${miniTable(cur.revenue_by_branch, "الفرع/القناة", "المبلغ", cur.revenue)}
+      <div style="font-size:11px;font-weight:700;color:var(--gray3);margin-top:12px">الإيرادات حسب العملاء</div>
+      ${miniTable(cur.revenue_by_customer, "العميل", "المبلغ", cur.revenue)}
+      ${topCustomerPct ? `<div style="font-size:11px;color:var(--gray3);margin-top:6px">نسبة تركّز أكبر عميل: <b style="color:var(--dark)">${topCustomerPct}%</b> من الإيرادات</div>` : ""}
+      ${indicatorRow("توقع متفائل للإيرادات القادمة", cur.revenue_forecast_optimistic, null, true)}
+      ${indicatorRow("توقع واقعي للإيرادات القادمة", cur.revenue_forecast_realistic, null, true)}
+      ${indicatorRow("توقع متحفظ للإيرادات القادمة", cur.revenue_forecast_conservative, null, true)}
+      ${noteBox("أفضل قطاع أداءً", cur.best_performing_segment)}
+      ${noteBox("أسوأ قطاع أداءً", cur.worst_performing_segment)}
+      ${noteBox("فرص النمو والتوسع", cur.growth_opportunities_notes)}
+    </div></div>
+
+    <div class="sec-title" style="font-size:14px">خامسًا) الموارد البشرية</div>
     <div class="two-col" style="margin-bottom:16px">
       <div class="card"><div class="card-head"><span class="card-title">نظرة عامة والأداء</span></div>
         <div class="card-body">
@@ -6732,36 +6780,17 @@ async function loadIndicatorsReport(){
       </div>
     </div>
 
-    <div class="sec-title" style="font-size:14px">٤) المشتريات</div>
-    <div class="card" style="margin-bottom:16px"><div class="card-body">
+    <div class="sec-title" style="font-size:14px">سادسًا) المشتريات وسلسلة الإمداد</div>
+    <div class="card"><div class="card-body">
       ${indicatorRow("إجمالي المشتريات", cur.total_procurement, prev.total_procurement, true)}
       ${indicatorRow("عدد أوامر الشراء المفتوحة", cur.purchase_orders_open, null, false)}
       ${indicatorRow("عدد أوامر الشراء المغلقة", cur.purchase_orders_closed, null, false)}
       ${indicatorRow("التوفير الناتج عن التفاوض", cur.procurement_savings, null, true)}
       ${miniTable(cur.supplier_analysis, "المورد", "المبلغ", cur.total_procurement)}
+      ${topSupplierPct ? `<div style="font-size:11px;color:var(--gray3);margin-top:6px">نسبة الاعتماد على أكبر مورد: <b style="color:var(--dark)">${topSupplierPct}%</b> من المشتريات</div>` : ""}
       ${noteBox("تقييم الموردين", cur.supplier_evaluation_notes)}
-      ${noteBox("المشاكل والتحديات", cur.procurement_challenges)}
-      ${noteBox("التوصيات", cur.procurement_recommendations)}
-    </div></div>
-
-    <div class="sec-title" style="font-size:14px">٥) الإيرادات</div>
-    <div class="card" style="margin-bottom:16px"><div class="card-body">
-      <div style="font-size:11px;font-weight:700;color:var(--gray3)">الإيرادات حسب النشاط/المنتج</div>
-      ${miniTable(cur.revenue_by_activity, "النشاط", "المبلغ", cur.revenue)}
-      <div style="font-size:11px;font-weight:700;color:var(--gray3);margin-top:12px">الإيرادات حسب العملاء</div>
-      ${miniTable(cur.revenue_by_customer, "العميل", "المبلغ", cur.revenue)}
-      ${noteBox("أفضل قطاع أداءً", cur.best_performing_segment)}
-      ${noteBox("أسوأ قطاع أداءً", cur.worst_performing_segment)}
-      ${noteBox("توقعات الإيرادات المستقبلية", cur.revenue_forecast_notes)}
-      ${noteBox("فرص النمو والتوسع", cur.growth_opportunities_notes)}
-    </div></div>
-
-    <div class="sec-title" style="font-size:14px">٦) ملخص مجلس الإدارة</div>
-    <div class="card"><div class="card-body">
-      ${noteBox("أهم النقاط", cur.board_key_highlights)}
-      ${noteBox("المخاطر الرئيسية", cur.board_key_risks)}
-      ${noteBox("القرارات المطلوبة من المجلس", cur.board_decisions_needed)}
-      ${noteBox("التوصيات الاستراتيجية", cur.board_strategic_recommendations)}
+      ${noteBox("المخاطر والتحديات", cur.procurement_challenges)}
+      ${noteBox("الإجراءات", cur.procurement_recommendations)}
     </div></div>`;
 }
 
