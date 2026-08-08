@@ -1725,6 +1725,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="fg"><label>الصفة (نص وصفي)</label><input class="fi" id="mm-position" placeholder="مثال: عضو مستقل / رئيس تنفيذي" /></div>
     <div class="fg"><label>عضو في إحدى اللجان؟</label><select class="fs" id="mm-committee"><option>لا</option><option>نعم</option></select></div>
     <div class="fg"><label>تاريخ الانضمام</label><input type="date" class="fi" id="mm-joindate"/></div>
+    <div class="fg"><label>رقم الهوية (لربط تسجيله الذاتي بالمنصة تلقائيًا)</label><input class="fi" id="mm-national-id" placeholder="مثال: 1XXXXXXXXX"/></div>
     <div class="fg"><label>الحالة</label><select class="fs" id="mm-status"><option>نشط</option><option>مستقل</option><option>تنفيذي</option></select></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-member')">إلغاء</button><button class="btn btn-gold" onclick="saveMember()">✅ حفظ العضو</button></div>
   </div>
@@ -2530,6 +2531,25 @@ async function handleAuth(){
       }
     }
 
+    // No invite code (or it didn't match)? Fall back to matching the national ID against the
+    // company's own real records — board members and the shareholders registry. A person can
+    // legitimately be both (e.g. a board member who also personally holds shares): if so, both
+    // records get locked to that email so the ID can't be reused, but the account still gets
+    // the broader "عضو مجلس" role rather than the more restricted shareholder-only one.
+    let claimedRecords = [];
+    if(!inviteCompanyId && national_id){
+      const { data: memberMatch } = await sb.from("board_members").select("*").eq("national_id", national_id).is("claimed_by_email", null).maybeSingle();
+      const { data: shareholderMatch } = await sb.from("shareholders").select("*").eq("national_id", national_id).is("claimed_by_email", null).maybeSingle();
+      if(memberMatch){
+        inviteCompanyId = memberMatch.company_id; inviteRole = "عضو مجلس";
+        claimedRecords.push({ table: "board_members", id: memberMatch.id });
+        if(shareholderMatch) claimedRecords.push({ table: "shareholders", id: shareholderMatch.id });
+      } else if(shareholderMatch){
+        inviteCompanyId = shareholderMatch.company_id; inviteRole = "مساهم";
+        claimedRecords.push({ table: "shareholders", id: shareholderMatch.id });
+      }
+    }
+
     const profilePayload = { email, account_type, full_name, national_id, phone_number, shares_count };
     if(inviteCompanyId){ profilePayload.company_id = inviteCompanyId; profilePayload.role = inviteRole; }
 
@@ -2541,8 +2561,11 @@ async function handleAuth(){
     if(inviteRowId){
       await sb.from("company_invites").update({ used: true, used_by_email: email, used_at: new Date().toISOString() }).eq("id", inviteRowId);
     }
+    for(const rec of claimedRecords){
+      await sb.from(rec.table).update({ claimed_by_email: email }).eq("id", rec.id);
+    }
 
-    showLoginMsg("تم إنشاء الحساب. يمكنك تسجيل الدخول الآن (أو تحقق من بريدك للتفعيل)", true);
+    showLoginMsg(inviteCompanyId ? "تم إنشاء الحساب وربطه بشركتك تلقائيًا ✅ يمكنك تسجيل الدخول الآن." : "تم إنشاء الحساب. يمكنك تسجيل الدخول الآن (أو تحقق من بريدك للتفعيل)", true);
     authMode = "login";
     document.getElementById("loginBtn").textContent = "تسجيل الدخول";
     document.getElementById("signupTypeField").style.display = "none";
@@ -4004,6 +4027,7 @@ function editMember(id){
   document.getElementById("mm-committee").value = m.committee_member || "لا";
   document.getElementById("mm-joindate").value = m.join_date || "";
   document.getElementById("mm-status").value = m.status || "نشط";
+  document.getElementById("mm-national-id").value = m.national_id || "";
   openM("m-member");
 }
 
@@ -4016,9 +4040,10 @@ async function saveMember(){
   const committee_member = document.getElementById("mm-committee").value;
   const join_date = document.getElementById("mm-joindate").value || null;
   const status = document.getElementById("mm-status").value;
+  const national_id = document.getElementById("mm-national-id").value.trim();
   if(!name){ alert("الرجاء إدخال اسم العضو"); return; }
 
-  const payload = { name, position, position_level, is_executive, committee_member, join_date, status, company_id: currentCompanyId };
+  const payload = { name, position, position_level, is_executive, committee_member, join_date, status, national_id, company_id: currentCompanyId };
   const { error } = id
     ? await sb.from("board_members").update(payload).eq("id", id)
     : await sb.from("board_members").insert([payload]);
@@ -4029,6 +4054,7 @@ async function saveMember(){
   document.getElementById("mm-name").value = "";
   document.getElementById("mm-position").value = "";
   document.getElementById("mm-joindate").value = "";
+  document.getElementById("mm-national-id").value = "";
   closeM("m-member");
   loadMembers();
 }
