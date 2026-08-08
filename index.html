@@ -2537,23 +2537,31 @@ async function handleAuth(){
       }
     }
 
-    // No invite code (or it didn't match)? Fall back to matching the national ID against the
-    // company's own real records — board members and the shareholders registry. A person can
-    // legitimately be both (e.g. a board member who also personally holds shares): if so, both
-    // records get locked to that email so the ID can't be reused, but the account still gets
-    // the broader "عضو مجلس" role rather than the more restricted shareholder-only one.
+    // No invite code (or it didn't match)? Fall back to matching the national ID against real
+    // company records — board members and the shareholders registry, across ALL companies (a
+    // person can legitimately sit on more than one board, or hold shares in several companies).
+    // Every match becomes its own membership row with its own role; each matched record gets
+    // locked to this email so the same ID can't be claimed again by someone else.
     let claimedRecords = [];
+    let memberships = []; // { company_id, role }
     if(!inviteCompanyId && national_id){
-      const { data: memberMatch } = await sb.from("board_members").select("*").eq("national_id", national_id).is("claimed_by_email", null).maybeSingle();
-      const { data: shareholderMatch } = await sb.from("shareholders").select("*").eq("national_id", national_id).is("claimed_by_email", null).maybeSingle();
-      if(memberMatch){
-        inviteCompanyId = memberMatch.company_id; inviteRole = "عضو مجلس";
-        claimedRecords.push({ table: "board_members", id: memberMatch.id });
-        if(shareholderMatch) claimedRecords.push({ table: "shareholders", id: shareholderMatch.id });
-      } else if(shareholderMatch){
-        inviteCompanyId = shareholderMatch.company_id; inviteRole = "مساهم";
-        claimedRecords.push({ table: "shareholders", id: shareholderMatch.id });
-      }
+      const [{ data: memberMatches }, { data: shareholderMatches }] = await Promise.all([
+        sb.from("board_members").select("*").eq("national_id", national_id).is("claimed_by_email", null),
+        sb.from("shareholders").select("*").eq("national_id", national_id).is("claimed_by_email", null)
+      ]);
+      (memberMatches||[]).forEach(m => {
+        memberships.push({ company_id: m.company_id, role: "عضو مجلس" });
+        claimedRecords.push({ table: "board_members", id: m.id });
+      });
+      (shareholderMatches||[]).forEach(s => {
+        claimedRecords.push({ table: "shareholders", id: s.id });
+        // If this company already got a board-member match, keep the broader role — don't
+        // downgrade it to "مساهم" — but still lock the shareholder record above.
+        if(!memberships.some(mm => mm.company_id === s.company_id)){
+          memberships.push({ company_id: s.company_id, role: "مساهم" });
+        }
+      });
+      if(memberships.length){ inviteCompanyId = memberships[0].company_id; inviteRole = memberships[0].role; }
     }
 
     const profilePayload = { email, account_type, full_name, national_id, phone_number, shares_count };
@@ -2570,8 +2578,15 @@ async function handleAuth(){
     for(const rec of claimedRecords){
       await sb.from(rec.table).update({ claimed_by_email: email }).eq("id", rec.id);
     }
+    if(inviteCompanyId && memberships.length === 0){
+      // Invite-code path: single membership from the invite itself.
+      memberships = [{ company_id: inviteCompanyId, role: inviteRole }];
+    }
+    if(memberships.length){
+      await sb.from("user_company_memberships").insert(memberships.map(m => ({ email, company_id: m.company_id, role: m.role })));
+    }
 
-    showLoginMsg(inviteCompanyId ? "تم إنشاء الحساب وربطه بشركتك تلقائيًا ✅ يمكنك تسجيل الدخول الآن." : "تم إنشاء الحساب. يمكنك تسجيل الدخول الآن (أو تحقق من بريدك للتفعيل)", true);
+    showLoginMsg(inviteCompanyId ? (memberships.length > 1 ? `تم إنشاء الحساب وربطه تلقائيًا بـ${memberships.length} شركات ✅ يمكنك تسجيل الدخول الآن.` : "تم إنشاء الحساب وربطه بشركتك تلقائيًا ✅ يمكنك تسجيل الدخول الآن.") : "تم إنشاء الحساب. يمكنك تسجيل الدخول الآن (أو تحقق من بريدك للتفعيل)", true);
     authMode = "login";
     document.getElementById("loginBtn").textContent = "تسجيل الدخول";
     document.getElementById("signupTypeField").style.display = "none";
@@ -2583,6 +2598,8 @@ async function handleAuth(){
   }
 }
 
+let userMemberships = [];
+
 async function loadCurrentUserProfile(){
   const nameEl = document.getElementById('gm-shareholder-name');
   const sharesEl = document.getElementById('gm-shares-count');
@@ -2592,8 +2609,12 @@ async function loadCurrentUserProfile(){
   const { data: userData } = await sb.auth.getUser();
   const email = userData && userData.user ? userData.user.email : null;
   if(!email) return;
-  const { data } = await sb.from("user_profiles").select("*").eq("email", email).maybeSingle();
+  const [{ data }, { data: memberships }] = await Promise.all([
+    sb.from("user_profiles").select("*").eq("email", email).maybeSingle(),
+    sb.from("user_company_memberships").select("*").eq("email", email)
+  ]);
   currentUserProfile = data || null;
+  userMemberships = memberships || [];
   if(currentUserProfile && currentUserProfile.account_type === "مساهم" && nameEl){
     nameEl.value = currentUserProfile.full_name || "";
     sharesEl.value = currentUserProfile.shares_count || "";
@@ -2602,7 +2623,8 @@ async function loadCurrentUserProfile(){
     nameEl.style.background = "var(--gray1)";
     sharesEl.style.background = "var(--gray1)";
   }
-  await loadCompanies(currentUserProfile ? currentUserProfile.company_id : null);
+  const preferred = currentUserProfile ? currentUserProfile.company_id : null;
+  await loadCompanies(preferred);
   applyRolePermissions();
   checkPendingApprovalBadges();
 }
@@ -2612,7 +2634,12 @@ const FULL_ACCESS_ROLES = ['مدير النظام','رئيس مجلس','سكرت
 const PERF_RESULTS_ROLES = ['مدير النظام','رئيس مجلس','سكرتير المجلس','رئيس لجنة الترشيحات','عضو لجنة الترشيحات'];
 const SHAREHOLDER_PAGES = ['agm','voting','signing'];
 
+// A person's role can differ per company they belong to (e.g. board member at one company,
+// shareholder-only at another) — always resolve against whichever company is currently
+// selected, not a single global role.
 function getCurrentRole(){
+  const membership = userMemberships.find(m => m.company_id === currentCompanyId);
+  if(membership && membership.role) return membership.role;
   return currentUserProfile ? (currentUserProfile.role || 'عضو مجلس') : 'عضو مجلس';
 }
 
@@ -2620,7 +2647,7 @@ function applyRolePermissions(){
   const role = getCurrentRole();
   const isShareholder = role === 'مساهم';
   const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
-  const hasNoCompany = currentUserProfile && !currentUserProfile.company_id;
+  const hasNoCompany = currentUserProfile && userMemberships.length === 0;
 
   const nameEl = document.getElementById('sidebarUserName');
   const roleEl = document.getElementById('sidebarUserRole');
@@ -2668,7 +2695,7 @@ function applyRolePermissions(){
 let currentCompanyType = null;
 function isPageAllowed(pageId, role){
   const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
-  const hasNoCompany = currentUserProfile && !currentUserProfile.company_id;
+  const hasNoCompany = currentUserProfile && userMemberships.length === 0;
   if(pageId === 'companyrequests') return isPlatformAdmin;
   if(pageId === 'companyrequest') return true;
   if(hasNoCompany && !isPlatformAdmin) return false;
@@ -2800,12 +2827,14 @@ async function linkExistingAccount(){
   const { data: existing, error: findErr } = await sb.from("user_profiles").select("*").ilike("email", email).maybeSingle();
   if(findErr || !existing){ alert("لا يوجد حساب مسجّل بهذا البريد الإلكتروني. تأكد أنه سجّل حساب بالمنصة أولًا، أو استخدم تبويب \"عضو جديد\" بدل ذلك."); return; }
 
-  if(!confirm(`سيتم نقل "${existing.full_name||email}" من شركته الحالية (إن وجدت) إلى شركتك بدور "${role}". متابعة؟`)) return;
+  if(!confirm(`سيتم إضافة "${existing.full_name||email}" لفريق شركتك بدور "${role}" (يبقى عضوًا بأي شركة أخرى ينتمي لها). متابعة؟`)) return;
 
-  const { error } = await sb.from("user_profiles").update({ company_id: currentCompanyId, role }).ilike("email", email);
+  const { error } = await sb.from("user_company_memberships").upsert(
+    [{ email: existing.email, company_id: currentCompanyId, role }], { onConflict: 'email,company_id' }
+  );
   if(error){ alert("تعذّر الربط: " + error.message); return; }
   logActivity("صلاحيات", "مستخدم", existing.full_name||email, `ربط حساب موجود بدور "${role}"`);
-  alert(`تم ربط "${existing.full_name||email}" بشركتك ✅ — عليه تسجيل خروج ثم دخول من جديد ليرى شركتك.`);
+  alert(`تم ربط "${existing.full_name||email}" بشركتك ✅ — عليه تسجيل خروج ثم دخول من جديد ليرى شركتك بقائمة تبديل الشركات.`);
   document.getElementById("mi-existing-email").value = "";
   closeM("m-invite");
   loadUsers();
@@ -2946,25 +2975,31 @@ async function loadUsers(){
     grid.innerHTML = '<div style="text-align:center;color:var(--red);font-size:12px;padding:20px;grid-column:1/-1">هذه الصفحة متاحة لمدير النظام فقط</div>';
     return;
   }
-  const { data, error } = await sb.from("user_profiles").select("*").eq("company_id", currentCompanyId).order("id",{ascending:true});
+  const { data: memberships, error } = await sb.from("user_company_memberships").select("*").eq("company_id", currentCompanyId).order("id",{ascending:true});
   if(error){ grid.innerHTML = `<div style="color:var(--red);font-size:12px;padding:20px;grid-column:1/-1">تعذّر التحميل: ${error.message}</div>`; return; }
-  if(!data || data.length===0){ grid.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">لا يوجد أعضاء بالفريق بعد — استخدم "🔗 دعوة عضو جديد" لإضافة أول عضو.</div>'; return; }
+  if(!memberships || memberships.length===0){ grid.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">لا يوجد أعضاء بالفريق بعد — استخدم "🔗 دعوة عضو جديد" لإضافة أول عضو.</div>'; return; }
+
+  const emails = memberships.map(m => m.email);
+  const { data: profiles } = await sb.from("user_profiles").select("*").in("email", emails);
+  const profileByEmail = {};
+  (profiles||[]).forEach(p => { profileByEmail[p.email] = p; });
 
   const roles = ['مدير النظام','رئيس مجلس','سكرتير المجلس','رئيس لجنة الترشيحات','عضو لجنة الترشيحات','عضو مجلس','مساهم'];
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
 
-  grid.innerHTML = data.map(u => {
-    const st = ROLE_STYLE[u.role] || ROLE_STYLE["عضو مجلس"];
-    const initial = (u.full_name || u.email || "؟").trim().charAt(0);
-    const isMe = u.email === myEmail;
+  grid.innerHTML = memberships.map(m => {
+    const u = profileByEmail[m.email] || {};
+    const st = ROLE_STYLE[m.role] || ROLE_STYLE["عضو مجلس"];
+    const initial = (u.full_name || m.email || "؟").trim().charAt(0);
+    const isMe = m.email === myEmail;
     return `<div class="card" style="margin:0;border-top:4px solid ${st.color};display:flex;flex-direction:column">
       <div class="card-body" style="display:flex;flex-direction:column;flex:1">
         <div style="display:flex;align-items:flex-start;gap:12px">
           <div style="width:46px;height:46px;border-radius:50%;background:${st.color};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;flex-shrink:0">${initial}</div>
           <div style="min-width:0;flex:1">
             <div style="font-size:13.5px;font-weight:800;color:var(--dark);word-break:break-word">${u.full_name||"—"}</div>
-            <div style="font-size:11px;color:var(--gray3);word-break:break-all;margin-top:1px">${u.email||"—"}</div>
+            <div style="font-size:11px;color:var(--gray3);word-break:break-all;margin-top:1px">${m.email||"—"}</div>
           </div>
           ${isMe ? '<span style="font-size:9.5px;font-weight:700;color:var(--primary);background:#EAF0F8;padding:2px 7px;border-radius:6px;flex-shrink:0;white-space:nowrap">أنت</span>' : ""}
         </div>
@@ -2973,23 +3008,23 @@ async function loadUsers(){
           <div style="display:flex;justify-content:space-between"><span>رقم الهوية</span><span style="color:var(--dark);font-weight:600">${u.national_id||"—"}</span></div>
           <div style="display:flex;justify-content:space-between"><span>رقم الجوال</span><span style="color:var(--dark);font-weight:600">${u.phone_number||"—"}</span></div>
         </div>
-        <button style="width:100%;background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:8px;padding:6px;font-size:11px;font-weight:600;cursor:pointer;margin-bottom:8px" onclick="openEditProfileModal(${u.id})">✏️ تعديل البيانات (الجوال والهوية)</button>
+        ${u.id ? `<button style="width:100%;background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:8px;padding:6px;font-size:11px;font-weight:600;cursor:pointer;margin-bottom:8px" onclick="openEditProfileModal(${u.id})">✏️ تعديل البيانات (الجوال والهوية)</button>` : ""}
 
         <div style="margin-top:auto">
-          <label style="font-size:10px;color:var(--gray3);display:block;margin-bottom:4px">الدور / الصلاحية</label>
-          <select onchange="updateUserRole(${u.id}, this.value)" style="width:100%;font-size:12px;font-weight:700;padding:8px 10px;border-radius:8px;cursor:pointer;background:${st.bg};color:${st.color};border:1.5px solid ${st.color}55;margin-bottom:8px">
-            ${roles.map(r=>`<option ${u.role===r?"selected":""}>${ROLE_STYLE[r].icon} ${r}</option>`).join("")}
+          <label style="font-size:10px;color:var(--gray3);display:block;margin-bottom:4px">الدور / الصلاحية بهذه الشركة</label>
+          <select onchange="updateUserRole(${m.id}, this.value)" style="width:100%;font-size:12px;font-weight:700;padding:8px 10px;border-radius:8px;cursor:pointer;background:${st.bg};color:${st.color};border:1.5px solid ${st.color}55;margin-bottom:8px">
+            ${roles.map(r=>`<option ${m.role===r?"selected":""}>${ROLE_STYLE[r].icon} ${r}</option>`).join("")}
           </select>
-          ${isMe ? "" : `<button style="width:100%;background:#FDE8E8;color:var(--red);border:none;border-radius:8px;padding:8px;font-size:11.5px;font-weight:600;cursor:pointer" onclick="deleteUserProfile(${u.id},'${(u.full_name||u.email||"").replace(/'/g,"")}')">🗑️ إزالة من الفريق</button>`}
+          ${isMe ? "" : `<button style="width:100%;background:#FDE8E8;color:var(--red);border:none;border-radius:8px;padding:8px;font-size:11.5px;font-weight:600;cursor:pointer" onclick="deleteUserProfile(${m.id},'${(u.full_name||m.email||"").replace(/'/g,"")}')">🗑️ إزالة من هذه الشركة</button>`}
         </div>
       </div>
     </div>`;
   }).join("");
 }
 
-async function deleteUserProfile(id, name){
-  if(!confirm(`هل تريد حذف "${name}" من المنصة؟ سيفقد وصوله لبيانات الشركة فورًا (هذا لا يحذف حساب الدخول نفسه من نظام المصادقة، فقط صلاحيته وبياناته على المنصة).`)) return;
-  const { error } = await sb.from("user_profiles").delete().eq("id", id);
+async function deleteUserProfile(membershipId, name){
+  if(!confirm(`هل تريد إزالة "${name}" من فريق هذه الشركة؟ حسابه يبقى فعّالًا إن كان عضوًا بشركات أخرى على المنصة.`)) return;
+  const { error } = await sb.from("user_company_memberships").delete().eq("id", membershipId);
   if(error){ alert("تعذّر الحذف: " + error.message); return; }
   logActivity("حذف", "مستخدم", name, "إزالة من فريق الشركة");
   loadUsers();
@@ -3031,22 +3066,24 @@ async function saveEditProfile(){
   loadUsers();
 }
 
-async function updateUserRole(id, role){
-  const { data: target } = await sb.from("user_profiles").select("full_name,email").eq("id", id).single();
-  const { error } = await sb.from("user_profiles").update({ role }).eq("id", id);
+async function updateUserRole(membershipId, role){
+  const { data: membership } = await sb.from("user_company_memberships").select("*").eq("id", membershipId).single();
+  const target = membership ? await sb.from("user_profiles").select("full_name,email").eq("email", membership.email).maybeSingle() : null;
+  const { error } = await sb.from("user_company_memberships").update({ role }).eq("id", membershipId);
   if(error){ alert("تعذّر التحديث: " + error.message); return; }
-  logActivity("صلاحيات", "مستخدم", target ? (target.full_name||target.email) : "", `تغيير الدور إلى "${role}"`);
+  logActivity("صلاحيات", "مستخدم", target && target.data ? (target.data.full_name||target.data.email) : (membership?membership.email:""), `تغيير الدور إلى "${role}"`);
   loadUsers();
 }
 async function loadCompanies(preferredCompanyId){
   const sel = document.getElementById("companySwitcher");
   const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
 
-  // Regular users only ever see their own single company — never the full company list.
-  // Only the platform owner (is_platform_admin) can browse across every tenant.
+  // Regular users now see every company they hold a membership in (could be more than one);
+  // only the platform owner (is_platform_admin) additionally sees every tenant on the platform.
+  const memberCompanyIds = userMemberships.map(m => m.company_id).filter(Boolean);
   const query = isPlatformAdmin
     ? sb.from("companies").select("*").order("id",{ascending:true})
-    : sb.from("companies").select("*").eq("id", preferredCompanyId || -1);
+    : (memberCompanyIds.length ? sb.from("companies").select("*").in("id", memberCompanyIds).order("id",{ascending:true}) : sb.from("companies").select("*").eq("id", -1));
   const { data, error } = await query;
 
   if(error || !data || data.length===0){
@@ -3066,7 +3103,9 @@ async function loadCompanies(preferredCompanyId){
 
 function switchCompany(id){
   currentCompanyId = Number(id);
+  applyRolePermissions();
   applyCompanyTypeVisibility();
+  checkPendingApprovalBadges();
   reloadCurrentPageData();
 }
 
