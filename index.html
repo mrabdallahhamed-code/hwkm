@@ -2229,6 +2229,30 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
+<div class="modal-bg" id="m-approve-company">
+  <div class="modal">
+    <div class="modal-title">✅ الموافقة على طلب إدراج شركة</div>
+    <input type="hidden" id="apc-request-id" value="" />
+    <div class="fg" style="display:flex;align-items:center;gap:8px;background:var(--offwhite);padding:10px 12px;border-radius:8px;opacity:0.7">
+      <input type="checkbox" checked disabled style="width:16px;height:16px" />
+      <label style="margin:0;font-size:12px">📦 الحوكمة والاجتماعات (الباقة الأساسية — تُفعّل دائمًا)</label>
+    </div>
+    <div class="fg" style="display:flex;align-items:center;gap:8px;background:var(--offwhite);padding:10px 12px;border-radius:8px">
+      <input type="checkbox" id="apc-audit" style="width:16px;height:16px" />
+      <label for="apc-audit" style="margin:0;font-size:12px;cursor:pointer">📦 المراجعة الداخلية</label>
+    </div>
+    <div class="fg" style="display:flex;align-items:center;gap:8px;background:var(--offwhite);padding:10px 12px;border-radius:8px">
+      <input type="checkbox" id="apc-risk" style="width:16px;height:16px" />
+      <label for="apc-risk" style="margin:0;font-size:12px;cursor:pointer">📦 إدارة المخاطر</label>
+    </div>
+    <div class="fg" style="display:flex;align-items:center;gap:8px;background:#E8F8EF;padding:10px 12px;border-radius:8px;margin-top:10px">
+      <input type="checkbox" id="apc-payment" style="width:16px;height:16px" />
+      <label for="apc-payment" style="margin:0;font-size:12px;font-weight:700;cursor:pointer">💳 تم تأكيد استلام السداد</label>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-approve-company')">إلغاء</button><button class="btn btn-gold" onclick="approveCompanyRequest(Number(document.getElementById('apc-request-id').value))">✅ تأكيد الموافقة وإنشاء الشركة</button></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-edit-profile">
   <div class="modal">
     <div class="modal-title" id="mep-title-h">✏️ تعديل بيانات العضو</div>
@@ -2703,6 +2727,7 @@ function isPageAllowed(pageId, role){
   if(pageId === 'activitylog') return role === 'مدير النظام';
   if(role === 'مساهم') return SHAREHOLDER_PAGES.includes(pageId);
   if(currentCompanyType === 'مؤسسة فردية' && SOLE_PROP_HIDDEN_PAGES.includes(pageId)) return false;
+  if(MODULE_PAGE_MAP[pageId] && !currentCompanyModules[MODULE_PAGE_MAP[pageId]] && !isPlatformAdmin) return false;
   return true;
 }
 
@@ -3697,7 +3722,7 @@ async function loadCompanyRequestsReview(){
           <div style="font-size:11.5px;color:var(--gray3);margin-top:2px">المسؤول: ${r.responsible_person||"—"} · ${r.responsible_phone||""} · ${r.responsible_email||""}</div>
           <div style="font-size:10.5px;color:var(--gray3);margin-top:4px">مقدَّم من: ${r.requested_by_name||r.requested_by_email} · ${new Date(r.created_at).toLocaleDateString('ar-SA')}</div>
           <div style="display:flex;gap:6px;margin-top:10px">
-            <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="approveCompanyRequest(${r.id})">✅ موافقة وإنشاء الشركة</button>
+            <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="openApproveCompanyModal(${r.id})">✅ موافقة وإنشاء الشركة</button>
             <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="rejectCompanyRequest(${r.id})">❌ رفض</button>
           </div>
         </div>
@@ -3717,23 +3742,43 @@ async function loadCompanyRequestsReview(){
   }
 }
 
+function openApproveCompanyModal(requestId){
+  document.getElementById("apc-request-id").value = requestId;
+  document.getElementById("apc-audit").checked = false;
+  document.getElementById("apc-risk").checked = false;
+  document.getElementById("apc-payment").checked = false;
+  openM("m-approve-company");
+}
+
 async function approveCompanyRequest(requestId){
-  if(!confirm("الموافقة على هذا الطلب تنشئ شركة جديدة وتجعل مقدّم الطلب مدير نظام لها. متابعة؟")) return;
+  const module_internal_audit = document.getElementById("apc-audit").checked;
+  const module_risk_management = document.getElementById("apc-risk").checked;
+  const payment_confirmed = document.getElementById("apc-payment").checked;
+  if(!payment_confirmed && !confirm("لم تؤكد استلام السداد لهذا الطلب — هل تريد المتابعة على أي حال؟")) return;
+
   const { data: r, error: rErr } = await sb.from("company_requests").select("*").eq("id", requestId).single();
   if(rErr || !r){ alert("تعذّر تحميل الطلب"); return; }
 
   const { data: newCompany, error: cErr } = await sb.from("companies").insert([{
     name: r.company_name, company_type: r.company_type, cr_number: r.cr_number, cr_date: r.cr_date,
-    responsible_person: r.responsible_person, responsible_phone: r.responsible_phone, responsible_email: r.responsible_email
+    responsible_person: r.responsible_person, responsible_phone: r.responsible_phone, responsible_email: r.responsible_email,
+    module_internal_audit, module_risk_management
   }]).select().single();
   if(cErr){ alert("تعذّر إنشاء الشركة: " + cErr.message); return; }
 
   const { error: uErr } = await sb.from("user_profiles").update({ company_id: newCompany.id, role: "مدير النظام" }).eq("email", r.requested_by_email);
   if(uErr){ alert("تم إنشاء الشركة لكن تعذّر ربط المستخدم بها: " + uErr.message); return; }
+  await sb.from("user_company_memberships").upsert(
+    [{ email: r.requested_by_email, company_id: newCompany.id, role: "مدير النظام" }], { onConflict: 'email,company_id' }
+  );
 
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
-  await sb.from("company_requests").update({ status: "معتمد", reviewed_at: new Date().toISOString(), reviewed_by: myEmail, company_id: newCompany.id }).eq("id", requestId);
+  await sb.from("company_requests").update({
+    status: "معتمد", reviewed_at: new Date().toISOString(), reviewed_by: myEmail, company_id: newCompany.id,
+    payment_confirmed, payment_confirmed_at: payment_confirmed ? new Date().toISOString() : null,
+    requested_modules: { internal_audit: module_internal_audit, risk_management: module_risk_management }
+  }).eq("id", requestId);
   await sb.from("activity_log").insert([{ company_id: newCompany.id, actor_email: myEmail, actor_name: "مالك المنصة", action_type: "إنشاء", entity_type: "شركة", entity_label: newCompany.name, details: "تمت الموافقة على طلب الإدراج" }]);
 
   // Give the new company a ready-made starting point: clone every template an admin has
@@ -3747,6 +3792,7 @@ async function approveCompanyRequest(requestId){
     await sb.from("document_templates").upsert(clones, { onConflict: 'company_id,template_key' });
   }
 
+  closeM("m-approve-company");
   alert("تم إنشاء الشركة وربط المستخدم بها كمدير نظام ✅" + (defaults && defaults.length ? ` — تم نسخ ${defaults.length} قالب مستند افتراضي لها.` : ""));
   loadCompanyRequestsReview();
 }
@@ -3795,17 +3841,29 @@ async function saveCompany(){
 /* Company-type-aware navigation: sole proprietorships have no board/shareholders, so
    board/committee/AGM-related pages are irrelevant and get hidden from the sidebar. */
 const SOLE_PROP_HIDDEN_PAGES = ['meetings','committees','agm','voting','members','appoint','perf','shareholders'];
+let currentCompanyModules = { internal_audit: false, risk_management: false };
+const MODULE_PAGE_MAP = { audit: 'internal_audit', risks: 'risk_management' };
+
 async function applyCompanyTypeVisibility(){
   if(!currentCompanyId) return;
-  const { data: c } = await sb.from("companies").select("company_type").eq("id", currentCompanyId).single();
+  const { data: c } = await sb.from("companies").select("company_type,module_internal_audit,module_risk_management").eq("id", currentCompanyId).single();
   currentCompanyType = c ? c.company_type : null;
+  currentCompanyModules = { internal_audit: !!c?.module_internal_audit, risk_management: !!c?.module_risk_management };
   const isSoleProp = currentCompanyType === "مؤسسة فردية";
+  const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
   document.querySelectorAll('.nav-item').forEach(item => {
     const pageId = item.getAttribute('onclick')?.match(/go\('([a-z]+)'/)?.[1];
     if(!pageId) return;
     if(isSoleProp && SOLE_PROP_HIDDEN_PAGES.includes(pageId)){
       item.style.display = 'none';
+      return;
     }
+    const moduleKey = MODULE_PAGE_MAP[pageId];
+    if(moduleKey && !currentCompanyModules[moduleKey] && !isPlatformAdmin){
+      item.style.display = 'none';
+      return;
+    }
+    item.style.display = '';
   });
 }
 
