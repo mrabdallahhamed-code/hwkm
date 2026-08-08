@@ -5499,7 +5499,7 @@ async function loadPolicyReviewSection(){
   card.style.display = "block";
 
   const pending = policiesCache.filter(p => p.status === "مرفوعة لمجلس الإدارة");
-  if(pending.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px">لا توجد سياسات بانتظار رأي المجلس حاليًا.</div>'; return; }
+  if(pending.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;line-height:1.8">لا توجد سياسات بانتظار رأي المجلس حاليًا.<br>خانة كتابة الملاحظة تظهر هنا فقط بعد نقل السياسة لمرحلة "مرفوعة لمجلس الإدارة" (زر "⏩ نقل إلى" بكل بطاقة سياسة فوق).</div>'; return; }
 
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
