@@ -2008,6 +2008,21 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <p style="font-size:10.5px;color:var(--gray3);margin-top:6px">هذه البنود تظهر تلقائيًا بصفحة التصويت فقط أثناء الفترة المحددة أعلاه، وتختفي تلقائيًا بعد موعد نهاية التصويت.</p>
     </div>
 
+    <div style="margin-top:16px;background:var(--offwhite);border-radius:10px;padding:10px">
+      <div style="font-weight:800;font-size:12.5px;color:var(--primary);margin-bottom:8px">✅ تسجيل حضور مساهم (بغض النظر عن التصويت)</div>
+      <div class="fg"><label style="font-size:11px">اختر من سجل المساهمين (أو اترك فارغًا واكتب اسمًا يدويًا تحت)</label>
+        <select class="fs" id="agmCheckin-shareholder" onchange="onCheckinShareholderPick()"><option value="">— اختر —</option></select>
+      </div>
+      <div class="fg"><label style="font-size:11px">اسم المساهم (لو ما اخترته من القائمة)</label><input class="fi" id="agmCheckin-name" placeholder="اسم المساهم"/></div>
+      <div class="row2">
+        <div class="fg"><label style="font-size:11px">عدد الأسهم — أصالة (حضور شخصي)</label><input type="number" class="fi" id="agmCheckin-asalah" value="0"/></div>
+        <div class="fg"><label style="font-size:11px">عدد الأسهم — وكالة (توكيل)</label><input type="number" class="fi" id="agmCheckin-wakala" value="0"/></div>
+      </div>
+      <div class="fg"><label style="font-size:11px">رقم بطاقة التصويت</label><input class="fi" id="agmCheckin-card"/></div>
+      <button class="btn-xs primary" style="width:100%" onclick="checkInAttendee()">✅ تسجيل الحضور</button>
+      <div id="agmCheckin-list" style="margin-top:10px"></div>
+    </div>
+
     <div class="modal-foot" style="justify-content:space-between">
       <button class="btn btn-ghost" onclick="closeM('m-agm-view')">إغلاق</button>
       <button class="btn btn-gold" id="agmView-gotovote-btn" onclick="goToAGMVoting()">🗳️ الذهاب لصفحة التصويت</button>
@@ -2665,6 +2680,8 @@ function isMutatingOnchange(val){
     || /^handlePdfFileSelect\(/.test(val)
     || /^handleIndicatorsUpload\(/.test(val)
     || /^exportIndicatorsPDF\(/.test(val)
+    || /^checkInAttendee\(/.test(val)
+    || /^deleteCheckin\(/.test(val)
     || /^openCharterModal\(/.test(val)
     || /^saveCharter\(/.test(val)
     || /^sendMeetingReminderEmails\(/.test(val)
@@ -4791,6 +4808,9 @@ async function openAGMDetailModal(id){
 
   await loadAGMSupportingDocs(m.id);
   await loadAGMTopicsForModal(m.id);
+  await loadCheckinShareholdersDropdown();
+  await loadCheckinList(m.id);
+  document.getElementById("agmCheckin-shareholder").dataset.meetingId = m.id;
   openM("m-agm-view");
 }
 
@@ -9628,12 +9648,93 @@ function vote(type){const msg=document.getElementById("vote-msg");const labels={
 
 /* ══════════ VOTE PDF REPORT (per AGM meeting) ══════════ */
 /* Shared helper: distinct attendees (shareholders who cast at least one vote) for a given meeting */
-async function getAttendeesList(meetingId){
-  const { data, error } = await sb.from("votes").select("*").eq("company_id", currentCompanyId).eq("meeting_id", meetingId).not("shareholder_name","is",null);
-  if(error) return { error, list: [] };
+/* ══════════ AGM ATTENDANCE CHECK-IN (separate from voting — captures everyone who
+   physically/virtually attended, whether or not they end up voting on any topic) ══════════ */
+let checkinShareholdersCache = [];
+
+async function loadCheckinShareholdersDropdown(){
+  const { data } = await sb.from("shareholders").select("*").eq("company_id", currentCompanyId).order("name");
+  checkinShareholdersCache = data || [];
+  const sel = document.getElementById("agmCheckin-shareholder");
+  if(!sel) return;
+  sel.innerHTML = '<option value="">— اختر —</option>' + checkinShareholdersCache.map(s => `<option value="${s.id}">${s.name} (${(Number(s.shares_count)||0).toLocaleString('ar-SA')} سهم)</option>`).join("");
+}
+
+function onCheckinShareholderPick(){
+  const sel = document.getElementById("agmCheckin-shareholder");
+  const s = checkinShareholdersCache.find(x => String(x.id) === sel.value);
+  document.getElementById("agmCheckin-name").value = s ? s.name : "";
+  if(s) document.getElementById("agmCheckin-asalah").value = s.shares_count || 0;
+}
+
+async function checkInAttendee(){
+  const meetingId = Number(document.getElementById("agmCheckin-shareholder").dataset.meetingId);
+  const shareholderSel = document.getElementById("agmCheckin-shareholder").value;
+  const shareholder_id = shareholderSel ? Number(shareholderSel) : null;
+  const s = shareholder_id ? checkinShareholdersCache.find(x => x.id === shareholder_id) : null;
+  const shareholder_name = (s ? s.name : document.getElementById("agmCheckin-name").value.trim());
+  if(!shareholder_name){ alert("الرجاء اختيار مساهم من القائمة أو كتابة اسمه"); return; }
+  const shares_asalah = Number(document.getElementById("agmCheckin-asalah").value) || 0;
+  const shares_wakala = Number(document.getElementById("agmCheckin-wakala").value) || 0;
+  const card_no = document.getElementById("agmCheckin-card").value.trim();
+
+  const { error } = await sb.from("agm_attendance").insert([{
+    company_id: currentCompanyId, meeting_id: meetingId, shareholder_id, shareholder_name,
+    shares_asalah, shares_wakala, card_no
+  }]);
+  if(error){ alert("تعذّر تسجيل الحضور: " + error.message); return; }
+  logActivity("إنشاء", "تسجيل حضور جمعية", shareholder_name, "");
+  document.getElementById("agmCheckin-shareholder").value = "";
+  document.getElementById("agmCheckin-name").value = "";
+  document.getElementById("agmCheckin-asalah").value = "0";
+  document.getElementById("agmCheckin-wakala").value = "0";
+  document.getElementById("agmCheckin-card").value = "";
+  loadCheckinList(meetingId);
+}
+
+async function loadCheckinList(meetingId){
+  const box = document.getElementById("agmCheckin-list");
+  if(!box) return;
+  const { data } = await sb.from("agm_attendance").select("*").eq("meeting_id", meetingId).order("checked_in_at",{ascending:true});
   const rows = data || [];
+  if(rows.length === 0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:11px;padding:8px">لا يوجد حضور مسجّل بعد.</div>'; return; }
+  box.innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--gray3);margin-bottom:4px">المسجَّلون (${rows.length})</div>` +
+    rows.map(r => `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--gray1);font-size:11.5px">
+      <span>${r.shareholder_name} — ${((Number(r.shares_asalah)||0)+(Number(r.shares_wakala)||0)).toLocaleString('ar-SA')} سهم</span>
+      <button onclick="deleteCheckin(${r.id},${meetingId})" style="background:#FDE8E8;color:var(--red);border:none;border-radius:5px;padding:2px 8px;font-size:10.5px;cursor:pointer">✕</button>
+    </div>`).join("");
+}
+
+async function deleteCheckin(id, meetingId){
+  if(!confirm("حذف تسجيل الحضور هذا؟")) return;
+  await sb.from("agm_attendance").delete().eq("id", id);
+  loadCheckinList(meetingId);
+}
+
+/* Attendee list for documents now comes from the real check-in log, not from who happened to
+   vote — so anyone who attended but abstained from every topic still appears on the roster
+   and vote-count minutes; a merge with `votes` only fills in each person's card/shareholder
+   numbers when a matching check-in record isn't found (older meetings before check-in existed). */
+async function getAttendeesList(meetingId){
+  const { data: checkins, error } = await sb.from("agm_attendance").select("*").eq("meeting_id", meetingId).order("checked_in_at",{ascending:true});
+  if(error) return { error, list: [] };
+  const rows = checkins || [];
+  if(rows.length > 0){
+    const list = rows.map((r,i) => ({
+      name: r.shareholder_name,
+      shares: (Number(r.shares_asalah)||0) + (Number(r.shares_wakala)||0),
+      sharesAsalah: Number(r.shares_asalah)||0,
+      sharesWakala: Number(r.shares_wakala)||0,
+      shareholderNo: r.shareholder_id || (i+1),
+      cardNo: r.card_no || ("V-" + String(i+1).padStart(3,"0"))
+    }));
+    return { error: null, list };
+  }
+  // Fallback for meetings recorded before the check-in feature existed: infer from votes.
+  const { data, error: vErr } = await sb.from("votes").select("*").eq("company_id", currentCompanyId).eq("meeting_id", meetingId).not("shareholder_name","is",null);
+  if(vErr) return { error: vErr, list: [] };
   const byShareholder = {};
-  rows.forEach(v => {
+  (data||[]).forEach(v => {
     const key = v.shareholder_name || "—";
     if(!byShareholder[key]) byShareholder[key] = { name:key, shares:Number(v.shares_count)||0, lastId:v.id };
     if(v.id >= byShareholder[key].lastId){
@@ -9642,7 +9743,7 @@ async function getAttendeesList(meetingId){
     }
   });
   const list = Object.values(byShareholder).sort((a,b)=> a.name.localeCompare(b.name,'ar'));
-  list.forEach((s,i)=>{ s.shareholderNo = i+1; s.cardNo = "V-" + String(i+1).padStart(3,"0"); });
+  list.forEach((s,i)=>{ s.shareholderNo = i+1; s.cardNo = "V-" + String(i+1).padStart(3,"0"); s.sharesAsalah = s.shares; s.sharesWakala = 0; });
   return { error:null, list };
 }
 
@@ -9664,7 +9765,11 @@ async function generateAttendanceSheet(meetingId){
       await fillDocxTemplate(templateRow.file_url, {
         company_name: companyName, meeting_title: m?.title||"", meeting_date: m?.meeting_date||"",
         total_attendees: list.length, total_shares: list.reduce((s,x)=>s+x.shares,0),
-        attendees: list.map(s => ({ no: s.shareholderNo, name: s.name, shares: s.shares, card_no: s.cardNo }))
+        attendees: list.map((s,i) => ({
+          no: i+1, name: s.name, shares: s.shares,
+          shares_asalah: s.sharesAsalah ?? s.shares, shares_wakala: s.sharesWakala ?? 0,
+          card_no: s.cardNo, shareholder_no: s.shareholderNo
+        }))
       }, `كشف حضور ${m?.title||'الجمعية'}.docx`);
       return;
     }catch(e){ alert("تعذّر تعبئة القالب، سيُستخدم التصميم الافتراضي بدلًا منه: " + e.message); }
@@ -9695,9 +9800,9 @@ async function generateAttendanceSheet(meetingId){
     <h1>📋 كشف حضور — ${m?.title||"الجمعية العامة"}</h1>
     <p>تاريخ الجمعية: ${m?.meeting_date||"—"} &nbsp;·&nbsp; تاريخ الإصدار: ${dateNow} &nbsp;·&nbsp; إجمالي الحاضرين: ${list.length} &nbsp;·&nbsp; إجمالي الأسهم الحاضرة: ${totalShares}</p>
     <table>
-      <thead><tr><th>م</th><th>اسم المساهم</th><th>رقم المساهم</th><th>عدد الأسهم</th><th>رقم بطاقة التصويت</th><th>التوقيع</th></tr></thead>
+      <thead><tr><th>م</th><th>اسم المساهم</th><th>أسهم — أصالة</th><th>أسهم — وكالة</th><th>مجموع الأسهم</th><th>رقم بطاقة التصويت</th><th>التوقيع</th></tr></thead>
       <tbody>
-        ${list.length ? list.map(s=>`<tr><td>${s.shareholderNo}</td><td>${s.name}</td><td>${s.shareholderNo}</td><td>${s.shares}</td><td>${s.cardNo}</td><td style="min-width:100px"></td></tr>`).join("") : '<tr><td colspan="6" style="color:#C0392B">لا يوجد حضور مسجّل بعد.</td></tr>'}
+        ${list.length ? list.map((s,i)=>`<tr><td>${i+1}</td><td>${s.name}</td><td>${s.sharesAsalah??s.shares}</td><td>${s.sharesWakala??0}</td><td>${s.shares}</td><td>${s.cardNo}</td><td style="min-width:100px"></td></tr>`).join("") : '<tr><td colspan="7" style="color:#C0392B">لا يوجد حضور مسجّل بعد.</td></tr>'}
       </tbody>
     </table>
     <script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>
