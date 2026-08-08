@@ -2682,6 +2682,7 @@ function isMutatingOnchange(val){
     || /^exportIndicatorsPDF\(/.test(val)
     || /^checkInAttendee\(/.test(val)
     || /^deleteCheckin\(/.test(val)
+    || /^toggleTemplateDefault\(/.test(val)
     || /^openCharterModal\(/.test(val)
     || /^saveCharter\(/.test(val)
     || /^sendMeetingReminderEmails\(/.test(val)
@@ -3657,7 +3658,18 @@ async function approveCompanyRequest(requestId){
   await sb.from("company_requests").update({ status: "معتمد", reviewed_at: new Date().toISOString(), reviewed_by: myEmail, company_id: newCompany.id }).eq("id", requestId);
   await sb.from("activity_log").insert([{ company_id: newCompany.id, actor_email: myEmail, actor_name: "مالك المنصة", action_type: "إنشاء", entity_type: "شركة", entity_label: newCompany.name, details: "تمت الموافقة على طلب الإدراج" }]);
 
-  alert("تم إنشاء الشركة وربط المستخدم بها كمدير نظام ✅");
+  // Give the new company a ready-made starting point: clone every template an admin has
+  // marked as a platform default, instead of leaving their document templates page empty.
+  const { data: defaults } = await sb.from("document_templates").select("*").eq("is_platform_default", true);
+  if(defaults && defaults.length){
+    const clones = defaults.map(t => ({
+      company_id: newCompany.id, template_key: t.template_key, file_url: t.file_url,
+      file_name: t.file_name, is_platform_default: false, updated_at: new Date().toISOString()
+    }));
+    await sb.from("document_templates").upsert(clones, { onConflict: 'company_id,template_key' });
+  }
+
+  alert("تم إنشاء الشركة وربط المستخدم بها كمدير نظام ✅" + (defaults && defaults.length ? ` — تم نسخ ${defaults.length} قالب مستند افتراضي لها.` : ""));
   loadCompanyRequestsReview();
 }
 
@@ -9929,17 +9941,26 @@ async function loadDocumentTemplates(){
 
   box.innerHTML = DOC_TEMPLATE_DEFS.map(def => {
     const t = docTemplatesCache[def.key];
+    const isDefault = t && t.is_platform_default;
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gray1)">
       <div>
         <div style="font-size:12.5px;font-weight:700;color:var(--dark)">${def.label}</div>
-        <div style="font-size:10.5px;color:var(--gray3);margin-top:2px">${t ? '✅ '+t.file_name : 'لم يُرفع قالب — يُستخدم التصميم الافتراضي'}</div>
+        <div style="font-size:10.5px;color:var(--gray3);margin-top:2px">${t ? '✅ '+t.file_name+(isDefault?' · <span style="color:var(--gold)">📌 قالب افتراضي لكل شركة جديدة</span>':'') : 'لم يُرفع قالب — يُستخدم التصميم الافتراضي'}</div>
       </div>
       <div style="display:flex;gap:6px">
         <label class="btn-xs primary" style="cursor:pointer">📎 ${t?'استبدال':'رفع'} القالب<input type="file" accept=".docx" style="display:none" onchange="uploadDocumentTemplate('${def.key}',this)"></label>
+        ${t ? `<button class="btn-xs" style="background:${isDefault?'#FEF3E2':'var(--offwhite)'};color:${isDefault?'var(--gold)':'var(--dark)'};border:1px solid ${isDefault?'transparent':'var(--gray1)'};border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer" onclick="toggleTemplateDefault('${def.key}',${t.id},${!isDefault})">📌 ${isDefault?'إلغاء الافتراضي':'اجعله افتراضيًا'}</button>` : ""}
         ${t ? `<button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer" onclick="deleteDocumentTemplate('${def.key}')">🗑️ حذف</button>` : ""}
       </div>
     </div>`;
   }).join("");
+}
+
+async function toggleTemplateDefault(key, id, makeDefault){
+  const { error } = await sb.from("document_templates").update({ is_platform_default: makeDefault }).eq("id", id);
+  if(error){ alert("تعذّر التحديث: " + error.message); return; }
+  logActivity("تعديل", "قالب مستند", key, makeDefault ? "تعيينه افتراضيًا لكل شركة جديدة" : "إلغاء التعيين الافتراضي");
+  loadDocumentTemplates();
 }
 
 async function deleteDocumentTemplate(key){
