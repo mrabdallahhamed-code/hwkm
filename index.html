@@ -1073,7 +1073,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <span>🏛️ السياسات والحوكمة</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportPoliciesList()">📥 تصدير Excel</button>
-      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mp-id').value='';document.getElementById('mp-title-h').textContent='🏛️ إضافة سياسة جديدة';document.getElementById('mp-name').value='';document.getElementById('mp-type').value='';document.getElementById('mp-approval').value='';document.getElementById('mp-review').value='';openM('m-policy')">+ إضافة سياسة</button>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mp-id').value='';document.getElementById('mp-title-h').textContent='🏛️ إضافة سياسة جديدة';document.getElementById('mp-name').value='';document.getElementById('mp-type').value='';document.getElementById('mp-approval').value='';document.getElementById('mp-review').value='';document.getElementById('mp-requires-agm').checked=false;openM('m-policy')">+ إضافة سياسة</button>
     </div>
   </div>
   <div style="background:linear-gradient(135deg,var(--primary),var(--primary2));border-radius:14px;padding:16px 18px;margin-bottom:18px;box-shadow:0 6px 20px rgba(26,58,107,0.18)">
@@ -1749,6 +1749,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="fg"><label>اسم السياسة</label><input class="fi" id="mp-name" placeholder="مثال: سياسة إدارة المخاطر" /></div>
     <div class="fg"><label>النوع</label><input class="fi" id="mp-type" placeholder="مثال: رئيسية / أعضاء المجلس / مالية" /></div>
     <div class="row2"><div class="fg"><label>تاريخ الاعتماد</label><input type="date" class="fi" id="mp-approval"/></div><div class="fg"><label>موعد المراجعة</label><input type="date" class="fi" id="mp-review"/></div></div>
+    <div class="fg" style="display:flex;align-items:center;gap:8px;background:var(--offwhite);padding:10px 12px;border-radius:8px">
+      <input type="checkbox" id="mp-requires-agm" style="width:16px;height:16px" />
+      <label for="mp-requires-agm" style="margin:0;font-size:12px;cursor:pointer">تحتاج هذه السياسة اعتماد الجمعية العامة (وليس مجلس الإدارة فقط)؟</label>
+    </div>
     <div class="fg"><label>حالة الاعتماد (مسار الموافقة)</label>
       <select class="fs" id="mp-status">
         <option>مسودة</option>
@@ -5289,6 +5293,27 @@ async function recomputeMeetingRequestStatus(requestId){
 let policiesCache = [];
 const POLICY_STAGES = ["مسودة", "معتمدة من لجنة الحوكمة", "مرفوعة لمجلس الإدارة", "مرفوعة للجمعية العامة", "معتمدة نهائيًا"];
 
+/* The stage sequence isn't one-size-fits-all: a company with no governance committee can't
+   realistically pass through "معتمدة من لجنة الحوكمة", and a policy that only needs board
+   sign-off shouldn't be stuck waiting on an AGM step it was never marked as needing. Both
+   checks are cached per page-load in policyStageContext to avoid refetching committees on
+   every single card render. */
+let policyStageContext = { hasGovernanceCommittee: false, loaded: false };
+
+async function loadPolicyStageContext(){
+  const { data } = await sb.from("committees").select("committee_name,category").eq("company_id", currentCompanyId);
+  policyStageContext.hasGovernanceCommittee = (data||[]).some(c => (c.committee_name||"").includes("حوكمة") || (c.category||"").includes("حوكمة"));
+  policyStageContext.loaded = true;
+}
+
+function getPolicyStageSequence(policy){
+  return POLICY_STAGES.filter(s => {
+    if(s === "معتمدة من لجنة الحوكمة" && !policyStageContext.hasGovernanceCommittee) return false;
+    if(s === "مرفوعة للجمعية العامة" && !policy.requires_agm_approval) return false;
+    return true;
+  });
+}
+
 const POLICY_CATEGORY_ICONS = {
   "سياسات الجمعية": "📜",
   "سياسات المجلس": "🏛️",
@@ -5298,18 +5323,19 @@ const POLICY_CATEGORY_ICONS = {
   "لوائح داخلية": "🗂️"
 };
 
-function policyStageStepper(status){
-  const idx = POLICY_STAGES.indexOf(status);
+function policyStageStepper(status, policy){
+  const stages = policy ? getPolicyStageSequence(policy) : POLICY_STAGES;
+  const idx = stages.indexOf(status);
   const currentIdx = idx === -1 ? 0 : idx;
   return `<div style="display:flex;align-items:center;margin:10px 0">
-    ${POLICY_STAGES.map((stage, i) => {
+    ${stages.map((stage, i) => {
       const done = i < currentIdx;
       const active = i === currentIdx;
       const dotColor = done ? "var(--green)" : active ? "var(--primary)" : "var(--gray1)";
       const lineColor = i < currentIdx ? "var(--green)" : "var(--gray1)";
-      return `<div style="display:flex;align-items:center;flex:${i<POLICY_STAGES.length-1?'1':'0'}">
+      return `<div style="display:flex;align-items:center;flex:${i<stages.length-1?'1':'0'}">
         <div title="${stage}" style="width:${active?'14px':'10px'};height:${active?'14px':'10px'};border-radius:50%;background:${dotColor};${active?'box-shadow:0 0 0 4px rgba(26,58,107,0.15)':''};flex-shrink:0"></div>
-        ${i<POLICY_STAGES.length-1 ? `<div style="flex:1;height:3px;background:${lineColor};margin:0 2px"></div>` : ""}
+        ${i<stages.length-1 ? `<div style="flex:1;height:3px;background:${lineColor};margin:0 2px"></div>` : ""}
       </div>`;
     }).join("")}
   </div>
@@ -5317,13 +5343,19 @@ function policyStageStepper(status){
 }
 
 let policyActiveCategory = "الكل";
+let currentCompanyPolicyDeadlineDays = 14;
 async function loadPolicies(){
   const wrap = document.getElementById("policiesCards");
-  const { data, error } = await sb.from("policies").select("*").eq("company_id", currentCompanyId).order("id", { ascending: true });
+  const [{ data, error }, { data: companyRow }] = await Promise.all([
+    sb.from("policies").select("*").eq("company_id", currentCompanyId).order("id", { ascending: true }),
+    sb.from("companies").select("policy_stage_deadline_days").eq("id", currentCompanyId).single()
+  ]);
   if(error){
     wrap.innerHTML = '<div style="text-align:center;color:var(--red);font-size:12px;padding:14px">تعذّر تحميل السياسات: '+error.message+'</div>';
     return;
   }
+  currentCompanyPolicyDeadlineDays = companyRow?.policy_stage_deadline_days ?? 14;
+  await loadPolicyStageContext();
   policiesCache = data || [];
   renderPolicyPills();
   renderPoliciesFiltered();
@@ -5407,10 +5439,20 @@ function renderPoliciesFiltered(){
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;align-items:stretch">`;
 
     groups[cat].forEach(p => {
-      const stageIdx = POLICY_STAGES.indexOf(p.status);
-      const nextBtn = (stageIdx >= 0 && stageIdx < POLICY_STAGES.length-1)
-        ? `<button class="btn-xs primary" style="width:100%;margin-top:8px" onclick="advancePolicyStage(${p.id})">⏩ نقل إلى: ${POLICY_STAGES[stageIdx+1]}</button>`
+      const stages = getPolicyStageSequence(p);
+      const stageIdx = stages.indexOf(p.status);
+      const nextBtn = (stageIdx >= 0 && stageIdx < stages.length-1)
+        ? `<button class="btn-xs primary" style="width:100%;margin-top:8px" onclick="advancePolicyStage(${p.id})">⏩ نقل إلى: ${stages[stageIdx+1]}</button>`
         : "";
+      const deadlineDays = Number(currentCompanyPolicyDeadlineDays ?? 14);
+      let deadlineBadge = "";
+      if(p.status !== "معتمدة نهائيًا" && p.stage_entered_at){
+        const daysPassed = Math.floor((Date.now() - new Date(p.stage_entered_at).getTime()) / 86400000);
+        const daysLeft = deadlineDays - daysPassed;
+        deadlineBadge = daysLeft >= 0
+          ? `<span style="font-size:10.5px;color:var(--gray3)">⏳ متبقٍ ${daysLeft} يوم على هذه المرحلة</span>`
+          : `<span style="font-size:10.5px;color:var(--red);font-weight:700">⚠️ متأخرة ${Math.abs(daysLeft)} يوم عن الحد المسموح</span>`;
+      }
       html += `<div class="card" style="margin:0;display:flex;flex-direction:column">
         <div class="card-body" style="display:flex;flex-direction:column;flex:1">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
@@ -5420,10 +5462,12 @@ function renderPoliciesFiltered(){
             </div>
             <div style="flex-shrink:0">${statusBadge(p.status)}</div>
           </div>
-          ${policyStageStepper(p.status)}
+          ${policyStageStepper(p.status, p)}
+          ${deadlineBadge ? `<div style="text-align:center;margin-top:2px">${deadlineBadge}</div>` : ""}
           <div style="font-size:11px;color:var(--gray3);display:flex;gap:14px;margin-top:6px;flex-wrap:wrap">
             <span>📅 اعتماد: ${p.approval_date||"—"}</span>
             <span>🔁 مراجعة: ${p.review_date||"—"}</span>
+            ${p.requires_agm_approval ? '<span style="color:var(--gold)">🏛️ تحتاج الجمعية العامة</span>' : ""}
           </div>
           <div style="margin-top:auto;padding-top:10px">
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
@@ -5431,7 +5475,7 @@ function renderPoliciesFiltered(){
               <button class="btn-xs primary" onclick="editPolicy(${p.id})">✏️ تعديل</button>
               <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="openPolicyHistoryModal(${p.id})">🕒 السجل</button>
               <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="deletePolicy(${p.id})">🗑️ حذف</button>
-              ${stageIdx < POLICY_STAGES.length-1 ? `<button class="btn-xs" style="background:#E8F0FA;color:var(--primary);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="sendPolicyApprovalReminder(${p.id})">🔔 تذكير الموافقة</button>` : ""}
+              ${stageIdx < stages.length-1 ? `<button class="btn-xs" style="background:#E8F0FA;color:var(--primary);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="sendPolicyApprovalReminder(${p.id})">🔔 تذكير الموافقة</button>` : ""}
             </div>
             ${nextBtn}
           </div>
@@ -5517,18 +5561,34 @@ async function logPolicyStageChange(policyId, fromStatus, toStatus){
   await sb.from("policy_stage_history").insert([{ policy_id: policyId, from_status: fromStatus, to_status: toStatus, changed_by, company_id: currentCompanyId }]);
 }
 
+async function advancePolicyToStatus(policyId, currentStatus, nextStatus, policyRow){
+  await sb.from("policies").update({ status: nextStatus, stage_entered_at: new Date().toISOString() }).eq("id", policyId);
+  await logPolicyStageChange(policyId, currentStatus, nextStatus);
+  if(nextStatus === "معتمدة نهائيًا"){
+    const p = policyRow || policiesCache.find(x => x.id === policyId);
+    if(p && p.file_url){
+      const { data: board } = await sb.from("user_profiles").select("*").eq("company_id", currentCompanyId).or("role.ilike.%مجلس%,role.eq.مدير النظام");
+      await sb.from("signing_documents").insert([{
+        document_name: `اعتماد نهائي — ${p.policy_name}`, doc_type: "اعتماد سياسة",
+        signers_total: (board||[]).length, signers_done: 0, status: "قيد التوقيع", file_url: p.file_url, company_id: currentCompanyId
+      }]);
+      logActivity("موافقة", "سياسة", p.policy_name, "اعتمدت نهائيًا — انتقلت تلقائيًا للتوقيع الإلكتروني");
+    }
+  }
+}
+
 async function recomputePolicyStage(policyId){
   const { data: revs, error } = await sb.from("policy_reviews").select("*").eq("policy_id", policyId);
   if(error || !revs || revs.length===0) return;
   const allApprove = revs.every(v => v.decision === "موافق");
-  if(!allApprove) return; // stays at "مرفوعة لمجلس الإدارة" until unanimous approval
+  if(!allApprove) return; // stays at the current board/committee/AGM stage until unanimous approval
   const p = policiesCache.find(x => x.id === policyId);
   if(!p) return;
-  const idx = POLICY_STAGES.indexOf(p.status);
-  if(idx === -1 || idx >= POLICY_STAGES.length-1) return;
-  const nextStatus = POLICY_STAGES[idx+1];
-  await sb.from("policies").update({ status: nextStatus }).eq("id", policyId);
-  await logPolicyStageChange(policyId, p.status, nextStatus);
+  const stages = getPolicyStageSequence(p);
+  const idx = stages.indexOf(p.status);
+  if(idx === -1 || idx >= stages.length-1) return;
+  const nextStatus = stages[idx+1];
+  await advancePolicyToStatus(policyId, p.status, nextStatus, p);
 }
 
 async function deletePolicy(id){
@@ -5543,12 +5603,11 @@ async function deletePolicy(id){
 async function advancePolicyStage(id){
   const p = policiesCache.find(x => x.id === id);
   if(!p) return;
-  const idx = POLICY_STAGES.indexOf(p.status);
-  if(idx === -1 || idx >= POLICY_STAGES.length-1) return;
-  const nextStatus = POLICY_STAGES[idx+1];
-  const { error } = await sb.from("policies").update({ status: nextStatus }).eq("id", id);
-  if(error){ alert("تعذّر تحديث الحالة: " + error.message); return; }
-  await logPolicyStageChange(id, p.status, nextStatus);
+  const stages = getPolicyStageSequence(p);
+  const idx = stages.indexOf(p.status);
+  if(idx === -1 || idx >= stages.length-1) return;
+  const nextStatus = stages[idx+1];
+  await advancePolicyToStatus(id, p.status, nextStatus, p);
   loadPolicies();
 }
 
@@ -5603,6 +5662,7 @@ function editPolicy(id){
   document.getElementById("mp-review").value = p.review_date || "";
   document.getElementById("mp-status").value = p.status || "مسودة";
   document.getElementById("mp-category").value = p.category || "لوائح داخلية";
+  document.getElementById("mp-requires-agm").checked = !!p.requires_agm_approval;
   openM("m-policy");
 }
 
@@ -5614,6 +5674,7 @@ async function savePolicy(){
   const review_date = document.getElementById("mp-review").value || null;
   const status = document.getElementById("mp-status").value;
   const category = document.getElementById("mp-category").value;
+  const requires_agm_approval = document.getElementById("mp-requires-agm").checked;
   if(!policy_name){ alert("الرجاء إدخال اسم السياسة"); return; }
 
   const fileInput = document.getElementById("mp-file");
@@ -5621,8 +5682,9 @@ async function savePolicy(){
 
   const previous = id ? policiesCache.find(x => x.id === Number(id)) : null;
 
-  const payload = { policy_name, policy_type, approval_date, review_date, status, category, company_id: currentCompanyId };
+  const payload = { policy_name, policy_type, approval_date, review_date, status, category, requires_agm_approval, company_id: currentCompanyId };
   if(file_url) payload.file_url = file_url;
+  if(!id || (previous && previous.status !== status)) payload.stage_entered_at = new Date().toISOString();
 
   const { error } = id
     ? await sb.from("policies").update(payload).eq("id", id)
