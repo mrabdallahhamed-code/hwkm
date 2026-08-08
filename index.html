@@ -636,6 +636,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="nav-group" id="platformAdminNavGroup" style="display:none">
     <div class="nav-group-label">مالك المنصة</div>
     <div class="nav-item" onclick="go('companyrequests',this)"><span class="ni-icon">🏢</span><span class="ni-text">طلبات إدراج الشركات</span></div>
+    <div class="nav-item" onclick="go('managecompanies',this)"><span class="ni-icon">⚙️</span><span class="ni-text">إدارة الشركات والاشتراكات</span></div>
   </div>
 
   <div class="sidebar-footer">
@@ -1632,6 +1633,14 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
+<!-- ══ MANAGE COMPANIES & SUBSCRIPTIONS ══════ -->
+<div id="p-managecompanies" class="page content">
+  <div class="sec-title">⚙️ إدارة الشركات والاشتراكات</div>
+  <div id="manageCompaniesList">
+    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
+  </div>
+</div>
+
 <!-- ══ ACTIVITY LOG ══════════════════════════ -->
 <div id="p-activitylog" class="page content">
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
@@ -2229,6 +2238,26 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
+<div class="modal-bg" id="m-activate-sub">
+  <div class="modal">
+    <div class="modal-title" id="mas-title-h">✅ تفعيل الاشتراك</div>
+    <input type="hidden" id="mas-company-id" value="" />
+    <div class="fg" style="display:flex;align-items:center;gap:8px;background:var(--offwhite);padding:10px 12px;border-radius:8px;opacity:0.7">
+      <input type="checkbox" checked disabled style="width:16px;height:16px" />
+      <label style="margin:0;font-size:12px">📦 الحوكمة والاجتماعات (أساسية دائمًا)</label>
+    </div>
+    <div class="fg" style="display:flex;align-items:center;gap:8px;background:var(--offwhite);padding:10px 12px;border-radius:8px">
+      <input type="checkbox" id="mas-audit" style="width:16px;height:16px" />
+      <label for="mas-audit" style="margin:0;font-size:12px;cursor:pointer">📦 المراجعة الداخلية</label>
+    </div>
+    <div class="fg" style="display:flex;align-items:center;gap:8px;background:var(--offwhite);padding:10px 12px;border-radius:8px">
+      <input type="checkbox" id="mas-risk" style="width:16px;height:16px" />
+      <label for="mas-risk" style="margin:0;font-size:12px;cursor:pointer">📦 إدارة المخاطر</label>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-activate-sub')">إلغاء</button><button class="btn btn-gold" onclick="activateSubscription()">✅ تفعيل الاشتراك</button></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-approve-company">
   <div class="modal">
     <div class="modal-title">✅ الموافقة على طلب إدراج شركة</div>
@@ -2244,6 +2273,14 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="fg" style="display:flex;align-items:center;gap:8px;background:var(--offwhite);padding:10px 12px;border-radius:8px">
       <input type="checkbox" id="apc-risk" style="width:16px;height:16px" />
       <label for="apc-risk" style="margin:0;font-size:12px;cursor:pointer">📦 إدارة المخاطر</label>
+    </div>
+    <div class="fg" style="display:flex;align-items:center;gap:8px;background:#FEF3E2;padding:10px 12px;border-radius:8px;margin-top:10px">
+      <input type="checkbox" id="apc-trial" style="width:16px;height:16px" checked onchange="document.getElementById('apc-trial-days-row').style.display=this.checked?'flex':'none'" />
+      <label for="apc-trial" style="margin:0;font-size:12px;font-weight:700;cursor:pointer">🎁 منح فترة تجربة مجانية (كل الوحدات مفتوحة مؤقتًا)</label>
+    </div>
+    <div class="fg" id="apc-trial-days-row" style="display:flex;align-items:center;gap:8px">
+      <label style="margin:0;font-size:12px;white-space:nowrap">عدد أيام التجربة:</label>
+      <input type="number" class="fi" id="apc-trial-days" value="14" style="margin:0" />
     </div>
     <div class="fg" style="display:flex;align-items:center;gap:8px;background:#E8F8EF;padding:10px 12px;border-radius:8px;margin-top:10px">
       <input type="checkbox" id="apc-payment" style="width:16px;height:16px" />
@@ -2721,6 +2758,7 @@ function isPageAllowed(pageId, role){
   const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
   const hasNoCompany = currentUserProfile && userMemberships.length === 0;
   if(pageId === 'companyrequests') return isPlatformAdmin;
+  if(pageId === 'managecompanies') return isPlatformAdmin;
   if(pageId === 'companyrequest') return true;
   if(hasNoCompany && !isPlatformAdmin) return false;
   if(pageId === 'users') return role === 'مدير النظام';
@@ -2774,6 +2812,9 @@ function isMutatingOnchange(val){
     || /^checkInAttendee\(/.test(val)
     || /^deleteCheckin\(/.test(val)
     || /^toggleTemplateDefault\(/.test(val)
+    || /^openActivateSubModal\(/.test(val)
+    || /^activateSubscription\(/.test(val)
+    || /^cancelTrial\(/.test(val)
     || /^openCharterModal\(/.test(val)
     || /^saveCharter\(/.test(val)
     || /^sendMeetingReminderEmails\(/.test(val)
@@ -3161,6 +3202,7 @@ function reloadCurrentPageData(){
   if(id==='activitylog') loadActivityLog();
   if(id==='shareholders') loadShareholders();
   if(id==='indicators') loadIndicatorsReport();
+  if(id==='managecompanies') loadManageCompanies();
 }
 
 const REPORT_MANUAL_FIELDS = [
@@ -3705,6 +3747,65 @@ async function submitCompanyRequest(){
   loadCompanyRequestPage();
 }
 
+async function loadManageCompanies(){
+  const box = document.getElementById("manageCompaniesList");
+  if(!box) return;
+  const { data, error } = await sb.from("companies").select("*").order("id",{ascending:false});
+  if(error){ box.innerHTML = `<div style="color:var(--red);font-size:12px">${error.message}</div>`; return; }
+  if(!data || data.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">لا توجد شركات بعد.</div>'; return; }
+
+  box.innerHTML = data.map(c => {
+    const inTrial = c.trial_ends_at && new Date(c.trial_ends_at) > new Date();
+    const daysLeft = inTrial ? Math.max(0, Math.ceil((new Date(c.trial_ends_at) - new Date()) / 86400000)) : 0;
+    const modules = [
+      c.module_internal_audit || inTrial ? "المراجعة الداخلية" : null,
+      c.module_risk_management || inTrial ? "المخاطر" : null
+    ].filter(Boolean);
+    return `<div class="card" style="margin-bottom:12px"><div class="card-body">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-weight:800;font-size:13.5px;color:var(--dark)">${c.name}</div>
+          <div style="font-size:11px;color:var(--gray3);margin-top:2px">${c.company_type||"—"} · الوحدات: ${modules.length?modules.join("، "):"الأساسية فقط"}</div>
+        </div>
+        ${inTrial ? `<span class="badge pending">🎁 تجربة — متبقٍ ${daysLeft} يوم</span>` : c.trial_ends_at ? `<span class="badge urgent">⚠️ انتهت التجربة</span>` : `<span class="badge done">✅ مشترك</span>`}
+      </div>
+      ${(inTrial || (c.trial_ends_at && !inTrial)) ? `<div style="display:flex;gap:6px;margin-top:10px">
+        <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="openActivateSubModal(${c.id},'${c.name.replace(/'/g,"")}')">✅ تفعيل الاشتراك</button>
+        <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="cancelTrial(${c.id},'${c.name.replace(/'/g,"")}')">🚫 إلغاء التجربة</button>
+      </div>` : ""}
+    </div></div>`;
+  }).join("");
+}
+
+function openActivateSubModal(companyId, companyName){
+  document.getElementById("mas-company-id").value = companyId;
+  document.getElementById("mas-title-h").textContent = "✅ تفعيل الاشتراك — " + companyName;
+  document.getElementById("mas-audit").checked = false;
+  document.getElementById("mas-risk").checked = false;
+  openM("m-activate-sub");
+}
+
+async function activateSubscription(){
+  const companyId = Number(document.getElementById("mas-company-id").value);
+  const module_internal_audit = document.getElementById("mas-audit").checked;
+  const module_risk_management = document.getElementById("mas-risk").checked;
+  const { error } = await sb.from("companies").update({ module_internal_audit, module_risk_management, trial_ends_at: null }).eq("id", companyId);
+  if(error){ alert("تعذّر التفعيل: " + error.message); return; }
+  logActivity("موافقة", "اشتراك", String(companyId), "تفعيل اشتراك مدفوع وإنهاء فترة التجربة");
+  alert("تم تفعيل الاشتراك بنجاح ✅");
+  closeM("m-activate-sub");
+  loadManageCompanies();
+}
+
+async function cancelTrial(companyId, companyName){
+  if(!confirm(`إلغاء فترة تجربة "${companyName}"؟ سيفقد الوصول للوحدات الإضافية فورًا (تبقى الحوكمة والاجتماعات الأساسية فقط).`)) return;
+  const { error } = await sb.from("companies").update({ module_internal_audit: false, module_risk_management: false, trial_ends_at: null }).eq("id", companyId);
+  if(error){ alert("تعذّر الإلغاء: " + error.message); return; }
+  logActivity("رفض", "اشتراك", companyName, "إلغاء فترة التجربة بدون اشتراك");
+  alert("تم إلغاء فترة التجربة.");
+  loadManageCompanies();
+}
+
 async function loadCompanyRequestsReview(){
   const pendingBox = document.getElementById("companyRequestsReviewList");
   const historyBox = document.getElementById("companyRequestsHistoryTbody");
@@ -3747,6 +3848,9 @@ function openApproveCompanyModal(requestId){
   document.getElementById("apc-audit").checked = false;
   document.getElementById("apc-risk").checked = false;
   document.getElementById("apc-payment").checked = false;
+  document.getElementById("apc-trial").checked = true;
+  document.getElementById("apc-trial-days").value = "14";
+  document.getElementById("apc-trial-days-row").style.display = "flex";
   openM("m-approve-company");
 }
 
@@ -3754,7 +3858,10 @@ async function approveCompanyRequest(requestId){
   const module_internal_audit = document.getElementById("apc-audit").checked;
   const module_risk_management = document.getElementById("apc-risk").checked;
   const payment_confirmed = document.getElementById("apc-payment").checked;
-  if(!payment_confirmed && !confirm("لم تؤكد استلام السداد لهذا الطلب — هل تريد المتابعة على أي حال؟")) return;
+  const isTrial = document.getElementById("apc-trial").checked;
+  const trialDays = Number(document.getElementById("apc-trial-days").value) || 14;
+  const trial_ends_at = isTrial ? new Date(Date.now() + trialDays*86400000).toISOString() : null;
+  if(!payment_confirmed && !isTrial && !confirm("لم تؤكد استلام السداد ولا منحت فترة تجربة — هل تريد المتابعة على أي حال؟")) return;
 
   const { data: r, error: rErr } = await sb.from("company_requests").select("*").eq("id", requestId).single();
   if(rErr || !r){ alert("تعذّر تحميل الطلب"); return; }
@@ -3762,7 +3869,7 @@ async function approveCompanyRequest(requestId){
   const { data: newCompany, error: cErr } = await sb.from("companies").insert([{
     name: r.company_name, company_type: r.company_type, cr_number: r.cr_number, cr_date: r.cr_date,
     responsible_person: r.responsible_person, responsible_phone: r.responsible_phone, responsible_email: r.responsible_email,
-    module_internal_audit, module_risk_management
+    module_internal_audit, module_risk_management, trial_ends_at
   }]).select().single();
   if(cErr){ alert("تعذّر إنشاء الشركة: " + cErr.message); return; }
 
@@ -3793,7 +3900,9 @@ async function approveCompanyRequest(requestId){
   }
 
   closeM("m-approve-company");
-  alert("تم إنشاء الشركة وربط المستخدم بها كمدير نظام ✅" + (defaults && defaults.length ? ` — تم نسخ ${defaults.length} قالب مستند افتراضي لها.` : ""));
+  alert("تم إنشاء الشركة وربط المستخدم بها كمدير نظام ✅"
+    + (isTrial ? ` — فترة تجربة مجانية ${trialDays} يوم (كل الوحدات مفتوحة).` : "")
+    + (defaults && defaults.length ? ` وتم نسخ ${defaults.length} قالب مستند افتراضي لها.` : ""));
   loadCompanyRequestsReview();
 }
 
@@ -3842,13 +3951,39 @@ async function saveCompany(){
    board/committee/AGM-related pages are irrelevant and get hidden from the sidebar. */
 const SOLE_PROP_HIDDEN_PAGES = ['meetings','committees','agm','voting','members','appoint','perf','shareholders'];
 let currentCompanyModules = { internal_audit: false, risk_management: false };
+let currentCompanyTrialEndsAt = null;
 const MODULE_PAGE_MAP = { audit: 'internal_audit', risks: 'risk_management' };
+
+function renderTrialBanner(){
+  let banner = document.getElementById("trialBanner");
+  if(!currentCompanyTrialEndsAt){
+    if(banner) banner.remove();
+    return;
+  }
+  const daysLeft = Math.max(0, Math.ceil((new Date(currentCompanyTrialEndsAt) - new Date()) / 86400000));
+  if(!banner){
+    banner = document.createElement("div");
+    banner.id = "trialBanner";
+    banner.style.cssText = "background:linear-gradient(90deg,var(--gold),#D4AF37);color:#fff;text-align:center;font-size:12px;font-weight:700;padding:8px;position:sticky;top:0;z-index:400";
+    const appWrapper = document.getElementById("appWrapper");
+    appWrapper.insertBefore(banner, appWrapper.firstChild);
+  }
+  banner.textContent = daysLeft > 0
+    ? `🎁 أنت بفترة تجربة مجانية — متبقٍ ${daysLeft} يوم (كل الوحدات مفتوحة مؤقتًا)`
+    : `⚠️ انتهت فترة التجربة المجانية — تواصل معنا لتفعيل الاشتراك`;
+}
 
 async function applyCompanyTypeVisibility(){
   if(!currentCompanyId) return;
-  const { data: c } = await sb.from("companies").select("company_type,module_internal_audit,module_risk_management").eq("id", currentCompanyId).single();
+  const { data: c } = await sb.from("companies").select("company_type,module_internal_audit,module_risk_management,trial_ends_at").eq("id", currentCompanyId).single();
   currentCompanyType = c ? c.company_type : null;
-  currentCompanyModules = { internal_audit: !!c?.module_internal_audit, risk_management: !!c?.module_risk_management };
+  const inTrial = !!(c && c.trial_ends_at && new Date(c.trial_ends_at) > new Date());
+  currentCompanyTrialEndsAt = inTrial ? c.trial_ends_at : null;
+  currentCompanyModules = {
+    internal_audit: inTrial || !!c?.module_internal_audit,
+    risk_management: inTrial || !!c?.module_risk_management
+  };
+  renderTrialBanner();
   const isSoleProp = currentCompanyType === "مؤسسة فردية";
   const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
   document.querySelectorAll('.nav-item').forEach(item => {
@@ -9670,6 +9805,7 @@ function go(id, el){
   if(id==='activitylog') loadActivityLog();
   if(id==='shareholders') loadShareholders();
   if(id==='indicators') loadIndicatorsReport();
+  if(id==='managecompanies') loadManageCompanies();
   if(id==='members') loadMembers();
   if(id==='governance') loadPolicies();
   if(id==='meetings' || id==='committees' || id==='agm') loadMeetingsAll();
