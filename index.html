@@ -681,7 +681,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
         </div>
       </div>
     </div>
-    <button class="btn btn-outline" onclick="openM('m-meeting')">+ اجتماع</button>
+    <button class="btn btn-outline" onclick="newMeetingTopics=[];renderNewMeetingTopics();openM('m-meeting')">+ اجتماع</button>
     <button class="btn btn-gold">📄 تقرير</button>
   </div>
 </header>
@@ -942,7 +942,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
     <span>📅 اجتماعات اللجان القادمة</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mt-type').value='اجتماع لجنة';toggleVotingDatesFields();openM('m-meeting')">+ اجتماع لجنة جديد</button>
+    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mt-type').value='اجتماع لجنة';toggleVotingDatesFields();newMeetingTopics=[];renderNewMeetingTopics();openM('m-meeting')">+ اجتماع لجنة جديد</button>
   </div>
   <div class="meet-cards" id="upcomingCommitteeCards">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
@@ -977,7 +977,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <div id="p-agm" class="page content">
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
     <span>🤝 الجمعيات العامة</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mt-type').value='الجمعية العامة';toggleVotingDatesFields();openM('m-meeting')">+ جمعية عامة جديدة</button>
+    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mt-type').value='الجمعية العامة';toggleVotingDatesFields();newMeetingTopics=[];renderNewMeetingTopics();openM('m-meeting')">+ جمعية عامة جديدة</button>
   </div>
 
   <div class="sec-title" style="margin-top:16px">📅 الجمعيات القادمة</div>
@@ -1683,6 +1683,15 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
         <div class="fg"><label style="font-size:11px">رقم الدعوة</label><select class="fs" id="mt-call-number"><option value="1">الاجتماع الأول</option><option value="2">الاجتماع الثاني</option><option value="3">الاجتماع الثالث</option></select></div>
       </div>
       <p style="font-size:10.5px;color:var(--gray3)">النصاب المطلوب يُحسب تلقائيًا حسب نوع الجمعية ورقم الدعوة، طبقًا لنظام الشركات.</p>
+    </div>
+    <div style="background:var(--offwhite);border-radius:10px;padding:10px;margin-bottom:10px">
+      <label style="font-size:11px;font-weight:800;color:var(--primary)">📋 بنود جدول الأعمال</label>
+      <div id="mt-topics-list" style="margin:6px 0"></div>
+      <div style="display:flex;gap:6px">
+        <input class="fi" id="mt-new-topic" placeholder="نص بند جديد..." style="flex:1;margin:0">
+        <button type="button" class="btn btn-ghost" style="font-size:11px;padding:8px 14px;white-space:nowrap" onclick="addNewMeetingTopic()">+ إضافة</button>
+      </div>
+      <p style="font-size:10.5px;color:var(--gray3);margin-top:4px" id="mt-topics-hint">هذي البنود تنعكس تلقائيًا على المحضر — وللجمعية العامة تحديدًا، تُقفل عن التعديل لو تبقّى أقل من ١٠ أيام على الموعد.</p>
     </div>
     <div class="fg"><label>الوثائق الداعمة (اختياري)</label><input type="file" class="fi" id="mt-file" /></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-meeting')">إلغاء</button><button class="btn btn-gold" onclick="saveMeeting()">✅ حفظ الاجتماع</button></div>
@@ -4858,11 +4867,35 @@ async function deleteAGMSupportingDoc(docId, meetingId){
   loadAGMSupportingDocs(meetingId);
 }
 
+// A general assembly's agenda must be locked once the meeting is close — changing it after
+// invitations have effectively gone out undermines the whole point of prior notice. 10 days
+// is used as the cutoff; inside that window, adding/removing items is blocked entirely.
+function daysUntilMeeting(meetingDateStr){
+  if(!meetingDateStr) return Infinity;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const meetingDate = new Date(meetingDateStr); meetingDate.setHours(0,0,0,0);
+  return Math.round((meetingDate - today) / 86400000);
+}
+
 async function loadAGMTopicsForModal(meetingId){
   const box = document.getElementById("agmView-topics");
   if(!box) return;
-  const { data, error } = await sb.from("vote_topics").select("*").eq("meeting_id", meetingId).order("sort_order",{ascending:true}).order("id",{ascending:true});
+  const [{ data, error }, { data: m }] = await Promise.all([
+    sb.from("vote_topics").select("*").eq("meeting_id", meetingId).order("sort_order",{ascending:true}).order("id",{ascending:true}),
+    sb.from("meetings").select("meeting_date").eq("id", meetingId).single()
+  ]);
   if(error){ box.innerHTML = '<div style="font-size:11px;color:var(--red)">تعذّر التحميل</div>'; return; }
+
+  const daysLeft = daysUntilMeeting(m?.meeting_date);
+  const locked = daysLeft < 10;
+  const addRow = document.getElementById("agmView-newtopic")?.closest("div");
+  if(locked){
+    box.innerHTML = (data && data.length ? data.map((t,i) => `<div style="padding:6px 0;font-size:12.5px;border-bottom:1px solid var(--gray1)">${i+1}. ${t.topic_text}</div>`).join("") : '<div style="font-size:11px;color:var(--gray3)">لا توجد بنود.</div>')
+      + `<div style="font-size:10.5px;color:var(--red);margin-top:6px">🔒 لا يمكن تعديل البنود — تبقّى أقل من ١٠ أيام على الجمعية (${daysLeft>=0?daysLeft:0} يوم).</div>`;
+    if(addRow) addRow.style.display = "none";
+    return;
+  }
+  if(addRow) addRow.style.display = "flex";
   if(!data || data.length===0){ box.innerHTML = '<div style="font-size:11px;color:var(--gray3);padding:6px 0">لا توجد بنود بعد — أضف أول بند بالأسفل.</div>'; return; }
   box.innerHTML = data.map((t,i) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:12.5px;border-bottom:1px solid var(--gray1)">
     <span>${i+1}. ${t.topic_text}</span>
@@ -4874,6 +4907,8 @@ async function addAGMTopic(){
   const input = document.getElementById("agmView-newtopic");
   const topic_text = input.value.trim();
   if(!topic_text || !currentAGMModalMeetingId) return;
+  const { data: m } = await sb.from("meetings").select("meeting_date").eq("id", currentAGMModalMeetingId).single();
+  if(daysUntilMeeting(m?.meeting_date) < 10){ alert("لا يمكن إضافة بنود جديدة — تبقّى أقل من ١٠ أيام على موعد الجمعية."); return; }
   const { data: existing } = await sb.from("vote_topics").select("id").eq("meeting_id", currentAGMModalMeetingId);
   const { error } = await sb.from("vote_topics").insert([{
     meeting_id: currentAGMModalMeetingId, topic_text, sort_order: (existing||[]).length, company_id: currentCompanyId
@@ -4884,6 +4919,8 @@ async function addAGMTopic(){
 }
 
 async function deleteAGMTopic(topicId, meetingId){
+  const { data: m } = await sb.from("meetings").select("meeting_date").eq("id", meetingId).single();
+  if(daysUntilMeeting(m?.meeting_date) < 10){ alert("لا يمكن حذف بنود — تبقّى أقل من ١٠ أيام على موعد الجمعية."); return; }
   if(!confirm("حذف هذا البند نهائيًا؟ سيُحذف معه أي أصوات مسجّلة عليه.")) return;
   const { error } = await sb.from("vote_topics").delete().eq("id", topicId);
   if(error){ alert("تعذّر الحذف: " + error.message); return; }
@@ -5027,6 +5064,29 @@ function renderPastCommitteeTable(past){
   </tr>`).join("");
 }
 
+let newMeetingTopics = [];
+function addNewMeetingTopic(){
+  const input = document.getElementById("mt-new-topic");
+  const text = input.value.trim();
+  if(!text) return;
+  newMeetingTopics.push(text);
+  input.value = "";
+  renderNewMeetingTopics();
+}
+function removeNewMeetingTopic(i){
+  newMeetingTopics.splice(i,1);
+  renderNewMeetingTopics();
+}
+function renderNewMeetingTopics(){
+  const box = document.getElementById("mt-topics-list");
+  if(!box) return;
+  if(newMeetingTopics.length === 0){ box.innerHTML = '<div style="font-size:11px;color:var(--gray3)">لا توجد بنود بعد.</div>'; return; }
+  box.innerHTML = newMeetingTopics.map((t,i) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px;border-bottom:1px solid var(--gray1)">
+    <span>${i+1}. ${t}</span>
+    <button type="button" onclick="removeNewMeetingTopic(${i})" style="background:none;border:none;color:var(--gray3);cursor:pointer;font-size:11px">🗑️</button>
+  </div>`).join("");
+}
+
 async function saveMeeting(){
   const title = document.getElementById("mt-title").value.trim();
   const meeting_type = document.getElementById("mt-type").value;
@@ -5047,14 +5107,21 @@ async function saveMeeting(){
   const fileInput = document.getElementById("mt-file");
   const file_url = await uploadFile(fileInput, "meetings");
 
-  const { error } = await sb.from("meetings").insert([{ title, meeting_type, meeting_date, meeting_time, method, notes, file_url, voting_start, voting_end, agm_type, call_number, committee_id, company_id: currentCompanyId }]);
+  const { data: newMeeting, error } = await sb.from("meetings").insert([{ title, meeting_type, meeting_date, meeting_time, method, notes, file_url, voting_start, voting_end, agm_type, call_number, committee_id, company_id: currentCompanyId }]).select().single();
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
+
+  if(newMeetingTopics.length){
+    const topicRows = newMeetingTopics.map((topic_text, i) => ({ meeting_id: newMeeting.id, topic_text, sort_order: i, company_id: currentCompanyId }));
+    await sb.from("vote_topics").insert(topicRows);
+  }
 
   document.getElementById("mt-title").value = "";
   document.getElementById("mt-notes").value = "";
   document.getElementById("mt-voting-start").value = "";
   document.getElementById("mt-voting-end").value = "";
   fileInput.value = "";
+  newMeetingTopics = [];
+  renderNewMeetingTopics();
   closeM("m-meeting");
   loadMeetingsAll();
   alert("تم حفظ الاجتماع بنجاح ✅ — ستجده في صفحته المخصصة حسب النوع");
@@ -9834,6 +9901,8 @@ async function generateMeetingMinutesDoc(meetingId){
   const { data: m, error: mErr } = await sb.from("meetings").select("*").eq("id", meetingId).single();
   if(mErr || !m){ alert("تعذّر تحميل بيانات الاجتماع"); return; }
 
+  const { data: topics } = await sb.from("vote_topics").select("*").eq("meeting_id", meetingId).order("sort_order",{ascending:true}).order("id",{ascending:true});
+
   const { data: company } = await sb.from("companies").select("*").eq("id", currentCompanyId).single();
   let members, scopeLabel = "مجلس الإدارة";
   if(m.committee_id){
@@ -9893,7 +9962,7 @@ async function generateMeetingMinutesDoc(meetingId){
       </table>
 
       <h2>ثانياً: جدول الأعمال والمناقشات</h2>
-      <p>${m.notes ? m.notes : "لم تُسجَّل ملاحظات أو بنود جدول أعمال لهذا الاجتماع."}</p>
+      ${(topics && topics.length) ? `<ol>${topics.map(t=>`<li>${t.topic_text}</li>`).join("")}</ol>` : `<p>${m.notes ? m.notes : "لم تُسجَّل ملاحظات أو بنود جدول أعمال لهذا الاجتماع."}</p>`}
 
       <h2>ثالثاً: خاتمة</h2>
       <p>وبعد استكمال بنود جدول الأعمال، اختُتم الاجتماع بتاريخ ${dateNow}.</p>
