@@ -1014,8 +1014,8 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openTransferModal()">🔄 نقل ملكية</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px;color:var(--red)" onclick="deleteAllShareholders()">🗑️ حذف الكل</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openPdfImportModal()">📄 استيراد من PDF</button>
-      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="downloadShareholdersTemplate()">📥 قالب Excel فارغ</button>
-      <label class="btn btn-ghost" style="font-size:11px;padding:6px 14px;cursor:pointer">📤 رفع Excel معبّى<input type="file" accept=".xlsx" style="display:none" onchange="handleShareholdersExcelUpload(this)"></label>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="downloadShareholdersTemplate()">📥 تحميل نموذج الإدخال</button>
+      <label class="btn btn-ghost" style="font-size:11px;padding:6px 14px;cursor:pointer">📤 استيراد البيانات<input type="file" accept=".xlsx" style="display:none" onchange="handleShareholdersExcelUpload(this)"></label>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportShareholdersList()">📥 تصدير Excel</button>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openNewShareholderModal()">+ إضافة مساهم</button>
     </div>
@@ -1057,14 +1057,14 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <span>📊 المؤشرات المالية والتشغيلية</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" id="indicatorsPdfBtn" style="font-size:11px;padding:6px 14px;display:none" onclick="exportIndicatorsPDF()">🖨️ تحميل تقرير PDF</button>
-      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="downloadIndicatorsTemplate()">📥 تحميل قالب Excel فارغ</button>
-      <label class="btn btn-gold" style="font-size:11px;padding:6px 14px;cursor:pointer">📤 رفع الملف المعبّى<input type="file" accept=".xlsx" style="display:none" onchange="handleIndicatorsUpload(this)"></label>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="downloadIndicatorsTemplate()">📥 تحميل نموذج الإدخال</button>
+      <label class="btn btn-gold" style="font-size:11px;padding:6px 14px;cursor:pointer">📤 استيراد البيانات<input type="file" accept=".xlsx" style="display:none" onchange="handleIndicatorsUpload(this)"></label>
     </div>
   </div>
-  <p style="font-size:12px;color:var(--gray3);margin-bottom:16px">حمّل القالب، أرسله لممثل العميل ليعبّيه بالأرقام، وارفعه هنا — تُعرض البيانات تلقائيًا بالتقرير أدناه مقارنةً بالفترة السابقة.</p>
+  <p style="font-size:12px;color:var(--gray3);margin-bottom:16px">نزّل النموذج، أرسله لممثل الشركة لتعبئته بالأرقام، ثم استورده هنا — تُعرض البيانات تلقائيًا بالتقرير أدناه مقارنةً بالفترة السابقة.</p>
 
   <div id="indicatorsReport">
-    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:30px">لا توجد بيانات مرفوعة بعد. حمّل القالب وابدأ.</div>
+    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:30px">لا توجد بيانات مستوردة بعد. نزّل النموذج وابدأ.</div>
   </div>
 </div>
 
@@ -1144,7 +1144,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <span>🌳 دليل المناصب التنظيمية</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportPositionsList()">📥 تصدير Excel</button>
-      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="generateBaseStructure()">🏗️ توليد الهيكل الأساسي حسب نوع الشركة</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="generateBaseStructure()">🏗️ إنشاء هيكل تنظيمي مقترح</button>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mst-id').value='';document.getElementById('mst-title-h').textContent='🌳 إضافة منصب في الهيكل التنظيمي';document.getElementById('mst-leadership').checked=true;document.getElementById('mst-is-body').checked=false;toggleBodyFields();document.getElementById('mst-delete-btn').style.display='none';populateParentPositionSelect();openM('m-structure')">+ إضافة منصب</button>
       <button class="btn" id="approvalBtnStructure" style="background:var(--gold);color:#fff;font-size:11px;padding:6px 14px" onclick="requestBoardApproval('structure')">📤 طلب موافقة من المجلس</button>
     </div>
@@ -7290,7 +7290,7 @@ async function loadIndicatorsReport(){
   const { data, error } = await sb.from("financial_indicators_reports").select("*").eq("company_id", currentCompanyId).order("created_at",{ascending:false}).limit(2);
   if(error){ box.innerHTML = `<div style="color:var(--red);font-size:12px">تعذّر التحميل: ${error.message}</div>`; return; }
   if(!data || data.length === 0){
-    box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:30px">لا توجد بيانات مرفوعة بعد. حمّل القالب وابدأ.</div>';
+    box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:30px">لا توجد بيانات مستوردة بعد. نزّل النموذج وابدأ.</div>';
     return;
   }
   const cur = data[0], prev = data[1] || {};
@@ -8613,8 +8613,8 @@ async function generateBaseStructure(){
 
   const payload = rows.map(r => ({ ...r, company_id: currentCompanyId }));
   const { error } = await sb.from("org_structure").insert(payload);
-  if(error){ alert("تعذّر توليد الهيكل الأساسي: " + error.message); return; }
-  alert("تم توليد الهيكل الأساسي ✅ — أضف بقية المناصب (نواب الرئيس، المدراء...) وتأكد كل واحد يتبع للجهة الصح.");
+  if(error){ alert("تعذّر إنشاء الهيكل المقترح: " + error.message); return; }
+  alert("تم إنشاء الهيكل المقترح ✅ — أضف بقية المناصب (نواب الرئيس، المدراء...) وتأكد كل واحد يتبع للجهة الصحيحة.");
   loadStructure();
 }
 
