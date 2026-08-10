@@ -3744,6 +3744,24 @@ async function submitCompanyRequest(){
     status: "قيد المراجعة"
   }]);
   if(error){ alert("تعذّر إرسال الطلب: " + error.message); return; }
+
+  // Notify every platform admin by email — this is a cross-tenant event, not scoped to any
+  // single company's team, so it can't reuse the normal per-company bulk-email helper.
+  const { data: admins } = await sb.from("user_profiles").select("email").eq("is_platform_admin", true);
+  if(admins && admins.length){
+    const subject = `طلب إدراج شركة جديد: ${company_name}`;
+    const html = `
+      <div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px">
+        <h2 style="color:#1A3A6B">🏢 طلب إدراج شركة جديد بمنصة حوكم</h2>
+        <p><b>اسم الشركة:</b> ${company_name}</p>
+        <p><b>نوع الشركة:</b> ${company_type||"—"}</p>
+        <p><b>مقدَّم من:</b> ${currentUserProfile.full_name||currentUserProfile.email} (${currentUserProfile.email})</p>
+        <p>الرجاء الدخول للمنصة ومراجعة الطلب من صفحة "طلبات إدراج الشركات".</p>
+        <p style="color:#8B95A5;font-size:12px;margin-top:20px">هذه رسالة تلقائية من منصّة حوكم.</p>
+      </div>`;
+    for(const a of admins){ await sendNotificationEmail(a.email, subject, html); }
+  }
+
   loadCompanyRequestPage();
 }
 
@@ -4373,6 +4391,14 @@ async function loadNotifications(){
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
   const items = [];
+
+  // 0) Platform admin: new company registration requests awaiting review — this is a
+  // platform-wide event, not scoped to whichever company is currently selected.
+  const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
+  if(isPlatformAdmin){
+    const { data: reqs } = await sb.from("company_requests").select("*").eq("status", "قيد المراجعة");
+    (reqs||[]).forEach(r => { items.push({ icon:"🏢", text:`طلب إدراج شركة جديد: "${r.company_name}" ينتظر مراجعتك`, page:"companyrequests" }); });
+  }
 
   // 1) Consultation requests needing your action
   if(role === 'مدير النظام' || role === 'رئيس مجلس'){
