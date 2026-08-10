@@ -7052,6 +7052,8 @@ function exportArchiveList(){
 /* ══════════ FINANCIAL & OPERATIONAL INDICATORS (Excel round-trip) ══════════ */
 /* ══════════ CEO MONTHLY REPORT — full replacement of the old financial indicators system ══════════ */
 
+/* ══════════ FINANCIAL & OPERATIONAL REPORT v2 — trimmed to 15 sections per feedback ══════════ */
+
 function downloadIndicatorsTemplate(){
   const wb = XLSX.utils.book_new();
   const addSheet = (name, rows, colW) => {
@@ -7062,38 +7064,8 @@ function downloadIndicatorsTemplate(){
   };
   try{
 
-  addSheet("١-الملخص التنفيذي", [
-    ["الفترة (مثال: يونيو 2026)", ""],
-    ["أبرز الإنجازات", ""],
-    ["أهم العقود أو المشاريع الجديدة", ""],
-    ["أهم التطورات في أعمال الشركة", ""],
-    ["إنجاز استثنائي أو مهم", ""],
-    ["إجمالي الإيرادات (ريال)", ""],
-    ["إجمالي الأرباح (ريال)", ""],
-    ["صافي الربح (ريال)", ""],
-    ["التدفقات النقدية (ريال)", ""],
-    ["مقارنة النتائج بالموازنة", ""],
-    ["مقارنة النتائج بالشهر السابق", ""],
-    ["مقارنة النتائج بنفس الشهر من العام السابق", ""],
-    ["مستوى التشغيل", ""],
-    ["الإنتاج أو حجم الأعمال المنفذة", ""],
-    ["جودة الخدمات أو المنتجات", ""],
-    ["الالتزام بمواعيد التسليم", ""],
-    ["أهم المشكلات التشغيلية", ""],
-    ["قيمة المبيعات (ريال)", ""],
-    ["نسبة تحقيق المستهدف (%)", ""],
-    ["العقود الجديدة", ""],
-    ["الفرص البيعية الحالية", ""],
-    ["أهم المخاطر", ""],
-    ["مشاكل تحتاج تدخلًا إداريًا", ""],
-    ["مخاطر مالية أو قانونية أو تشغيلية", ""],
-    ["القرارات المطلوبة من مجلس الإدارة", ""],
-    ["أهم الأولويات للشهر القادم", ""],
-    ["التوقعات والنتائج المتوقعة", ""],
-    ["الإجراءات التصحيحية", ""]
-  ]);
-
-  addSheet("٢-لوحة المؤشرات", [
+  addSheet("١-لوحة المؤشرات", [
+    ["الفترة (مثال: يونيو 2026)", "", "", "", ""],
     ["المؤشر", "المستهدف", "الفعلي", "الشهر السابق", "نفس الشهر بالعام السابق"],
     ["الإيرادات", "", "", "", ""],
     ["المبيعات", "", "", "", ""],
@@ -7115,125 +7087,59 @@ function downloadIndicatorsTemplate(){
     ["نسبة إنجاز المشاريع", "", "", "", ""]
   ], [30,16,16,18,22]);
 
-  addSheet("٣-الأداء المالي", [
-    ["الإيرادات خلال الشهر (ريال)", ""],
-    ["الإيرادات منذ بداية السنة (ريال)", ""],
-    ["الإيرادات المستهدفة (ريال)", ""],
-    ["نسبة تحقيق المستهدف (%)", ""],
-    ["مقارنة الإيرادات بالشهر السابق (%)", ""],
-    ["مقارنة الإيرادات بنفس الشهر من العام السابق (%)", ""],
-    ["توزيع الإيرادات (حسب النشاط/المنتج/الفرع)", ""],
+  addSheet("٢-الأداء المالي", [
+    ["الإيرادات (ريال)", ""],
     ["إجمالي الربح (ريال)", ""],
-    ["هامش إجمالي الربح (%)", ""],
-    ["الربح التشغيلي (ريال)", ""],
-    ["صافي الربح (ريال)", ""],
-    ["هامش صافي الربح (%)", ""],
-    ["مقارنة الأرباح بالموازنة", ""],
-    ["أسباب انخفاض أو ارتفاع الأرباح", ""],
     ["إجمالي المصروفات (ريال)", ""],
     ["المصروفات الإدارية (ريال)", ""],
     ["مصروفات المبيعات والتسويق (ريال)", ""],
-    ["الرواتب (ريال)", ""],
-    ["الإيجارات (ريال)", ""],
-    ["المصروفات التشغيلية (ريال)", ""],
-    ["المصروفات غير المتكررة (ريال)", ""],
-    ["المصروفات التي تجاوزت الموازنة وأسباب التجاوز", ""],
-    ["الرصيد النقدي بداية الشهر (ريال)", ""],
-    ["التدفقات الداخلة (ريال)", ""],
-    ["التدفقات الخارجة (ريال)", ""],
-    ["الرصيد النقدي نهاية الشهر (ريال)", ""],
-    ["التدفق النقدي التشغيلي (ريال)", ""],
-    ["الاستثمارات (ريال)", ""],
-    ["التمويل والقروض (ريال)", ""],
-    ["الاحتياجات النقدية المتوقعة (ريال)", ""],
-    ["إجمالي العملاء المدينين (ريال)", ""],
-    ["المبالغ المستحقة (ريال)", ""],
-    ["المبالغ المتأخرة (ريال)", ""],
-    ["نسبة التحصيل (%)", ""],
-    ["أكبر العملاء المتأخرين وخطة التحصيل", ""],
-    ["الديون المشكوك في تحصيلها (ريال)", ""]
+    ["الرواتب (ريال)", ""]
   ]);
 
-  addSheet("٤-المبيعات وتطوير الأعمال", [
+  addSheet("٣-المبيعات", [
     ["المبيعات الشهرية (ريال)", ""],
     ["المستهدف الشهري (ريال)", ""],
-    ["نسبة تحقيق المستهدف الشهري (%)", ""],
     ["المبيعات منذ بداية السنة (ريال)", ""],
-    ["المستهدف السنوي (ريال)", ""],
-    ["نسبة تحقيق الخطة السنوية (%)", ""],
-    ["المبيعات حسب المنتجات/العملاء/المناطق", ""],
     ["عدد العملاء الجدد", ""],
-    ["عدد العملاء الذين توقفوا عن التعامل", ""],
-    ["أكبر العملاء ونسبة مساهمتهم بالإيرادات", ""],
-    ["العقود الجديدة الموقعة (القيمة والمدة)", ""],
-    ["هامش الربح المتوقع للعقود الجديدة", ""],
-    ["العقود التي تم تجديدها", ""],
-    ["العقود التي ستنتهي قريبًا", ""],
-    ["المناقصات والعروض المقدمة", ""],
-    ["المشاريع قيد التفاوض وقيمتها واحتمالية الفوز", ""]
+    ["عدد العملاء المتوقفين عن التعامل", ""],
+    ["عدد العقود التي تم تقديمها", ""]
   ]);
 
-  addSheet("٥-التشغيل", [
+  addSheet("٤-التشغيل", [
     ["حجم الأعمال المنفذة", ""],
-    ["نسبة تحقيق خطة التشغيل (%)", ""],
-    ["الإنتاج", ""],
-    ["الطاقة التشغيلية ونسبة استغلالها (%)", ""],
-    ["جودة المنتجات أو الخدمات", ""],
-    ["نسب الهدر", ""],
     ["الأعطال والتوقفات", ""],
-    ["الالتزام بمواعيد التسليم والأعمال المتأخرة وأسبابها", ""],
     ["الإجراءات التصحيحية", ""],
-    ["مستوى خدمة العملاء", ""],
-    ["أهم المشكلات التشغيلية", ""],
-    ["أداء الفروع (الإيرادات والربحية والعملاء لكل فرع)", ""]
+    ["أهم المشكلات التشغيلية", ""]
   ]);
 
-  addSheet("٦-المشاريع", [
-    ["اسم المشروع — القيمة — العميل", "التفاصيل (تاريخ البداية/الانتهاء، نسبة الإنجاز المخططة والفعلية، المبالغ المحصلة، التكلفة، الربحية المتوقعة، المشاكل، المخاطر، أسباب التأخير، المسؤول، الحالة 🟢/🟡/🔴)"],
-    ["مشروع 1", ""], ["مشروع 2", ""], ["مشروع 3", ""], ["مشروع 4", ""], ["مشروع 5", ""]
-  ], [35,60]);
+  addSheet("٥-المشاريع", [
+    ["اسم المشروع", "القيمة (ريال)", "العميل", "نسبة الإنجاز (%)", "الحالة (🟢 حسب الخطة / 🟡 تحتاج متابعة / 🔴 تحتاج تدخلًا)", "ملاحظات"],
+    ["مشروع 1", "", "", "", "", ""],
+    ["مشروع 2", "", "", "", "", ""],
+    ["مشروع 3", "", "", "", "", ""],
+    ["مشروع 4", "", "", "", "", ""],
+    ["مشروع 5", "", "", "", "", ""]
+  ], [22,16,20,14,38,30]);
 
-  addSheet("٧-الموارد البشرية", [
+  addSheet("٦-الموارد البشرية", [
     ["إجمالي عدد الموظفين", ""],
     ["عدد الموظفين الجدد", ""],
     ["الاستقالات وحالات إنهاء الخدمة", ""],
     ["معدل دوران الموظفين (%)", ""],
     ["الوظائف الشاغرة والحرجة", ""],
-    ["التعيينات المطلوبة والتي تمت", ""],
-    ["الرواتب والمزايا (ريال) ومقارنتها بالموازنة", ""],
-    ["الإجازات والغياب", ""],
+    ["الوظائف المطلوب توظيفها", ""],
     ["التدريب وبرامج تطوير الموظفين", ""],
-    ["تقييم الأداء والترقيات والمكافآت", ""],
     ["المشاكل العمالية", ""],
-    ["احتياجات الشركة المستقبلية من الموظفين", ""],
-    ["تغييرات مقترحة على الهيكل التنظيمي", ""]
+    ["احتياجات الشركة المستقبلية من الموظفين", ""]
   ]);
 
-  addSheet("٨-المشتريات وسلسلة الإمداد", [
+  addSheet("٧-المشتريات", [
     ["إجمالي المشتريات (ريال)", ""],
     ["المشتريات مقارنة بالموازنة", ""],
-    ["أهم الموردين وقيمة المشتريات من كل مورد رئيسي", ""],
-    ["الموردون الجدد", ""],
-    ["العقود الجديدة والمجدّدة والتي ستنتهي", ""],
-    ["تأخر الموردين ومشاكل التوريد", ""],
-    ["ارتفاع أسعار المواد والبدائل المتاحة", ""],
-    ["فرص تخفيض التكلفة", ""],
-    ["مستويات المخزون والمواد الحرجة", ""],
-    ["مخاطر الاعتماد على مورد واحد", ""]
+    ["الموردون الجدد", ""]
   ]);
 
-  addSheet("٩-المخزون", [
-    ["قيمة المخزون (ريال)", ""],
-    ["المخزون المتاح", ""],
-    ["المواد سريعة الحركة وبطيئة الحركة والراكدة", ""],
-    ["المواد منتهية الصلاحية (إن وجدت)", ""],
-    ["الزيادة أو النقص في المخزون", ""],
-    ["معدل دوران المخزون", ""],
-    ["الاحتياجات المستقبلية", ""],
-    ["خطة التخلص من المخزون الراكد", ""]
-  ]);
-
-  addSheet("١٠-العملاء وخدمة العملاء", [
+  addSheet("٨-العملاء وخدمة العملاء", [
     ["عدد العملاء", ""],
     ["العملاء الجدد والمفقودون", ""],
     ["معدل الاحتفاظ بالعملاء (%)", ""],
@@ -7245,49 +7151,32 @@ function downloadIndicatorsTemplate(){
     ["الإجراءات المتخذة لتحسين رضا العملاء", ""]
   ]);
 
-  addSheet("١١-التسويق", [
+  addSheet("٩-التسويق", [
     ["الحملات التسويقية المنفذة وتكلفتها ونتائجها", ""],
     ["العملاء الناتجون عن الحملات", ""],
-    ["تكلفة الحصول على عميل جديد (ريال)", ""],
     ["أداء الموقع الإلكتروني ووسائل التواصل الاجتماعي", ""],
-    ["المعارض والفعاليات والأنشطة الترويجية", ""],
-    ["أداء العلامة التجارية", ""],
-    ["تحليل المنافسين", ""],
+    ["تقييم أداء الشركة مقارنة بالمنافسين", ""],
     ["الفرص التسويقية الجديدة", ""]
   ]);
 
-  addSheet("١٢-الشؤون القانونية والعقود", [
+  addSheet("١٠-الشؤون القانونية والعقود", [
     ["القضايا القائمة والجديدة والتي أُغلقت", ""],
     ["قيمة المطالبات", ""],
     ["العقود الجديدة والتي تحتاج مراجعة والتي انتهت أو ستنتهي", ""],
     ["النزاعات مع العملاء والموردين", ""],
-    ["المخاطر القانونية والالتزامات المحتملة", ""],
-    ["مواضيع تحتاج قرار مجلس الإدارة", ""]
+    ["المخاطر القانونية والالتزامات المحتملة", ""]
   ]);
 
-  addSheet("١٣-التقنية والتحول الرقمي", [
-    ["الأنظمة الحالية والمشاريع التقنية والأنظمة الجديدة", ""],
-    ["الأعطال الرئيسية", ""],
-    ["الأمن السيبراني والنسخ الاحتياطي وحماية البيانات", ""],
-    ["التحول الرقمي والأتمتة ومشاريع الذكاء الاصطناعي", ""],
-    ["المصروفات التقنية (ريال)", ""],
-    ["المشروعات المتأخرة والمخاطر التقنية", ""]
-  ]);
+  addSheet("١١-الشركات التابعة والفروع", [
+    ["اسم الشركة/الفرع", "هل التشغيل يسير بشكل سليم؟", "المشاكل إن وجدت"],
+    ["شركة/فرع 1", "", ""],
+    ["شركة/فرع 2", "", ""],
+    ["شركة/فرع 3", "", ""],
+    ["شركة/فرع 4", "", ""],
+    ["شركة/فرع 5", "", ""]
+  ], [30,28,45]);
 
-  addSheet("١٤-الأصول والاستثمارات", [
-    ["الأصول الجديدة والتي تم بيعها وحالتها", ""],
-    ["الاستثمارات الحالية والجديدة", ""],
-    ["العائد على الاستثمار (%)", ""],
-    ["المشاريع الرأسمالية والمصروفات الرأسمالية (ريال)", ""],
-    ["الاحتياجات الاستثمارية المستقبلية", ""]
-  ]);
-
-  addSheet("١٥-الشركات التابعة والفروع", [
-    ["اسم الشركة/الفرع — الإيرادات", "صافي الربح — المصروفات — التدفقات النقدية — المبيعات — عدد الموظفين — المشاريع — المشاكل — مقارنة الأداء بالخطة — أهم القرارات المطلوبة"],
-    ["شركة/فرع 1", ""], ["شركة/فرع 2", ""], ["شركة/فرع 3", ""], ["شركة/فرع 4", ""], ["شركة/فرع 5", ""]
-  ], [35,60]);
-
-  addSheet("١٦-الأداء مقابل الموازنة", [
+  addSheet("١٢-الأداء مقابل الموازنة", [
     ["الإيرادات: المخطط مقابل الفعلي", ""],
     ["الأرباح: المخطط مقابل الفعلي", ""],
     ["المصروفات: المخطط مقابل الفعلي", ""],
@@ -7300,7 +7189,7 @@ function downloadIndicatorsTemplate(){
     ["أسباب الانحرافات والإجراءات التصحيحية", ""]
   ]);
 
-  addSheet("١٧-التوقعات حتى نهاية السنة", [
+  addSheet("١٣-التوقعات حتى نهاية السنة", [
     ["الإيرادات المتوقعة حتى نهاية السنة (ريال)", ""],
     ["الأرباح المتوقعة (ريال)", ""],
     ["التدفقات النقدية المتوقعة (ريال)", ""],
@@ -7312,26 +7201,15 @@ function downloadIndicatorsTemplate(){
     ["هل هناك حاجة لتعديل التوقعات؟", ""]
   ]);
 
-  addSheet("١٨-أهم التحديات", [
+  addSheet("١٤-أهم التحديات", [
     ["التحدي — المشكلة", "الأثر — ما قامت به الإدارة — النتيجة — ما تحتاجه الإدارة"],
     ["تحدٍ 1", ""], ["تحدٍ 2", ""], ["تحدٍ 3", ""], ["تحدٍ 4", ""], ["تحدٍ 5", ""],
     ["تحدٍ 6", ""], ["تحدٍ 7", ""], ["تحدٍ 8", ""]
   ], [35,60]);
 
-  addSheet("١٩-أولويات الشهر القادم", [
+  addSheet("١٥-أولويات الشهر القادم", [
     ["الأولوية 1", ""], ["الأولوية 2", ""], ["الأولوية 3", ""], ["الأولوية 4", ""],
     ["الأولوية 5", ""], ["الأولوية 6", ""], ["الأولوية 7", ""], ["الأولوية 8", ""]
-  ]);
-
-  addSheet("٢٠-خطة الربع القادم", [
-    ["الأهداف المالية", ""],
-    ["أهداف المبيعات", ""],
-    ["المشاريع", ""],
-    ["التوظيف", ""],
-    ["الاستثمارات", ""],
-    ["التوسع", ""],
-    ["المخاطر", ""],
-    ["المبادرات الاستراتيجية", ""]
   ]);
 
   XLSX.writeFile(wb, "التقرير-المالي-والتشغيلي.xlsx");
@@ -7347,40 +7225,17 @@ function numOrNull(v){
 }
 function textOr(v){ return (v===undefined||v===null) ? "" : String(v).trim(); }
 
-// Maps each simple key-value sheet's rows (in template order) to object keys.
 const SEC_KEY_MAPS = {
-  summary: ["period_label","achievements","new_contracts_projects","developments","exceptional_achievement",
-    "total_revenue","total_profit","net_profit","cash_flows","vs_budget","vs_last_month","vs_last_year",
-    "operation_level","production_volume","quality_level","delivery_commitment","operational_issues",
-    "sales_value","target_achievement_pct","new_contracts","current_opportunities",
-    "key_risks","issues_needing_intervention","financial_legal_operational_risks",
-    "board_decisions_needed","next_month_priorities","expectations","corrective_actions"],
-  financial: ["revenue_month","revenue_ytd","revenue_target","revenue_target_pct","revenue_vs_last_month","revenue_vs_last_year",
-    "revenue_breakdown","gross_profit","gross_margin","operating_profit","net_profit","net_margin","profit_vs_budget","profit_change_reasons",
-    "total_expenses","admin_expenses","sales_marketing_expenses","salaries","rent","operating_expenses","non_recurring_expenses","expenses_over_budget",
-    "cash_start","cash_in","cash_out","cash_end","operating_cash_flow","investments","financing_loans","expected_cash_needs",
-    "total_receivables","amounts_due","overdue_amounts","collection_rate","top_overdue_customers","doubtful_debts"],
-  sales: ["monthly_sales","monthly_target","monthly_target_pct","ytd_sales","annual_target","annual_target_pct",
-    "sales_breakdown","new_customers","lost_customers","top_customers_share","new_contracts_signed","expected_margin",
-    "renewed_contracts","expiring_contracts","tenders_offers","negotiation_projects"],
-  operations: ["work_volume","operations_plan_pct","production","capacity_utilization","quality","waste_ratio",
-    "breakdowns_downtime","delivery_commitment","corrective_actions","customer_service_level","operational_issues","branches_performance"],
-  hr: ["total_employees","new_employees","resignations","turnover_rate","vacant_critical_roles","hiring",
-    "salaries_benefits","leaves_absence","training","performance_promotions","labor_issues","future_needs","structure_changes"],
-  procurement: ["total_purchases","purchases_vs_budget","top_suppliers","new_suppliers","contracts_status",
-    "supplier_delays","price_increases","cost_reduction_opportunities","inventory_levels","single_supplier_risk"],
-  inventory: ["inventory_value","available_inventory","movement_classification","expired_items","inventory_variance",
-    "turnover_rate","future_needs","disposal_plan"],
-  customers: ["customer_count","new_lost_customers","retention_rate","satisfaction_level","complaints_count",
-    "complaints_resolution","top_customers","at_risk_customers","improvement_actions"],
-  marketing: ["campaigns","campaign_customers","cac","digital_performance","events_promotions","brand_performance",
-    "competitor_analysis","new_opportunities"],
-  legal: ["legal_cases","claims_value","contracts_status","disputes","legal_risks","board_decision_topics"],
-  it: ["systems_projects","major_outages","cybersecurity_backup","digital_transformation","it_expenses","delayed_projects_risks"],
-  assets: ["assets_changes","investments","roi_pct","capital_projects","future_investment_needs"],
+  financial: ["revenue","gross_profit","total_expenses","admin_expenses","sales_marketing_expenses","salaries"],
+  sales: ["monthly_sales","monthly_target","ytd_sales","new_customers","lost_customers","submitted_contracts_count"],
+  operations: ["work_volume","breakdowns_downtime","corrective_actions","operational_issues"],
+  hr: ["total_employees","new_employees","resignations","turnover_rate","vacant_critical_roles","roles_to_hire","training","labor_issues","future_needs"],
+  procurement: ["total_purchases","purchases_vs_budget","new_suppliers"],
+  customers: ["customer_count","new_lost_customers","retention_rate","satisfaction_level","complaints_count","complaints_resolution","top_customers","at_risk_customers","improvement_actions"],
+  marketing: ["campaigns","campaign_customers","digital_performance","vs_competitors","new_opportunities"],
+  legal: ["legal_cases","claims_value","contracts_status","disputes","legal_risks"],
   budget: ["revenue_vs_plan","profit_vs_plan","expenses_vs_plan","cashflow_vs_plan","sales_vs_plan","customers_vs_plan","projects_vs_plan","investments_vs_plan","hr_vs_plan","variance_reasons"],
-  forecast: ["expected_revenue","expected_profit","expected_cashflow","expected_sales","expected_contracts","expected_projects","risks_affecting_results","budget_achievable","forecast_adjustment_needed"],
-  quarter_plan: ["financial_goals","sales_goals","projects","hiring","investments","expansion","risks","strategic_initiatives"]
+  forecast: ["expected_revenue","expected_profit","expected_cashflow","expected_sales","expected_contracts","expected_projects","risks_affecting_results","budget_achievable","forecast_adjustment_needed"]
 };
 
 async function handleIndicatorsUpload(input){
@@ -7395,30 +7250,24 @@ async function handleIndicatorsUpload(input){
     };
 
     const rows = {
-      summary: sheet("١-الملخص التنفيذي"),
-      kpi: sheet("٢-لوحة المؤشرات"),
-      financial: sheet("٣-الأداء المالي"),
-      sales: sheet("٤-المبيعات وتطوير الأعمال"),
-      operations: sheet("٥-التشغيل"),
-      projects: sheet("٦-المشاريع"),
-      hr: sheet("٧-الموارد البشرية"),
-      procurement: sheet("٨-المشتريات وسلسلة الإمداد"),
-      inventory: sheet("٩-المخزون"),
-      customers: sheet("١٠-العملاء وخدمة العملاء"),
-      marketing: sheet("١١-التسويق"),
-      legal: sheet("١٢-الشؤون القانونية والعقود"),
-      it: sheet("١٣-التقنية والتحول الرقمي"),
-      assets: sheet("١٤-الأصول والاستثمارات"),
-      subsidiaries: sheet("١٥-الشركات التابعة والفروع"),
-      budget: sheet("١٦-الأداء مقابل الموازنة"),
-      forecast: sheet("١٧-التوقعات حتى نهاية السنة"),
-      challenges: sheet("١٨-أهم التحديات"),
-      priorities: sheet("١٩-أولويات الشهر القادم"),
-      quarter_plan: sheet("٢٠-خطة الربع القادم")
+      kpi: sheet("١-لوحة المؤشرات"),
+      financial: sheet("٢-الأداء المالي"),
+      sales: sheet("٣-المبيعات"),
+      operations: sheet("٤-التشغيل"),
+      projects: sheet("٥-المشاريع"),
+      hr: sheet("٦-الموارد البشرية"),
+      procurement: sheet("٧-المشتريات"),
+      customers: sheet("٨-العملاء وخدمة العملاء"),
+      marketing: sheet("٩-التسويق"),
+      legal: sheet("١٠-الشؤون القانونية والعقود"),
+      subsidiaries: sheet("١١-الشركات التابعة والفروع"),
+      budget: sheet("١٢-الأداء مقابل الموازنة"),
+      forecast: sheet("١٣-التوقعات حتى نهاية السنة"),
+      challenges: sheet("١٤-أهم التحديات"),
+      priorities: sheet("١٥-أولويات الشهر القادم")
     };
     for(const k in rows){ if(!rows[k]){ alert(`الملف لا يطابق شكل القالب المتوقع (ورقة "${k}" غير موجودة) — الرجاء استخدام القالب المُحمَّل من المنصة بدون تعديل بأسماء الأوراق.`); return; } }
 
-    // Build a plain key->value object from a simple two-column sheet using a key map array.
     function buildSimple(sheetRows, keyMap, numericKeys){
       const obj = {};
       keyMap.forEach((key, i) => {
@@ -7428,66 +7277,40 @@ async function handleIndicatorsUpload(input){
       return obj;
     }
 
-    const period_label = textOr(rows.summary[0] ? rows.summary[0][1] : "");
-    const summaryObj = buildSimple(rows.summary, SEC_KEY_MAPS.summary,
-      ["total_revenue","total_profit","net_profit","cash_flows","sales_value"]);
-
+    const period_label = textOr(rows.kpi[0] ? rows.kpi[0][1] : "");
     const kpiNames = ["revenue","sales","gross_profit","profit_margin","net_profit","cash_flow","available_cash",
       "receivables","payables","sales_target","budget_achievement_pct","customer_count","new_customers",
       "retention_rate","employee_count","turnover_rate","active_projects","project_completion_pct"];
     const kpiDashboard = kpiNames.map((key, i) => {
-      const r = rows.kpi[i+1] || [];
+      const r = rows.kpi[i+2] || []; // row 0 = period, row 1 = header, data starts row 2
       return { key, name: r[0]||"", target: numOrNull(r[1]), actual: numOrNull(r[2]), prev_month: numOrNull(r[3]), prev_year: numOrNull(r[4]) };
     });
 
-    const financialObj = buildSimple(rows.financial, SEC_KEY_MAPS.financial,
-      ["revenue_month","revenue_ytd","revenue_target","gross_profit","operating_profit","net_profit",
-       "total_expenses","admin_expenses","sales_marketing_expenses","salaries","rent","operating_expenses","non_recurring_expenses",
-       "cash_start","cash_in","cash_out","cash_end","operating_cash_flow","investments","financing_loans","expected_cash_needs",
-       "total_receivables","amounts_due","overdue_amounts","doubtful_debts"]);
-
-    const salesObj = buildSimple(rows.sales, SEC_KEY_MAPS.sales,
-      ["monthly_sales","monthly_target","ytd_sales","annual_target"]);
-
+    const financialObj = buildSimple(rows.financial, SEC_KEY_MAPS.financial, SEC_KEY_MAPS.financial);
+    const salesObj = buildSimple(rows.sales, SEC_KEY_MAPS.sales, ["monthly_sales","monthly_target","ytd_sales","new_customers","lost_customers","submitted_contracts_count"]);
     const operationsObj = buildSimple(rows.operations, SEC_KEY_MAPS.operations, []);
-
-    const projectRows = [1,2,3,4,5].map(i => ({ name: textOr(rows.projects[i]?.[0]), details: textOr(rows.projects[i]?.[1]) })).filter(p=>p.name);
-
-    const hrObj = buildSimple(rows.hr, SEC_KEY_MAPS.hr, ["total_employees","new_employees"]);
-
+    const projectRows = [1,2,3,4,5].map(i => ({
+      name: textOr(rows.projects[i]?.[0]), value: numOrNull(rows.projects[i]?.[1]), client: textOr(rows.projects[i]?.[2]),
+      completion_pct: numOrNull(rows.projects[i]?.[3]), status: textOr(rows.projects[i]?.[4]), notes: textOr(rows.projects[i]?.[5])
+    })).filter(p=>p.name);
+    const hrObj = buildSimple(rows.hr, SEC_KEY_MAPS.hr, ["total_employees","new_employees","turnover_rate"]);
     const procurementObj = buildSimple(rows.procurement, SEC_KEY_MAPS.procurement, ["total_purchases"]);
-
-    const inventoryObj = buildSimple(rows.inventory, SEC_KEY_MAPS.inventory, ["inventory_value"]);
-
     const customersObj = buildSimple(rows.customers, SEC_KEY_MAPS.customers, ["customer_count","complaints_count"]);
-
-    const marketingObj = buildSimple(rows.marketing, SEC_KEY_MAPS.marketing, ["cac"]);
-
+    const marketingObj = buildSimple(rows.marketing, SEC_KEY_MAPS.marketing, []);
     const legalObj = buildSimple(rows.legal, SEC_KEY_MAPS.legal, []);
-
-    const itObj = buildSimple(rows.it, SEC_KEY_MAPS.it, ["it_expenses"]);
-
-    const assetsObj = buildSimple(rows.assets, SEC_KEY_MAPS.assets, ["roi_pct"]);
-
-    const subsidiaryRows = [1,2,3,4,5].map(i => ({ name: textOr(rows.subsidiaries[i]?.[0]), details: textOr(rows.subsidiaries[i]?.[1]) })).filter(s=>s.name);
-
+    const subsidiaryRows = [1,2,3,4,5].map(i => ({
+      name: textOr(rows.subsidiaries[i]?.[0]), ops_ok: textOr(rows.subsidiaries[i]?.[1]), problems: textOr(rows.subsidiaries[i]?.[2])
+    })).filter(s=>s.name);
     const budgetObj = buildSimple(rows.budget, SEC_KEY_MAPS.budget, []);
-
-    const forecastObj = buildSimple(rows.forecast, SEC_KEY_MAPS.forecast,
-      ["expected_revenue","expected_profit","expected_cashflow","expected_sales"]);
-
+    const forecastObj = buildSimple(rows.forecast, SEC_KEY_MAPS.forecast, ["expected_revenue","expected_profit","expected_cashflow","expected_sales"]);
     const challengeRows = [1,2,3,4,5,6,7,8].map(i => ({ challenge: textOr(rows.challenges[i]?.[0]), details: textOr(rows.challenges[i]?.[1]) })).filter(c=>c.challenge);
-
     const priorityRows = rows.priorities.map(r => textOr(r[1])).filter(Boolean);
-
-    const quarterPlanObj = buildSimple(rows.quarter_plan, SEC_KEY_MAPS.quarter_plan, []);
 
     const fileUrl = await uploadBlobToStorage(file, "ceo-reports", file.name);
 
     const payload = {
       company_id: currentCompanyId, period_label,
       uploaded_by: currentUserProfile ? (currentUserProfile.full_name||currentUserProfile.email) : "", source_file_url: fileUrl,
-      sec_summary: summaryObj,
       sec_kpi_dashboard: kpiDashboard,
       sec_financial: financialObj,
       sec_sales: salesObj,
@@ -7495,18 +7318,14 @@ async function handleIndicatorsUpload(input){
       sec_projects: projectRows,
       sec_hr: hrObj,
       sec_procurement: procurementObj,
-      sec_inventory: inventoryObj,
       sec_customers: customersObj,
       sec_marketing: marketingObj,
       sec_legal: legalObj,
-      sec_it: itObj,
-      sec_assets: assetsObj,
       sec_subsidiaries: subsidiaryRows,
       sec_budget: budgetObj,
       sec_forecast: forecastObj,
       sec_challenges: challengeRows,
-      sec_priorities: priorityRows,
-      sec_quarter_plan: quarterPlanObj
+      sec_priorities: priorityRows
     };
 
     let error;
@@ -7522,7 +7341,7 @@ async function handleIndicatorsUpload(input){
       ({ error } = await sb.from("ceo_monthly_reports").insert([payload]));
     }
     if(error){ alert("تعذّر حفظ البيانات: " + error.message); return; }
-    logActivity("إنشاء", "تقرير الرئيس التنفيذي", period_label || "فترة جديدة", "استيراد من Excel");
+    logActivity("إنشاء", "تقرير مالي وتشغيلي", period_label || "فترة جديدة", "استيراد من Excel");
     alert("تم رفع التقرير وحفظه بنجاح ✅");
     input.value = "";
     loadIndicatorsReport();
@@ -7544,7 +7363,7 @@ function sectionCard(title, innerHtml){
 function tableFromRows(rows, cols){
   if(!rows || rows.length===0) return "";
   const head = cols.map(c=>`<th>${c}</th>`).join("");
-  const body = rows.map(r => `<tr>${Object.values(r).map(v=>`<td>${v||"—"}</td>`).join("")}</tr>`).join("");
+  const body = rows.map(r => `<tr>${Object.values(r).map(v=>`<td>${(v!=null&&v!=="")?v:"—"}</td>`).join("")}</tr>`).join("");
   return `<table class="tbl" style="margin-top:6px"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
 }
 
@@ -7560,19 +7379,24 @@ async function loadIndicatorsReport(){
     return;
   }
   const r = data[0];
-  const S = r.sec_summary||{}, F = r.sec_financial||{}, SA = r.sec_sales||{}, OP = r.sec_operations||{},
-        HR = r.sec_hr||{}, PR = r.sec_procurement||{}, INV = r.sec_inventory||{}, CU = r.sec_customers||{},
-        MK = r.sec_marketing||{}, LG = r.sec_legal||{}, IT = r.sec_it||{}, AS = r.sec_assets||{},
-        BU = r.sec_budget||{}, FC = r.sec_forecast||{}, QP = r.sec_quarter_plan||{};
+  const F = r.sec_financial||{}, SA = r.sec_sales||{}, OP = r.sec_operations||{},
+        HR = r.sec_hr||{}, PR = r.sec_procurement||{}, CU = r.sec_customers||{},
+        MK = r.sec_marketing||{}, LG = r.sec_legal||{},
+        BU = r.sec_budget||{}, FC = r.sec_forecast||{};
   const kpis = r.sec_kpi_dashboard||[];
   const projects = r.sec_projects||[];
   const subsidiaries = r.sec_subsidiaries||[];
   const challenges = r.sec_challenges||[];
   const priorities = r.sec_priorities||[];
 
+  // Net profit isn't collected directly anymore (financial section was trimmed) — revenue minus
+  // total expenses gives the same figure without asking for it twice.
+  const netProfit = (F.revenue!=null && F.total_expenses!=null) ? F.revenue - F.total_expenses : null;
+
   const kpiRows = kpis.filter(k=>k.name).map(k => {
     const variance = (k.target!=null && k.actual!=null && k.target!==0) ? (((k.actual-k.target)/Math.abs(k.target))*100).toFixed(1)+"%" : "—";
-    return `<tr><td>${k.name}</td><td>${fmtNum(k.target)}</td><td>${fmtNum(k.actual)}</td><td>${fmtNum(k.prev_month)}</td><td>${fmtNum(k.prev_year)}</td><td>${variance}</td></tr>`;
+    const varColor = (k.target!=null && k.actual!=null) ? (k.actual>=k.target ? "var(--green)" : "var(--red)") : "var(--gray3)";
+    return `<tr><td>${k.name}</td><td>${fmtNum(k.target)}</td><td>${fmtNum(k.actual)}</td><td>${fmtNum(k.prev_month)}</td><td>${fmtNum(k.prev_year)}</td><td style="color:${varColor};font-weight:700">${variance}</td></tr>`;
   }).join("");
 
   box.innerHTML = `
@@ -7581,124 +7405,76 @@ async function loadIndicatorsReport(){
       ${r.source_file_url ? `<a href="${r.source_file_url}" target="_blank" style="color:#fff;font-size:11px;text-decoration:underline">📄 الملف الأصلي</a>` : ""}
     </div>
 
-    ${sectionCard("١) الملخص التنفيذي", [
-      fieldRow("أبرز الإنجازات", S.achievements), fieldRow("أهم العقود أو المشاريع الجديدة", S.new_contracts_projects),
-      fieldRow("أهم التطورات", S.developments), fieldRow("إنجاز استثنائي", S.exceptional_achievement),
-      fieldRow("إجمالي الإيرادات", S.total_revenue, true), fieldRow("إجمالي الأرباح", S.total_profit, true),
-      fieldRow("صافي الربح", S.net_profit, true), fieldRow("التدفقات النقدية", S.cash_flows, true),
-      fieldRow("مقارنة بالموازنة", S.vs_budget), fieldRow("مقارنة بالشهر السابق", S.vs_last_month), fieldRow("مقارنة بنفس الشهر بالعام السابق", S.vs_last_year),
-      fieldRow("مستوى التشغيل", S.operation_level), fieldRow("الإنتاج/حجم الأعمال", S.production_volume),
-      fieldRow("جودة الخدمات", S.quality_level), fieldRow("الالتزام بالمواعيد", S.delivery_commitment), fieldRow("أهم المشكلات التشغيلية", S.operational_issues),
-      fieldRow("قيمة المبيعات", S.sales_value, true), fieldRow("نسبة تحقيق المستهدف", S.target_achievement_pct),
-      fieldRow("العقود الجديدة", S.new_contracts), fieldRow("الفرص البيعية الحالية", S.current_opportunities),
-      fieldRow("أهم المخاطر", S.key_risks), fieldRow("مشاكل تحتاج تدخلًا إداريًا", S.issues_needing_intervention), fieldRow("مخاطر مالية/قانونية/تشغيلية", S.financial_legal_operational_risks),
-      fieldRow("القرارات المطلوبة من مجلس الإدارة", S.board_decisions_needed), fieldRow("أهم الأولويات للشهر القادم", S.next_month_priorities),
-      fieldRow("التوقعات والنتائج المتوقعة", S.expectations), fieldRow("الإجراءات التصحيحية", S.corrective_actions)
+    ${sectionCard("١) لوحة مؤشرات الأداء الرئيسية — المستهدف مقابل الفعلي والانحراف", kpiRows ? `<table class="tbl"><thead><tr><th>المؤشر</th><th>المستهدف</th><th>الفعلي</th><th>الشهر السابق</th><th>نفس الشهر بالعام السابق</th><th>الانحراف</th></tr></thead><tbody>${kpiRows}</tbody></table>` : "")}
+
+    ${sectionCard("٢) الأداء المالي", [
+      fieldRow("الإيرادات", F.revenue, true), fieldRow("إجمالي الربح", F.gross_profit, true),
+      fieldRow("إجمالي المصروفات", F.total_expenses, true),
+      fieldRow("صافي الربح (محسوب تلقائيًا)", netProfit, true),
+      fieldRow("المصروفات الإدارية", F.admin_expenses, true), fieldRow("مصروفات المبيعات والتسويق", F.sales_marketing_expenses, true),
+      fieldRow("الرواتب", F.salaries, true)
     ].join(""))}
 
-    ${sectionCard("٢) لوحة مؤشرات الأداء الرئيسية", kpiRows ? `<table class="tbl"><thead><tr><th>المؤشر</th><th>المستهدف</th><th>الفعلي</th><th>الشهر السابق</th><th>نفس الشهر بالعام السابق</th><th>الانحراف</th></tr></thead><tbody>${kpiRows}</tbody></table>` : "")}
-
-    ${sectionCard("٣) الأداء المالي", [
-      fieldRow("الإيرادات خلال الشهر", F.revenue_month, true), fieldRow("الإيرادات منذ بداية السنة", F.revenue_ytd, true), fieldRow("الإيرادات المستهدفة", F.revenue_target, true),
-      fieldRow("نسبة تحقيق المستهدف", F.revenue_target_pct), fieldRow("مقارنة بالشهر السابق", F.revenue_vs_last_month), fieldRow("مقارنة بنفس الشهر بالعام السابق", F.revenue_vs_last_year),
-      fieldRow("توزيع الإيرادات", F.revenue_breakdown),
-      fieldRow("إجمالي الربح", F.gross_profit, true), fieldRow("هامش إجمالي الربح", F.gross_margin), fieldRow("الربح التشغيلي", F.operating_profit, true),
-      fieldRow("صافي الربح", F.net_profit, true), fieldRow("هامش صافي الربح", F.net_margin), fieldRow("مقارنة الأرباح بالموازنة", F.profit_vs_budget), fieldRow("أسباب التغيّر بالأرباح", F.profit_change_reasons),
-      fieldRow("إجمالي المصروفات", F.total_expenses, true), fieldRow("المصروفات الإدارية", F.admin_expenses, true), fieldRow("مصروفات المبيعات والتسويق", F.sales_marketing_expenses, true),
-      fieldRow("الرواتب", F.salaries, true), fieldRow("الإيجارات", F.rent, true), fieldRow("المصروفات التشغيلية", F.operating_expenses, true), fieldRow("المصروفات غير المتكررة", F.non_recurring_expenses, true),
-      fieldRow("المصروفات المتجاوزة للموازنة وأسبابها", F.expenses_over_budget),
-      fieldRow("الرصيد النقدي بداية الشهر", F.cash_start, true), fieldRow("التدفقات الداخلة", F.cash_in, true), fieldRow("التدفقات الخارجة", F.cash_out, true), fieldRow("الرصيد النقدي نهاية الشهر", F.cash_end, true),
-      fieldRow("التدفق النقدي التشغيلي", F.operating_cash_flow, true), fieldRow("الاستثمارات", F.investments, true), fieldRow("التمويل والقروض", F.financing_loans, true), fieldRow("الاحتياجات النقدية المتوقعة", F.expected_cash_needs, true),
-      fieldRow("إجمالي العملاء المدينين", F.total_receivables, true), fieldRow("المبالغ المستحقة", F.amounts_due, true), fieldRow("المبالغ المتأخرة", F.overdue_amounts, true),
-      fieldRow("نسبة التحصيل", F.collection_rate), fieldRow("أكبر العملاء المتأخرين وخطة التحصيل", F.top_overdue_customers), fieldRow("الديون المشكوك في تحصيلها", F.doubtful_debts, true)
+    ${sectionCard("٣) المبيعات", [
+      fieldRow("المبيعات الشهرية", SA.monthly_sales, true), fieldRow("المستهدف الشهري", SA.monthly_target, true),
+      fieldRow("المبيعات منذ بداية السنة", SA.ytd_sales, true), fieldRow("عدد العملاء الجدد", SA.new_customers),
+      fieldRow("عدد العملاء المتوقفين عن التعامل", SA.lost_customers), fieldRow("عدد العقود التي تم تقديمها", SA.submitted_contracts_count)
     ].join(""))}
 
-    ${sectionCard("٤) المبيعات وتطوير الأعمال", [
-      fieldRow("المبيعات الشهرية", SA.monthly_sales, true), fieldRow("المستهدف الشهري", SA.monthly_target, true), fieldRow("نسبة التحقيق الشهرية", SA.monthly_target_pct),
-      fieldRow("المبيعات منذ بداية السنة", SA.ytd_sales, true), fieldRow("المستهدف السنوي", SA.annual_target, true), fieldRow("نسبة تحقيق الخطة السنوية", SA.annual_target_pct),
-      fieldRow("توزيع المبيعات", SA.sales_breakdown), fieldRow("عدد العملاء الجدد", SA.new_customers), fieldRow("عملاء توقفوا عن التعامل", SA.lost_customers),
-      fieldRow("أكبر العملاء ونسبة مساهمتهم", SA.top_customers_share), fieldRow("العقود الجديدة الموقعة", SA.new_contracts_signed), fieldRow("هامش الربح المتوقع", SA.expected_margin),
-      fieldRow("العقود المجدَّدة", SA.renewed_contracts), fieldRow("العقود التي ستنتهي قريبًا", SA.expiring_contracts), fieldRow("المناقصات والعروض المقدمة", SA.tenders_offers), fieldRow("مشاريع قيد التفاوض", SA.negotiation_projects)
+    ${sectionCard("٤) التشغيل", [
+      fieldRow("حجم الأعمال المنفذة", OP.work_volume), fieldRow("الأعطال والتوقفات", OP.breakdowns_downtime),
+      fieldRow("الإجراءات التصحيحية", OP.corrective_actions), fieldRow("أهم المشكلات التشغيلية", OP.operational_issues)
     ].join(""))}
 
-    ${sectionCard("٥) التشغيل", [
-      fieldRow("حجم الأعمال المنفذة", OP.work_volume), fieldRow("نسبة تحقيق خطة التشغيل", OP.operations_plan_pct), fieldRow("الإنتاج", OP.production),
-      fieldRow("الطاقة التشغيلية ونسبة الاستغلال", OP.capacity_utilization), fieldRow("الجودة", OP.quality), fieldRow("نسب الهدر", OP.waste_ratio),
-      fieldRow("الأعطال والتوقفات", OP.breakdowns_downtime), fieldRow("الالتزام بالمواعيد والتأخيرات", OP.delivery_commitment), fieldRow("الإجراءات التصحيحية", OP.corrective_actions),
-      fieldRow("مستوى خدمة العملاء", OP.customer_service_level), fieldRow("أهم المشكلات التشغيلية", OP.operational_issues), fieldRow("أداء الفروع", OP.branches_performance)
+    ${sectionCard("٥) المشاريع", tableFromRows(projects.map(p=>({
+      name: p.name, value: p.value!=null?fmtNum(p.value)+" ريال":"—", client: p.client,
+      completion: p.completion_pct!=null?p.completion_pct+"%":"—", status: p.status, notes: p.notes
+    })), ["المشروع","القيمة","العميل","نسبة الإنجاز","الحالة","ملاحظات"]))}
+
+    ${sectionCard("٦) الموارد البشرية", [
+      fieldRow("إجمالي عدد الموظفين", HR.total_employees), fieldRow("عدد الموظفين الجدد", HR.new_employees),
+      fieldRow("الاستقالات وإنهاء الخدمة", HR.resignations), fieldRow("معدل دوران الموظفين", HR.turnover_rate),
+      fieldRow("الوظائف الشاغرة والحرجة", HR.vacant_critical_roles), fieldRow("الوظائف المطلوب توظيفها", HR.roles_to_hire),
+      fieldRow("التدريب والتطوير", HR.training), fieldRow("المشاكل العمالية", HR.labor_issues), fieldRow("الاحتياجات المستقبلية", HR.future_needs)
     ].join(""))}
 
-    ${sectionCard("٦) المشاريع", tableFromRows(projects, ["المشروع","التفاصيل"]))}
-
-    ${sectionCard("٧) الموارد البشرية", [
-      fieldRow("إجمالي عدد الموظفين", HR.total_employees), fieldRow("عدد الموظفين الجدد", HR.new_employees), fieldRow("الاستقالات وإنهاء الخدمة", HR.resignations),
-      fieldRow("معدل دوران الموظفين", HR.turnover_rate), fieldRow("الوظائف الشاغرة والحرجة", HR.vacant_critical_roles), fieldRow("التعيينات", HR.hiring),
-      fieldRow("الرواتب والمزايا", HR.salaries_benefits), fieldRow("الإجازات والغياب", HR.leaves_absence), fieldRow("التدريب والتطوير", HR.training),
-      fieldRow("تقييم الأداء والترقيات", HR.performance_promotions), fieldRow("المشاكل العمالية", HR.labor_issues), fieldRow("الاحتياجات المستقبلية", HR.future_needs), fieldRow("تغييرات مقترحة بالهيكل", HR.structure_changes)
+    ${sectionCard("٧) المشتريات", [
+      fieldRow("إجمالي المشتريات", PR.total_purchases, true), fieldRow("المشتريات مقارنة بالموازنة", PR.purchases_vs_budget), fieldRow("الموردون الجدد", PR.new_suppliers)
     ].join(""))}
 
-    ${sectionCard("٨) المشتريات وسلسلة الإمداد", [
-      fieldRow("إجمالي المشتريات", PR.total_purchases, true), fieldRow("المشتريات مقابل الموازنة", PR.purchases_vs_budget), fieldRow("أهم الموردين", PR.top_suppliers),
-      fieldRow("الموردون الجدد", PR.new_suppliers), fieldRow("حالة العقود", PR.contracts_status), fieldRow("تأخر الموردين ومشاكل التوريد", PR.supplier_delays),
-      fieldRow("ارتفاع الأسعار والبدائل", PR.price_increases), fieldRow("فرص تخفيض التكلفة", PR.cost_reduction_opportunities), fieldRow("مستويات المخزون", PR.inventory_levels), fieldRow("مخاطر الاعتماد على مورد واحد", PR.single_supplier_risk)
-    ].join(""))}
-
-    ${sectionCard("٩) المخزون", [
-      fieldRow("قيمة المخزون", INV.inventory_value, true), fieldRow("المخزون المتاح", INV.available_inventory), fieldRow("تصنيف حركة المواد", INV.movement_classification),
-      fieldRow("مواد منتهية الصلاحية", INV.expired_items), fieldRow("الزيادة/النقص بالمخزون", INV.inventory_variance), fieldRow("معدل دوران المخزون", INV.turnover_rate),
-      fieldRow("الاحتياجات المستقبلية", INV.future_needs), fieldRow("خطة التخلص من الراكد", INV.disposal_plan)
-    ].join(""))}
-
-    ${sectionCard("١٠) العملاء وخدمة العملاء", [
+    ${sectionCard("٨) العملاء وخدمة العملاء", [
       fieldRow("عدد العملاء", CU.customer_count), fieldRow("عملاء جدد ومفقودون", CU.new_lost_customers), fieldRow("معدل الاحتفاظ بالعملاء", CU.retention_rate),
       fieldRow("مستوى الرضا", CU.satisfaction_level), fieldRow("عدد الشكاوى وطبيعتها", CU.complaints_count), fieldRow("زمن المعالجة والشكاوى المفتوحة", CU.complaints_resolution),
       fieldRow("أهم العملاء", CU.top_customers), fieldRow("عملاء معرّضون لخطر الفقدان", CU.at_risk_customers), fieldRow("إجراءات تحسين الرضا", CU.improvement_actions)
     ].join(""))}
 
-    ${sectionCard("١١) التسويق", [
-      fieldRow("الحملات التسويقية", MK.campaigns), fieldRow("عملاء ناتجون عن الحملات", MK.campaign_customers), fieldRow("تكلفة اكتساب عميل", MK.cac, true),
-      fieldRow("الأداء الرقمي", MK.digital_performance), fieldRow("المعارض والفعاليات", MK.events_promotions), fieldRow("أداء العلامة التجارية", MK.brand_performance),
-      fieldRow("تحليل المنافسين", MK.competitor_analysis), fieldRow("فرص تسويقية جديدة", MK.new_opportunities)
+    ${sectionCard("٩) التسويق", [
+      fieldRow("الحملات التسويقية", MK.campaigns), fieldRow("عملاء ناتجون عن الحملات", MK.campaign_customers),
+      fieldRow("الأداء الرقمي", MK.digital_performance), fieldRow("تقييم الأداء مقارنة بالمنافسين", MK.vs_competitors), fieldRow("فرص تسويقية جديدة", MK.new_opportunities)
     ].join(""))}
 
-    ${sectionCard("١٢) الشؤون القانونية والعقود", [
+    ${sectionCard("١٠) الشؤون القانونية والعقود", [
       fieldRow("القضايا", LG.legal_cases), fieldRow("قيمة المطالبات", LG.claims_value), fieldRow("حالة العقود", LG.contracts_status),
-      fieldRow("النزاعات", LG.disputes), fieldRow("المخاطر القانونية", LG.legal_risks), fieldRow("مواضيع تحتاج قرار المجلس", LG.board_decision_topics)
+      fieldRow("النزاعات", LG.disputes), fieldRow("المخاطر القانونية", LG.legal_risks)
     ].join(""))}
 
-    ${sectionCard("١٣) تقنية المعلومات والتحول الرقمي", [
-      fieldRow("الأنظمة والمشاريع التقنية", IT.systems_projects), fieldRow("الأعطال الرئيسية", IT.major_outages), fieldRow("الأمن السيبراني والنسخ الاحتياطي", IT.cybersecurity_backup),
-      fieldRow("التحول الرقمي والأتمتة", IT.digital_transformation), fieldRow("المصروفات التقنية", IT.it_expenses, true), fieldRow("المشاريع المتأخرة والمخاطر", IT.delayed_projects_risks)
-    ].join(""))}
+    ${sectionCard("١١) الشركات التابعة والفروع", tableFromRows(subsidiaries, ["الشركة/الفرع","التشغيل سليم؟","المشاكل"]))}
 
-    ${sectionCard("١٤) الأصول والاستثمارات", [
-      fieldRow("تغيّرات الأصول", AS.assets_changes), fieldRow("الاستثمارات", AS.investments), fieldRow("العائد على الاستثمار", AS.roi_pct),
-      fieldRow("المشاريع الرأسمالية", AS.capital_projects), fieldRow("الاحتياجات الاستثمارية المستقبلية", AS.future_investment_needs)
-    ].join(""))}
-
-    ${sectionCard("١٥) الشركات التابعة والفروع", tableFromRows(subsidiaries, ["الشركة/الفرع","التفاصيل"]))}
-
-    ${sectionCard("١٦) الأداء مقابل الخطة والموازنة", [
+    ${sectionCard("١٢) الأداء مقابل الموازنة", [
       fieldRow("الإيرادات", BU.revenue_vs_plan), fieldRow("الأرباح", BU.profit_vs_plan), fieldRow("المصروفات", BU.expenses_vs_plan),
       fieldRow("التدفقات النقدية", BU.cashflow_vs_plan), fieldRow("المبيعات", BU.sales_vs_plan), fieldRow("عدد العملاء", BU.customers_vs_plan),
       fieldRow("المشاريع", BU.projects_vs_plan), fieldRow("الاستثمارات", BU.investments_vs_plan), fieldRow("الموارد البشرية", BU.hr_vs_plan), fieldRow("أسباب الانحرافات والإجراءات", BU.variance_reasons)
     ].join(""))}
 
-    ${sectionCard("١٧) التوقعات حتى نهاية السنة", [
+    ${sectionCard("١٣) التوقعات حتى نهاية السنة", [
       fieldRow("الإيرادات المتوقعة", FC.expected_revenue, true), fieldRow("الأرباح المتوقعة", FC.expected_profit, true), fieldRow("التدفقات النقدية المتوقعة", FC.expected_cashflow, true),
       fieldRow("المبيعات المتوقعة", FC.expected_sales, true), fieldRow("العقود المتوقع توقيعها", FC.expected_contracts), fieldRow("المشاريع المتوقع إنجازها", FC.expected_projects),
       fieldRow("مخاطر مؤثرة على النتائج", FC.risks_affecting_results), fieldRow("هل ستتحقق الموازنة السنوية؟", FC.budget_achievable), fieldRow("حاجة لتعديل التوقعات؟", FC.forecast_adjustment_needed)
     ].join(""))}
 
-    ${sectionCard("١٨) أهم التحديات", tableFromRows(challenges, ["التحدي","التفاصيل"]))}
+    ${sectionCard("١٤) أهم التحديات", tableFromRows(challenges, ["التحدي","التفاصيل"]))}
 
-    ${sectionCard("١٩) أولويات الشهر القادم", priorities.length ? `<ol style="margin:0;padding-inline-start:18px;font-size:12px;line-height:2">${priorities.map(p=>`<li>${p}</li>`).join("")}</ol>` : "")}
-
-    ${sectionCard("٢٠) خطة الربع القادم", [
-      fieldRow("الأهداف المالية", QP.financial_goals), fieldRow("أهداف المبيعات", QP.sales_goals), fieldRow("المشاريع", QP.projects),
-      fieldRow("التوظيف", QP.hiring), fieldRow("الاستثمارات", QP.investments), fieldRow("التوسع", QP.expansion),
-      fieldRow("المخاطر", QP.risks), fieldRow("المبادرات الاستراتيجية", QP.strategic_initiatives)
-    ].join(""))}
+    ${sectionCard("١٥) أولويات الشهر القادم", priorities.length ? `<ol style="margin:0;padding-inline-start:18px;font-size:12px;line-height:2">${priorities.map(p=>`<li>${p}</li>`).join("")}</ol>` : "")}
   `;
 }
 
@@ -7730,6 +7506,7 @@ function exportIndicatorsPDF(){
   `);
   w.document.close();
 }
+
 
 function exportPositionsList(){
   exportToExcel(structureCache, [
