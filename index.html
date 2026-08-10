@@ -618,7 +618,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="nav-group-label">الوثائق والتقارير</div>
     <div class="nav-item" onclick="go('archive',this)"><span class="ni-icon">🗄️</span><span class="ni-text">الأرشيف والوثائق</span><span class="ni-badge blue">24</span></div>
     <div class="nav-item" onclick="go('reports',this)"><span class="ni-icon">📈</span><span class="ni-text">تقارير الحوكمة</span></div>
-    <div class="nav-item" onclick="go('indicators',this)"><span class="ni-icon">📊</span><span class="ni-text">التقرير الشهري للرئيس التنفيذي</span></div>
+    <div class="nav-item" onclick="go('indicators',this)"><span class="ni-icon">📊</span><span class="ni-text">التقرير المالي والتشغيلي</span></div>
     <div class="nav-item" onclick="go('consultants',this)"><span class="ni-icon">💼</span><span class="ni-text">الاستشارات</span></div>
   </div>
 
@@ -1054,7 +1054,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <!-- ══ FINANCIAL & OPERATIONAL INDICATORS ══════════ -->
 <div id="p-indicators" class="page content">
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
-    <span>📊 التقرير الشهري للرئيس التنفيذي</span>
+    <span>📊 التقرير المالي والتشغيلي</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" id="indicatorsPdfBtn" style="font-size:11px;padding:6px 14px;display:none" onclick="exportIndicatorsPDF()">🖨️ تحميل تقرير PDF</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="downloadIndicatorsTemplate()">📥 تحميل نموذج الإدخال</button>
@@ -7055,10 +7055,12 @@ function exportArchiveList(){
 function downloadIndicatorsTemplate(){
   const wb = XLSX.utils.book_new();
   const addSheet = (name, rows, colW) => {
+    if(name.length > 31){ console.error("Sheet name exceeds 31 chars:", name); alert("خطأ داخلي: اسم ورقة طويل جدًا (\""+name+"\") — تواصل مع الدعم الفني."); throw new Error("sheet name too long"); }
     const ws = XLSX.utils.aoa_to_sheet(rows);
     ws["!cols"] = (colW||[55,30]).map(w=>({wch:w}));
     XLSX.utils.book_append_sheet(wb, ws, name);
   };
+  try{
 
   addSheet("١-الملخص التنفيذي", [
     ["الفترة (مثال: يونيو 2026)", ""],
@@ -7263,7 +7265,7 @@ function downloadIndicatorsTemplate(){
     ["مواضيع تحتاج قرار مجلس الإدارة", ""]
   ]);
 
-  addSheet("١٣-تقنية المعلومات والتحول الرقمي", [
+  addSheet("١٣-التقنية والتحول الرقمي", [
     ["الأنظمة الحالية والمشاريع التقنية والأنظمة الجديدة", ""],
     ["الأعطال الرئيسية", ""],
     ["الأمن السيبراني والنسخ الاحتياطي وحماية البيانات", ""],
@@ -7285,7 +7287,7 @@ function downloadIndicatorsTemplate(){
     ["شركة/فرع 1", ""], ["شركة/فرع 2", ""], ["شركة/فرع 3", ""], ["شركة/فرع 4", ""], ["شركة/فرع 5", ""]
   ], [35,60]);
 
-  addSheet("١٦-الأداء مقابل الخطة والموازنة", [
+  addSheet("١٦-الأداء مقابل الموازنة", [
     ["الإيرادات: المخطط مقابل الفعلي", ""],
     ["الأرباح: المخطط مقابل الفعلي", ""],
     ["المصروفات: المخطط مقابل الفعلي", ""],
@@ -7332,7 +7334,10 @@ function downloadIndicatorsTemplate(){
     ["المبادرات الاستراتيجية", ""]
   ]);
 
-  XLSX.writeFile(wb, "التقرير-الشهري-للرئيس-التنفيذي.xlsx");
+  XLSX.writeFile(wb, "التقرير-المالي-والتشغيلي.xlsx");
+  }catch(e){
+    if(e.message !== "sheet name too long"){ alert("تعذّر توليد النموذج: " + e.message); }
+  }
 }
 
 function numOrNull(v){
@@ -7402,10 +7407,10 @@ async function handleIndicatorsUpload(input){
       customers: sheet("١٠-العملاء وخدمة العملاء"),
       marketing: sheet("١١-التسويق"),
       legal: sheet("١٢-الشؤون القانونية والعقود"),
-      it: sheet("١٣-تقنية المعلومات والتحول الرقمي"),
+      it: sheet("١٣-التقنية والتحول الرقمي"),
       assets: sheet("١٤-الأصول والاستثمارات"),
       subsidiaries: sheet("١٥-الشركات التابعة والفروع"),
-      budget: sheet("١٦-الأداء مقابل الخطة والموازنة"),
+      budget: sheet("١٦-الأداء مقابل الموازنة"),
       forecast: sheet("١٧-التوقعات حتى نهاية السنة"),
       challenges: sheet("١٨-أهم التحديات"),
       priorities: sheet("١٩-أولويات الشهر القادم"),
@@ -7572,7 +7577,7 @@ async function loadIndicatorsReport(){
 
   box.innerHTML = `
     <div style="background:linear-gradient(135deg,var(--primary),var(--primary2));border-radius:12px;padding:14px 18px;margin-bottom:18px;color:#fff;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <div><b>التقرير الشهري للرئيس التنفيذي — ${r.period_label||"—"}</b></div>
+      <div><b>التقرير المالي والتشغيلي — ${r.period_label||"—"}</b></div>
       ${r.source_file_url ? `<a href="${r.source_file_url}" target="_blank" style="color:#fff;font-size:11px;text-decoration:underline">📄 الملف الأصلي</a>` : ""}
     </div>
 
@@ -7706,7 +7711,7 @@ function exportIndicatorsPDF(){
   const dateNow = new Date().toLocaleDateString("ar-SA");
   w.document.open();
   w.document.write(`
-    <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>التقرير الشهري للرئيس التنفيذي — ${companyName}</title>
+    <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>التقرير المالي والتشغيلي — ${companyName}</title>
     <style>
       body{font-family:'Tajawal',Arial,sans-serif;padding:30px;color:#0D2447}
       h1{color:#1A3A6B;font-size:20px;border-bottom:3px solid #D4AF37;padding-bottom:10px}
@@ -7717,7 +7722,7 @@ function exportIndicatorsPDF(){
       .card{border:1px solid #eee;border-radius:8px;padding:10px;margin-bottom:12px;page-break-inside:avoid}
       a{display:none}
     </style></head><body>
-    <h1>📊 التقرير الشهري للرئيس التنفيذي — ${companyName}</h1>
+    <h1>📊 التقرير المالي والتشغيلي — ${companyName}</h1>
     <p>تاريخ التصدير: ${dateNow}</p>
     ${reportBox.innerHTML}
     <script>window.onload=function(){setTimeout(function(){window.print()},400)}<\/script>
