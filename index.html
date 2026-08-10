@@ -2700,7 +2700,7 @@ async function loadCurrentUserProfile(){
   }
   const preferred = currentUserProfile ? currentUserProfile.company_id : null;
   await loadCompanies(preferred);
-  applyRolePermissions();
+  await applyRolePermissions();
   checkPendingApprovalBadges();
 }
 
@@ -2718,7 +2718,7 @@ function getCurrentRole(){
   return currentUserProfile ? (currentUserProfile.role || 'عضو مجلس') : 'عضو مجلس';
 }
 
-function applyRolePermissions(){
+async function applyRolePermissions(){
   const role = getCurrentRole();
   const isShareholder = role === 'مساهم';
   const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
@@ -2752,7 +2752,7 @@ function applyRolePermissions(){
   document.getElementById('adminNavGroup').style.display = 'block';
   document.getElementById('companyRequestNavGroup').style.display = isPlatformAdmin ? 'block' : 'none';
   document.querySelectorAll('.nav-item').forEach(item=>{ item.style.display = ''; });
-  applyCompanyTypeVisibility();
+  await applyCompanyTypeVisibility();
 
   if(isShareholder){
     go('agm');
@@ -3179,14 +3179,14 @@ async function loadCompanies(preferredCompanyId){
   }
   currentCompanyId = preferredCompanyId && data.some(c=>c.id===preferredCompanyId) ? preferredCompanyId : data[0].id;
   if(sel) sel.value = currentCompanyId;
-  applyCompanyTypeVisibility();
+  await applyCompanyTypeVisibility();
   reloadCurrentPageData();
 }
 
-function switchCompany(id){
+async function switchCompany(id){
   currentCompanyId = Number(id);
-  applyRolePermissions();
-  applyCompanyTypeVisibility();
+  await applyRolePermissions();
+  await applyCompanyTypeVisibility();
   checkPendingApprovalBadges();
   reloadCurrentPageData();
 }
