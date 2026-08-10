@@ -1091,7 +1091,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 
   <div class="card" style="margin-top:20px" id="policyReviewCard">
-    <div class="card-head"><span class="card-title">🗳️ سياسات تحتاج رأي المجلس</span></div>
+    <div class="card-head"><span class="card-title" id="policyReviewTitle">🗳️ سياسات تحتاج رأي المجلس</span></div>
     <div class="card-body" id="policyReviewBody" style="padding:14px">
       <div style="text-align:center;color:var(--gray3);font-size:12px">جارِ التحميل...</div>
     </div>
@@ -1146,7 +1146,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportPositionsList()">📥 تصدير Excel</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="generateBaseStructure()">🏗️ توليد الهيكل الأساسي حسب نوع الشركة</button>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mst-id').value='';document.getElementById('mst-title-h').textContent='🌳 إضافة منصب في الهيكل التنظيمي';document.getElementById('mst-leadership').checked=true;document.getElementById('mst-is-body').checked=false;toggleBodyFields();document.getElementById('mst-delete-btn').style.display='none';populateParentPositionSelect();openM('m-structure')">+ إضافة منصب</button>
-      <button class="btn" style="background:var(--gold);color:#fff;font-size:11px;padding:6px 14px" onclick="requestBoardApproval('structure')">📤 طلب موافقة من المجلس</button>
+      <button class="btn" id="approvalBtnStructure" style="background:var(--gold);color:#fff;font-size:11px;padding:6px 14px" onclick="requestBoardApproval('structure')">📤 طلب موافقة من المجلس</button>
     </div>
   </div>
   <div id="structureApprovalStatus" style="margin-bottom:14px"></div>
@@ -1171,7 +1171,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openPermHoldersManager()">✏️ تعديل الجهات</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openPermItemsManager()">✏️ تعديل البنود</button>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openPermItemModal()">+ إضافة بند</button>
-      <button class="btn" style="background:var(--gold);color:#fff;font-size:11px;padding:6px 14px" onclick="requestBoardApproval('matrix')">📤 طلب موافقة من المجلس</button>
+      <button class="btn" id="approvalBtnMatrix" style="background:var(--gold);color:#fff;font-size:11px;padding:6px 14px" onclick="requestBoardApproval('matrix')">📤 طلب موافقة من المجلس</button>
     </div>
   </div>
   <div id="matrixApprovalStatus" style="margin-bottom:14px"></div>
@@ -1891,7 +1891,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div id="charterApprovalStatus" style="margin-bottom:10px"></div>
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="closeM('m-charter')">إلغاء</button>
-      <button class="btn" style="background:var(--gold);color:#fff" onclick="requestCharterApproval()">📤 طلب موافقة من المجلس</button>
+      <button class="btn" id="approvalBtnCharter" style="background:var(--gold);color:#fff" onclick="requestCharterApproval()">📤 طلب موافقة من المجلس</button>
       <button class="btn btn-gold" onclick="saveCharter()">✅ حفظ الميثاق</button>
     </div>
   </div>
@@ -3064,7 +3064,9 @@ async function loadUsers(){
   const profileByEmail = {};
   (profiles||[]).forEach(p => { profileByEmail[p.email] = p; });
 
-  const roles = ['مدير النظام','رئيس مجلس','سكرتير المجلس','رئيس لجنة الترشيحات','عضو لجنة الترشيحات','عضو مجلس','مساهم'];
+  const isSoleProp = currentCompanyType === "مؤسسة فردية";
+  const roles = isSoleProp ? ['مدير النظام','عضو مجلس'] : ['مدير النظام','رئيس مجلس','سكرتير المجلس','رئيس لجنة الترشيحات','عضو لجنة الترشيحات','عضو مجلس','مساهم'];
+  const roleDisplayLabel = (r) => isSoleProp && r === 'عضو مجلس' ? 'عضو فريق' : r;
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
 
@@ -3093,7 +3095,7 @@ async function loadUsers(){
         <div style="margin-top:auto">
           <label style="font-size:10px;color:var(--gray3);display:block;margin-bottom:4px">الدور / الصلاحية بهذه الشركة</label>
           <select onchange="updateUserRole(${m.id}, this.value)" style="width:100%;font-size:12px;font-weight:700;padding:8px 10px;border-radius:8px;cursor:pointer;background:${st.bg};color:${st.color};border:1.5px solid ${st.color}55;margin-bottom:8px">
-            ${roles.map(r=>`<option ${m.role===r?"selected":""}>${ROLE_STYLE[r].icon} ${r}</option>`).join("")}
+            ${roles.map(r=>`<option value="${r}" ${m.role===r?"selected":""}>${ROLE_STYLE[r].icon} ${roleDisplayLabel(r)}</option>`).join("")}
           </select>
           ${isMe ? "" : `<button style="width:100%;background:#FDE8E8;color:var(--red);border:none;border-radius:8px;padding:8px;font-size:11.5px;font-weight:600;cursor:pointer" onclick="deleteUserProfile(${m.id},'${(u.full_name||m.email||"").replace(/'/g,"")}')">🗑️ إزالة من هذه الشركة</button>`}
         </div>
@@ -3221,7 +3223,7 @@ function reloadCurrentPageData(){
 
 const REPORT_MANUAL_FIELDS = [
   { key:'compliance_statement', label:'', placeholder:'اذكر ما طُبّق من أحكام لائحة حوكمة الشركات وما لم يُطبّق وأسباب ذلك...', default:'طبّقت الشركة كافة الأحكام الواردة في لائحة حوكمة الشركات الصادرة عن هيئة السوق المالية.' },
-  { key:'other_directorships', placeholder:'أسماء الشركات (داخل المملكة أو خارجها) التي يكون أي من أعضاء المجلس عضوًا في مجالس إدارتها الحالية أو السابقة...' },
+  { key:'other_directorships', placeholder:'أسماء الشركات (داخل المملكة أو خارجها) التي يكون أي من أعضاء الإدارة العليا عضوًا في مجالس إدارتها الحالية أو السابقة...' },
   { key:'remuneration', placeholder:'إفصاح عن مكافآت أعضاء مجلس الإدارة والإدارة التنفيذية، وسياسة تحديدها، والعلاقة بين المكافآت الممنوحة وسياسة المكافآت المعمول بها...' },
   { key:'penalties', placeholder:'أي عقوبة أو جزاء أو تدبير احترازي مفروض على الشركة من الهيئة أو أي جهة تنظيمية، مع بيان الأسباب وسبل العلاج...', default:'لم تتعرض الشركة خلال هذا العام لأي عقوبات أو جزاءات من الجهات التنظيمية.' },
   { key:'internal_control', placeholder:'نتائج المراجعة السنوية لفعالية إجراءات الرقابة الداخلية، ورأي لجنة المراجعة في مدى كفايتها...' },
@@ -3230,7 +3232,7 @@ const REPORT_MANUAL_FIELDS = [
   { key:'subsidiaries', placeholder:'اسم كل شركة تابعة، ورأس مالها، ونسبة ملكية الشركة فيها، ونشاطها الرئيسي، ودولة التأسيس...', default:'لا توجد شركات تابعة.' },
   { key:'loans', placeholder:'معلومات عن أي قروض على الشركة (المبلغ، الجهة المانحة، المدة، الرصيد المتبقي)...', default:'لا توجد قروض على الشركة.' },
   { key:'share_registry_requests', placeholder:'عدد طلبات الشركة لسجل المساهمين وتواريخها وأسبابها...' },
-  { key:'related_party_contracts', placeholder:'أي أعمال أو عقود تكون الشركة طرفًا فيها ولأحد أعضاء المجلس أو كبار التنفيذيين مصلحة فيها...', default:'لا توجد أعمال أو عقود من هذا القبيل.' },
+  { key:'related_party_contracts', placeholder:'أي أعمال أو عقود تكون الشركة طرفًا فيها ولأحد أصحاب القرار أو كبار التنفيذيين مصلحة فيها...', default:'لا توجد أعمال أو عقود من هذا القبيل.' },
   { key:'dividends', placeholder:'نسب الأرباح الموزعة على المساهمين خلال العام، والمقترح توزيعه في نهاية السنة المالية...' },
   { key:'declarations', placeholder:'إقرارات مجلس الإدارة...', default:'يقر مجلس الإدارة بأن سجلات الحسابات أُعدت بالشكل الصحيح، وأن نظام الرقابة الداخلية أُعد على أسس سليمة ونُفذ بفاعلية، وأنه لا يوجد أي شك يُذكر في قدرة الشركة على مواصلة نشاطها.' }
 ];
@@ -3292,8 +3294,31 @@ function applyReportTypeAdaptation(){
   });
 
   // Re-word section titles that mention "مجلس الإدارة" specifically, for LLCs / sole props.
-  const relabel = { "rep-title-2": `ثانياً: تكوين ${boardWord} وتصنيف الأعضاء`, "rep-title-5": `خامساً: مكافآت أعضاء ${boardWord} والإدارة التنفيذية`, "rep-title-12": "ثاني عشر: طلبات الشركة لسجل المساهمين", "rep-title-13": `ثالث عشر: الأعمال والعقود مع أطراف ذات علاقة بـ${isSoleProp?"المالك":"أعضاء "+boardWord}`, "rep-title-15": `خامس عشر: إقرارات ${boardWord}` };
+  const remunerationTitle = isSoleProp ? "خامساً: مكافأة المالك والإدارة التنفيذية" : `خامساً: مكافآت أعضاء ${boardWord} والإدارة التنفيذية`;
+  const relabel = { "rep-title-2": `ثانياً: تكوين ${boardWord} وتصنيف الأعضاء`, "rep-title-5": remunerationTitle, "rep-title-12": "ثاني عشر: طلبات الشركة لسجل المساهمين", "rep-title-13": `ثالث عشر: الأعمال والعقود مع أطراف ذات علاقة بـ${isSoleProp?"المالك":"أعضاء "+boardWord}`, "rep-title-15": `خامس عشر: إقرارات ${boardWord}` };
   Object.entries(relabel).forEach(([id, text]) => setText(id, text));
+
+  renumberVisibleReportSections();
+}
+
+// Section numbers (أولاً، ثانياً...) are baked into each title's text, but whole sections get
+// hidden depending on company type — walk the ones still visible, in document order, and
+// re-stamp each with the correct sequential ordinal instead of leaving gaps like "خامساً"
+// showing up as the first visible section.
+const REPORT_ORDINALS = ["أولاً","ثانياً","ثالثاً","رابعاً","خامساً","سادساً","سابعاً","ثامناً","تاسعاً","عاشراً","حادي عشر","ثاني عشر","ثالث عشر","رابع عشر","خامس عشر"];
+function renumberVisibleReportSections(){
+  const body = document.getElementById("reportBody");
+  if(!body) return;
+  const titles = body.querySelectorAll(".rep-sec-title");
+  let idx = 0;
+  titles.forEach(el => {
+    const isHidden = el.offsetParent === null;
+    if(isHidden) return;
+    const match = el.textContent.match(/^(أولاً|ثانياً|ثالثاً|رابعاً|خامساً|سادساً|سابعاً|ثامناً|تاسعاً|عاشراً|حادي عشر|ثاني عشر|ثالث عشر|رابع عشر|خامس عشر):\s*(.*)$/);
+    if(!match) return; // titles with no ordinal (e.g. "أبرز القرارات") are left as-is
+    el.textContent = `${REPORT_ORDINALS[idx]}: ${match[2]}`;
+    idx++;
+  });
 }
 
 async function loadReportsPage(){
@@ -5655,12 +5680,12 @@ function policyStageStepper(status, policy){
       const dotColor = done ? "var(--green)" : active ? "var(--primary)" : "var(--gray1)";
       const lineColor = i < currentIdx ? "var(--green)" : "var(--gray1)";
       return `<div style="display:flex;align-items:center;flex:${i<stages.length-1?'1':'0'}">
-        <div title="${stage}" style="width:${active?'14px':'10px'};height:${active?'14px':'10px'};border-radius:50%;background:${dotColor};${active?'box-shadow:0 0 0 4px rgba(26,58,107,0.15)':''};flex-shrink:0"></div>
+        <div title="${displayStageLabel(stage)}" style="width:${active?'14px':'10px'};height:${active?'14px':'10px'};border-radius:50%;background:${dotColor};${active?'box-shadow:0 0 0 4px rgba(26,58,107,0.15)':''};flex-shrink:0"></div>
         ${i<stages.length-1 ? `<div style="flex:1;height:3px;background:${lineColor};margin:0 2px"></div>` : ""}
       </div>`;
     }).join("")}
   </div>
-  <div style="font-size:10px;color:var(--gray3);text-align:center;font-weight:700">${status||"مسودة"}</div>`;
+  <div style="font-size:10px;color:var(--gray3);text-align:center;font-weight:700">${displayStageLabel(status||"مسودة")}</div>`;
 }
 
 let policyActiveCategory = "الكل";
@@ -5731,7 +5756,7 @@ function renderPoliciesFiltered(){
     if(s === "معتمدة نهائيًا") return '<span class="badge done">معتمدة نهائيًا ✅</span>';
     if(s === "تجديد مطلوب") return '<span class="badge urgent">تجديد مطلوب</span>';
     if(s === "مسودة") return '<span class="badge pending">مسودة</span>';
-    return '<span class="badge info">'+ (s || "مسودة") +'</span>';
+    return '<span class="badge info">'+ displayStageLabel(s || "مسودة") +'</span>';
   };
   // Group the filtered policies by category so cards of the same category sit together
   const categoryOrder = ["سياسات الجمعية", "سياسات المجلس", "سياسات اللجان", "لوائح المجلس", "لوائح اللجان", "لوائح داخلية"];
@@ -5763,7 +5788,7 @@ function renderPoliciesFiltered(){
       const stages = getPolicyStageSequence(p);
       const stageIdx = stages.indexOf(p.status);
       const nextBtn = (stageIdx >= 0 && stageIdx < stages.length-1)
-        ? `<button class="btn-xs primary" style="width:100%;margin-top:8px" onclick="advancePolicyStage(${p.id})">⏩ نقل إلى: ${stages[stageIdx+1]}</button>`
+        ? `<button class="btn-xs primary" style="width:100%;margin-top:8px" onclick="advancePolicyStage(${p.id})">⏩ نقل إلى: ${displayStageLabel(stages[stageIdx+1])}</button>`
         : "";
       const deadlineDays = Number(currentCompanyPolicyDeadlineDays ?? 14);
       let deadlineBadge = "";
@@ -5818,9 +5843,11 @@ async function loadPolicyReviewSection(){
   const role = getCurrentRole();
   if(role === 'مساهم'){ card.style.display = "none"; return; }
   card.style.display = "block";
+  const bodyLabel = getGovernanceBodyLabel();
+  setText("policyReviewTitle", `🗳️ سياسات تحتاج رأي ${bodyLabel}`);
 
   const pending = policiesCache.filter(p => p.status === "مرفوعة لمجلس الإدارة");
-  if(pending.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;line-height:1.8">لا توجد سياسات بانتظار رأي المجلس حاليًا.<br>خانة كتابة الملاحظة تظهر هنا فقط بعد نقل السياسة لمرحلة "مرفوعة لمجلس الإدارة" (زر "⏩ نقل إلى" بكل بطاقة سياسة فوق).</div>'; return; }
+  if(pending.length===0){ box.innerHTML = `<div style="text-align:center;color:var(--gray3);font-size:12px;line-height:1.8">لا توجد سياسات بانتظار رأي ${bodyLabel} حاليًا.<br>خانة كتابة الملاحظة تظهر هنا فقط بعد نقل السياسة لمرحلة "${displayStageLabel("مرفوعة لمجلس الإدارة")}" (زر "⏩ نقل إلى" بكل بطاقة سياسة فوق).</div>`; return; }
 
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
@@ -5841,7 +5868,7 @@ async function loadPolicyReviewSection(){
     return `<div style="border:1px solid var(--gray1);border-radius:10px;padding:12px;margin-bottom:12px">
       <div style="font-weight:800;font-size:13px;color:var(--dark)">${p.policy_name||""}</div>
       <div style="font-size:11px;color:var(--gray3);margin:4px 0 8px">${p.category||""} · ${p.policy_type||""}</div>
-      <div style="font-size:11px;color:var(--gray3);margin-bottom:8px">آراء الأعضاء حتى الآن: <span style="color:var(--green)">✅ ${yes}</span> · <span style="color:var(--red)">❌ ${no}</span> · <span style="color:var(--orange)">⚠️ ${abst}</span></div>
+      <div style="font-size:11px;color:var(--gray3);margin-bottom:8px">آراء ${getGovernanceMemberLabel()} حتى الآن: <span style="color:var(--green)">✅ ${yes}</span> · <span style="color:var(--red)">❌ ${no}</span> · <span style="color:var(--orange)">⚠️ ${abst}</span></div>
       <textarea id="policy-review-notes-${p.id}" placeholder="ملاحظاتك (اختياري)" style="width:100%;border:1px solid var(--gray1);border-radius:8px;padding:8px;font-family:'Tajawal',sans-serif;font-size:12px;resize:none;margin-bottom:8px" rows="2">${mine ? (mine.notes||"") : ""}</textarea>
       <div style="display:flex;gap:6px">
         <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer;font-weight:${mine&&mine.decision==='موافق'?'900':'600'}" onclick="submitPolicyReview(${p.id},'موافق')">✅ موافقة</button>
@@ -7733,6 +7760,26 @@ async function uploadBlobToStorage(blob, folder, filename){
 
 // "Board" pool = any team member whose role relates to the board (chairman/secretary/member) or
 // the system admin — matches how the rest of the platform already treats board-related roles.
+/* A single source of truth for "what do we call the approving body" — used everywhere board
+   approval language shows up (policies, the structure/matrix/charter approval workflow, PDFs,
+   emails) instead of hardcoding "المجلس" in dozens of places that read wrong for a sole
+   proprietorship (single owner, no board at all) or an LLC (managers' board, not "الإدارة"). */
+function getGovernanceBodyLabel(){
+  if(currentCompanyType === "مؤسسة فردية") return "المالك";
+  if(currentCompanyType === "ذات مسؤولية محدودة") return "مجلس المديرين";
+  return "مجلس الإدارة";
+}
+function getGovernanceMemberLabel(){
+  return currentCompanyType === "مؤسسة فردية" ? "المالك" : `أعضاء ${getGovernanceBodyLabel()}`;
+}
+// Swaps the literal "مجلس الإدارة" substring for the company-appropriate label wherever a
+// stage name or generated sentence is actually DISPLAYED — internal comparisons/status values
+// stay on the original canonical string so existing data and logic keep working unchanged.
+function displayStageLabel(text){
+  if(!text) return text;
+  return text.replace(/مجلس الإدارة/g, getGovernanceBodyLabel());
+}
+
 async function getBoardApprovers(){
   const { data } = await sb.from("user_profiles").select("full_name,email,role")
     .eq("company_id", currentCompanyId).or("role.ilike.%مجلس%,role.eq.مدير النظام");
@@ -7742,7 +7789,7 @@ async function getBoardApprovers(){
 async function requestBoardApproval(type){
   const isMatrix = type === "matrix";
   const title = isMatrix ? "طلب موافقة على مصفوفة الصلاحيات" : "طلب موافقة على الهيكل التنظيمي";
-  if(!confirm(`سيتم توليد نسخة PDF من ${isMatrix?"مصفوفة الصلاحيات":"الهيكل التنظيمي"} الحالية وإرسال طلب موافقة لأعضاء المجلس. متابعة؟`)) return;
+  if(!confirm(`سيتم توليد نسخة PDF من ${isMatrix?"مصفوفة الصلاحيات":"الهيكل التنظيمي"} الحالية وإرسال طلب موافقة لـ${getGovernanceMemberLabel()}. متابعة؟`)) return;
 
   const board = await getBoardApprovers();
   if(board.length === 0){ alert("لا يوجد أعضاء مجلس مسجّلين لديهم حساب بالمنصة — أضفهم أولًا من صفحة إدارة الصلاحيات."); return; }
@@ -7783,7 +7830,7 @@ async function requestBoardApproval(type){
     <h1 style="color:#1A3A6B;font-size:20px;border-bottom:3px solid #D4AF37;padding-bottom:10px">${title} — ${companyName}</h1>
     <p><b>تاريخ الطلب:</b> ${dateNow}</p>
     <div style="overflow-x:auto;margin:16px 0">${bodyContent}</div>
-    <h3 style="color:#1A3A6B;margin-top:24px">أعضاء المجلس المطلوب موافقتهم</h3>
+    <h3 style="color:#1A3A6B;margin-top:24px">${getGovernanceMemberLabel()} المطلوب موافقتهم</h3>
     <table style="width:100%;border-collapse:collapse;margin-top:8px">
       <thead><tr>
         <th style="border:1px solid #ccc;padding:6px;background:#1A3A6B;color:#fff">الاسم</th>
@@ -7814,7 +7861,7 @@ async function requestBoardApproval(type){
   if(error){ alert("تعذّر إنشاء طلب الموافقة: " + error.message); return; }
 
   logActivity("إنشاء", "طلب موافقة", fullTitle, `أُرسل لـ${board.length} عضو مجلس`);
-  alert("تم إرسال طلب الموافقة لأعضاء المجلس ✅");
+  alert("تم إرسال طلب الموافقة لـ" + getGovernanceMemberLabel() + " ✅");
   renderApprovalStatus(type, isMatrix ? "matrixApprovalStatus" : "structureApprovalStatus");
   checkPendingApprovalBadges();
 }
@@ -7826,7 +7873,7 @@ async function requestCharterApproval(){
   if(!c.charter_purpose && !c.charter_authorities && !c.charter_composition){
     if(!confirm("لم تحفظ الميثاق بعد — هل تريد المتابعة بطلب الموافقة على آخر نسخة محفوظة على أي حال؟")) return;
   }
-  if(!confirm(`سيتم توليد نسخة PDF من ميثاق "${c.committee_name}" وإرسال طلب موافقة لأعضاء المجلس. متابعة؟`)) return;
+  if(!confirm(`سيتم توليد نسخة PDF من ميثاق "${c.committee_name}" وإرسال طلب موافقة لـ${getGovernanceMemberLabel()}. متابعة؟`)) return;
 
   const board = await getBoardApprovers();
   if(board.length === 0){ alert("لا يوجد أعضاء مجلس مسجّلين لديهم حساب بالمنصة."); return; }
@@ -7851,7 +7898,7 @@ async function requestCharterApproval(){
     <h3 style="color:#1A3A6B;margin-top:16px">التشكيل وعضوية اللجنة</h3><p>${(c.charter_composition||"—").replace(/\n/g,"<br>")}</p>
     <h3 style="color:#1A3A6B;margin-top:16px">تنظيم الاجتماعات</h3><p>${(c.charter_meetings_rules||"—").replace(/\n/g,"<br>")}</p>
     <h3 style="color:#1A3A6B;margin-top:16px">آلية رفع التقارير لمجلس الإدارة</h3><p>${(c.charter_reporting||"—").replace(/\n/g,"<br>")}</p>
-    <h3 style="color:#1A3A6B;margin-top:24px">أعضاء المجلس المطلوب موافقتهم</h3>
+    <h3 style="color:#1A3A6B;margin-top:24px">${getGovernanceMemberLabel()} المطلوب موافقتهم</h3>
     <table style="width:100%;border-collapse:collapse;margin-top:8px">
       <thead><tr>
         <th style="border:1px solid #ccc;padding:6px;background:#1A3A6B;color:#fff">الاسم</th>
@@ -7882,7 +7929,7 @@ async function requestCharterApproval(){
   if(error){ alert("تعذّر إنشاء طلب الموافقة: " + error.message); return; }
 
   logActivity("إنشاء", "طلب موافقة", fullTitle, `أُرسل لـ${board.length} عضو مجلس`);
-  alert("تم إرسال طلب الموافقة لأعضاء المجلس ✅");
+  alert("تم إرسال طلب الموافقة لـ" + getGovernanceMemberLabel() + " ✅");
   renderCharterApprovalStatus(committeeId);
   loadCommittees();
 }
@@ -7905,12 +7952,12 @@ async function renderCharterApprovalStatus(committeeId){
   const amIBoardMember = board.some(b => (b.email||"").toLowerCase() === (myEmail||"").toLowerCase());
 
   if(req.status === "معتمد"){
-    box.innerHTML = `<div style="background:#E8F8EF;border-radius:8px;padding:10px;font-size:11.5px">✅ تمت موافقة المجلس على هذا الميثاق بتاريخ ${req.approved_at?new Date(req.approved_at).toLocaleDateString('ar-SA'):"—"} — انتقل تلقائيًا للتوقيع الإلكتروني.</div>`;
+    box.innerHTML = `<div style="background:#E8F8EF;border-radius:8px;padding:10px;font-size:11.5px">✅ تمت موافقة ${getGovernanceBodyLabel()} على هذا الميثاق بتاريخ ${req.approved_at?new Date(req.approved_at).toLocaleDateString('ar-SA'):"—"} — انتقل تلقائيًا للتوقيع الإلكتروني.</div>`;
     return;
   }
   box.innerHTML = `<div style="background:#FEF3E2;border-radius:8px;padding:10px">
     <div style="display:flex;justify-content:space-between;align-items:center;font-size:11.5px;margin-bottom:6px">
-      <b style="color:#8B6F1F">⏳ بانتظار موافقة المجلس (${votedCount}/${totalBoard})</b>
+      <b style="color:#8B6F1F">⏳ بانتظار موافقة ${getGovernanceBodyLabel()} (${votedCount}/${totalBoard})</b>
       <button class="btn-xs" style="background:#E8F0FA;color:var(--primary);border:none;border-radius:6px;padding:3px 8px;font-size:10.5px;cursor:pointer" onclick="sendApprovalReminder(${req.id})">🔔 تذكير</button>
     </div>
     ${amIBoardMember && !iAlreadyVoted ? `<button class="btn btn-gold" style="width:100%;font-size:11px;padding:6px" onclick="castApprovalVote(${req.id})">✅ الموافقة على هذا الميثاق</button>` : ""}
@@ -7918,7 +7965,16 @@ async function renderCharterApprovalStatus(committeeId){
   </div>`;
 }
 
+function refreshApprovalButtonLabels(){
+  const label = "📤 طلب موافقة من " + getGovernanceBodyLabel();
+  ["approvalBtnStructure","approvalBtnMatrix","approvalBtnCharter"].forEach(id => {
+    const btn = document.getElementById(id);
+    if(btn) btn.textContent = label;
+  });
+}
+
 async function checkPendingApprovalBadges(){
+  refreshApprovalButtonLabels();
   if(!currentCompanyId) return;
   const { data: pending } = await sb.from("approval_requests").select("request_type").eq("company_id", currentCompanyId).eq("status", "قيد المراجعة");
   const counts = { structure: 0, matrix: 0 };
@@ -7949,7 +8005,7 @@ async function renderApprovalStatus(type, containerId){
 
   if(req.status === "معتمد"){
     box.innerHTML = `<div style="background:#E8F8EF;border-radius:10px;padding:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <div style="font-size:12.5px"><b style="color:var(--green)">✅ تمت موافقة المجلس</b> بتاريخ ${req.approved_at?new Date(req.approved_at).toLocaleDateString('ar-SA'):"—"} — انتقل الملف تلقائيًا لصفحة التوقيع الإلكتروني.</div>
+      <div style="font-size:12.5px"><b style="color:var(--green)">✅ تمت موافقة ${getGovernanceBodyLabel()}</b> بتاريخ ${req.approved_at?new Date(req.approved_at).toLocaleDateString('ar-SA'):"—"} — انتقل الملف تلقائيًا لصفحة التوقيع الإلكتروني.</div>
       <a href="${req.pdf_url}" target="_blank" class="btn-xs primary" style="text-decoration:none">📄 عرض الملف</a>
     </div>`;
     return;
@@ -7957,7 +8013,7 @@ async function renderApprovalStatus(type, containerId){
 
   box.innerHTML = `<div style="background:#FEF3E2;border-radius:10px;padding:14px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
-      <b style="color:#8B6F1F;font-size:12.5px">⏳ بانتظار موافقة المجلس (${votedCount}/${totalBoard})</b>
+      <b style="color:#8B6F1F;font-size:12.5px">⏳ بانتظار موافقة ${getGovernanceBodyLabel()} (${votedCount}/${totalBoard})</b>
       <div style="display:flex;gap:6px">
         <button class="btn-xs" style="background:#E8F0FA;color:var(--primary);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="sendApprovalReminder(${req.id})">🔔 تذكير</button>
         <a href="${req.pdf_url}" target="_blank" class="btn-xs primary" style="text-decoration:none">📄 عرض الملف</a>
@@ -8017,8 +8073,8 @@ async function castApprovalVote(requestId){
       document_name: req.title, doc_type: docTypeLabel,
       signers_total: board.length, signers_done: 0, status: "قيد التوقيع", file_url: req.pdf_url, company_id: currentCompanyId
     }]);
-    logActivity("موافقة", "طلب موافقة", req.title, "اكتملت موافقة المجلس — انتقل تلقائيًا للتوقيع الإلكتروني");
-    alert("🎉 اكتملت موافقة جميع أعضاء المجلس! تم نقل الملف تلقائيًا لصفحة التوقيع الإلكتروني.");
+    logActivity("موافقة", "طلب موافقة", req.title, "اكتملت موافقة " + getGovernanceBodyLabel() + " — انتقل تلقائيًا للتوقيع الإلكتروني");
+    alert("🎉 اكتملت موافقة جميع " + getGovernanceMemberLabel() + " ! تم نقل الملف تلقائيًا لصفحة التوقيع الإلكتروني.");
   } else {
     alert("تم تسجيل موافقتك ✅");
   }
