@@ -8450,26 +8450,39 @@ async function generateBaseStructure(){
 
   let rows = [];
   if(type === "مؤسسة فردية"){
-    if(!confirm('سيُضاف منصب "المالك" كأعلى نقطة بالهيكل (بدون مجلس أو جمعية، حسب طبيعة المؤسسة الفردية). أي عنصر قديم بنفس الاسم سيُستبدل تلقائيًا بالنسخة الصحيحة. متابعة؟')) return;
+    if(!confirm('سيُضاف هيكل مبدئي: المالك ← المدير العام ← الإدارات الرئيسية (المالية، الموارد البشرية، التشغيل، المبيعات). يمكنك حذف أو تعديل أي منصب بعدها حسب واقع مؤسستك الفعلي. أي عنصر قديم بنفس الاسم سيُستبدل تلقائيًا. متابعة؟')) return;
     rows = [
-      { position_title: "المالك", parent_position: "", level: 1, is_body: false, is_leadership: true }
+      { position_title: "المالك", parent_position: "", level: 1, is_body: false, is_leadership: true },
+      { position_title: "المدير العام / التنفيذي", parent_position: "المالك", level: 4, is_body: false, is_leadership: true },
+      { position_title: "الإدارة المالية", parent_position: "المدير العام / التنفيذي", level: 5, is_body: false, is_leadership: true },
+      { position_title: "إدارة الموارد البشرية", parent_position: "المدير العام / التنفيذي", level: 5, is_body: false, is_leadership: true },
+      { position_title: "إدارة التشغيل", parent_position: "المدير العام / التنفيذي", level: 5, is_body: false, is_leadership: true },
+      { position_title: "إدارة المبيعات والتسويق", parent_position: "المدير العام / التنفيذي", level: 5, is_body: false, is_leadership: true }
     ];
   } else if(type === "ذات مسؤولية محدودة"){
-    if(!confirm('سيُضاف: جمعية الشركاء ← مجلس المديرين ← الرئيس التنفيذي. أي عنصر قديم بنفس الاسم سيُستبدل تلقائيًا بالنسخة الصحيحة. متابعة؟')) return;
+    if(!confirm('سيُضاف: جمعية الشركاء ← مجلس المديرين ← الرئيس التنفيذي ← الإدارات الرئيسية (المالية، الموارد البشرية، التشغيل، المبيعات). يمكنك حذف أو تعديل أي منصب بعدها حسب واقع شركتك الفعلي. أي عنصر قديم بنفس الاسم سيُستبدل تلقائيًا. متابعة؟')) return;
     rows = [
       { position_title: "جمعية الشركاء", parent_position: "", level: 1, is_body: true },
       { position_title: "مجلس المديرين", parent_position: "جمعية الشركاء", level: 2, is_body: true },
-      { position_title: "الرئيس التنفيذي", parent_position: "مجلس المديرين", level: 4, is_body: false, is_leadership: true }
+      { position_title: "الرئيس التنفيذي", parent_position: "مجلس المديرين", level: 4, is_body: false, is_leadership: true },
+      { position_title: "الإدارة المالية", parent_position: "الرئيس التنفيذي", level: 5, is_body: false, is_leadership: true },
+      { position_title: "إدارة الموارد البشرية", parent_position: "الرئيس التنفيذي", level: 5, is_body: false, is_leadership: true },
+      { position_title: "إدارة التشغيل", parent_position: "الرئيس التنفيذي", level: 5, is_body: false, is_leadership: true },
+      { position_title: "إدارة المبيعات والتسويق", parent_position: "الرئيس التنفيذي", level: 5, is_body: false, is_leadership: true }
     ];
   } else {
     // مساهمة مدرجة / مساهمة غير مدرجة (default)
-    if(!confirm('سيُضاف: الجمعية العامة ← مجلس الإدارة (برئيسه واللجان المنبثقة) ← الرئيس التنفيذي. أي عنصر قديم بنفس الاسم سيُستبدل تلقائيًا بالنسخة الصحيحة. متابعة؟')) return;
+    if(!confirm('سيُضاف: الجمعية العامة ← مجلس الإدارة (برئيسه واللجان المنبثقة) ← الرئيس التنفيذي ← الإدارات الرئيسية (المالية، الموارد البشرية، التشغيل، المبيعات). يمكنك حذف أو تعديل أي منصب بعدها حسب واقع شركتك الفعلي. أي عنصر قديم بنفس الاسم سيُستبدل تلقائيًا. متابعة؟')) return;
     rows = [
       { position_title: "الجمعية العامة", parent_position: "", level: 1, is_body: true },
       { position_title: "مجلس الإدارة", parent_position: "الجمعية العامة", level: 2, is_body: true },
       { position_title: "رئيس مجلس الإدارة", parent_position: "مجلس الإدارة", level: 2, is_body: false, is_leadership: true },
       { position_title: "اللجان المنبثقة", parent_position: "مجلس الإدارة", level: 3, is_body: true },
-      { position_title: "الرئيس التنفيذي", parent_position: "مجلس الإدارة", level: 4, is_body: false, is_leadership: true }
+      { position_title: "الرئيس التنفيذي", parent_position: "مجلس الإدارة", level: 4, is_body: false, is_leadership: true },
+      { position_title: "الإدارة المالية", parent_position: "الرئيس التنفيذي", level: 5, is_body: false, is_leadership: true },
+      { position_title: "إدارة الموارد البشرية", parent_position: "الرئيس التنفيذي", level: 5, is_body: false, is_leadership: true },
+      { position_title: "إدارة التشغيل", parent_position: "الرئيس التنفيذي", level: 5, is_body: false, is_leadership: true },
+      { position_title: "إدارة المبيعات والتسويق", parent_position: "الرئيس التنفيذي", level: 5, is_body: false, is_leadership: true }
     ];
   }
 
