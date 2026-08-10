@@ -1329,7 +1329,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <!-- ══ REPORTS ════════════════════════════ -->
 <div id="p-reports" class="page content">
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
-    <span>📈 تقرير مجلس الإدارة السنوي (حسب المادة 90 من لائحة حوكمة الشركات)</span>
+    <span id="reportsPageTitle">📈 تقرير مجلس الإدارة السنوي (حسب المادة 90 من لائحة حوكمة الشركات)</span>
     <div style="display:flex;gap:8px;align-items:center">
       <select class="fs" id="reportYearSelect" onchange="loadReportsPage()" style="font-size:12px;padding:6px 10px;width:auto"></select>
       <button class="btn-xs gold" onclick="generateAnnualReportPDF()">📄 تحميل PDF</button>
@@ -1342,7 +1342,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
         <div style="background:var(--primary);color:#fff;padding:24px 28px;text-align:center">
           <div style="font-size:11px;letter-spacing:2px;color:rgba(255,255,255,0.65);margin-bottom:8px">المملكة العربية السعودية</div>
           <div style="font-size:20px;font-weight:900;color:var(--gold3);margin-bottom:4px" id="reportCompanyName1">—</div>
-          <div style="font-size:15px;font-weight:700;margin-top:10px">تقرير مجلس الإدارة السنوي</div>
+          <div style="font-size:15px;font-weight:700;margin-top:10px" id="reportSubTitle">تقرير مجلس الإدارة السنوي</div>
           <div style="font-size:13px;color:rgba(255,255,255,0.7);margin-top:4px" id="reportPeriodLine">—</div>
         </div>
         <div style="padding:24px 28px;background:#fff" id="reportBody">
@@ -1353,26 +1353,36 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
             <div style="background:var(--offwhite);border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--teal)" id="rep-kpi-committees">—</div><div style="font-size:10px;color:var(--gray3)">لجان نشطة</div></div>
           </div>
 
-          <div class="rep-sec-title">أولاً: ما طُبّق من أحكام لائحة حوكمة الشركات وما لم يُطبّق وأسبابه</div>
-          <div id="field-compliance_statement"></div>
+          <div id="sec-compliance">
+            <div class="rep-sec-title">أولاً: ما طُبّق من أحكام لائحة حوكمة الشركات وما لم يُطبّق وأسبابه</div>
+            <div id="field-compliance_statement"></div>
+          </div>
 
-          <div class="rep-sec-title">ثانياً: تكوين مجلس الإدارة وتصنيف الأعضاء</div>
-          <div id="rep-board-composition" style="margin-bottom:16px"><div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div></div>
+          <div id="sec-board-composition">
+            <div class="rep-sec-title" id="rep-title-2">ثانياً: تكوين مجلس الإدارة وتصنيف الأعضاء</div>
+            <div id="rep-board-composition" style="margin-bottom:16px"><div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div></div>
+          </div>
 
-          <div class="rep-sec-title">ثالثاً: عضوية أعضاء المجلس في مجالس إدارات أخرى</div>
-          <div id="field-other_directorships"></div>
+          <div id="sec-other-directorships">
+            <div class="rep-sec-title">ثالثاً: عضوية أعضاء المجلس في مجالس إدارات أخرى</div>
+            <div id="field-other_directorships"></div>
+          </div>
 
-          <div class="rep-sec-title">رابعاً: اللجان — الأعضاء وعدد الاجتماعات ونسب الحضور</div>
-          <div id="rep-committees-detail" style="margin-bottom:16px"><div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div></div>
+          <div id="sec-committees">
+            <div class="rep-sec-title">رابعاً: اللجان — الأعضاء وعدد الاجتماعات ونسب الحضور</div>
+            <div id="rep-committees-detail" style="margin-bottom:16px"><div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div></div>
+          </div>
 
-          <div class="rep-sec-title">خامساً: مكافآت أعضاء مجلس الإدارة والإدارة التنفيذية</div>
+          <div class="rep-sec-title" id="rep-title-5">خامساً: مكافآت أعضاء مجلس الإدارة والإدارة التنفيذية</div>
           <div id="field-remuneration"></div>
 
           <div class="rep-sec-title">سادساً: العقوبات والجزاءات المفروضة على الشركة</div>
           <div id="field-penalties"></div>
 
-          <div class="rep-sec-title">سابعاً: نتائج المراجعة السنوية للرقابة الداخلية ورأي لجنة المراجعة</div>
-          <div id="field-internal_control"></div>
+          <div id="sec-internal-control">
+            <div class="rep-sec-title">سابعاً: نتائج المراجعة السنوية للرقابة الداخلية ورأي لجنة المراجعة</div>
+            <div id="field-internal_control"></div>
+          </div>
 
           <div class="rep-sec-title">ثامناً: المخاطر التي تواجه الشركة وسياسة إدارتها</div>
           <div id="rep-risks-list" style="margin-bottom:10px"><div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div></div>
@@ -1387,17 +1397,21 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
           <div class="rep-sec-title">حادي عشر: القروض على الشركة</div>
           <div id="field-loans"></div>
 
-          <div class="rep-sec-title">ثاني عشر: طلبات الشركة لسجل المساهمين</div>
-          <div id="field-share_registry_requests"></div>
+          <div id="sec-share-registry">
+            <div class="rep-sec-title" id="rep-title-12">ثاني عشر: طلبات الشركة لسجل المساهمين</div>
+            <div id="field-share_registry_requests"></div>
+          </div>
 
-          <div class="rep-sec-title">ثالث عشر: الأعمال والعقود مع أطراف ذات علاقة بأعضاء المجلس</div>
+          <div class="rep-sec-title" id="rep-title-13">ثالث عشر: الأعمال والعقود مع أطراف ذات علاقة بأعضاء المجلس</div>
           <div id="field-related_party_contracts"></div>
 
           <div class="rep-sec-title">رابع عشر: توزيعات الأرباح</div>
           <div id="field-dividends"></div>
 
-          <div class="rep-sec-title">خامس عشر: إقرارات مجلس الإدارة</div>
-          <div id="field-declarations"></div>
+          <div id="sec-declarations">
+            <div class="rep-sec-title" id="rep-title-15">خامس عشر: إقرارات مجلس الإدارة</div>
+            <div id="field-declarations"></div>
+          </div>
 
           <div class="rep-sec-title">أبرز القرارات الصادرة هذا العام</div>
           <div id="rep-decisions-list" style="margin-bottom:16px">
@@ -3249,7 +3263,41 @@ function boardMemberClassification(m){
   return "غير تنفيذي";
 }
 
+function applyReportTypeAdaptation(){
+  const type = currentCompanyType;
+  const isSoleProp = type === "مؤسسة فردية";
+  const isLLC = type === "ذات مسؤولية محدودة";
+
+  let pageTitle, subTitle, boardWord;
+  if(isSoleProp){ pageTitle = "📈 التقرير السنوي"; subTitle = "التقرير السنوي"; boardWord = "المالك"; }
+  else if(isLLC){ pageTitle = "📈 تقرير مجلس المديرين السنوي"; subTitle = "تقرير مجلس المديرين السنوي"; boardWord = "مجلس المديرين"; }
+  else { pageTitle = "📈 تقرير مجلس الإدارة السنوي (حسب المادة 90 من لائحة حوكمة الشركات)"; subTitle = "تقرير مجلس الإدارة السنوي"; boardWord = "مجلس الإدارة"; }
+
+  setText("reportsPageTitle", pageTitle);
+  setText("reportSubTitle", subTitle);
+
+  // Sections that only make sense with a real board and/or CMA-regulated shareholder registry —
+  // hidden entirely for sole proprietorships (no board at all), and the CMA-specific compliance
+  // + share-registry sections hidden for anything that isn't a joint-stock company.
+  const hideForNonJointStock = ["sec-compliance", "sec-share-registry"];
+  const hideForSoleProp = ["sec-board-composition", "sec-other-directorships", "sec-committees", "sec-internal-control", "sec-declarations"];
+
+  hideForNonJointStock.forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.style.display = (isSoleProp || isLLC) ? "none" : "";
+  });
+  hideForSoleProp.forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.style.display = isSoleProp ? "none" : "";
+  });
+
+  // Re-word section titles that mention "مجلس الإدارة" specifically, for LLCs / sole props.
+  const relabel = { "rep-title-2": `ثانياً: تكوين ${boardWord} وتصنيف الأعضاء`, "rep-title-5": `خامساً: مكافآت أعضاء ${boardWord} والإدارة التنفيذية`, "rep-title-12": "ثاني عشر: طلبات الشركة لسجل المساهمين", "rep-title-13": `ثالث عشر: الأعمال والعقود مع أطراف ذات علاقة بـ${isSoleProp?"المالك":"أعضاء "+boardWord}`, "rep-title-15": `خامس عشر: إقرارات ${boardWord}` };
+  Object.entries(relabel).forEach(([id, text]) => setText(id, text));
+}
+
 async function loadReportsPage(){
+  applyReportTypeAdaptation();
   const list = document.getElementById("companySwitcher");
   const name = list && list.selectedOptions.length ? list.selectedOptions[0].textContent : "الشركة";
   setText("reportCompanyName1", name);
@@ -3436,28 +3484,43 @@ async function generateAnnualReportPDF(){
     ? '<ul>' + decisionsThisYear.map(d => `<li>${d.document_name}</li>`).join("") + '</ul>'
     : '<p>لا توجد قرارات موقّعة مكتملة هذا العام بعد.</p>';
 
-  const sections = [
-    { num:"أولاً", title:"ما طُبّق من أحكام لائحة حوكمة الشركات وما لم يُطبّق وأسبابه", body: `<p>${manualValues.compliance_statement||"—"}</p>` },
-    { num:"ثانياً", title:"تكوين مجلس الإدارة وتصنيف الأعضاء", body: `<table><thead><tr><th>الاسم</th><th>المنصب</th><th>التصنيف</th></tr></thead><tbody>${composRows}</tbody></table>` },
-    { num:"ثالثاً", title:"عضوية أعضاء المجلس في مجالس إدارات أخرى", body: `<p>${manualValues.other_directorships||"لا يوجد"}</p>` },
-    { num:"رابعاً", title:"اللجان — الأعضاء وعدد الاجتماعات ونسب الحضور", body: `<table><thead><tr><th>اللجنة</th><th>الرئيس</th><th>عدد الأعضاء</th><th>اجتماعاتها هذا العام</th><th>متوسط نسبة الحضور</th></tr></thead><tbody>${commRows}</tbody></table>` },
-    { num:"خامساً", title:"مكافآت أعضاء مجلس الإدارة والإدارة التنفيذية", body: `<p>${manualValues.remuneration||"—"}</p>` },
-    { num:"سادساً", title:"العقوبات والجزاءات المفروضة على الشركة", body: `<p>${manualValues.penalties||"—"}</p>` },
-    { num:"سابعاً", title:"نتائج المراجعة السنوية للرقابة الداخلية ورأي لجنة المراجعة", body: `<p>${manualValues.internal_control||"—"}</p>` },
-    { num:"ثامناً", title:"المخاطر التي تواجه الشركة وسياسة إدارتها", body: `<table><thead><tr><th>الخطر</th><th>الفئة</th><th>التأثير</th><th>الاحتمالية</th><th>الحالة</th></tr></thead><tbody>${riskRows}</tbody></table><p style="margin-top:8px">${manualValues.risk_policy||""}</p>` },
-    { num:"تاسعاً", title:"الفروقات الجوهرية في النتائج التشغيلية عن السنة السابقة", body: `<p>${manualValues.material_variances||"—"}</p>` },
-    { num:"عاشراً", title:"الشركات التابعة", body: `<p>${manualValues.subsidiaries||"—"}</p>` },
-    { num:"حادي عشر", title:"القروض على الشركة", body: `<p>${manualValues.loans||"—"}</p>` },
-    { num:"ثاني عشر", title:"طلبات الشركة لسجل المساهمين", body: `<p>${manualValues.share_registry_requests||"—"}</p>` },
-    { num:"ثالث عشر", title:"الأعمال والعقود مع أطراف ذات علاقة بأعضاء المجلس", body: `<p>${manualValues.related_party_contracts||"—"}</p>` },
-    { num:"رابع عشر", title:"توزيعات الأرباح", body: `<p>${manualValues.dividends||"—"}</p>` },
-    { num:"خامس عشر", title:"إقرارات مجلس الإدارة", body: `<p>${manualValues.declarations||"—"}</p>` },
-    { num:"", title:"أبرز القرارات الصادرة هذا العام", body: decisionsList }
+  const repIsSoleProp = currentCompanyType === "مؤسسة فردية";
+  const repIsLLC = currentCompanyType === "ذات مسؤولية محدودة";
+  const repBoardWord = repIsSoleProp ? "المالك" : repIsLLC ? "مجلس المديرين" : "مجلس الإدارة";
+  const repTitle = repIsSoleProp ? "التقرير السنوي" : repIsLLC ? "تقرير مجلس المديرين السنوي" : "تقرير مجلس الإدارة السنوي";
+
+  let sections = [
+    { key:"compliance", num:"أولاً", title:"ما طُبّق من أحكام لائحة حوكمة الشركات وما لم يُطبّق وأسبابه", body: `<p>${manualValues.compliance_statement||"—"}</p>` },
+    { key:"board", num:"ثانياً", title:`تكوين ${repBoardWord} وتصنيف الأعضاء`, body: `<table><thead><tr><th>الاسم</th><th>المنصب</th><th>التصنيف</th></tr></thead><tbody>${composRows}</tbody></table>` },
+    { key:"directorships", num:"ثالثاً", title:"عضوية أعضاء المجلس في مجالس إدارات أخرى", body: `<p>${manualValues.other_directorships||"لا يوجد"}</p>` },
+    { key:"committees", num:"رابعاً", title:"اللجان — الأعضاء وعدد الاجتماعات ونسب الحضور", body: `<table><thead><tr><th>اللجنة</th><th>الرئيس</th><th>عدد الأعضاء</th><th>اجتماعاتها هذا العام</th><th>متوسط نسبة الحضور</th></tr></thead><tbody>${commRows}</tbody></table>` },
+    { key:"all", num:"خامساً", title:`مكافآت أعضاء ${repBoardWord} والإدارة التنفيذية`, body: `<p>${manualValues.remuneration||"—"}</p>` },
+    { key:"all", num:"سادساً", title:"العقوبات والجزاءات المفروضة على الشركة", body: `<p>${manualValues.penalties||"—"}</p>` },
+    { key:"internal_control", num:"سابعاً", title:"نتائج المراجعة السنوية للرقابة الداخلية ورأي لجنة المراجعة", body: `<p>${manualValues.internal_control||"—"}</p>` },
+    { key:"all", num:"ثامناً", title:"المخاطر التي تواجه الشركة وسياسة إدارتها", body: `<table><thead><tr><th>الخطر</th><th>الفئة</th><th>التأثير</th><th>الاحتمالية</th><th>الحالة</th></tr></thead><tbody>${riskRows}</tbody></table><p style="margin-top:8px">${manualValues.risk_policy||""}</p>` },
+    { key:"all", num:"تاسعاً", title:"الفروقات الجوهرية في النتائج التشغيلية عن السنة السابقة", body: `<p>${manualValues.material_variances||"—"}</p>` },
+    { key:"all", num:"عاشراً", title:"الشركات التابعة", body: `<p>${manualValues.subsidiaries||"—"}</p>` },
+    { key:"all", num:"حادي عشر", title:"القروض على الشركة", body: `<p>${manualValues.loans||"—"}</p>` },
+    { key:"share_registry", num:"ثاني عشر", title:"طلبات الشركة لسجل المساهمين", body: `<p>${manualValues.share_registry_requests||"—"}</p>` },
+    { key:"all", num:"ثالث عشر", title:`الأعمال والعقود مع أطراف ذات علاقة بـ${repIsSoleProp?"المالك":"أعضاء "+repBoardWord}`, body: `<p>${manualValues.related_party_contracts||"—"}</p>` },
+    { key:"all", num:"رابع عشر", title:"توزيعات الأرباح", body: `<p>${manualValues.dividends||"—"}</p>` },
+    { key:"declarations", num:"خامس عشر", title:`إقرارات ${repBoardWord}`, body: `<p>${manualValues.declarations||"—"}</p>` },
+    { key:"all", num:"", title:"أبرز القرارات الصادرة هذا العام", body: decisionsList }
   ];
+  const hideKeysNonJointStock = ["compliance","share_registry"];
+  const hideKeysSoleProp = ["board","directorships","committees","internal_control","declarations"];
+  sections = sections.filter(s => {
+    if((repIsSoleProp || repIsLLC) && hideKeysNonJointStock.includes(s.key)) return false;
+    if(repIsSoleProp && hideKeysSoleProp.includes(s.key)) return false;
+    return true;
+  });
+  const ORDINALS = ["أولاً","ثانياً","ثالثاً","رابعاً","خامساً","سادساً","سابعاً","ثامناً","تاسعاً","عاشراً","حادي عشر","ثاني عشر","ثالث عشر","رابع عشر","خامس عشر"];
+  let ordinalIdx = 0;
+  sections.forEach(s => { if(s.num !== "") s.num = ORDINALS[ordinalIdx++]; });
 
   w.document.open();
   w.document.write(`
-    <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>تقرير مجلس الإدارة السنوي ${currentYear}</title>
+    <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>${repTitle} ${currentYear}</title>
     <style>
       @page{ margin:2cm 1.8cm; }
       *{ box-sizing:border-box; }
@@ -3489,7 +3552,7 @@ async function generateAnnualReportPDF(){
       <div class="cover">
         <div class="kingdom">المملكة العربية السعودية</div>
         <div class="company">${companyName}</div>
-        <div class="title">تقرير مجلس الإدارة السنوي</div>
+        <div class="title">${repTitle}</div>
         <div class="period">للسنة المالية المنتهية في 31 ديسمبر ${currentYear}</div>
       </div>
       <div class="kpis">
