@@ -1090,6 +1090,8 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
   </div>
 
+  <div id="tempDebugLine" style="background:#FFF3CD;border:2px solid #E6B800;border-radius:8px;padding:12px;margin:14px 0;font-size:13px;font-weight:800;color:#7A5C00">🔧 تشخيص مؤقت — سيُحذف بعد الفحص</div>
+
   <div class="card" style="margin-top:20px" id="policyReviewCard">
     <div class="card-head"><span class="card-title" id="policyReviewTitle">🗳️ سياسات تحتاج رأي المجلس</span></div>
     <div class="card-body" id="policyReviewBody" style="padding:14px">
@@ -5851,6 +5853,8 @@ async function loadPolicyReviewSection(){
   card.style.display = "block";
   const bodyLabel = getGovernanceBodyLabel();
   setText("policyReviewTitle", `🗳️ سياسات تحتاج رأي ${bodyLabel}`);
+  const dbg = document.getElementById("tempDebugLine");
+  if(dbg) dbg.textContent = `🔧 تشخيص: currentCompanyType = "${currentCompanyType}" — bodyLabel = "${bodyLabel}"`;
 
   const pending = policiesCache.filter(p => p.status === "مرفوعة لمجلس الإدارة");
   if(pending.length===0){ box.innerHTML = `<div style="text-align:center;color:var(--gray3);font-size:12px;line-height:1.8">لا توجد سياسات بانتظار رأي ${bodyLabel} حاليًا.<br>خانة كتابة الملاحظة تظهر هنا فقط بعد نقل السياسة لمرحلة "${displayStageLabel("مرفوعة لمجلس الإدارة")}" (زر "⏩ نقل إلى" بكل بطاقة سياسة فوق).</div>`; return; }
