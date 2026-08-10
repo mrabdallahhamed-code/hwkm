@@ -2752,7 +2752,7 @@ async function applyRolePermissions(){
   document.getElementById('adminNavGroup').style.display = 'block';
   document.getElementById('companyRequestNavGroup').style.display = isPlatformAdmin ? 'block' : 'none';
   document.querySelectorAll('.nav-item').forEach(item=>{ item.style.display = ''; });
-  await applyCompanyTypeVisibility();
+  await refreshCompanyTypeVisibility();
 
   if(isShareholder){
     go('agm');
@@ -3179,14 +3179,14 @@ async function loadCompanies(preferredCompanyId){
   }
   currentCompanyId = preferredCompanyId && data.some(c=>c.id===preferredCompanyId) ? preferredCompanyId : data[0].id;
   if(sel) sel.value = currentCompanyId;
-  await applyCompanyTypeVisibility();
+  await refreshCompanyTypeVisibility();
   reloadCurrentPageData();
 }
 
 async function switchCompany(id){
   currentCompanyId = Number(id);
   await applyRolePermissions();
-  await applyCompanyTypeVisibility();
+  await refreshCompanyTypeVisibility();
   checkPendingApprovalBadges();
   reloadCurrentPageData();
 }
@@ -4077,6 +4077,12 @@ function renderTrialBanner(){
   banner.textContent = daysLeft > 0
     ? `🎁 أنت بفترة تجربة مجانية — متبقٍ ${daysLeft} يوم (كل الوحدات مفتوحة مؤقتًا)`
     : `⚠️ انتهت فترة التجربة المجانية — تواصل معنا لتفعيل الاشتراك`;
+}
+
+let companyTypeReadyPromise = null;
+function refreshCompanyTypeVisibility(){
+  companyTypeReadyPromise = applyCompanyTypeVisibility();
+  return companyTypeReadyPromise;
 }
 
 async function applyCompanyTypeVisibility(){
@@ -9933,7 +9939,8 @@ const titles={
   consultants:['الاستشارات','الاستشارات القانونية والإدارية وعقودها'],
 };
 
-function go(id, el){
+async function go(id, el){
+  if(companyTypeReadyPromise){ try{ await companyTypeReadyPromise; }catch(e){} }
   const role = currentUserProfile ? getCurrentRole() : null;
   const blocked = role && !isPageAllowed(id, role);
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
