@@ -590,6 +590,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="nav-group">
     <div class="nav-group-label">الحوكمة المؤسسية</div>
     <div class="nav-item" onclick="go('governance',this)"><span class="ni-icon">🏛️</span><span class="ni-text">السياسات والحوكمة</span><span class="ni-badge blue">5</span></div>
+    <div class="nav-item" onclick="policyActiveCategory='سياسات الموارد البشرية';go('governance',this)"><span class="ni-icon">📋</span><span class="ni-text">سياسات الموارد البشرية</span></div>
     <div class="nav-item" onclick="go('structure',this)"><span class="ni-icon">🌳</span><span class="ni-text">الهيكل التنظيمي</span><span class="ni-badge red" id="structureNavBadge" style="display:none"></span></div>
     <div class="nav-item" onclick="go('members',this)"><span class="ni-icon">👥</span><span class="ni-text">أعضاء المجلس</span><span class="ni-badge gold">5</span></div>
     <div class="nav-item" onclick="go('appoint',this)"><span class="ni-icon">➕</span><span class="ni-text">طلب تعيين عضو</span></div>
@@ -1074,7 +1075,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <span>🏛️ السياسات والحوكمة</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportPoliciesList()">📥 تصدير Excel</button>
-      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mp-id').value='';document.getElementById('mp-title-h').textContent='🏛️ إضافة سياسة جديدة';document.getElementById('mp-name').value='';document.getElementById('mp-type').value='';document.getElementById('mp-approval').value='';document.getElementById('mp-review').value='';document.getElementById('mp-requires-agm').checked=false;openM('m-policy')">+ إضافة سياسة</button>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mp-id').value='';document.getElementById('mp-title-h').textContent='🏛️ إضافة سياسة جديدة';document.getElementById('mp-name').value='';document.getElementById('mp-type').value='';document.getElementById('mp-approval').value='';document.getElementById('mp-review').value='';document.getElementById('mp-requires-agm').checked=false;populatePolicyCategorySelect();openM('m-policy')">+ إضافة سياسة</button>
     </div>
   </div>
   <div style="background:linear-gradient(135deg,var(--primary),var(--primary2));border-radius:14px;padding:16px 18px;margin-bottom:18px;box-shadow:0 6px 20px rgba(26,58,107,0.18)">
@@ -1786,14 +1787,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
         <option>تجديد مطلوب</option>
       </select>
     </div>
-    <div class="fg"><label>الفئة</label><select class="fs" id="mp-category">
-      <option>سياسات الجمعية</option>
-      <option>سياسات المجلس</option>
-      <option>سياسات اللجان</option>
-      <option>لوائح المجلس</option>
-      <option>لوائح اللجان</option>
-      <option>لوائح داخلية</option>
-    </select></div>
+    <div class="fg"><label>الفئة</label><select class="fs" id="mp-category"></select></div>
     <div class="fg"><label>ملف السياسة (PDF/Word)</label><input type="file" class="fi" id="mp-file" /></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-policy')">إلغاء</button><button class="btn btn-gold" onclick="savePolicy()">✅ حفظ السياسة</button></div>
   </div>
@@ -5713,10 +5707,21 @@ async function loadPolicies(){
   renderPoliciesFiltered();
 }
 
+/* Policy categories aren't one-size-fits-all: every company (regardless of type) runs HR,
+   finance, procurement, and sales/customer operations, so those stay universal. Governance-
+   specific categories (board/AGM/committee policies) only make sense — and only get added —
+   for company types that actually have those bodies. */
+function getPolicyCategoriesForCompany(){
+  const base = ["سياسات الموارد البشرية", "سياسات مالية", "سياسة مشتريات", "سياسة المبيعات وخدمة العملاء", "لوائح داخلية"];
+  if(currentCompanyType === "ذات مسؤولية محدودة") return [...base, "سياسات مجلس المديرين"];
+  if(currentCompanyType === "مؤسسة فردية") return base;
+  return [...base, "سياسات الجمعية", "سياسات المجلس", "سياسات اللجان", "لوائح المجلس", "لوائح اللجان"];
+}
+
 function renderPolicyPills(){
   const box = document.getElementById("policyCategoryPills");
   if(!box) return;
-  const categoryOrder = ["سياسات الجمعية", "سياسات المجلس", "سياسات اللجان", "لوائح المجلس", "لوائح اللجان", "لوائح داخلية"];
+  const categoryOrder = getPolicyCategoriesForCompany();
   const present = [...new Set(policiesCache.map(p => p.category || "لوائح داخلية"))];
   const cats = categoryOrder.filter(c => present.includes(c)).concat(present.filter(c => !categoryOrder.includes(c)));
 
@@ -5766,7 +5771,7 @@ function renderPoliciesFiltered(){
     return '<span class="badge info">'+ displayStageLabel(s || "مسودة") +'</span>';
   };
   // Group the filtered policies by category so cards of the same category sit together
-  const categoryOrder = ["سياسات الجمعية", "سياسات المجلس", "سياسات اللجان", "لوائح المجلس", "لوائح اللجان", "لوائح داخلية"];
+  const categoryOrder = getPolicyCategoriesForCompany();
   const groups = {};
   list.forEach(p => {
     const cat = p.category || "لوائح داخلية";
@@ -6005,6 +6010,19 @@ async function openPolicyHistoryModal(id){
     </div>`).join("");
 }
 
+function populatePolicyCategorySelect(selected){
+  const sel = document.getElementById("mp-category");
+  if(!sel) return;
+  const cats = getPolicyCategoriesForCompany();
+  sel.innerHTML = cats.map(c => `<option ${c===selected?"selected":""}>${c}</option>`).join("");
+  // A policy might already be filed under a governance category the company no longer has
+  // (e.g. after a company-type change) — keep it selectable so editing doesn't silently
+  // reassign it to the wrong bucket.
+  if(selected && !cats.includes(selected)){
+    sel.insertAdjacentHTML("beforeend", `<option selected>${selected}</option>`);
+  }
+}
+
 function editPolicy(id){
   const p = policiesCache.find(x => x.id === id);
   if(!p) return;
@@ -6015,7 +6033,7 @@ function editPolicy(id){
   document.getElementById("mp-approval").value = p.approval_date || "";
   document.getElementById("mp-review").value = p.review_date || "";
   document.getElementById("mp-status").value = p.status || "مسودة";
-  document.getElementById("mp-category").value = p.category || "لوائح داخلية";
+  populatePolicyCategorySelect(p.category || "لوائح داخلية");
   document.getElementById("mp-requires-agm").checked = !!p.requires_agm_approval;
   openM("m-policy");
 }
