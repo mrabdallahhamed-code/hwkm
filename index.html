@@ -183,7 +183,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
 
 /* ── KPI GRID ── */
-.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;}
 .kpi{
   background:var(--white);border-radius:14px;padding:18px 20px;
   border:1px solid var(--gray1);
@@ -709,6 +709,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="kpi gold" style="cursor:pointer" onclick="go('signing',null)"><div class="kpi-stripe"></div><div class="kpi-label">محاضر معتمدة</div><div class="kpi-val" id="kpi-minutes">—</div><div class="kpi-foot" id="kpi-minutes-foot">جارِ التحميل...</div><div class="kpi-icon">📄</div></div>
     <div class="kpi green" style="cursor:pointer" onclick="go('compliance',null)"><div class="kpi-stripe"></div><div class="kpi-label">نسبة الامتثال</div><div class="kpi-val" id="kpi-compliance">—</div><div class="kpi-foot" id="kpi-compliance-foot">جارِ التحميل...</div><div class="kpi-icon">✅</div></div>
     <div class="kpi red" style="cursor:pointer" onclick="go('risks',null)"><div class="kpi-stripe"></div><div class="kpi-label">مخاطر مفتوحة</div><div class="kpi-val" id="kpi-risks">—</div><div class="kpi-foot" id="kpi-risks-foot">جارِ التحميل...</div><div class="kpi-icon">⚠️</div></div>
+    <div class="kpi gold" style="cursor:pointer" onclick="go('govassess',null)"><div class="kpi-stripe" id="kpi-govassess-stripe"></div><div class="kpi-label">فعالية الحوكمة</div><div class="kpi-val" id="kpi-govassess">—</div><div class="kpi-foot" id="kpi-govassess-foot">جارِ التحميل...</div><div class="kpi-icon">📊</div></div>
   </div>
 
   <div class="stats-bar">
@@ -4678,7 +4679,7 @@ function renderDashAuditStatus(items){
 }
 
 async function loadDashboard(){
-  const [meetingsRes, risksRes, complianceRes, membersRes, committeesRes, signingRes, policiesRes, auditRes] = await Promise.all([
+  const [meetingsRes, risksRes, complianceRes, membersRes, committeesRes, signingRes, policiesRes, auditRes, govAssessRes] = await Promise.all([
     sb.from("meetings").select("*").eq("company_id", currentCompanyId),
     sb.from("risks").select("*").eq("company_id", currentCompanyId),
     sb.from("compliance_items").select("*").eq("company_id", currentCompanyId),
@@ -4686,7 +4687,8 @@ async function loadDashboard(){
     sb.from("committees").select("*").eq("company_id", currentCompanyId),
     sb.from("signing_documents").select("*").eq("company_id", currentCompanyId),
     sb.from("policies").select("*").eq("company_id", currentCompanyId),
-    sb.from("audit_items").select("*").eq("company_id", currentCompanyId)
+    sb.from("audit_items").select("*").eq("company_id", currentCompanyId),
+    sb.from("governance_assessments").select("*").eq("company_id", currentCompanyId).order("created_at",{ascending:false}).limit(1)
   ]);
 
   const meetings = meetingsRes.data || [];
@@ -4697,6 +4699,30 @@ async function loadDashboard(){
   const signingDocs = signingRes.data || [];
   const policies = policiesRes.data || [];
   const auditItems = auditRes.data || [];
+
+  const govassessKpiEl = document.getElementById("kpi-govassess");
+  const govassessFootEl = document.getElementById("kpi-govassess-foot");
+  const govassessStripeEl = document.getElementById("kpi-govassess-stripe");
+  if(govassessKpiEl){
+    const latestAssess = (govAssessRes.data||[])[0];
+    if(latestAssess){
+      const { finalScore } = computeGovScores(latestAssess);
+      if(finalScore != null){
+        const pct = Math.round((finalScore/5)*100);
+        const interp = maturityInterpretation(finalScore);
+        govassessKpiEl.textContent = pct + "%";
+        govassessKpiEl.style.color = interp.color;
+        if(govassessStripeEl) govassessStripeEl.style.background = interp.color;
+        if(govassessFootEl) govassessFootEl.textContent = interp.label + " · " + (latestAssess.period||"");
+      } else {
+        govassessKpiEl.textContent = "—";
+        if(govassessFootEl) govassessFootEl.textContent = "لا توجد معايير مُقيَّمة بعد";
+      }
+    } else {
+      govassessKpiEl.textContent = "—";
+      if(govassessFootEl) govassessFootEl.textContent = "لم يُجرَ تقييم بعد";
+    }
+  }
   renderDashTopRisks(risks);
   renderDashAuditStatus(auditItems);
 
