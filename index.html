@@ -540,7 +540,17 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     </div>
     <div class="login-field" id="signupPhoneField" style="display:none">
       <label>رقم الجوال</label>
-      <input class="fi" id="signupPhone" type="tel" placeholder="مثال: 05XXXXXXXX" />
+      <div style="display:flex;gap:6px">
+        <input class="fi" id="signupPhone" type="tel" placeholder="مثال: 05XXXXXXXX" style="flex:1;margin:0" oninput="document.getElementById('signupOtpVerified').style.display='none';signupOtpVerifiedFlag=false" />
+        <button type="button" class="btn btn-ghost" style="font-size:11px;padding:8px 12px;white-space:nowrap" onclick="requestSignupOtp()">إرسال رمز التحقق</button>
+      </div>
+      <div id="signupOtpRow" style="display:none;margin-top:8px">
+        <div style="display:flex;gap:6px">
+          <input class="fi" id="signupOtpCode" placeholder="أدخل الرمز المكوّن من 6 أرقام" style="flex:1;margin:0" maxlength="6" />
+          <button type="button" class="btn btn-gold" style="font-size:11px;padding:8px 12px;white-space:nowrap" onclick="verifySignupOtp()">تحقق</button>
+        </div>
+      </div>
+      <div id="signupOtpVerified" style="display:none;color:var(--green);font-size:11px;margin-top:6px">✅ تم التحقق من رقم الجوال</div>
     </div>
     <div class="login-field" id="signupSharesField" style="display:none">
       <label>عدد الأسهم</label>
@@ -2638,7 +2648,10 @@ async function handleAuth(){
 
     const { error: profileError } = await sb.from("user_profiles").insert([profilePayload]);
     if(profileError){
-      showLoginMsg("تم إنشاء حساب الدخول، لكن تعذّر حفظ بياناتك الشخصية: " + profileError.message + " — تواصل مع مدير النظام.", false);
+      const isDuplicate = profileError.message && (profileError.message.includes("duplicate") || profileError.message.includes("unique"));
+      showLoginMsg(isDuplicate
+        ? "هذا البريد الإلكتروني مسجّل بحساب موجود مسبقًا — الرجاء تسجيل الدخول بدل إنشاء حساب جديد."
+        : "تم إنشاء حساب الدخول، لكن تعذّر حفظ بياناتك الشخصية: " + profileError.message + " — تواصل مع مدير النظام.", false);
       return;
     }
     if(inviteRowId){
@@ -7688,6 +7701,57 @@ async function exportUsersList(){
 // The Edge Functions gateway still validates against the legacy JWT-format anon key, not the
 // newer "sb_publishable_..." key used for regular database calls — kept separate on purpose.
 const LEGACY_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9tZGRua29mc2R0d2Zqa3hka3R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1MzE5OTcsImV4cCI6MjA5OTEwNzk5N30.mZFiuj3C8PcQ0ShSYkYQWpJDA6gNr5mjFbNVaGhkhlQ";
+
+/* ══════════ SMS OTP (phone verification during signup) & WhatsApp Business API ══════════ */
+let signupOtpVerifiedFlag = false;
+
+async function requestSignupOtp(){
+  const phone = document.getElementById("signupPhone").value.trim();
+  if(!phone){ alert("الرجاء إدخال رقم الجوال أولًا"); return; }
+  try{
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/send-otp-sms`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: normalizeSaudiPhone(phone) })
+    });
+    const data = await res.json();
+    if(!res.ok){ throw new Error(data.error || "فشل إرسال الرمز"); }
+    document.getElementById("signupOtpRow").style.display = "block";
+    alert("تم إرسال رمز التحقق إلى جوالك ✅");
+  }catch(e){
+    alert("تعذّر إرسال رمز التحقق: " + e.message);
+  }
+}
+
+async function verifySignupOtp(){
+  const phone = normalizeSaudiPhone(document.getElementById("signupPhone").value.trim());
+  const code = document.getElementById("signupOtpCode").value.trim();
+  if(!code){ alert("الرجاء إدخال الرمز"); return; }
+  const { data, error } = await sb.from("otp_codes").select("*")
+    .eq("phone_number", phone).eq("code", code).eq("verified", false)
+    .gt("expires_at", new Date().toISOString()).order("created_at",{ascending:false}).limit(1);
+  if(error || !data || data.length === 0){ alert("الرمز غير صحيح أو منتهي الصلاحية — اضغط \"إرسال رمز التحقق\" للحصول على رمز جديد."); return; }
+  await sb.from("otp_codes").update({ verified: true }).eq("id", data[0].id);
+  signupOtpVerifiedFlag = true;
+  document.getElementById("signupOtpVerified").style.display = "block";
+  document.getElementById("signupOtpRow").style.display = "none";
+}
+
+// Generic WhatsApp Business API sender — requires an APPROVED message template on Meta's side
+// (business-initiated messages can't be free-form text), so callers pass the template name and
+// the ordered list of values that fill its placeholders.
+async function sendWhatsAppReminderAPI(phone, templateName, params){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/send-whatsapp-reminder`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: normalizeSaudiPhone(phone), templateName, params })
+    });
+    const data = await res.json();
+    if(!res.ok){ throw new Error(data.error || "فشل الإرسال"); }
+    return { success: true, data };
+  }catch(e){
+    return { success: false, error: e.message };
+  }
+}
 
 async function sendNotificationEmail(to, subject, html){
   try{
