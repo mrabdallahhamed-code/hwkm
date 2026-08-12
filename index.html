@@ -7269,6 +7269,16 @@ const SEC_KEY_MAPS = {
   forecast: ["expected_revenue","expected_profit","expected_cashflow","expected_sales","expected_contracts","expected_projects","risks_affecting_results","budget_achievable","forecast_adjustment_needed"]
 };
 
+// Score decays smoothly the later the report lands in the month — used as one input into the
+// CEO's performance evaluation (a late/consistently-late report is treated as a governance
+// signal, not just an admin nuisance): on time (day ≤5) = 100%, days 6-7 = 85%, then a gradual
+// 5-point drop per additional day, floored at 15% so the score never fully bottoms out to zero.
+function computeTimelinessScore(dayOfMonth){
+  if(dayOfMonth <= 5) return 100;
+  if(dayOfMonth <= 7) return 85;
+  return Math.max(15, 85 - (dayOfMonth - 7) * 5);
+}
+
 async function handleIndicatorsUpload(input){
   const file = input.files && input.files[0];
   if(!file) return;
@@ -7342,6 +7352,7 @@ async function handleIndicatorsUpload(input){
     const payload = {
       company_id: currentCompanyId, period_label,
       uploaded_by: currentUserProfile ? (currentUserProfile.full_name||currentUserProfile.email) : "", source_file_url: fileUrl,
+      submitted_day_of_month: new Date().getDate(), timeliness_score: computeTimelinessScore(new Date().getDate()),
       sec_kpi_dashboard: kpiDashboard,
       sec_financial: financialObj,
       sec_sales: salesObj,
@@ -7457,7 +7468,7 @@ async function loadIndicatorsReport(){
 
   box.innerHTML = `
     <div style="background:linear-gradient(135deg,var(--primary),var(--primary2));border-radius:12px;padding:14px 18px;margin-bottom:18px;color:#fff;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <div><b>التقرير المالي والتشغيلي — ${r.period_label||"—"}</b></div>
+      <div><b>التقرير المالي والتشغيلي — ${r.period_label||"—"}</b>${r.submitted_day_of_month ? `<div style="font-size:11px;opacity:0.85;margin-top:2px">رُفع في اليوم ${r.submitted_day_of_month} من الشهر — درجة الانضباط: ${r.timeliness_score}%</div>` : ""}</div>
       ${r.source_file_url ? `<a href="${r.source_file_url}" target="_blank" style="color:#fff;font-size:11px;text-decoration:underline">📄 الملف الأصلي</a>` : ""}
     </div>
 
@@ -10011,6 +10022,21 @@ async function savePerf(){
   const entity_type = document.getElementById("mpe-type").value;
   const period = document.getElementById("mpe-period").value.trim();
   const payload = { entity_name, entity_type, period, status: "مفتوح للتقييم", company_id: currentCompanyId };
+
+  if(entity_type === "تنفيذي"){
+    const { data: reports } = await sb.from("ceo_monthly_reports").select("period_label,timeliness_score,submitted_day_of_month")
+      .eq("company_id", currentCompanyId).not("timeliness_score","is",null).order("created_at",{ascending:false}).limit(6);
+    if(reports && reports.length){
+      const avg = reports.reduce((s,x)=>s+x.timeliness_score,0) / reports.length;
+      let interpretation;
+      if(avg >= 90) interpretation = "التزام ممتاز بمواعيد رفع التقرير المالي والتشغيلي — مؤشر إيجابي على السيطرة الإدارية والإلمام بتفاصيل الشركة أولًا بأول.";
+      else if(avg >= 75) interpretation = "التزام جيد بمواعيد رفع التقرير مع بعض التأخير غير المتكرر.";
+      else if(avg >= 50) interpretation = "تأخر ملحوظ ومتكرر برفع التقرير المالي والتشغيلي — قد يشير إلى ضعف بالسيطرة على الإدارات أو عدم إلمام كافٍ بتفاصيل الشركة أولًا بأول، ويستحق أن يُطرح مع الرئيس التنفيذي أثناء التقييم.";
+      else interpretation = "تأخر كبير ومتكرر برفع التقرير المالي والتشغيلي — مؤشر مقلق على ضعف السيطرة الإدارية والإلمام بتفاصيل الشركة، يستحق مناقشة مباشرة مع الرئيس التنفيذي أثناء هذا التقييم.";
+      payload.auto_context_note = `📊 متوسط درجة الانضباط بمواعيد رفع التقرير (آخر ${reports.length} تقارير): ${avg.toFixed(0)}%\n${interpretation}`;
+    }
+  }
+
   const { error } = await sb.from("performance_evaluations").insert([payload]);
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
   document.getElementById("mpe-entity").value=""; document.getElementById("mpe-period").value="";
@@ -10029,7 +10055,7 @@ async function closePerfEvaluation(id){
 }
 
 const PERF_CRITERIA_BOARD = ["الفاعلية والحضور","جودة القرارات الاستراتيجية","الالتزام بمعايير الحوكمة","التفاعل مع الإدارة التنفيذية","الرقابة على الأداء المالي"];
-const PERF_CRITERIA_EXEC = ["الأهداف الاستراتيجية","الأداء التشغيلي","القيادة والفريق","الامتثال والحوكمة"];
+const PERF_CRITERIA_EXEC = ["الأهداف الاستراتيجية","الأداء التشغيلي","القيادة والفريق","الامتثال والحوكمة","السيطرة على الإدارات وانضباط التقارير","الإلمام بتفاصيل الشركة أولًا بأول"];
 function getPerfCriteria(entityType){
   return entityType === "تنفيذي" ? PERF_CRITERIA_EXEC : PERF_CRITERIA_BOARD;
 }
@@ -10063,6 +10089,7 @@ async function loadPerfReviewSection(){
         <div style="font-size:11px;opacity:0.85;margin-top:2px">${ev.entity_type||""} · الفترة: ${ev.period||""}</div>
       </div>
       <div style="padding:16px;background:#fff">
+        ${ev.auto_context_note ? `<div style="background:#FEF3E2;border-right:3px solid var(--gold);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11.5px;color:var(--dark);white-space:pre-line;line-height:1.7">${ev.auto_context_note}</div>` : ""}
         ${criteria.map((crit,idx) => {
           const mine = mineByEvalCriterion[ev.id+'|'+crit];
           return `<div class="perf-crit-row" data-eval="${ev.id}" data-criterion="${crit.replace(/"/g,'&quot;')}" data-selected="${mine?mine.score:''}" style="margin-bottom:${idx<criteria.length-1?'16px':'4px'}">
