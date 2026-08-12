@@ -622,6 +622,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="nav-group-label">الرقابة والمخاطر</div>
     <div class="nav-item" onclick="go('risks',this)"><span class="ni-icon">⚠️</span><span class="ni-text">إدارة المخاطر</span><span class="ni-badge red">2</span></div>
     <div class="nav-item" onclick="go('audit',this)"><span class="ni-icon">🔍</span><span class="ni-text">التدقيق الداخلي</span></div>
+    <div class="nav-item" onclick="go('govassess',this)"><span class="ni-icon">📊</span><span class="ni-text">تقييم فعالية الحوكمة</span></div>
     <div class="nav-item" onclick="go('compliance',this)"><span class="ni-icon">✅</span><span class="ni-text">الالتزام التنظيمي</span><span class="ni-badge green">98%</span></div>
   </div>
 
@@ -1333,6 +1334,59 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
           <tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
       </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ GOVERNANCE EFFECTIVENESS ASSESSMENT ═══ -->
+<div id="p-govassess" class="page content">
+  <div id="govassessListView">
+    <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>📊 تقييم فعالية الحوكمة</span>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openNewGovAssessment()">+ تقييم جديد</button>
+    </div>
+    <p style="font-size:12px;color:var(--gray3);margin-bottom:16px">تقييم شامل لنضج ممارسات الحوكمة عبر ٨ محاور و٣٢ معيارًا، من مستوى ١ (ابتدائي) إلى ٥ (رائد).</p>
+    <div class="card">
+      <div class="card-body" style="padding:0">
+        <table class="tbl">
+          <thead><tr><th>الفترة</th><th>الجهة المنفذة</th><th>التاريخ</th><th>النتيجة النهائية</th><th>المستوى</th><th></th></tr></thead>
+          <tbody id="govassessHistoryTbody">
+            <tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="govassessFormView" style="display:none">
+    <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span id="govassessFormTitle">📊 تقييم فعالية حوكمة جديد</span>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="closeGovAssessmentForm()">◀ رجوع للقائمة</button>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-body">
+        <div class="row2">
+          <div class="fg"><label>الفترة محل التقييم</label><input class="fi" id="ga-period" placeholder="مثال: الربع الثاني 2026"/></div>
+          <div class="fg"><label>تاريخ التقييم</label><input type="date" class="fi" id="ga-date"/></div>
+        </div>
+        <div class="fg"><label>الجهة المنفذة للتقييم</label>
+          <select class="fs" id="ga-assessor">
+            <option>المراجعة الداخلية</option>
+            <option>طرف خارجي</option>
+            <option>مجلس الإدارة</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div id="govassessAxesContainer"></div>
+
+    <div id="govassessResultsSummary" style="display:none"></div>
+
+    <div style="display:flex;gap:8px;margin-top:16px;margin-bottom:30px">
+      <input type="hidden" id="ga-id" value=""/>
+      <button class="btn btn-gold" style="flex:1" onclick="saveGovAssessment()">✅ حفظ التقييم</button>
     </div>
   </div>
 </div>
@@ -2834,6 +2888,8 @@ function isMutatingOnchange(val){
     || /^deleteCheckin\(/.test(val)
     || /^toggleTemplateDefault\(/.test(val)
     || /^openActivateSubModal\(/.test(val)
+    || /^saveGovAssessment\(/.test(val)
+    || /^openNewGovAssessment\(/.test(val)
     || /^activateSubscription\(/.test(val)
     || /^cancelTrial\(/.test(val)
     || /^openCharterModal\(/.test(val)
@@ -3213,6 +3269,7 @@ function reloadCurrentPageData(){
   if(id==='permissions'){ loadPermissionsMatrix(); renderApprovalStatus('matrix','matrixApprovalStatus'); }
   if(id==='voting') loadVotingPage();
   if(id==='audit') loadAudit();
+  if(id==='govassess'){ document.getElementById('govassessListView').style.display='block'; document.getElementById('govassessFormView').style.display='none'; loadGovAssessments(); }
   if(id==='consultants') loadConsultantsPage();
   if(id==='perf') loadPerf();
   if(id==='appoint'){ loadAppointRequests(); loadReviewSection(); }
@@ -9531,6 +9588,228 @@ async function saveVote(){
 
 /* ══════════ AUDIT ITEMS ══════════ */
 let auditCache = [];
+/* ══════════ GOVERNANCE EFFECTIVENESS ASSESSMENT (8 axes, 32 criteria, maturity 1-5) ══════════ */
+const GOVERNANCE_AXES = [
+  { key: "axis_board", title: "المحور الأول: مجلس الإدارة", icon: "🏛️", criteria: [
+    { key: "board_composition", label: "تشكيل المجلس", hint: "تنوع الخبرات – الاستقلالية – عدد الأعضاء" },
+    { key: "board_performance", label: "أداء المجلس", hint: "التزام الحضور – جودة النقاش – فعالية القرارات" },
+    { key: "board_charters", label: "المواثيق والسياسات", hint: "وجود ميثاق مجلس الإدارة – تحديثه" },
+    { key: "board_self_eval", label: "تقييم الأداء", hint: "وجود عملية تقييم سنوي للمجلس" },
+    { key: "board_mgmt_relation", label: "العلاقة بالإدارة التنفيذية", hint: "وضوح الأدوار – عدم التداخل – مساءلة الرئيس التنفيذي" }
+  ]},
+  { key: "axis_committees", title: "المحور الثاني: اللجان المتخصصة", icon: "👥", criteria: [
+    { key: "audit_committee", label: "لجنة المراجعة", hint: "الاستقلالية – الاجتماعات – التقارير" },
+    { key: "risk_committee", label: "لجنة المخاطر", hint: "تقييم المخاطر – رفع التوصيات – كفاءة الاجتماعات" },
+    { key: "nom_rem_committee", label: "لجنة الترشيحات والمكافآت", hint: "سياسات التعيين – التعاقب الوظيفي – تقييم الأداء" },
+    { key: "governance_committee", label: "لجنة الحوكمة", hint: "متابعة السياسات – دعم الامتثال – تطوير النظام" }
+  ]},
+  { key: "axis_policies", title: "المحور الثالث: السياسات واللوائح", icon: "📜", criteria: [
+    { key: "governance_policies", label: "سياسات الحوكمة", hint: "تضارب المصالح – الإفصاح – السلوك المهني" },
+    { key: "risk_policies", label: "سياسات المخاطر", hint: "تصنيف المخاطر – حدود الصلاحيات" },
+    { key: "internal_control_policies", label: "سياسات الرقابة الداخلية", hint: "الضوابط – التحديث – الالتزام" },
+    { key: "compliance_policies", label: "سياسات الامتثال", hint: "مكافحة الفساد – الالتزام القانوني – التقارير" }
+  ]},
+  { key: "axis_risk", title: "المحور الرابع: إدارة المخاطر", icon: "⚠️", criteria: [
+    { key: "risk_identification", label: "تحديد المخاطر", hint: "شمولية ودقة تحديد المخاطر" },
+    { key: "risk_assessment", label: "تقييم المخاطر", hint: "المنهجية – الأدوات – التحليل" },
+    { key: "risk_response_plans", label: "خطط الاستجابة", hint: "جودة الخطط – مسؤوليات التنفيذ" },
+    { key: "kris", label: "مؤشرات المخاطر (KRIs)", hint: "وجود مؤشرات – متابعة دورية" },
+    { key: "risk_reporting", label: "التقارير", hint: "رفع تقارير للمجلس واللجان" }
+  ]},
+  { key: "axis_audit", title: "المحور الخامس: الرقابة الداخلية والمراجعة", icon: "🔍", criteria: [
+    { key: "internal_control_system", label: "نظام الرقابة الداخلية", hint: "فعالية الضوابط – تغطية العمليات" },
+    { key: "internal_audit_role", label: "دور المراجعة الداخلية", hint: "الاستقلال – نطاق العمل – التقارير" },
+    { key: "external_audit", label: "المراجعة الخارجية", hint: "التواصل مع المجلس – جودة التقارير" },
+    { key: "audit_recommendations", label: "تطبيق توصيات التدقيق", hint: "نسبة التنفيذ – جودة المعالجة" }
+  ]},
+  { key: "axis_disclosure", title: "المحور السادس: الشفافية والإفصاح", icon: "📢", criteria: [
+    { key: "report_quality", label: "جودة التقارير", hint: "دقة البيانات – وضوحها – احترافيتها" },
+    { key: "disclosure_commitment", label: "الالتزام بالإفصاح", hint: "مواعيد النشر – استجابة لطلبات المساهمين" },
+    { key: "communication_channels", label: "قنوات التواصل", hint: "موقع الشركة – البيانات الجوهرية – التقارير السنوية" }
+  ]},
+  { key: "axis_culture", title: "المحور السابع: الثقافة المؤسسية والسلوك المهني", icon: "🤝", criteria: [
+    { key: "integrity_culture", label: "ثقافة النزاهة", hint: "احترام السياسات – مكافحة الفساد – القدوة" },
+    { key: "whistleblowing", label: "الإبلاغ عن المخالفات", hint: "وجود سياسة – سرية – حماية المبلّغين" },
+    { key: "professional_conduct", label: "الالتزام المهني", hint: "السلوك – الأخلاقيات – احترام التسلسل" }
+  ]},
+  { key: "axis_digital", title: "المحور الثامن: التحول الرقمي الداعم للحوكمة", icon: "💻", criteria: [
+    { key: "risk_mgmt_systems", label: "أنظمة إدارة المخاطر", hint: "أدوات رقمية – BI – تقارير لحظية" },
+    { key: "controls_automation", label: "أتمتة الضوابط", hint: "صلاحيات – موافقات – تدقيق إلكتروني" },
+    { key: "data_management", label: "إدارة البيانات", hint: "أمان المعلومات – حماية البيانات" },
+    { key: "grc_systems", label: "أنظمة GRC", hint: "شمولية التطبيق – التكامل – الفاعلية" }
+  ]}
+];
+
+const MATURITY_LABELS = { 1:"ابتدائي", 2:"ناشئ", 3:"معياري", 4:"متقدم", 5:"رائد" };
+
+function maturityInterpretation(score){
+  if(score < 2) return { label: "حوكمة ابتدائية – تحتاج إعادة بناء جذرية", color: "var(--red)" };
+  if(score < 3) return { label: "حوكمة ناشئة – تحتاج تطوير شامل", color: "#E67E22" };
+  if(score < 4) return { label: "حوكمة معيارية – نظام جيد يحتاج تحسينات", color: "var(--gold)" };
+  if(score < 4.5) return { label: "حوكمة متقدمة – فعّالة ومتماسكة", color: "var(--teal)" };
+  return { label: "حوكمة رائدة – أفضل الممارسات العالمية", color: "var(--green)" };
+}
+
+let govassessEditingId = null;
+
+function openNewGovAssessment(){
+  govassessEditingId = null;
+  document.getElementById("ga-id").value = "";
+  document.getElementById("ga-period").value = "";
+  document.getElementById("ga-date").value = "";
+  document.getElementById("ga-assessor").value = "المراجعة الداخلية";
+  document.getElementById("govassessFormTitle").textContent = "📊 تقييم فعالية حوكمة جديد";
+  renderGovAxesForm(null);
+  document.getElementById("govassessResultsSummary").style.display = "none";
+  document.getElementById("govassessListView").style.display = "none";
+  document.getElementById("govassessFormView").style.display = "block";
+}
+
+function closeGovAssessmentForm(){
+  document.getElementById("govassessFormView").style.display = "none";
+  document.getElementById("govassessListView").style.display = "block";
+  loadGovAssessments();
+}
+
+function renderGovAxesForm(existingData){
+  const box = document.getElementById("govassessAxesContainer");
+  box.innerHTML = GOVERNANCE_AXES.map(axis => {
+    const savedCriteria = existingData ? (existingData[axis.key]||[]) : [];
+    const savedByKey = {}; savedCriteria.forEach(c => { savedByKey[c.key] = c; });
+    return `<div class="card" style="margin-bottom:14px">
+      <div class="card-head"><span class="card-title">${axis.icon} ${axis.title}</span></div>
+      <div class="card-body">
+        <table class="tbl">
+          <thead><tr><th style="width:22%">المعيار</th><th style="width:20%">مستوى النضج (١-٥)</th><th style="width:29%">الملاحظات</th><th style="width:29%">الإجراءات التصحيحية</th></tr></thead>
+          <tbody>
+            ${axis.criteria.map(c => {
+              const saved = savedByKey[c.key] || {};
+              return `<tr data-axis="${axis.key}" data-crit="${c.key}">
+                <td><b style="font-size:11.5px">${c.label}</b><div style="font-size:10px;color:var(--gray3);margin-top:2px">${c.hint}</div></td>
+                <td><select class="fs ga-score-select" style="font-size:12px;padding:6px">
+                  <option value="">—</option>
+                  ${[1,2,3,4,5].map(n=>`<option value="${n}" ${saved.score==n?"selected":""}>${n} — ${MATURITY_LABELS[n]}</option>`).join("")}
+                </select></td>
+                <td><textarea class="fi ga-notes" rows="2" style="font-size:11.5px;resize:vertical">${saved.notes||""}</textarea></td>
+                <td><textarea class="fi ga-actions" rows="2" style="font-size:11.5px;resize:vertical">${saved.actions||""}</textarea></td>
+              </tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function collectGovAxesData(){
+  const result = {};
+  GOVERNANCE_AXES.forEach(axis => {
+    result[axis.key] = axis.criteria.map(c => {
+      const row = document.querySelector(`tr[data-axis="${axis.key}"][data-crit="${c.key}"]`);
+      const score = row.querySelector(".ga-score-select").value;
+      const notes = row.querySelector(".ga-notes").value.trim();
+      const actions = row.querySelector(".ga-actions").value.trim();
+      return { key: c.key, label: c.label, score: score ? Number(score) : null, notes, actions };
+    });
+  });
+  return result;
+}
+
+function computeGovScores(axesData){
+  const axisScores = {};
+  let allScores = [];
+  GOVERNANCE_AXES.forEach(axis => {
+    const scored = (axesData[axis.key]||[]).map(c=>c.score).filter(s=>s!=null);
+    axisScores[axis.key] = scored.length ? scored.reduce((a,b)=>a+b,0)/scored.length : null;
+    allScores = allScores.concat(scored);
+  });
+  const finalScore = allScores.length ? allScores.reduce((a,b)=>a+b,0)/allScores.length : null;
+  return { axisScores, finalScore };
+}
+
+async function saveGovAssessment(){
+  const period = document.getElementById("ga-period").value.trim();
+  const assessment_date = document.getElementById("ga-date").value || null;
+  const assessed_by_type = document.getElementById("ga-assessor").value;
+  if(!period){ alert("الرجاء إدخال الفترة محل التقييم"); return; }
+
+  const axesData = collectGovAxesData();
+  const payload = {
+    company_id: currentCompanyId, period, assessed_by_type, assessment_date,
+    axis_board: axesData.axis_board, axis_committees: axesData.axis_committees, axis_policies: axesData.axis_policies,
+    axis_risk: axesData.axis_risk, axis_audit: axesData.axis_audit, axis_disclosure: axesData.axis_disclosure,
+    axis_culture: axesData.axis_culture, axis_digital: axesData.axis_digital
+  };
+
+  const id = document.getElementById("ga-id").value;
+  const { error } = id
+    ? await sb.from("governance_assessments").update(payload).eq("id", id)
+    : await sb.from("governance_assessments").insert([payload]);
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+
+  const { finalScore } = computeGovScores(axesData);
+  logActivity("إنشاء", "تقييم فعالية الحوكمة", period, finalScore!=null ? `النتيجة النهائية: ${finalScore.toFixed(1)}/5` : "");
+  renderGovResultsSummary(axesData);
+  alert("تم حفظ التقييم بنجاح ✅");
+}
+
+function renderGovResultsSummary(axesData){
+  const { axisScores, finalScore } = computeGovScores(axesData);
+  const box = document.getElementById("govassessResultsSummary");
+  if(finalScore == null){ box.style.display = "none"; return; }
+  const interp = maturityInterpretation(finalScore);
+  box.style.display = "block";
+  box.innerHTML = `<div class="card" style="margin-bottom:16px">
+    <div class="card-head"><span class="card-title">📈 النتيجة النهائية</span></div>
+    <div class="card-body">
+      <table class="tbl">
+        <thead><tr><th>المحور</th><th>الدرجة / 5</th></tr></thead>
+        <tbody>
+          ${GOVERNANCE_AXES.map(axis => `<tr><td>${axis.icon} ${axis.title.replace(/^المحور [^:]+:\s*/,"")}</td><td>${axisScores[axis.key]!=null ? axisScores[axis.key].toFixed(1) : "—"}</td></tr>`).join("")}
+        </tbody>
+      </table>
+      <div style="margin-top:14px;padding:14px;background:${interp.color}15;border-radius:10px;text-align:center">
+        <div style="font-size:28px;font-weight:900;color:${interp.color}">${finalScore.toFixed(1)} / 5</div>
+        <div style="font-size:13px;font-weight:700;color:${interp.color};margin-top:4px">${interp.label}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function loadGovAssessments(){
+  const tbody = document.getElementById("govassessHistoryTbody");
+  if(!tbody) return;
+  const { data, error } = await sb.from("governance_assessments").select("*").eq("company_id", currentCompanyId).order("created_at",{ascending:false});
+  if(error){ tbody.innerHTML = `<tr><td colspan="6" style="color:var(--red);font-size:12px;padding:14px">تعذّر التحميل: ${error.message}</td></tr>`; return; }
+  if(!data || data.length===0){ tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد تقييمات بعد.</td></tr>'; return; }
+
+  tbody.innerHTML = data.map(a => {
+    const { finalScore } = computeGovScores(a);
+    const interp = finalScore!=null ? maturityInterpretation(finalScore) : null;
+    return `<tr>
+      <td>${a.period||"—"}</td><td>${a.assessed_by_type||"—"}</td><td>${a.assessment_date||"—"}</td>
+      <td>${finalScore!=null?finalScore.toFixed(1)+"/5":"—"}</td>
+      <td>${interp?`<span style="color:${interp.color};font-weight:700;font-size:11px">${interp.label}</span>`:"—"}</td>
+      <td><button class="btn-xs primary" onclick="viewGovAssessment(${a.id})">عرض/تعديل</button></td>
+    </tr>`;
+  }).join("");
+}
+
+async function viewGovAssessment(id){
+  const { data: a, error } = await sb.from("governance_assessments").select("*").eq("id", id).single();
+  if(error || !a){ alert("تعذّر تحميل التقييم"); return; }
+  govassessEditingId = id;
+  document.getElementById("ga-id").value = a.id;
+  document.getElementById("ga-period").value = a.period || "";
+  document.getElementById("ga-date").value = a.assessment_date || "";
+  document.getElementById("ga-assessor").value = a.assessed_by_type || "المراجعة الداخلية";
+  document.getElementById("govassessFormTitle").textContent = "📊 تعديل تقييم: " + (a.period||"");
+  renderGovAxesForm(a);
+  renderGovResultsSummary(a);
+  document.getElementById("govassessListView").style.display = "none";
+  document.getElementById("govassessFormView").style.display = "block";
+}
+
 async function loadAudit(){
   const tbody = document.getElementById("auditTbody");
   if(!tbody) return;
@@ -10208,6 +10487,7 @@ async function go(id, el){
   if(id==='permissions'){ loadPermissionsMatrix(); renderApprovalStatus('matrix','matrixApprovalStatus'); }
   if(id==='voting') loadVotingPage();
   if(id==='audit') loadAudit();
+  if(id==='govassess'){ document.getElementById('govassessListView').style.display='block'; document.getElementById('govassessFormView').style.display='none'; loadGovAssessments(); }
   if(id==='consultants') loadConsultantsPage();
   if(id==='perf') loadPerf();
   if(id==='appoint'){ loadAppointRequests(); loadReviewSection(); }
