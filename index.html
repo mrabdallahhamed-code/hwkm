@@ -601,6 +601,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="nav-group-label">الحوكمة المؤسسية</div>
     <div class="nav-item" onclick="go('governance',this)"><span class="ni-icon">🏛️</span><span class="ni-text">السياسات والحوكمة</span><span class="ni-badge blue">5</span></div>
     <div class="nav-item" onclick="policyActiveCategory='سياسات الموارد البشرية';go('governance',this)"><span class="ni-icon">📋</span><span class="ni-text">سياسات الموارد البشرية</span></div>
+    <div class="nav-item" onclick="go('govassess',this)"><span class="ni-icon">📊</span><span class="ni-text">تقييم فعالية الحوكمة</span></div>
     <div class="nav-item" onclick="go('structure',this)"><span class="ni-icon">🌳</span><span class="ni-text">الهيكل التنظيمي</span><span class="ni-badge red" id="structureNavBadge" style="display:none"></span></div>
     <div class="nav-item" onclick="go('members',this)"><span class="ni-icon">👥</span><span class="ni-text">أعضاء المجلس</span><span class="ni-badge gold">5</span></div>
     <div class="nav-item" onclick="go('appoint',this)"><span class="ni-icon">➕</span><span class="ni-text">طلب تعيين عضو</span></div>
@@ -622,7 +623,6 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="nav-group-label">الرقابة والمخاطر</div>
     <div class="nav-item" onclick="go('risks',this)"><span class="ni-icon">⚠️</span><span class="ni-text">إدارة المخاطر</span><span class="ni-badge red">2</span></div>
     <div class="nav-item" onclick="go('audit',this)"><span class="ni-icon">🔍</span><span class="ni-text">التدقيق الداخلي</span></div>
-    <div class="nav-item" onclick="go('govassess',this)"><span class="ni-icon">📊</span><span class="ni-text">تقييم فعالية الحوكمة</span></div>
     <div class="nav-item" onclick="go('compliance',this)"><span class="ni-icon">✅</span><span class="ni-text">الالتزام التنظيمي</span><span class="ni-badge green">98%</span></div>
   </div>
 
@@ -9640,7 +9640,29 @@ const GOVERNANCE_AXES = [
   ]}
 ];
 
-const MATURITY_LABELS = { 1:"ابتدائي", 2:"ناشئ", 3:"معياري", 4:"متقدم", 5:"رائد" };
+const MATURITY_LABELS = { 1:"ضعيف", 2:"أساسي", 3:"جيد", 4:"متقدم", 5:"متميز" };
+const MATURITY_COLORS = { 1:"var(--red)", 2:"#E67E22", 3:"var(--gold)", 4:"var(--teal)", 5:"var(--green)" };
+function maturityColor(score){
+  if(score==null) return "var(--gray3)";
+  return MATURITY_COLORS[Math.round(score)] || "var(--gray3)";
+}
+
+// Board/committee axes only make sense where a board and real committees actually exist —
+// a sole proprietorship has neither, and even a joint-stock company without any committees
+// registered shouldn't be nudged into scoring an axis that doesn't apply to it (an assessor
+// scoring "no committees" as a 1 would unfairly drag the overall average down for something
+// that was never expected to exist in the first place).
+async function getGovAssessApplicableAxes(){
+  const isSoleProp = currentCompanyType === "مؤسسة فردية";
+  const { data: committees } = await sb.from("committees").select("id").eq("company_id", currentCompanyId).limit(1);
+  const hasCommittees = !!(committees && committees.length);
+  return GOVERNANCE_AXES.filter(axis => {
+    if(isSoleProp && axis.key === "axis_board") return false;
+    if(isSoleProp && axis.key === "axis_committees") return false;
+    if(!hasCommittees && axis.key === "axis_committees") return false;
+    return true;
+  }).map(axis => ({ ...axis, title: displayStageLabel(axis.title) }));
+}
 
 function maturityInterpretation(score){
   if(score < 2) return { label: "حوكمة ابتدائية – تحتاج إعادة بناء جذرية", color: "var(--red)" };
@@ -9652,14 +9674,14 @@ function maturityInterpretation(score){
 
 let govassessEditingId = null;
 
-function openNewGovAssessment(){
+async function openNewGovAssessment(){
   govassessEditingId = null;
   document.getElementById("ga-id").value = "";
   document.getElementById("ga-period").value = "";
   document.getElementById("ga-date").value = "";
   document.getElementById("ga-assessor").value = "المراجعة الداخلية";
   document.getElementById("govassessFormTitle").textContent = "📊 تقييم فعالية حوكمة جديد";
-  renderGovAxesForm(null);
+  await renderGovAxesForm(null);
   document.getElementById("govassessResultsSummary").style.display = "none";
   document.getElementById("govassessListView").style.display = "none";
   document.getElementById("govassessFormView").style.display = "block";
@@ -9671,9 +9693,12 @@ function closeGovAssessmentForm(){
   loadGovAssessments();
 }
 
-function renderGovAxesForm(existingData){
+let currentGovAxes = GOVERNANCE_AXES;
+
+async function renderGovAxesForm(existingData){
+  currentGovAxes = await getGovAssessApplicableAxes();
   const box = document.getElementById("govassessAxesContainer");
-  box.innerHTML = GOVERNANCE_AXES.map(axis => {
+  box.innerHTML = currentGovAxes.map(axis => {
     const savedCriteria = existingData ? (existingData[axis.key]||[]) : [];
     const savedByKey = {}; savedCriteria.forEach(c => { savedByKey[c.key] = c; });
     return `<div class="card" style="margin-bottom:14px">
@@ -9684,9 +9709,10 @@ function renderGovAxesForm(existingData){
           <tbody>
             ${axis.criteria.map(c => {
               const saved = savedByKey[c.key] || {};
+              const initialColor = maturityColor(saved.score);
               return `<tr data-axis="${axis.key}" data-crit="${c.key}">
                 <td><b style="font-size:11.5px">${c.label}</b><div style="font-size:10px;color:var(--gray3);margin-top:2px">${c.hint}</div></td>
-                <td><select class="fs ga-score-select" style="font-size:12px;padding:6px">
+                <td><select class="fs ga-score-select" style="font-size:12px;padding:6px;font-weight:700;color:${initialColor};border-color:${initialColor}55" onchange="this.style.color=maturityColor(this.value?Number(this.value):null);this.style.borderColor=maturityColor(this.value?Number(this.value):null)+'55'">
                   <option value="">—</option>
                   ${[1,2,3,4,5].map(n=>`<option value="${n}" ${saved.score==n?"selected":""}>${n} — ${MATURITY_LABELS[n]}</option>`).join("")}
                 </select></td>
@@ -9703,7 +9729,7 @@ function renderGovAxesForm(existingData){
 
 function collectGovAxesData(){
   const result = {};
-  GOVERNANCE_AXES.forEach(axis => {
+  currentGovAxes.forEach(axis => {
     result[axis.key] = axis.criteria.map(c => {
       const row = document.querySelector(`tr[data-axis="${axis.key}"][data-crit="${c.key}"]`);
       const score = row.querySelector(".ga-score-select").value;
@@ -9804,7 +9830,7 @@ async function viewGovAssessment(id){
   document.getElementById("ga-date").value = a.assessment_date || "";
   document.getElementById("ga-assessor").value = a.assessed_by_type || "المراجعة الداخلية";
   document.getElementById("govassessFormTitle").textContent = "📊 تعديل تقييم: " + (a.period||"");
-  renderGovAxesForm(a);
+  await renderGovAxesForm(a);
   renderGovResultsSummary(a);
   document.getElementById("govassessListView").style.display = "none";
   document.getElementById("govassessFormView").style.display = "block";
