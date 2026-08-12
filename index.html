@@ -7384,6 +7384,33 @@ function tableFromRows(rows, cols){
   const body = rows.map(r => `<tr>${Object.values(r).map(v=>`<td>${(v!=null&&v!=="")?v:"—"}</td>`).join("")}</tr>`).join("");
   return `<table class="tbl" style="margin-top:6px"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
 }
+// A small colored "KPI-style" tile — reuses the exact card language already used on the
+// dashboard (colored stripe, big bold figure, faint icon watermark) so numeric report fields
+// read as a proper statistic instead of a plain text line like "إجمالي الربح: 10000000 ريال".
+function statCard(icon, label, val, isCurrency, color){
+  if(val===undefined || val===null || val==="") return "";
+  const display = (isCurrency && !isNaN(Number(val))) ? fmtNum(val) : val;
+  return `<div class="kpi ${color||'blue'}" style="padding:14px 16px;min-width:0">
+    <div class="kpi-stripe"></div>
+    <div class="kpi-label">${label}</div>
+    <div class="kpi-val" style="font-size:21px;word-break:break-word">${display}${isCurrency?'<span style="font-size:12px;font-weight:700;color:var(--gray3)"> ريال</span>':''}</div>
+    <div class="kpi-icon">${icon}</div>
+  </div>`;
+}
+function statGrid(cards){
+  const filled = cards.filter(Boolean);
+  if(!filled.length) return "";
+  return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">${filled.join("")}</div>`;
+}
+// For narrative/free-text fields — a labeled callout block instead of a bare "label: value" line.
+function textBlock(icon, label, text){
+  if(!text) return "";
+  return `<div style="background:var(--offwhite);border-radius:10px;padding:10px 14px;margin-top:10px">
+    <div style="font-size:11px;font-weight:800;color:var(--primary);margin-bottom:4px">${icon} ${label}</div>
+    <div style="font-size:12.5px;color:var(--dark);line-height:1.7">${text}</div>
+  </div>`;
+}
+function textBlocks(items){ return items.filter(Boolean).join(""); }
 
 async function loadIndicatorsReport(){
   const box = document.getElementById("indicatorsReport");
@@ -7407,8 +7434,6 @@ async function loadIndicatorsReport(){
   const challenges = r.sec_challenges||[];
   const priorities = r.sec_priorities||[];
 
-  // Net profit isn't collected directly anymore (financial section was trimmed) — revenue minus
-  // total expenses gives the same figure without asking for it twice.
   const netProfit = (F.revenue!=null && F.total_expenses!=null) ? F.revenue - F.total_expenses : null;
 
   const kpiRows = kpis.filter(k=>k.name).map(k => {
@@ -7425,70 +7450,107 @@ async function loadIndicatorsReport(){
 
     ${sectionCard("١) لوحة مؤشرات الأداء الرئيسية — المستهدف مقابل الفعلي والانحراف", kpiRows ? `<table class="tbl"><thead><tr><th>المؤشر</th><th>المستهدف</th><th>الفعلي</th><th>الشهر السابق</th><th>نفس الشهر بالعام السابق</th><th>الانحراف</th></tr></thead><tbody>${kpiRows}</tbody></table>` : "")}
 
-    ${sectionCard("٢) الأداء المالي", [
-      fieldRow("الإيرادات", F.revenue, true), fieldRow("إجمالي الربح", F.gross_profit, true),
-      fieldRow("إجمالي المصروفات", F.total_expenses, true),
-      fieldRow("صافي الربح (محسوب تلقائيًا)", netProfit, true),
-      fieldRow("المصروفات الإدارية", F.admin_expenses, true), fieldRow("مصروفات المبيعات والتسويق", F.sales_marketing_expenses, true),
-      fieldRow("الرواتب", F.salaries, true)
-    ].join(""))}
+    ${sectionCard("٢) الأداء المالي", statGrid([
+      statCard("💰","الإيرادات", F.revenue, true, "blue"),
+      statCard("📈","إجمالي الربح", F.gross_profit, true, "green"),
+      statCard("📉","إجمالي المصروفات", F.total_expenses, true, "red"),
+      statCard("💵","صافي الربح", netProfit, true, "gold"),
+      statCard("🏢","المصروفات الإدارية", F.admin_expenses, true, "blue"),
+      statCard("📣","مصروفات المبيعات والتسويق", F.sales_marketing_expenses, true, "blue"),
+      statCard("👥","الرواتب", F.salaries, true, "blue")
+    ]))}
 
-    ${sectionCard("٣) المبيعات", [
-      fieldRow("المبيعات الشهرية", SA.monthly_sales, true), fieldRow("المستهدف الشهري", SA.monthly_target, true),
-      fieldRow("المبيعات منذ بداية السنة", SA.ytd_sales, true), fieldRow("عدد العملاء الجدد", SA.new_customers),
-      fieldRow("عدد العملاء المتوقفين عن التعامل", SA.lost_customers), fieldRow("عدد العقود التي تم تقديمها", SA.submitted_contracts_count)
-    ].join(""))}
+    ${sectionCard("٣) المبيعات", statGrid([
+      statCard("🧾","المبيعات الشهرية", SA.monthly_sales, true, "blue"),
+      statCard("🎯","المستهدف الشهري", SA.monthly_target, true, "gold"),
+      statCard("📊","المبيعات منذ بداية السنة", SA.ytd_sales, true, "blue"),
+      statCard("🆕","عملاء جدد", SA.new_customers, false, "green"),
+      statCard("⚠️","عملاء متوقفون", SA.lost_customers, false, "red"),
+      statCard("📄","عقود مُقدَّمة", SA.submitted_contracts_count, false, "blue")
+    ]))}
 
-    ${sectionCard("٤) التشغيل", [
-      fieldRow("حجم الأعمال المنفذة", OP.work_volume), fieldRow("الأعطال والتوقفات", OP.breakdowns_downtime),
-      fieldRow("الإجراءات التصحيحية", OP.corrective_actions), fieldRow("أهم المشكلات التشغيلية", OP.operational_issues)
-    ].join(""))}
+    ${sectionCard("٤) التشغيل", textBlocks([
+      textBlock("⚙️","حجم الأعمال المنفذة", OP.work_volume),
+      textBlock("🔧","الأعطال والتوقفات", OP.breakdowns_downtime),
+      textBlock("✅","الإجراءات التصحيحية", OP.corrective_actions),
+      textBlock("❗","أهم المشكلات التشغيلية", OP.operational_issues)
+    ]))}
 
     ${sectionCard("٥) المشاريع", tableFromRows(projects.map(p=>({
       name: p.name, value: p.value!=null?fmtNum(p.value)+" ريال":"—", client: p.client,
       completion: p.completion_pct!=null?p.completion_pct+"%":"—", status: p.status, notes: p.notes
     })), ["المشروع","القيمة","العميل","نسبة الإنجاز","الحالة","ملاحظات"]))}
 
-    ${sectionCard("٦) الموارد البشرية", [
-      fieldRow("إجمالي عدد الموظفين", HR.total_employees), fieldRow("عدد الموظفين الجدد", HR.new_employees),
-      fieldRow("الاستقالات وإنهاء الخدمة", HR.resignations), fieldRow("معدل دوران الموظفين", HR.turnover_rate),
-      fieldRow("الوظائف الشاغرة والحرجة", HR.vacant_critical_roles), fieldRow("الوظائف المطلوب توظيفها", HR.roles_to_hire),
-      fieldRow("التدريب والتطوير", HR.training), fieldRow("المشاكل العمالية", HR.labor_issues), fieldRow("الاحتياجات المستقبلية", HR.future_needs)
-    ].join(""))}
+    ${sectionCard("٦) الموارد البشرية", statGrid([
+      statCard("👥","إجمالي الموظفين", HR.total_employees, false, "blue"),
+      statCard("🆕","موظفون جدد", HR.new_employees, false, "green"),
+      statCard("📉","معدل الدوران", HR.turnover_rate, false, "red")
+    ]) + textBlocks([
+      textBlock("👋","الاستقالات وإنهاء الخدمة", HR.resignations),
+      textBlock("🪑","الوظائف الشاغرة والحرجة", HR.vacant_critical_roles),
+      textBlock("📋","الوظائف المطلوب توظيفها", HR.roles_to_hire),
+      textBlock("🎓","التدريب والتطوير", HR.training),
+      textBlock("⚠️","المشاكل العمالية", HR.labor_issues),
+      textBlock("🔮","الاحتياجات المستقبلية", HR.future_needs)
+    ]))}
 
-    ${sectionCard("٧) المشتريات", [
-      fieldRow("إجمالي المشتريات", PR.total_purchases, true), fieldRow("المشتريات مقارنة بالموازنة", PR.purchases_vs_budget), fieldRow("الموردون الجدد", PR.new_suppliers)
-    ].join(""))}
+    ${sectionCard("٧) المشتريات", statGrid([
+      statCard("📦","إجمالي المشتريات", PR.total_purchases, true, "blue")
+    ]) + textBlocks([
+      textBlock("📊","المشتريات مقارنة بالموازنة", PR.purchases_vs_budget),
+      textBlock("🆕","الموردون الجدد", PR.new_suppliers)
+    ]))}
 
-    ${sectionCard("٨) العملاء وخدمة العملاء", [
-      fieldRow("عدد العملاء", CU.customer_count), fieldRow("عملاء جدد ومفقودون", CU.new_lost_customers), fieldRow("معدل الاحتفاظ بالعملاء", CU.retention_rate),
-      fieldRow("مستوى الرضا", CU.satisfaction_level), fieldRow("عدد الشكاوى وطبيعتها", CU.complaints_count), fieldRow("زمن المعالجة والشكاوى المفتوحة", CU.complaints_resolution),
-      fieldRow("أهم العملاء", CU.top_customers), fieldRow("عملاء معرّضون لخطر الفقدان", CU.at_risk_customers), fieldRow("إجراءات تحسين الرضا", CU.improvement_actions)
-    ].join(""))}
+    ${sectionCard("٨) العملاء وخدمة العملاء", statGrid([
+      statCard("👤","عدد العملاء", CU.customer_count, false, "blue"),
+      statCard("💬","عدد الشكاوى", CU.complaints_count, false, "red")
+    ]) + textBlocks([
+      textBlock("🔄","عملاء جدد ومفقودون", CU.new_lost_customers),
+      textBlock("💚","معدل الاحتفاظ بالعملاء", CU.retention_rate),
+      textBlock("😊","مستوى الرضا", CU.satisfaction_level),
+      textBlock("⏱️","زمن المعالجة والشكاوى المفتوحة", CU.complaints_resolution),
+      textBlock("⭐","أهم العملاء", CU.top_customers),
+      textBlock("⚠️","عملاء معرّضون لخطر الفقدان", CU.at_risk_customers),
+      textBlock("✅","إجراءات تحسين الرضا", CU.improvement_actions)
+    ]))}
 
-    ${sectionCard("٩) التسويق", [
-      fieldRow("الحملات التسويقية", MK.campaigns), fieldRow("عملاء ناتجون عن الحملات", MK.campaign_customers),
-      fieldRow("الأداء الرقمي", MK.digital_performance), fieldRow("تقييم الأداء مقارنة بالمنافسين", MK.vs_competitors), fieldRow("فرص تسويقية جديدة", MK.new_opportunities)
-    ].join(""))}
+    ${sectionCard("٩) التسويق", textBlocks([
+      textBlock("📣","الحملات التسويقية", MK.campaigns),
+      textBlock("🆕","عملاء ناتجون عن الحملات", MK.campaign_customers),
+      textBlock("💻","الأداء الرقمي", MK.digital_performance),
+      textBlock("🏁","تقييم الأداء مقارنة بالمنافسين", MK.vs_competitors),
+      textBlock("💡","فرص تسويقية جديدة", MK.new_opportunities)
+    ]))}
 
-    ${sectionCard("١٠) الشؤون القانونية والعقود", [
-      fieldRow("القضايا", LG.legal_cases), fieldRow("قيمة المطالبات", LG.claims_value), fieldRow("حالة العقود", LG.contracts_status),
-      fieldRow("النزاعات", LG.disputes), fieldRow("المخاطر القانونية", LG.legal_risks)
-    ].join(""))}
+    ${sectionCard("١٠) الشؤون القانونية والعقود", textBlocks([
+      textBlock("⚖️","القضايا", LG.legal_cases),
+      textBlock("💰","قيمة المطالبات", LG.claims_value),
+      textBlock("📄","حالة العقود", LG.contracts_status),
+      textBlock("🤝","النزاعات", LG.disputes),
+      textBlock("⚠️","المخاطر القانونية", LG.legal_risks)
+    ]))}
 
     ${sectionCard("١١) الشركات التابعة والفروع", tableFromRows(subsidiaries, ["الشركة/الفرع","التشغيل سليم؟","المشاكل"]))}
 
-    ${sectionCard("١٢) الأداء مقابل الموازنة", [
-      fieldRow("الإيرادات", BU.revenue_vs_plan), fieldRow("الأرباح", BU.profit_vs_plan), fieldRow("المصروفات", BU.expenses_vs_plan),
-      fieldRow("التدفقات النقدية", BU.cashflow_vs_plan), fieldRow("المبيعات", BU.sales_vs_plan), fieldRow("عدد العملاء", BU.customers_vs_plan),
-      fieldRow("المشاريع", BU.projects_vs_plan), fieldRow("الاستثمارات", BU.investments_vs_plan), fieldRow("الموارد البشرية", BU.hr_vs_plan), fieldRow("أسباب الانحرافات والإجراءات", BU.variance_reasons)
-    ].join(""))}
+    ${sectionCard("١٢) الأداء مقابل الموازنة", textBlocks([
+      textBlock("💰","الإيرادات", BU.revenue_vs_plan), textBlock("📈","الأرباح", BU.profit_vs_plan), textBlock("📉","المصروفات", BU.expenses_vs_plan),
+      textBlock("💵","التدفقات النقدية", BU.cashflow_vs_plan), textBlock("🧾","المبيعات", BU.sales_vs_plan), textBlock("👤","عدد العملاء", BU.customers_vs_plan),
+      textBlock("🏗️","المشاريع", BU.projects_vs_plan), textBlock("📊","الاستثمارات", BU.investments_vs_plan), textBlock("👥","الموارد البشرية", BU.hr_vs_plan),
+      textBlock("❗","أسباب الانحرافات والإجراءات", BU.variance_reasons)
+    ]))}
 
-    ${sectionCard("١٣) التوقعات حتى نهاية السنة", [
-      fieldRow("الإيرادات المتوقعة", FC.expected_revenue, true), fieldRow("الأرباح المتوقعة", FC.expected_profit, true), fieldRow("التدفقات النقدية المتوقعة", FC.expected_cashflow, true),
-      fieldRow("المبيعات المتوقعة", FC.expected_sales, true), fieldRow("العقود المتوقع توقيعها", FC.expected_contracts), fieldRow("المشاريع المتوقع إنجازها", FC.expected_projects),
-      fieldRow("مخاطر مؤثرة على النتائج", FC.risks_affecting_results), fieldRow("هل ستتحقق الموازنة السنوية؟", FC.budget_achievable), fieldRow("حاجة لتعديل التوقعات؟", FC.forecast_adjustment_needed)
-    ].join(""))}
+    ${sectionCard("١٣) التوقعات حتى نهاية السنة", statGrid([
+      statCard("💰","الإيرادات المتوقعة", FC.expected_revenue, true, "blue"),
+      statCard("📈","الأرباح المتوقعة", FC.expected_profit, true, "green"),
+      statCard("💵","التدفقات النقدية المتوقعة", FC.expected_cashflow, true, "gold"),
+      statCard("🧾","المبيعات المتوقعة", FC.expected_sales, true, "blue")
+    ]) + textBlocks([
+      textBlock("📄","العقود المتوقع توقيعها", FC.expected_contracts),
+      textBlock("🏗️","المشاريع المتوقع إنجازها", FC.expected_projects),
+      textBlock("⚠️","مخاطر مؤثرة على النتائج", FC.risks_affecting_results),
+      textBlock("❓","هل ستتحقق الموازنة السنوية؟", FC.budget_achievable),
+      textBlock("🔧","حاجة لتعديل التوقعات؟", FC.forecast_adjustment_needed)
+    ]))}
 
     ${sectionCard("١٤) أهم التحديات", tableFromRows(challenges, ["التحدي","التفاصيل"]))}
 
