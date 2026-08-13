@@ -511,6 +511,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://unpkg.com/docxtemplater@3.69.0/build/docxtemplater.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
@@ -6654,7 +6655,7 @@ async function loadSigning(){
         <td>${s.document_name||""}</td><td>${s.doc_type||"—"}</td>
         <td>${signed.length}/${total||"?"} وقّعوا</td>
         <td>${statusBadge}</td><td>${s.due_date||"—"}</td>
-        <td>${s.file_url ? `<a class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:4px 10px;font-size:11px;text-decoration:none" href="${s.file_url}" target="_blank" rel="noopener">📄 الملف الأصلي (غير موقّع)</a>` : ""} <button class="btn-xs gold" onclick="generateSignedDocumentPDF(${s.id})">${isComplete ? "📥 تحميل الوثيقة الموقّعة (PDF)" : "🖨️ حالة التوقيع"}</button></td>
+        <td>${s.file_url ? `<a class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:4px 10px;font-size:11px;text-decoration:none" href="${s.file_url}" target="_blank" rel="noopener">📄 الملف الأصلي (غير موقّع)</a>` : ""} <button class="btn-xs gold" onclick="generateSignedDocumentPDF(${s.id},this)">${isComplete ? "📥 تحميل الوثيقة الموقّعة (PDF)" : "🖨️ حالة التوقيع"}</button></td>
         <td><button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="deleteSigningDoc(${s.id})">🗑️ حذف</button></td>
       </tr>`;
     }).join("");
@@ -6785,60 +6786,143 @@ async function deleteSigningDoc(id){
   loadSigning();
 }
 
-async function generateSignedDocumentPDF(docId){
-  const w = window.open("", "_blank");
-  if(w){ w.document.write('<html dir="rtl"><body style="font-family:sans-serif;padding:30px">جارِ تجهيز الملف...</body></html>'); w.document.close(); }
-  const [{ data: doc, error: docErr }, { data: sigs, error: sigErr }] = await Promise.all([
-    sb.from("signing_documents").select("*").eq("id", docId).single(),
-    sb.from("document_signatures").select("*").eq("document_id", docId).order("created_at",{ascending:true})
-  ]);
-  if(docErr || sigErr || !doc){ alert("تعذّر توليد الملف"); if(w) w.close(); return; }
-  if(!w){ alert("المتصفح منع فتح نافذة الملف — الرجاء السماح بالنوافذ المنبثقة ثم المحاولة مرة أخرى."); return; }
+async function generateSignedDocumentPDF(docId, btn){
+  const originalBtnText = btn ? btn.textContent : null;
+  if(btn){ btn.textContent = "⏳ جارِ التجهيز..."; btn.disabled = true; }
 
-  const signatures = sigs || [];
-  const total = doc.signers_total || 0;
-  const isComplete = total>0 && signatures.length >= total;
-  const dateNow = new Date().toLocaleDateString("ar-SA");
-  const isPdfOriginal = doc.file_url && /\.pdf(\?|$)/i.test(doc.file_url);
+  try{
+    const [{ data: doc, error: docErr }, { data: sigs, error: sigErr }] = await Promise.all([
+      sb.from("signing_documents").select("*").eq("id", docId).single(),
+      sb.from("document_signatures").select("*").eq("document_id", docId).order("created_at",{ascending:true})
+    ]);
+    if(docErr || sigErr || !doc) throw new Error("تعذّر تحميل بيانات الوثيقة");
 
-  w.document.open();
-  w.document.write(`
-    <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>${isComplete?"وثيقة موقّعة":"شهادة توقيع"} — ${doc.document_name||""}</title>
-    <style>
-      body{font-family:'Tajawal',Arial,sans-serif;padding:40px;color:#0D2447}
-      h1{color:#1A3A6B;font-size:20px;border-bottom:3px solid #D4AF37;padding-bottom:10px}
-      .meta{font-size:13px;margin:6px 0}
-      table{width:100%;border-collapse:collapse;margin-top:16px}
-      th,td{border:1px solid #ccc;padding:8px;text-align:right;font-size:12.5px}
-      th{background:#EAF0F8}
-      .stamp{margin-top:24px;padding:16px;border-radius:10px;font-weight:800;text-align:center}
-      .stamp.done{background:#EAF8F0;border:2px solid #1E8E5A;color:#166A43}
-      .stamp.pending{background:#FEF3E2;border:2px solid #C99A2E;color:#8A6D1F}
-      .orig-doc{border:1px solid #ccc;border-radius:8px;margin:16px 0;page-break-after:always}
-      .orig-doc iframe{width:100%;height:900px;border:none}
-      .orig-note{background:#FEF3E2;border-radius:8px;padding:10px 14px;font-size:12px;margin:16px 0}
-    </style></head><body>
-    ${isPdfOriginal ? `<div class="orig-doc"><iframe src="${doc.file_url}"></iframe></div>` :
-      (doc.file_url ? `<div class="orig-note">📎 هذا المستند الأصلي ملف Word — لضمّه بنفس ملف PDF هذا، افتح <a href="${doc.file_url}" target="_blank">الملف الأصلي</a> واطبعه كـPDF بشكل منفصل، أو حوّله لـPDF أولًا وأعد رفعه هنا ليُضمّ تلقائيًا في المرات القادمة.</div>` : "")}
-    <h1>✍️ ${isComplete?"وثيقة موقّعة إلكترونيًا":"شهادة توقيع إلكتروني"}</h1>
-    <p class="meta"><b>اسم الوثيقة:</b> ${doc.document_name||"—"}</p>
-    <p class="meta"><b>النوع:</b> ${doc.doc_type||"—"}</p>
-    <p class="meta"><b>الموعد:</b> ${doc.due_date||"—"}</p>
-    <p class="meta"><b>تاريخ إصدار الشهادة:</b> ${dateNow}</p>
-    <table>
-      <thead><tr><th>#</th><th>اسم الموقّع</th><th>البريد الإلكتروني</th><th>تاريخ ووقت التوقيع</th><th>التوقيع</th></tr></thead>
-      <tbody>
-        ${signatures.length ? signatures.map((s,i)=>`<tr><td>${i+1}</td><td>${s.signer_name||"—"}</td><td>${s.signer_email||"—"}</td><td>${new Date(s.created_at).toLocaleString("ar-SA")}</td><td>${s.signature_image ? `<img src="${s.signature_image}" style="height:36px;max-width:120px">` : "—"}</td></tr>`).join("") : '<tr><td colspan="5" style="color:#C0392B">لا توجد توقيعات مسجّلة بعد.</td></tr>'}
-      </tbody>
-    </table>
-    <div class="stamp ${isComplete?'done':'pending'}">
-      ${isComplete ? `✅ اكتمل توقيع هذه الوثيقة إلكترونيًا من ${signatures.length} من ${total} من الأشخاص المخوّلين.` : `⏳ التوقيع لا يزال قيد الإتمام — وقّع حتى الآن ${signatures.length} من ${total||'?'} موقّعين مطلوبين.`}
-    </div>
-    ${!isPdfOriginal && doc.file_url ? `<p style="margin-top:20px">📎 <a href="${doc.file_url}" target="_blank">فتح الملف الأصلي المرفوع</a></p>` : ""}
-    <script>window.onload=function(){setTimeout(function(){window.print()},${isPdfOriginal?900:300})}<\/script>
-    </body></html>
-  `);
-  w.document.close();
+    const signatures = sigs || [];
+    const total = doc.signers_total || 0;
+    const isComplete = total>0 && signatures.length >= total;
+    const dateNow = new Date().toLocaleDateString("ar-SA");
+    const isPdfOriginal = doc.file_url && /\.pdf(\?|$)/i.test(doc.file_url);
+
+    // Draw the certificate on an offscreen canvas first — the browser's own text engine
+    // correctly shapes/joins Arabic letters (pdf-lib's built-in text drawing does not), so we
+    // render it as pixels here and embed that as a real PDF page, guaranteeing it reads right.
+    const scale = 2; // render at 2x for print sharpness
+    const W = 595 * scale, H = 842 * scale; // A4 in points × scale
+    const canvas = document.createElement("canvas");
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(0,0,W,H);
+    ctx.direction = "rtl";
+    ctx.textAlign = "right";
+    const RM = W - 50*scale; // right margin x
+
+    ctx.fillStyle = "#1A3A6B";
+    ctx.fillRect(0, 0, W, 6*scale);
+    ctx.font = `bold ${22*scale}px Tajawal, Arial`;
+    ctx.fillStyle = "#1A3A6B";
+    ctx.fillText(isComplete ? "وثيقة موقّعة إلكترونيًا" : "شهادة توقيع إلكتروني", RM, 50*scale);
+
+    ctx.font = `${13*scale}px Tajawal, Arial`;
+    ctx.fillStyle = "#0D2447";
+    let y = 85*scale;
+    const line = (label, value) => { ctx.fillText(`${label}: ${value||"—"}`, RM, y); y += 22*scale; };
+    line("اسم الوثيقة", doc.document_name);
+    line("النوع", doc.doc_type);
+    line("الموعد", doc.due_date);
+    line("تاريخ إصدار الشهادة", dateNow);
+
+    y += 15*scale;
+    ctx.font = `bold ${14*scale}px Tajawal, Arial`;
+    ctx.fillText("سجل التوقيعات", RM, y);
+    y += 15*scale;
+    ctx.strokeStyle = "#cccccc"; ctx.beginPath(); ctx.moveTo(50*scale,y); ctx.lineTo(RM,y); ctx.stroke();
+    y += 25*scale;
+
+    // Pre-load signature images so we can draw them inline with each row.
+    const loadImg = (src) => new Promise((resolve) => {
+      if(!src){ resolve(null); return; }
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+    const sigImages = await Promise.all(signatures.map(s => loadImg(s.signature_image)));
+
+    if(signatures.length === 0){
+      ctx.font = `${12*scale}px Tajawal, Arial`;
+      ctx.fillStyle = "#C0392B";
+      ctx.fillText("لا توجد توقيعات مسجّلة بعد.", RM, y);
+      y += 25*scale;
+    } else {
+      ctx.font = `${12*scale}px Tajawal, Arial`;
+      signatures.forEach((s, i) => {
+        ctx.fillStyle = "#0D2447";
+        ctx.fillText(`${i+1}. ${s.signer_name||"—"}  (${s.signer_email||"—"})`, RM, y);
+        ctx.font = `${10.5*scale}px Tajawal, Arial`;
+        ctx.fillStyle = "#8B95A5";
+        ctx.fillText(`وقّع بتاريخ: ${new Date(s.created_at).toLocaleString("ar-SA")}`, RM, y + 15*scale);
+        const img = sigImages[i];
+        if(img){
+          const imgH = 26*scale, imgW = imgH * (img.width/img.height);
+          ctx.drawImage(img, 50*scale, y - 18*scale, Math.min(imgW,90*scale), imgH);
+        }
+        ctx.font = `${12*scale}px Tajawal, Arial`;
+        y += 42*scale;
+      });
+    }
+
+    y += 10*scale;
+    ctx.fillStyle = isComplete ? "#EAF8F0" : "#FEF3E2";
+    ctx.fillRect(50*scale, y, W-100*scale, 55*scale);
+    ctx.strokeStyle = isComplete ? "#1E8E5A" : "#C99A2E";
+    ctx.lineWidth = 2*scale;
+    ctx.strokeRect(50*scale, y, W-100*scale, 55*scale);
+    ctx.font = `bold ${13*scale}px Tajawal, Arial`;
+    ctx.fillStyle = isComplete ? "#166A43" : "#8A6D1F";
+    ctx.textAlign = "center";
+    const stampText = isComplete
+      ? `✅ اكتمل توقيع هذه الوثيقة من ${signatures.length} من ${total} من الأشخاص المخوّلين.`
+      : `⏳ التوقيع قيد الإتمام — وقّع حتى الآن ${signatures.length} من ${total||'?'} موقّعين مطلوبين.`;
+    ctx.fillText(stampText, W/2, y + 32*scale);
+    ctx.textAlign = "right";
+
+    const certPngDataUrl = canvas.toDataURL("image/png");
+
+    // Build the final PDF: start from the original file's bytes when it's already a PDF (so its
+    // real pages carry over untouched), otherwise start a fresh document — then append our
+    // canvas-rendered certificate page on top either way.
+    const { PDFDocument } = PDFLib;
+    let pdfDoc;
+    if(isPdfOriginal){
+      const res = await fetch(doc.file_url);
+      const bytes = await res.arrayBuffer();
+      pdfDoc = await PDFDocument.load(bytes, { ignoreEncryption: true });
+    } else {
+      pdfDoc = await PDFDocument.create();
+    }
+    const pngBytes = await (await fetch(certPngDataUrl)).arrayBuffer();
+    const pngImage = await pdfDoc.embedPng(pngBytes);
+    const page = pdfDoc.addPage([595, 842]);
+    page.drawImage(pngImage, { x: 0, y: 0, width: 595, height: 842 });
+
+    const finalBytes = await pdfDoc.save();
+    const blob = new Blob([finalBytes], { type: "application/pdf" });
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = `${isComplete?"وثيقة-موقّعة":"شهادة-توقيع"}-${(doc.document_name||"مستند").replace(/[\\/:*?"<>|]/g,"_")}.pdf`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(blobUrl), 5000);
+
+    if(!isPdfOriginal && doc.file_url){
+      alert("تم تحميل شهادة التوقيع كـPDF حقيقي ✅\n\nملاحظة: الملف الأصلي المرفوع هو Word، والمتصفحات لا تقدر تدمج محتواه تلقائيًا داخل PDF. لضمّ محتوى المستند نفسه مع التوقيعات مستقبلًا، ارفعه كـPDF بدل Word.");
+    }
+  }catch(e){
+    alert("تعذّر توليد الملف: " + e.message);
+  }finally{
+    if(btn){ btn.textContent = originalBtnText; btn.disabled = false; }
+  }
 }
 
 async function saveSigning(){
