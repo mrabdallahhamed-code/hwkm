@@ -613,7 +613,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="nav-group-label">الاجتماعات والتصويت</div>
     <div class="nav-item" onclick="go('meetings',this)"><span class="ni-icon">📅</span><span class="ni-text">اجتماعات المجلس</span><span class="ni-badge gold">3</span></div>
     <div class="nav-item" onclick="go('agm',this)"><span class="ni-icon">🤝</span><span class="ni-text">الجمعيات العامة</span><span class="ni-badge red">1</span></div>
-    <div class="nav-item" onclick="go('shareholders',this)"><span class="ni-icon">📇</span><span class="ni-text">سجل المساهمين</span></div>
+    <div class="nav-item" onclick="go('shareholders',this)"><span class="ni-icon">📇</span><span class="ni-text" id="shareholdersNavLabel">سجل المساهمين</span></div>
     <div class="nav-item" onclick="go('committees',this)"><span class="ni-icon">📋</span><span class="ni-text">اللجان</span><span class="ni-badge blue">4</span></div>
     <div class="nav-item" onclick="go('voting',this)"><span class="ni-icon">🗳️</span><span class="ni-text">التصويت الإلكتروني</span><div class="pulse"></div></div>
     <div class="nav-item" onclick="go('signing',this)"><span class="ni-icon">✍️</span><span class="ni-text">التوقيع الإلكتروني</span><span class="ni-badge red">2</span></div>
@@ -1022,7 +1022,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <!-- ══ SHAREHOLDERS REGISTRY ═══════════════ -->
 <div id="p-shareholders" class="page content">
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
-    <span>📇 سجل المساهمين</span>
+    <span id="shareholdersPageTitle">📇 سجل المساهمين</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openTransferModal()">🔄 نقل ملكية</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px;color:var(--red)" onclick="deleteAllShareholders()">🗑️ حذف الكل</button>
@@ -2841,6 +2841,7 @@ function isPageAllowed(pageId, role){
   if(pageId === 'activitylog') return role === 'مدير النظام';
   if(role === 'مساهم') return SHAREHOLDER_PAGES.includes(pageId);
   if(currentCompanyType === 'مؤسسة فردية' && SOLE_PROP_HIDDEN_PAGES.includes(pageId)) return false;
+  if(currentCompanyType === 'ذات مسؤولية محدودة' && LLC_HIDDEN_PAGES.includes(pageId)) return false;
   if(MODULE_PAGE_MAP[pageId] && !currentCompanyModules[MODULE_PAGE_MAP[pageId]] && !isPlatformAdmin) return false;
   return true;
 }
@@ -4070,6 +4071,21 @@ async function approveCompanyRequest(requestId){
     await sb.from("document_templates").upsert(clones, { onConflict: 'company_id,template_key' });
   }
 
+  // Notify the requester their company is live — approval was previously completely silent
+  // from their side (they'd only discover it by trying to log in and hoping it worked).
+  if(r.requested_by_email){
+    const subject = `تمت الموافقة على طلب إدراج "${newCompany.name}" في منصة حوكم ✅`;
+    const html = `
+      <div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px">
+        <h2 style="color:#1A3A6B">🎉 تهانينا! تمت الموافقة على طلبك</h2>
+        <p>تم إنشاء شركة <b>${newCompany.name}</b> على منصة حوكم، وربطك بها كمدير نظام.</p>
+        ${isTrial ? `<p>لديك فترة تجربة مجانية لمدة <b>${trialDays} يوم</b> — كل الوحدات مفتوحة خلالها.</p>` : ""}
+        <p>يمكنك الآن تسجيل الدخول من <a href="https://hwkm.net">hwkm.net</a> بنفس بريدك الإلكتروني وكلمة المرور اللي سجّلت فيهم.</p>
+        <p style="color:#8B95A5;font-size:12px;margin-top:20px">هذه رسالة تلقائية من منصّة حوكم.</p>
+      </div>`;
+    await sendNotificationEmail(r.requested_by_email, subject, html);
+  }
+
   closeM("m-approve-company");
   alert("تم إنشاء الشركة وربط المستخدم بها كمدير نظام ✅"
     + (isTrial ? ` — فترة تجربة مجانية ${trialDays} يوم (كل الوحدات مفتوحة).` : "")
@@ -4121,6 +4137,7 @@ async function saveCompany(){
 /* Company-type-aware navigation: sole proprietorships have no board/shareholders, so
    board/committee/AGM-related pages are irrelevant and get hidden from the sidebar. */
 const SOLE_PROP_HIDDEN_PAGES = ['meetings','committees','agm','voting','members','appoint','perf','shareholders'];
+const LLC_HIDDEN_PAGES = ['committees'];
 let currentCompanyModules = { internal_audit: false, risk_management: false };
 let currentCompanyTrialEndsAt = null;
 const MODULE_PAGE_MAP = { audit: 'internal_audit', risks: 'risk_management' };
@@ -4162,11 +4179,18 @@ async function applyCompanyTypeVisibility(){
   };
   renderTrialBanner();
   const isSoleProp = currentCompanyType === "مؤسسة فردية";
+  const isLLCType = currentCompanyType === "ذات مسؤولية محدودة";
+  setText("shareholdersNavLabel", isLLCType ? "سجل الشركاء" : "سجل المساهمين");
+  setText("shareholdersPageTitle", isLLCType ? "📇 سجل الشركاء" : "📇 سجل المساهمين");
   const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
   document.querySelectorAll('.nav-item').forEach(item => {
     const pageId = item.getAttribute('onclick')?.match(/go\('([a-z]+)'/)?.[1];
     if(!pageId) return;
     if(isSoleProp && SOLE_PROP_HIDDEN_PAGES.includes(pageId)){
+      item.style.display = 'none';
+      return;
+    }
+    if(isLLCType && LLC_HIDDEN_PAGES.includes(pageId)){
       item.style.display = 'none';
       return;
     }
