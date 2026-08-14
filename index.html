@@ -591,6 +591,15 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     </div>
   </div>
 
+  <div id="platformOverviewNavGroup" class="nav-group" style="display:none">
+    <div class="nav-group-label">مالك المنصة — نظرة عامة</div>
+    <div class="nav-item" onclick="go('platformdashboard',this)"><span class="ni-icon">📊</span><span class="ni-text">لوحة التحكم</span></div>
+    <div class="nav-item" onclick="go('platformusers',this)"><span class="ni-icon">🛡️</span><span class="ni-text">إدارة الصلاحيات</span></div>
+    <div class="nav-item" onclick="go('platformactivity',this)"><span class="ni-icon">📜</span><span class="ni-text">سجل النشاط</span></div>
+    <div class="nav-item" onclick="go('adminrequests',this)"><span class="ni-icon">📥</span><span class="ni-text">إدارة الطلبات</span></div>
+  </div>
+
+  <div id="companyNavGroups">
   <div class="nav-group">
     <div class="nav-group-label">الرئيسية</div>
     <div class="nav-item active" onclick="go('dashboard',this)">
@@ -645,10 +654,6 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="nav-group-label">الشركة</div>
     <div class="nav-item" onclick="go('companyrequest',this)"><span class="ni-icon">🆕</span><span class="ni-text">طلب إدراج شركة</span></div>
   </div>
-
-  <div class="nav-group" id="platformAdminNavGroup" style="display:none">
-    <div class="nav-group-label">مالك المنصة</div>
-    <div class="nav-item" onclick="go('adminrequests',this)"><span class="ni-icon">📥</span><span class="ni-text">إدارة الطلبات</span></div>
   </div>
 
   <div class="sidebar-footer">
@@ -1713,6 +1718,57 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
 <!-- ══ PLATFORM ADMIN — COMPANY REQUESTS REVIEW ══════ -->
 <!-- ══ ADMIN REQUESTS (merged: company requests + subscriptions + audit requests) ══ -->
+<!-- ══ PLATFORM OVERVIEW (owner-only aggregate pages) ══════ -->
+<div id="p-platformdashboard" class="page content">
+  <div class="sec-title">📊 لوحة تحكم مالك المنصة</div>
+  <div id="platformDashGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px">
+    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
+  </div>
+
+  <div class="sec-title" style="font-size:15px">📦 الاشتراك بالوحدات</div>
+  <div id="platformModulesGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px"></div>
+
+  <div class="sec-title" style="font-size:15px">🎁 الشركات بفترة تجربة</div>
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-body" style="padding:0">
+      <table class="tbl">
+        <thead><tr><th>الشركة</th><th>تنتهي بعد</th></tr></thead>
+        <tbody id="platformTrialsTbody"><tr><td colspan="2" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="sec-title" style="font-size:15px">⏱️ متوسط أيام التحول من تجربة إلى اشتراك مدفوع</div>
+  <div class="card"><div class="card-body" style="text-align:center;padding:20px">
+    <div style="font-size:32px;font-weight:900;color:var(--primary)" id="platformAvgConversionDays">—</div>
+    <div style="font-size:11px;color:var(--gray3);margin-top:4px" id="platformConversionSubtext">جارِ الحساب...</div>
+  </div></div>
+</div>
+
+<div id="p-platformusers" class="page content">
+  <div class="sec-title">🛡️ إدارة الصلاحيات — كل الشركات</div>
+  <div class="card">
+    <div class="card-body" style="padding:0">
+      <table class="tbl">
+        <thead><tr><th>الاسم</th><th>البريد الإلكتروني</th><th>الشركة</th><th>الدور</th></tr></thead>
+        <tbody id="platformUsersTbody"><tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="p-platformactivity" class="page content">
+  <div class="sec-title">📜 سجل النشاط — كل الشركات</div>
+  <div class="card">
+    <div class="card-body" style="padding:0">
+      <table class="tbl">
+        <thead><tr><th>الشركة</th><th>الحدث</th><th>بواسطة</th><th>الوقت</th></tr></thead>
+        <tbody id="platformActivityTbody"><tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <div id="p-adminrequests" class="page content">
   <div class="sec-title">📥 إدارة الطلبات</div>
   <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
@@ -2821,7 +2877,13 @@ async function loadCurrentUserProfile(){
     nameEl.style.background = "var(--gray1)";
     sharesEl.style.background = "var(--gray1)";
   }
-  const preferred = currentUserProfile ? currentUserProfile.company_id : null;
+  // Platform owners stay company-less by design — even if their national ID happens to match
+  // a shareholder/board-member record somewhere (and gets auto-linked at signup), the platform
+  // view should never default them into "belonging" to that company. They explicitly pick a
+  // company from the switcher only when they actually need to look at one.
+  const isPlatformAdminAccount = currentUserProfile && currentUserProfile.is_platform_admin === true;
+  const preferred = (currentUserProfile && !isPlatformAdminAccount) ? currentUserProfile.company_id : null;
+  if(isPlatformAdminAccount) viewingPlatformOverview = true;
   await loadCompanies(preferred);
   await applyRolePermissions();
   checkPendingApprovalBadges();
@@ -2836,6 +2898,11 @@ const SHAREHOLDER_PAGES = ['agm','voting','signing'];
 // shareholder-only at another) — always resolve against whichever company is currently
 // selected, not a single global role.
 function getCurrentRole(){
+  // Platform owners manage every tenant on the platform — whatever company they're currently
+  // viewing, they need the same full access a real "مدير النظام" of that company would have
+  // (permissions page, activity log, editing every section), even though they intentionally
+  // hold no membership row anywhere (see the company-less-by-design note in loadCurrentUserProfile).
+  if(currentUserProfile && currentUserProfile.is_platform_admin === true) return 'مدير النظام';
   const membership = userMemberships.find(m => m.company_id === currentCompanyId);
   if(membership && membership.role) return membership.role;
   return currentUserProfile ? (currentUserProfile.role || 'عضو مجلس') : 'عضو مجلس';
@@ -2852,12 +2919,29 @@ async function applyRolePermissions(){
   const avEl = document.getElementById('sidebarUserAv');
   const displayName = currentUserProfile ? (currentUserProfile.full_name || currentUserProfile.email || "مستخدم") : "مستخدم";
   if(nameEl) nameEl.textContent = displayName;
-  if(roleEl) roleEl.textContent = hasNoCompany ? "بانتظار ربط شركة" : role;
+  if(roleEl) roleEl.textContent = isPlatformAdmin ? "مالك المنصة" : (hasNoCompany ? "بانتظار ربط شركة" : role);
   if(avEl) avEl.textContent = displayName.trim().charAt(0) || "م";
 
-  document.getElementById('platformAdminNavGroup').style.display = isPlatformAdmin ? 'block' : 'none';
   const btnAddCompany = document.getElementById('btnAddCompany');
   if(btnAddCompany) btnAddCompany.style.display = isPlatformAdmin ? 'inline-block' : 'none';
+
+  // Platform owners get a dedicated, minimal sidebar (aggregate dashboard/permissions/activity/
+  // requests across every tenant) until they actually pick a specific company from the switcher
+  // — at which point the full sidebar takes over exactly as a real "مدير النظام" of that company
+  // would see it. Regular users never see this toggle at all.
+  if(isPlatformAdmin && viewingPlatformOverview){
+    document.getElementById('platformOverviewNavGroup').style.display = 'block';
+    document.getElementById('companyNavGroups').style.display = 'none';
+    document.querySelectorAll('#platformOverviewNavGroup .nav-item').forEach(item=>{ item.style.display = ''; });
+    if(!['platformdashboard','platformusers','platformactivity','adminrequests'].includes(currentPageId)){
+      go('platformdashboard');
+    }
+    restrictMutatingButtons();
+    startMutationGuard();
+    return;
+  }
+  document.getElementById('platformOverviewNavGroup').style.display = 'none';
+  document.getElementById('companyNavGroups').style.display = 'block';
 
   if(hasNoCompany && !isPlatformAdmin){
     // No company yet: hide every other section and force the "request a company" page —
@@ -2895,6 +2979,9 @@ function isPageAllowed(pageId, role){
   const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
   const hasNoCompany = currentUserProfile && userMemberships.length === 0;
   if(pageId === 'adminrequests') return isPlatformAdmin;
+  if(pageId === 'platformdashboard') return isPlatformAdmin;
+  if(pageId === 'platformusers') return isPlatformAdmin;
+  if(pageId === 'platformactivity') return isPlatformAdmin;
   if(pageId === 'companyrequests') return isPlatformAdmin;
   if(pageId === 'managecompanies') return isPlatformAdmin;
   if(pageId === 'auditadmin') return isPlatformAdmin;
@@ -3297,13 +3384,20 @@ async function loadCompanies(preferredCompanyId){
   const { data, error } = await query;
 
   if(error || !data || data.length===0){
-    if(sel) sel.innerHTML = '<option>لا توجد شركة مرتبطة بحسابك</option>';
+    if(sel) sel.innerHTML = isPlatformAdmin ? '<option value="__platform__">🏠 نظرة عامة على المنصة</option>' : '<option>لا توجد شركة مرتبطة بحسابك</option>';
     currentCompanyId = null;
     reloadCurrentPageData();
     return;
   }
   if(sel){
-    sel.innerHTML = data.map(c => `<option value="${c.id}">${c.name}</option>`).join("");
+    const companyOptions = data.map(c => `<option value="${c.id}">${c.name}</option>`).join("");
+    sel.innerHTML = isPlatformAdmin ? `<option value="__platform__">🏠 نظرة عامة على المنصة</option>${companyOptions}` : companyOptions;
+  }
+  if(isPlatformAdmin && viewingPlatformOverview){
+    currentCompanyId = null;
+    if(sel) sel.value = "__platform__";
+    reloadCurrentPageData();
+    return;
   }
   currentCompanyId = preferredCompanyId && data.some(c=>c.id===preferredCompanyId) ? preferredCompanyId : data[0].id;
   if(sel) sel.value = currentCompanyId;
@@ -3312,6 +3406,13 @@ async function loadCompanies(preferredCompanyId){
 }
 
 async function switchCompany(id){
+  if(id === "__platform__"){
+    viewingPlatformOverview = true;
+    currentCompanyId = null;
+    await applyRolePermissions();
+    return;
+  }
+  viewingPlatformOverview = false;
   currentCompanyId = Number(id);
   await applyRolePermissions();
   await refreshCompanyTypeVisibility();
@@ -3348,6 +3449,9 @@ function reloadCurrentPageData(){
   if(id==='shareholders') loadShareholders();
   if(id==='indicators') loadIndicatorsReport();
   if(id==='adminrequests'){ switchAdminRequestsTab('companyrequests'); loadCompanyRequestsReview(); loadManageCompanies(); loadAuditAdmin(); }
+  if(id==='platformdashboard') loadPlatformDashboard();
+  if(id==='platformusers') loadPlatformUsers();
+  if(id==='platformactivity') loadPlatformActivity();
 }
 
 const REPORT_MANUAL_FIELDS = [
@@ -3982,6 +4086,100 @@ async function submitCompanyRequest(){
   loadCompanyRequestPage();
 }
 
+/* ══════════ PLATFORM OVERVIEW (owner-only, aggregated across every company) ══════════ */
+async function loadPlatformDashboard(){
+  const grid = document.getElementById("platformDashGrid");
+  const modulesGrid = document.getElementById("platformModulesGrid");
+  const trialsTbody = document.getElementById("platformTrialsTbody");
+  if(!grid) return;
+
+  const { data: companies, error } = await sb.from("companies").select("*");
+  if(error){ grid.innerHTML = `<div style="color:var(--red);font-size:12px;grid-column:1/-1">${error.message}</div>`; return; }
+  const all = companies || [];
+
+  const countByType = { "مساهمة": 0, "ذات مسؤولية محدودة": 0, "مؤسسة فردية": 0 };
+  all.forEach(c => { if(countByType[c.company_type] !== undefined) countByType[c.company_type]++; });
+
+  const cards = [
+    { icon:"🏢", label:"إجمالي الشركات", val: all.length, color:"blue" },
+    { icon:"📈", label:"شركات مساهمة", val: countByType["مساهمة"], color:"gold" },
+    { icon:"🤝", label:"ذات مسؤولية محدودة", val: countByType["ذات مسؤولية محدودة"], color:"green" },
+    { icon:"👤", label:"مؤسسات فردية", val: countByType["مؤسسة فردية"], color:"red" }
+  ];
+  grid.innerHTML = cards.map(c => `<div class="kpi ${c.color}"><div class="kpi-stripe"></div><div class="kpi-label">${c.label}</div><div class="kpi-val">${c.val}</div><div class="kpi-icon">${c.icon}</div></div>`).join("");
+
+  const auditCount = all.filter(c => c.module_internal_audit).length;
+  const riskCount = all.filter(c => c.module_risk_management).length;
+  modulesGrid.innerHTML = [
+    { icon:"🏛️", label:"الحوكمة والاجتماعات (أساسية)", val: all.length, color:"blue" },
+    { icon:"🔍", label:"المراجعة الداخلية", val: auditCount, color:"gold" },
+    { icon:"⚠️", label:"إدارة المخاطر", val: riskCount, color:"red" }
+  ].map(c => `<div class="kpi ${c.color}"><div class="kpi-stripe"></div><div class="kpi-label">${c.label}</div><div class="kpi-val">${c.val}</div><div class="kpi-icon">${c.icon}</div></div>`).join("");
+
+  const inTrial = all.filter(c => c.trial_ends_at && new Date(c.trial_ends_at) > new Date());
+  if(inTrial.length === 0){
+    trialsTbody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد شركات بفترة تجربة نشطة.</td></tr>';
+  } else {
+    trialsTbody.innerHTML = inTrial.map(c => {
+      const daysLeft = Math.max(0, Math.ceil((new Date(c.trial_ends_at) - new Date()) / 86400000));
+      return `<tr><td>${c.name}</td><td>${daysLeft} يوم</td></tr>`;
+    }).join("");
+  }
+
+  const converted = all.filter(c => c.converted_to_paid_at);
+  const avgEl = document.getElementById("platformAvgConversionDays");
+  const subEl = document.getElementById("platformConversionSubtext");
+  if(converted.length === 0){
+    avgEl.textContent = "—";
+    subEl.textContent = "لا توجد شركات تحوّلت لاشتراك مدفوع بعد.";
+  } else {
+    const totalDays = converted.reduce((sum,c) => sum + Math.round((new Date(c.converted_to_paid_at) - new Date(c.created_at))/86400000), 0);
+    avgEl.textContent = Math.round(totalDays/converted.length) + " يوم";
+    subEl.textContent = `بناءً على ${converted.length} شركة تحوّلت لاشتراك مدفوع`;
+  }
+}
+
+async function loadPlatformUsers(){
+  const tbody = document.getElementById("platformUsersTbody");
+  if(!tbody) return;
+  const [{ data: memberships, error }, { data: companies }, { data: profiles }] = await Promise.all([
+    sb.from("user_company_memberships").select("*").order("company_id",{ascending:true}),
+    sb.from("companies").select("id,name"),
+    sb.from("user_profiles").select("email,full_name")
+  ]);
+  if(error){ tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red);font-size:12px">${error.message}</td></tr>`; return; }
+  if(!memberships || memberships.length===0){ tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا يوجد أعضاء بعد.</td></tr>'; return; }
+
+  const companyNameById = {}; (companies||[]).forEach(c=>{ companyNameById[c.id]=c.name; });
+  const nameByEmail = {}; (profiles||[]).forEach(p=>{ nameByEmail[p.email]=p.full_name; });
+
+  tbody.innerHTML = memberships.map(m => `<tr>
+    <td>${nameByEmail[m.email]||"—"}</td>
+    <td style="font-size:11px">${m.email}</td>
+    <td>${companyNameById[m.company_id]||"—"}</td>
+    <td>${ROLE_STYLE[m.role]?.icon||""} ${m.role||"—"}</td>
+  </tr>`).join("");
+}
+
+async function loadPlatformActivity(){
+  const tbody = document.getElementById("platformActivityTbody");
+  if(!tbody) return;
+  const [{ data: logs, error }, { data: companies }] = await Promise.all([
+    sb.from("activity_log").select("*").order("created_at",{ascending:false}).limit(300),
+    sb.from("companies").select("id,name")
+  ]);
+  if(error){ tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red);font-size:12px">${error.message}</td></tr>`; return; }
+  if(!logs || logs.length===0){ tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا يوجد نشاط مسجَّل بعد.</td></tr>'; return; }
+
+  const companyNameById = {}; (companies||[]).forEach(c=>{ companyNameById[c.id]=c.name; });
+  tbody.innerHTML = logs.map(l => `<tr>
+    <td>${companyNameById[l.company_id]||"—"}</td>
+    <td style="font-size:11.5px">${l.action_type||""} — ${l.entity_type||""} — ${l.entity_label||""}</td>
+    <td style="font-size:11px">${l.actor_name||l.actor_email||"—"}</td>
+    <td style="font-size:11px">${new Date(l.created_at).toLocaleString('ar-SA')}</td>
+  </tr>`).join("");
+}
+
 async function loadManageCompanies(){
   const box = document.getElementById("manageCompaniesList");
   if(!box) return;
@@ -4024,7 +4222,7 @@ async function activateSubscription(){
   const companyId = Number(document.getElementById("mas-company-id").value);
   const module_internal_audit = document.getElementById("mas-audit").checked;
   const module_risk_management = document.getElementById("mas-risk").checked;
-  const { error } = await sb.from("companies").update({ module_internal_audit, module_risk_management, trial_ends_at: null }).eq("id", companyId);
+  const { error } = await sb.from("companies").update({ module_internal_audit, module_risk_management, trial_ends_at: null, converted_to_paid_at: new Date().toISOString() }).eq("id", companyId);
   if(error){ alert("تعذّر التفعيل: " + error.message); return; }
   logActivity("موافقة", "اشتراك", String(companyId), "تفعيل اشتراك مدفوع وإنهاء فترة التجربة");
   alert("تم تفعيل الاشتراك بنجاح ✅");
@@ -4104,7 +4302,8 @@ async function approveCompanyRequest(requestId){
   const { data: newCompany, error: cErr } = await sb.from("companies").insert([{
     name: r.company_name, company_type: r.company_type, cr_number: r.cr_number, cr_date: r.cr_date,
     responsible_person: r.responsible_person, responsible_phone: r.responsible_phone, responsible_email: r.responsible_email,
-    module_internal_audit, module_risk_management, trial_ends_at
+    module_internal_audit, module_risk_management, trial_ends_at,
+    converted_to_paid_at: (payment_confirmed && !isTrial) ? new Date().toISOString() : null
   }]).select().single();
   if(cErr){ alert("تعذّر إنشاء الشركة: " + cErr.message); return; }
 
@@ -10980,7 +11179,11 @@ const titles={
   consultants:['الاستشارات','الاستشارات القانونية والإدارية وعقودها'],
 };
 
+let viewingPlatformOverview = false;
+let currentPageId = null;
+
 async function go(id, el){
+  currentPageId = id;
   if(companyTypeReadyPromise){ try{ await companyTypeReadyPromise; }catch(e){} }
   const role = currentUserProfile ? getCurrentRole() : null;
   const blocked = role && !isPageAllowed(id, role);
@@ -11012,6 +11215,9 @@ async function go(id, el){
   if(id==='shareholders') loadShareholders();
   if(id==='indicators') loadIndicatorsReport();
   if(id==='adminrequests'){ switchAdminRequestsTab('companyrequests'); loadCompanyRequestsReview(); loadManageCompanies(); loadAuditAdmin(); }
+  if(id==='platformdashboard') loadPlatformDashboard();
+  if(id==='platformusers') loadPlatformUsers();
+  if(id==='platformactivity') loadPlatformActivity();
   if(id==='members') loadMembers();
   if(id==='governance') loadPolicies();
   if(id==='meetings' || id==='committees' || id==='agm') loadMeetingsAll();
