@@ -829,44 +829,58 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
 <!-- ══ RISKS ══════════════════════════════ -->
 <div id="p-risks" class="page content">
-  <div class="sec-title">📊 مصفوفة المخاطر — الاحتمالية vs التأثير</div>
-  <div class="card">
-    <div class="card-body">
-      <!-- مصفوفة المخاطر — تُبنى تلقائيًا من سجل المخاطر الحقيقي -->
-      <div id="riskMatrixGrid" style="display:grid;grid-template-columns:40px repeat(3,1fr);grid-template-rows:repeat(3,1fr) 40px;gap:4px;height:280px;direction:ltr">
-        <div style="text-align:center;color:var(--gray3);font-size:11px;padding:40px">جارِ التحميل...</div>
-      </div>
-      <div style="text-align:center;font-size:10px;color:var(--gray3);margin-top:6px">← الاحتمالية →</div>
-      <!-- مفتاح الألوان -->
-      <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap;justify-content:center">
-        <span style="font-size:11px;display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:50%;background:#C0392B;display:inline-block"></span>خطر عالٍ جداً</span>
-        <span style="font-size:11px;display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:50%;background:#E67E22;display:inline-block"></span>خطر عالٍ</span>
-        <span style="font-size:11px;display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:50%;background:#F1C40F;display:inline-block"></span>خطر متوسط</span>
-        <span style="font-size:11px;display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:50%;background:#27AE60;display:inline-block"></span>خطر منخفض</span>
-      </div>
-    </div>
+  <div class="sec-title">⚠️ خدمات إدارة المخاطر</div>
+  <p style="font-size:12px;color:var(--gray3);margin-bottom:14px">اطلب تقييم مخاطر من فريقنا، وتابع تحليله ومصفوفته الحرارية حتى استلام التقرير النهائي.</p>
+
+  <div id="riskServicesGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:24px">
+    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
   </div>
 
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
-    <span>⚠️ سجل المخاطر المؤسسية</span>
-    <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportRisksList()">📥 تصدير Excel</button>
-  </div>
-  <div class="risk-grid" id="riskCardsGrid">
-    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
-  </div>
-  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
-    <span>📊 سجل المخاطر التفصيلي</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mr-id').value='';document.getElementById('mr-title-h').textContent='+ إضافة خطر';openM('m-risk')">+ إضافة خطر</button>
+    <span>📂 طلباتي</span>
   </div>
   <div class="card">
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>اسم الخطر</th><th>الفئة</th><th>الاحتمالية %</th><th>التأثير</th><th>المالك</th><th>الحالة</th><th>إجراء</th></tr></thead>
-        <tbody id="risksTbody">
-          <tr><td colspan="7" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+        <thead><tr><th>الخدمة</th><th>تاريخ الطلب</th><th>الحالة</th><th></th></tr></thead>
+        <tbody id="riskRequestsTbody">
+          <tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
       </table>
     </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-risk-new-request">
+  <div class="modal">
+    <div class="modal-title" id="rnr-title-h">⚠️ طلب تقييم مخاطر</div>
+    <input type="hidden" id="rnr-service-id" value=""/>
+    <div class="fg"><label>الخدمة المطلوبة</label><div id="rnr-service-name" style="font-weight:800;color:var(--primary);font-size:13px;padding:6px 0"></div></div>
+    <div class="row2">
+      <div class="fg"><label>اسم مقدّم الطلب</label><input class="fi" id="rnr-client-name"/></div>
+      <div class="fg"><label>القطاع</label><input class="fi" id="rnr-sector" placeholder="مثال: تجزئة، صناعي، خدمات..."/></div>
+    </div>
+    <div class="fg"><label>نطاق التقييم (قسم / عملية / مشروع)</label><textarea class="fi" id="rnr-scope" rows="2" placeholder="مثال: عمليات سلسلة الإمداد بالمستودع الرئيسي..."></textarea></div>
+    <div class="fg"><label>أنواع المخاطر المطلوب تحليلها</label>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:11.5px" id="rnr-risk-types">
+        <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" value="استراتيجية" class="rnr-risktype-chk"> استراتيجية</label>
+        <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" value="تشغيلية" class="rnr-risktype-chk"> تشغيلية</label>
+        <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" value="مالية" class="rnr-risktype-chk"> مالية</label>
+        <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" value="امتثال / قانونية" class="rnr-risktype-chk"> امتثال / قانونية</label>
+        <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" value="سلامة / بيئية" class="rnr-risktype-chk"> سلامة / بيئية</label>
+      </div>
+    </div>
+    <div class="fg"><label>الوثائق الداعمة (اختياري — سياسات، تقارير سابقة، خرائط عمليات)</label><input type="file" class="fi" id="rnr-files" multiple/></div>
+    <div class="fg"><label>الموعد المفضّل لبدء التقييم</label><input type="date" class="fi" id="rnr-date"/></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-risk-new-request')">إلغاء</button><button class="btn btn-gold" onclick="submitRiskRequest()">✅ إرسال الطلب</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-risk-request-detail">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-title" id="rrd-title-h">تفاصيل الطلب</div>
+    <div id="rrd-body"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-risk-request-detail')">إغلاق</button></div>
   </div>
 </div>
 
@@ -1775,6 +1789,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <button class="btn btn-gold adminreq-tab-btn" data-tab="companyrequests" style="font-size:11.5px;padding:8px 16px" onclick="switchAdminRequestsTab('companyrequests')">🏢 طلبات إدراج الشركات</button>
     <button class="btn btn-ghost adminreq-tab-btn" data-tab="managecompanies" style="font-size:11.5px;padding:8px 16px" onclick="switchAdminRequestsTab('managecompanies')">⚙️ الشركات والاشتراكات</button>
     <button class="btn btn-ghost adminreq-tab-btn" data-tab="auditadmin" style="font-size:11.5px;padding:8px 16px" onclick="switchAdminRequestsTab('auditadmin')">🗂️ طلبات المراجعة الداخلية</button>
+    <button class="btn btn-ghost adminreq-tab-btn" data-tab="riskadmin" style="font-size:11.5px;padding:8px 16px" onclick="switchAdminRequestsTab('riskadmin')">⚠️ طلبات تحليل المخاطر</button>
   </div>
 
   <div id="adminreq-tab-companyrequests" class="adminreq-tab-content">
@@ -1814,6 +1829,43 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
         </table>
       </div>
     </div>
+  </div>
+
+  <div id="adminreq-tab-riskadmin" class="adminreq-tab-content" style="display:none">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openM('m-riskadmin-services');loadRiskServiceTypesAdmin()">⚙️ إدارة كتالوج الخدمات</button>
+    </div>
+    <div class="card">
+      <div class="card-body" style="padding:0">
+        <table class="tbl">
+          <thead><tr><th>الشركة</th><th>مقدّم الطلب</th><th>الخدمة</th><th>التاريخ</th><th>الحالة</th><th>المستشار المكلَّف</th><th></th></tr></thead>
+          <tbody id="riskAdminTbody">
+            <tr><td colspan="7" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-riskadmin-detail">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-title" id="rad-title-h">إدارة الطلب</div>
+    <div id="rad-body"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-riskadmin-detail')">إغلاق</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-riskadmin-services">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title">⚙️ كتالوج خدمات المخاطر</div>
+    <div id="riskServicesAdminList" style="margin-bottom:14px"></div>
+    <div class="sec-title" style="font-size:13px">+ إضافة خدمة جديدة</div>
+    <div class="fg"><label>اسم الخدمة</label><input class="fi" id="rsvc-name"/></div>
+    <div class="fg"><label>الوصف</label><textarea class="fi" id="rsvc-desc" rows="2"></textarea></div>
+    <div class="fg"><label>مدة التنفيذ التقديرية</label><input class="fi" id="rsvc-duration" placeholder="مثال: 2-3 أسابيع"/></div>
+    <button class="btn btn-gold" style="width:100%" onclick="addRiskServiceType()">✅ إضافة الخدمة</button>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-riskadmin-services')">إغلاق</button></div>
   </div>
 </div>
 
@@ -3453,7 +3505,7 @@ function reloadCurrentPageData(){
   if(id==='activitylog') loadActivityLog();
   if(id==='shareholders') loadShareholders();
   if(id==='indicators') loadIndicatorsReport();
-  if(id==='adminrequests'){ switchAdminRequestsTab('companyrequests'); loadCompanyRequestsReview(); loadManageCompanies(); loadAuditAdmin(); }
+  if(id==='adminrequests'){ switchAdminRequestsTab('companyrequests'); loadCompanyRequestsReview(); loadManageCompanies(); loadAuditAdmin(); loadRiskAdmin(); }
   if(id==='platformdashboard') loadPlatformDashboard();
   if(id==='platformusers') loadPlatformUsers();
   if(id==='platformactivity') loadPlatformActivity();
@@ -6489,157 +6541,241 @@ function riskSeverityColor(impact, probability){
   return "#8B6F1F";
 }
 
+/* ══════════ RISK SERVICES (client-facing: browse, request, track, respond, rate) ══════════ */
+const RISK_STATUS_ORDER = ["تم الاستلام","قيد التحليل","قيد المراجعة الميدانية","تقرير نهائي جاهز","مغلق"];
+const RISK_STATUS_COLOR = { "تم الاستلام":"var(--primary)", "قيد التحليل":"var(--gold)", "قيد المراجعة الميدانية":"#8B2FC9", "تقرير نهائي جاهز":"var(--green)", "مغلق":"var(--gray3)" };
+
+function riskLevelInfo(likelihood, impact){
+  if(likelihood==null || impact==null) return { label:"—", color:"var(--gray3)" };
+  const score = likelihood * impact;
+  if(score >= 16) return { label:"عالٍ جداً", color:"#C0392B" };
+  if(score >= 10) return { label:"عالٍ", color:"#E67E22" };
+  if(score >= 5) return { label:"متوسط", color:"#F1C40F" };
+  return { label:"منخفض", color:"#27AE60" };
+}
+
 async function loadRisks(){
-  const tbody = document.getElementById("risksTbody");
-  if(!tbody) return;
-  const { data, error } = await sb.from("risks").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
-  if(error){ tbody.innerHTML = errorRowHTML(7, error.message); renderRiskMatrix([]); renderRiskCards([]); return; }
-  risksCache = data || [];
-  if(risksCache.length===0){
-    tbody.innerHTML = emptyRowHTML(7, 'لا توجد بيانات بعد. اضغط "+ إضافة خطر" للبدء.');
-    renderRiskMatrix([]); renderRiskCards([]);
-    return;
+  const grid = document.getElementById("riskServicesGrid");
+  const tbody = document.getElementById("riskRequestsTbody");
+  if(!grid || !tbody) return;
+
+  const [{ data: services, error: svcErr }, { data: requests, error: reqErr }] = await Promise.all([
+    sb.from("risk_service_types").select("*").order("id",{ascending:true}),
+    sb.from("risk_requests").select("*").eq("company_id", currentCompanyId).order("created_at",{ascending:false})
+  ]);
+
+  if(svcErr){ grid.innerHTML = `<div style="color:var(--red);font-size:12px;grid-column:1/-1">${svcErr.message}</div>`; }
+  else if(!services || services.length===0){ grid.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">لا توجد خدمات متاحة حاليًا.</div>'; }
+  else {
+    grid.innerHTML = services.map(s => `<div class="card" style="margin:0;display:flex;flex-direction:column">
+      <div class="card-body" style="display:flex;flex-direction:column;flex:1">
+        <div style="font-weight:800;font-size:13.5px;color:var(--dark)">${s.name}</div>
+        <div style="font-size:11.5px;color:var(--gray3);margin-top:6px;line-height:1.6;flex:1">${s.description||""}</div>
+        ${s.duration_estimate ? `<div style="font-size:11px;color:var(--primary);margin-top:8px">⏱️ ${s.duration_estimate}</div>` : ""}
+        <button class="btn btn-gold" style="width:100%;margin-top:12px;font-size:11.5px" onclick="openNewRiskRequest(${s.id},'${s.name.replace(/'/g,"")}')">🚀 ابدأ تقييم المخاطر</button>
+      </div>
+    </div>`).join("");
   }
-  tbody.innerHTML = risksCache.map(r => `<tr>
-    <td>${r.risk_name||""}</td><td>${r.category||"—"}</td><td>${r.probability!=null?r.probability+"%":"—"}</td>
-    <td>${r.impact||"—"}</td><td>${r.owner||"—"}</td><td>${r.status||"—"}</td>
-    <td>
-      <button class="btn-xs primary" onclick="editRisk(${r.id})">✏️ تعديل</button>
-      <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;margin-right:4px" onclick="deleteRisk(${r.id})">🗑️ حذف</button>
-    </td>
+
+  if(reqErr){ tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red);font-size:12px">${reqErr.message}</td></tr>`; return; }
+  if(!requests || requests.length===0){ tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد طلبات بعد.</td></tr>'; return; }
+  const svcNameById = {}; (services||[]).forEach(s=>{ svcNameById[s.id]=s.name; });
+  tbody.innerHTML = requests.map(r => `<tr style="cursor:pointer" onclick="openRiskRequestDetail(${r.id})">
+    <td>${svcNameById[r.service_type_id]||"—"}</td>
+    <td>${new Date(r.created_at).toLocaleDateString('ar-SA')}</td>
+    <td><span style="color:${RISK_STATUS_COLOR[r.status]||'var(--gray3)'};font-weight:700;font-size:11.5px">${r.status}</span></td>
+    <td><button class="btn-xs primary" onclick="event.stopPropagation();openRiskRequestDetail(${r.id})">عرض</button></td>
   </tr>`).join("");
-  renderRiskMatrix(risksCache);
-  renderRiskCards(risksCache);
 }
 
-/* Heat-map style matrix: a single continuous navy→gold→maroon gradient across the grid
-   (instead of discrete red/orange/green zone blocks) so severity reads as a smooth scale
-   consistent with the platform's own palette. Every risk pill is clickable — jumps straight
-   into editing that risk, so the matrix works as a real navigation surface, not just a chart. */
-function renderRiskMatrix(risks){
-  const grid = document.getElementById("riskMatrixGrid");
-  if(!grid) return;
-  const buckets = [[[],[],[]],[[],[],[]],[[],[],[]]];
-  risks.forEach(r => {
-    const row = RISK_IMPACT_ROW[r.impact] ?? 1;
-    const col = riskProbCol(r.probability);
-    buckets[row][col].push(r);
-  });
-  // cellHeat: 0 (safe, low-left) → 1 (critical, high-right/top)
-  const cellHeat = (row, col) => (col + (2 - row)) / 4;
-  const heatColor = (t) => {
-    // teal → gold → deep maroon
-    if(t <= 0.5){
-      const k = t / 0.5;
-      return lerpColor("1C7C74", "BE9B3B", k);
+function openNewRiskRequest(serviceId, serviceName){
+  document.getElementById("rnr-service-id").value = serviceId;
+  document.getElementById("rnr-service-name").textContent = serviceName;
+  document.getElementById("rnr-client-name").value = currentUserProfile ? (currentUserProfile.full_name||"") : "";
+  document.getElementById("rnr-sector").value = "";
+  document.getElementById("rnr-scope").value = "";
+  document.getElementById("rnr-date").value = "";
+  document.getElementById("rnr-files").value = "";
+  document.querySelectorAll(".rnr-risktype-chk").forEach(c=>{ c.checked = false; });
+  openM("m-risk-new-request");
+}
+
+async function submitRiskRequest(){
+  const service_type_id = Number(document.getElementById("rnr-service-id").value);
+  const client_name = document.getElementById("rnr-client-name").value.trim();
+  if(!client_name){ alert("الرجاء إدخال اسم مقدّم الطلب"); return; }
+  const sector = document.getElementById("rnr-sector").value.trim();
+  const scope = document.getElementById("rnr-scope").value.trim();
+  const preferred_date = document.getElementById("rnr-date").value || null;
+  const risk_types_needed = [...document.querySelectorAll(".rnr-risktype-chk:checked")].map(c=>c.value).join("، ");
+
+  const filesInput = document.getElementById("rnr-files");
+  const file_urls = [];
+  if(filesInput.files && filesInput.files.length){
+    for(const f of filesInput.files){
+      const fakeInput = { files: [f] };
+      const url = await uploadFile(fakeInput, "risk-requests");
+      if(url) file_urls.push({ name: f.name, url });
     }
-    const k = (t - 0.5) / 0.5;
-    return lerpColor("BE9B3B", "7A1F2B", k);
-  };
-  function lerpColor(c1, c2, t){
-    const a = parseInt(c1,16), b = parseInt(c2,16);
-    const ar=(a>>16)&255, ag=(a>>8)&255, ab=a&255;
-    const br=(b>>16)&255, bg=(b>>8)&255, bb=b&255;
-    const r = Math.round(ar+(br-ar)*t), g = Math.round(ag+(bg-ag)*t), bl = Math.round(ab+(bb-ab)*t);
-    return `rgb(${r},${g},${bl})`;
   }
 
-  const rowLabels = ["عالي","متوسط","منخفض"];
-  let html = '';
-  [0,1,2].forEach(row => {
-    html += `<div style="display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--gray3)">${rowLabels[row]}</div>`;
-    [0,1,2].forEach(col => {
-      const color = heatColor(cellHeat(row,col));
-      html += `<div style="background:${color};opacity:0.13;border-radius:10px;position:relative;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:5px;padding:8px;min-height:64px;border:1.5px solid ${color}">
-      </div>`;
-    });
-  });
-  grid.innerHTML = html;
+  const { data: userData } = await sb.auth.getUser();
+  const requested_by_email = userData && userData.user ? userData.user.email : null;
 
-  // Overlay pills as a second pass so their solid backgrounds aren't diluted by the cell opacity
-  const cells = grid.querySelectorAll('div[style*="min-height:64px"]');
-  let ci = 0;
-  [0,1,2].forEach(row => {
-    [0,1,2].forEach(col => {
-      const cell = cells[ci++];
-      buckets[row][col].forEach(r => {
-        const pill = document.createElement("div");
-        pill.title = r.risk_name + " — اضغط للتعديل";
-        pill.textContent = r.risk_name;
-        pill.style.cssText = `background:${riskSeverityColor(r.impact,r.probability)};color:#fff;border-radius:20px;padding:4px 10px;font-size:10.5px;font-weight:700;white-space:nowrap;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.15)`;
-        pill.onclick = () => editRisk(r.id);
-        cell.appendChild(pill);
-      });
-    });
-  });
-
-  const footRow = document.createElement("div");
-  footRow.style.cssText = "grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:2px";
-  footRow.innerHTML = '<div style="text-align:center;font-size:10px;color:var(--gray3);font-weight:700">منخفض</div><div style="text-align:center;font-size:10px;color:var(--gray3);font-weight:700">متوسط</div><div style="text-align:center;font-size:10px;color:var(--gray3);font-weight:700">عالي</div>';
-  grid.appendChild(footRow);
-}
-
-function renderRiskCards(risks){
-  const wrap = document.getElementById("riskCardsGrid");
-  if(!wrap) return;
-  if(risks.length===0){ wrap.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">لا توجد مخاطر مسجّلة بعد.</div>'; return; }
-  wrap.innerHTML = risks.map(r => {
-    const color = riskSeverityColor(r.impact, r.probability);
-    const highImpact = r.impact === "عالٍ";
-    const highProb = (r.probability||0) >= 67;
-    const cls = (highImpact && highProb) ? "hi" : (r.impact === "منخفض" && (r.probability||0) < 34) ? "lo" : "md";
-    const emoji = cls === "hi" ? "🔴" : cls === "lo" ? "🟢" : "🟡";
-    return `<div class="rcard ${cls}">
-      <div class="rlevel" style="color:${color}">${emoji} ${r.status||"—"}</div>
-      <div class="rname">${r.risk_name||""}</div>
-      <div class="rmeta">التأثير: ${r.impact||"—"} · الاحتمالية: ${r.probability!=null?r.probability+"%":"—"}</div>
-      <div class="rmeta" style="margin-top:4px">المالك: ${r.owner||"—"}</div>
-      <div class="rprog"><div class="rprog-fill" style="width:${r.probability||0}%;background:${color}"></div></div>
-    </div>`;
-  }).join("");
-}
-
-function editRisk(id){
-  const r = risksCache.find(x => x.id === id);
-  if(!r) return;
-  document.getElementById("mr-id").value = r.id;
-  document.getElementById("mr-title-h").textContent = "✏️ تعديل خطر";
-  document.getElementById("mr-name").value = r.risk_name || "";
-  document.getElementById("mr-category").value = r.category || "";
-  document.getElementById("mr-probability").value = r.probability ?? "";
-  document.getElementById("mr-impact").value = r.impact || "عالٍ";
-  document.getElementById("mr-owner").value = r.owner || "";
-  document.getElementById("mr-status").value = r.status || "مراقبة";
-  openM("m-risk");
-}
-
-async function deleteRisk(id){
-  if(!confirm("هل أنت متأكد من حذف هذا الخطر؟")) return;
-  const r = risksCache.find(x=>x.id===id);
-  const { error } = await sb.from("risks").delete().eq("id", id);
-  if(error){ alert("تعذّر الحذف: " + error.message); return; }
-  logActivity("حذف", "خطر", r?r.risk_name:"", "");
+  const { error } = await sb.from("risk_requests").insert([{
+    company_id: currentCompanyId, service_type_id, requested_by_email, client_name, sector, scope,
+    risk_types_needed, file_urls, preferred_date, status: "تم الاستلام"
+  }]);
+  if(error){ alert("تعذّر إرسال الطلب: " + error.message); return; }
+  logActivity("إنشاء", "طلب تقييم مخاطر", client_name, "");
+  alert("تم إرسال طلبك بنجاح ✅ — سيتواصل معك فريق المخاطر قريبًا.");
+  closeM("m-risk-new-request");
   loadRisks();
 }
 
-async function saveRisk(){
-  const id = document.getElementById("mr-id").value;
-  const risk_name = document.getElementById("mr-name").value.trim();
-  if(!risk_name){ alert("الرجاء إدخال اسم الخطر"); return; }
-  const category = document.getElementById("mr-category").value.trim();
-  const probability = document.getElementById("mr-probability").value ? Number(document.getElementById("mr-probability").value) : null;
-  const impact = document.getElementById("mr-impact").value;
-  const owner = document.getElementById("mr-owner").value.trim();
-  const status = document.getElementById("mr-status").value;
-  const payload = { risk_name, category, probability, impact, owner, status, company_id: currentCompanyId };
-  const { error } = id
-    ? await sb.from("risks").update(payload).eq("id", id)
-    : await sb.from("risks").insert([payload]);
-  if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
-  document.getElementById("mr-id").value = "";
-  document.getElementById("mr-title-h").textContent = "⚠️ إضافة خطر جديد";
-  document.getElementById("mr-name").value=""; document.getElementById("mr-category").value=""; document.getElementById("mr-probability").value=""; document.getElementById("mr-owner").value="";
-  closeM("m-risk"); loadRisks();
+// A simple 5×5 likelihood × impact grid — each risk item is plotted as a small numbered marker
+// in its cell, colored by severity, with a legend mapping numbers back to the risk description.
+function renderRiskHeatMap(items){
+  const scored = (items||[]).filter(it => it.likelihood!=null && it.impact!=null);
+  if(scored.length === 0) return '<div style="font-size:11px;color:var(--gray3);text-align:center;padding:10px">لا توجد مخاطر مقيَّمة بعد لعرضها بالمصفوفة.</div>';
+
+  const cells = {};
+  scored.forEach((it, idx) => {
+    const key = `${it.likelihood}-${it.impact}`;
+    if(!cells[key]) cells[key] = [];
+    cells[key].push(idx+1);
+  });
+
+  let grid = '<div style="display:grid;grid-template-columns:24px repeat(5,1fr);gap:3px;direction:ltr">';
+  grid += '<div></div>';
+  for(let impact=1; impact<=5; impact++){ grid += `<div style="text-align:center;font-size:9px;color:var(--gray3)">${impact}</div>`; }
+  for(let likelihood=5; likelihood>=1; likelihood--){
+    grid += `<div style="display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--gray3)">${likelihood}</div>`;
+    for(let impact=1; impact<=5; impact++){
+      const info = riskLevelInfo(likelihood, impact);
+      const key = `${likelihood}-${impact}`;
+      const markers = cells[key] || [];
+      grid += `<div style="background:${info.color};min-height:40px;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:2px;padding:2px">
+        ${markers.map(n=>`<span style="background:#fff;color:${info.color};font-weight:900;font-size:10px;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center">${n}</span>`).join("")}
+      </div>`;
+    }
+  }
+  grid += '</div><div style="text-align:center;font-size:9px;color:var(--gray3);margin-top:4px">التأثير →</div>';
+
+  const legend = scored.map((it,idx) => `<div style="font-size:10.5px;padding:3px 0;display:flex;gap:6px"><b>${idx+1}.</b><span>${it.description||"—"}</span></div>`).join("");
+  return `<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+    <div style="flex:1;min-width:220px">${grid}</div>
+    <div style="flex:1;min-width:200px">${legend}</div>
+  </div>`;
+}
+
+async function openRiskRequestDetail(requestId){
+  const box = document.getElementById("rrd-body");
+  box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>';
+  openM("m-risk-request-detail");
+
+  const [{ data: r }, { data: items }, { data: messages }, { data: rating }] = await Promise.all([
+    sb.from("risk_requests").select("*").eq("id", requestId).single(),
+    sb.from("risk_items").select("*").eq("request_id", requestId).order("created_at",{ascending:true}),
+    sb.from("risk_messages").select("*").eq("request_id", requestId).order("created_at",{ascending:true}),
+    sb.from("risk_ratings").select("*").eq("request_id", requestId).limit(1)
+  ]);
+  if(!r){ box.innerHTML = '<div style="color:var(--red);font-size:12px">تعذّر تحميل الطلب</div>'; return; }
+
+  document.getElementById("rrd-title-h").textContent = "⚠️ " + (r.client_name||"طلب تقييم مخاطر");
+  const existingRating = (rating||[])[0];
+
+  const statusIdx = RISK_STATUS_ORDER.indexOf(r.status);
+  const timeline = `<div style="display:flex;align-items:center;margin:14px 0">
+    ${RISK_STATUS_ORDER.slice(0,4).map((st,i) => {
+      const done = i <= statusIdx;
+      return `<div style="display:flex;align-items:center;flex:${i<3?'1':'0'}">
+        <div title="${st}" style="width:${i===statusIdx?'14px':'10px'};height:${i===statusIdx?'14px':'10px'};border-radius:50%;background:${done?RISK_STATUS_COLOR[st]:'var(--gray1)'};flex-shrink:0"></div>
+        ${i<3 ? `<div style="flex:1;height:3px;background:${i<statusIdx?'var(--green)':'var(--gray1)'};margin:0 2px"></div>` : ""}
+      </div>`;
+    }).join("")}
+  </div><div style="text-align:center;font-size:11px;font-weight:700;color:${RISK_STATUS_COLOR[r.status]}">${r.status}</div>`;
+
+  const itemsHtml = (items||[]).length ? items.map(it => {
+    const lvl = riskLevelInfo(it.likelihood, it.impact);
+    return `<div style="background:var(--offwhite);border-radius:8px;padding:10px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div style="font-size:12px;color:var(--dark);font-weight:700">${it.description||""}</div>
+        <span style="background:${lvl.color};color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;white-space:nowrap">${lvl.label}</span>
+      </div>
+      <div style="font-size:10.5px;color:var(--gray3);margin-top:4px">الفئة: ${it.category||"—"} · المصدر: ${it.source||"—"} · الاحتمالية: ${it.likelihood??"—"}/5 · التأثير: ${it.impact??"—"}/5</div>
+      ${it.treatment_plan ? `<div style="font-size:11px;color:var(--teal);margin-top:6px"><b>خطة المعالجة:</b> ${it.treatment_plan}</div>` : ""}
+      <div style="font-size:10.5px;color:var(--gray3);margin-top:4px">المسؤول: ${it.responsible_person||"—"} · الموعد المستهدف: ${it.target_close_date||"—"} · الحالة: <b style="color:${it.action_status==='مكتمل'?'var(--green)':'var(--gold)'}">${it.action_status}</b></div>
+    </div>`;
+  }).join("") : '<div style="font-size:11.5px;color:var(--gray3)">لا توجد مخاطر مسجَّلة بعد.</div>';
+
+  const filesHtml = (r.file_urls||[]).length ? r.file_urls.map(f => `<a href="${f.url}" target="_blank" style="display:block;font-size:11.5px;color:var(--primary);margin-bottom:4px">📎 ${f.name}</a>`).join("") : '<div style="font-size:11px;color:var(--gray3)">لا توجد ملفات مرفوعة.</div>';
+
+  const chatHtml = (messages||[]).length ? messages.map(m => `<div style="margin-bottom:8px;text-align:${m.sender_email===r.requested_by_email?'left':'right'}">
+    <div style="display:inline-block;max-width:80%;background:${m.sender_email===r.requested_by_email?'var(--primary)':'var(--offwhite)'};color:${m.sender_email===r.requested_by_email?'#fff':'var(--dark)'};border-radius:10px;padding:8px 12px;font-size:11.5px">
+      <b style="font-size:10px;opacity:0.8">${m.sender_name||m.sender_email}</b><br>${m.message}
+    </div>
+  </div>`).join("") : '<div style="font-size:11px;color:var(--gray3);text-align:center">لا توجد رسائل بعد.</div>';
+
+  const ratingHtml = (r.status === "تقرير نهائي جاهز" || r.status === "مغلق") ? `
+    <div class="sec-title" style="font-size:13px;margin-top:16px">⭐ تقييم الخدمة</div>
+    <div class="card"><div class="card-body">
+      ${existingRating ? `<div style="text-align:center;font-size:20px;color:var(--gold)">${"⭐".repeat(existingRating.rating)}</div><div style="font-size:11.5px;color:var(--gray3);text-align:center;margin-top:4px">${existingRating.comment||""}</div>`
+        : `<div style="display:flex;justify-content:center;gap:6px;margin-bottom:10px" id="risk-rating-stars">
+             ${[1,2,3,4,5].map(n=>`<span onclick="setRiskRatingValue(${n})" id="risk-star-${n}" style="font-size:24px;cursor:pointer;color:var(--gray1)">⭐</span>`).join("")}
+           </div>
+           <textarea class="fi" id="risk-rating-comment" rows="2" placeholder="ملاحظاتك على الخدمة (اختياري)"></textarea>
+           <button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="submitRiskRating(${requestId})">إرسال التقييم</button>`}
+    </div></div>` : "";
+
+  box.innerHTML = `
+    ${timeline}
+    <div class="sec-title" style="font-size:13px">🌡️ المصفوفة الحرارية لهذا الطلب</div>
+    <div class="card"><div class="card-body">${renderRiskHeatMap(items)}</div></div>
+    <div class="sec-title" style="font-size:13px;margin-top:14px">📌 المخاطر المسجَّلة وخطط المعالجة</div>
+    ${itemsHtml}
+    <div class="sec-title" style="font-size:13px;margin-top:14px">📎 الملفات</div>
+    <div class="card"><div class="card-body">${filesHtml}${r.final_report_url ? `<a href="${r.final_report_url}" target="_blank" style="display:block;font-size:12px;color:var(--green);font-weight:700;margin-top:8px">📄 تحميل التقرير النهائي</a>` : ""}</div></div>
+    <div class="sec-title" style="font-size:13px;margin-top:14px">💬 التواصل مع فريق المخاطر</div>
+    <div class="card"><div class="card-body">
+      <div id="risk-chat-box" style="max-height:220px;overflow-y:auto;margin-bottom:10px">${chatHtml}</div>
+      <div style="display:flex;gap:6px">
+        <input class="fi" id="risk-chat-input" placeholder="اكتب رسالتك..." style="flex:1;margin:0">
+        <button class="btn-xs primary" onclick="sendRiskMessage(${requestId})">إرسال</button>
+      </div>
+    </div></div>
+    ${ratingHtml}
+  `;
+  window.currentRiskRatingValue = 0;
+}
+
+async function sendRiskMessage(requestId){
+  const input = document.getElementById("risk-chat-input");
+  const message = input.value.trim();
+  if(!message) return;
+  const { data: userData } = await sb.auth.getUser();
+  const email = userData && userData.user ? userData.user.email : "";
+  const { error } = await sb.from("risk_messages").insert([{
+    request_id: requestId, sender_email: email, sender_name: currentUserProfile?currentUserProfile.full_name:email, message
+  }]);
+  if(error){ alert("تعذّر إرسال الرسالة: " + error.message); return; }
+  input.value = "";
+  openRiskRequestDetail(requestId);
+}
+
+function setRiskRatingValue(n){
+  window.currentRiskRatingValue = n;
+  for(let i=1;i<=5;i++){ document.getElementById(`risk-star-${i}`).style.color = i<=n ? "var(--gold)" : "var(--gray1)"; }
+}
+
+async function submitRiskRating(requestId){
+  const rating = window.currentRiskRatingValue || 0;
+  if(!rating){ alert("الرجاء اختيار عدد النجوم"); return; }
+  const comment = document.getElementById("risk-rating-comment").value.trim();
+  const { error } = await sb.from("risk_ratings").insert([{ request_id: requestId, rating, comment }]);
+  if(error){ alert("تعذّر إرسال التقييم: " + error.message); return; }
+  alert("شكرًا لتقييمك ✅");
+  openRiskRequestDetail(requestId);
 }
 
 /* ══════════ COMPLIANCE ══════════ */
@@ -10635,6 +10771,230 @@ async function deleteAuditServiceType(id){
   loadAuditServiceTypesAdmin();
 }
 
+/* ══════════ RISK SERVICES — BACK OFFICE (platform team manages all clients' requests) ══════════ */
+async function loadRiskAdmin(){
+  const tbody = document.getElementById("riskAdminTbody");
+  if(!tbody) return;
+  const [{ data: requests, error }, { data: companies }, { data: services }] = await Promise.all([
+    sb.from("risk_requests").select("*").order("created_at",{ascending:false}),
+    sb.from("companies").select("id,name"),
+    sb.from("risk_service_types").select("id,name")
+  ]);
+  if(error){ tbody.innerHTML = `<tr><td colspan="7" style="color:var(--red);font-size:12px">${error.message}</td></tr>`; return; }
+  if(!requests || requests.length===0){ tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد طلبات بعد.</td></tr>'; return; }
+
+  const companyNameById = {}; (companies||[]).forEach(c=>{ companyNameById[c.id]=c.name; });
+  const svcNameById = {}; (services||[]).forEach(s=>{ svcNameById[s.id]=s.name; });
+
+  tbody.innerHTML = requests.map(r => `<tr style="cursor:pointer" onclick="openRiskAdminDetail(${r.id})">
+    <td>${companyNameById[r.company_id]||"—"}</td>
+    <td>${r.client_name||"—"}</td>
+    <td>${svcNameById[r.service_type_id]||"—"}</td>
+    <td>${new Date(r.created_at).toLocaleDateString('ar-SA')}</td>
+    <td><span style="color:${RISK_STATUS_COLOR[r.status]||'var(--gray3)'};font-weight:700;font-size:11.5px">${r.status}</span></td>
+    <td style="font-size:11px">${r.assigned_consultant_email||"— غير مكلَّف —"}</td>
+    <td><button class="btn-xs primary" onclick="event.stopPropagation();openRiskAdminDetail(${r.id})">إدارة</button></td>
+  </tr>`).join("");
+}
+
+async function openRiskAdminDetail(requestId){
+  const box = document.getElementById("rad-body");
+  box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>';
+  openM("m-riskadmin-detail");
+
+  const [{ data: r }, { data: items }, { data: messages }] = await Promise.all([
+    sb.from("risk_requests").select("*").eq("id", requestId).single(),
+    sb.from("risk_items").select("*").eq("request_id", requestId).order("created_at",{ascending:true}),
+    sb.from("risk_messages").select("*").eq("request_id", requestId).order("created_at",{ascending:true})
+  ]);
+  if(!r){ box.innerHTML = '<div style="color:var(--red);font-size:12px">تعذّر تحميل الطلب</div>'; return; }
+
+  document.getElementById("rad-title-h").textContent = "⚠️ " + (r.client_name||"طلب تقييم مخاطر");
+
+  const filesHtml = (r.file_urls||[]).length ? r.file_urls.map(f => `<a href="${f.url}" target="_blank" style="display:block;font-size:11.5px;color:var(--primary);margin-bottom:4px">📎 ${f.name}</a>`).join("") : '<div style="font-size:11px;color:var(--gray3)">لا توجد ملفات مرفوعة من العميل.</div>';
+
+  const itemsHtml = (items||[]).length ? items.map(it => {
+    const lvl = riskLevelInfo(it.likelihood, it.impact);
+    return `<div style="background:var(--offwhite);border-radius:8px;padding:10px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div style="font-size:12px;color:var(--dark);font-weight:700">${it.description||""}</div>
+        <span style="background:${lvl.color};color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;white-space:nowrap">${lvl.label}</span>
+      </div>
+      <div style="font-size:10.5px;color:var(--gray3);margin-top:4px">الفئة: ${it.category||"—"} · الاحتمالية: ${it.likelihood??"—"}/5 · التأثير: ${it.impact??"—"}/5</div>
+      <div style="display:flex;gap:6px;margin-top:6px">
+        <select class="fs" style="font-size:11px;padding:4px" onchange="updateRiskItemStatus(${it.id},this.value,${requestId})">
+          <option ${it.action_status==='معلّق'?'selected':''}>معلّق</option>
+          <option ${it.action_status==='قيد التنفيذ'?'selected':''}>قيد التنفيذ</option>
+          <option ${it.action_status==='مكتمل'?'selected':''}>مكتمل</option>
+        </select>
+        <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:3px 8px;font-size:10.5px;cursor:pointer" onclick="deleteRiskItem(${it.id},${requestId})">حذف</button>
+      </div>
+    </div>`;
+  }).join("") : '<div style="font-size:11px;color:var(--gray3)">لا توجد مخاطر مضافة بعد.</div>';
+
+  const chatHtml = (messages||[]).length ? messages.map(m => `<div style="margin-bottom:8px;text-align:${m.sender_email===r.requested_by_email?'right':'left'}">
+    <div style="display:inline-block;max-width:80%;background:${m.sender_email===r.requested_by_email?'var(--offwhite)':'var(--primary)'};color:${m.sender_email===r.requested_by_email?'var(--dark)':'#fff'};border-radius:10px;padding:8px 12px;font-size:11.5px">
+      <b style="font-size:10px;opacity:0.8">${m.sender_name||m.sender_email}</b><br>${m.message}
+    </div>
+  </div>`).join("") : '<div style="font-size:11px;color:var(--gray3);text-align:center">لا توجد رسائل بعد.</div>';
+
+  box.innerHTML = `
+    <div class="row2">
+      <div class="fg"><label style="font-size:11px">الحالة</label>
+        <select class="fs" id="rad-status">
+          ${RISK_STATUS_ORDER.map(st=>`<option ${r.status===st?'selected':''}>${st}</option>`).join("")}
+        </select>
+      </div>
+      <div class="fg"><label style="font-size:11px">المستشار المكلَّف (إيميل)</label><input class="fi" id="rad-consultant" value="${r.assigned_consultant_email||''}" placeholder="consultant@email.com"/></div>
+    </div>
+    <button class="btn btn-gold" style="width:100%;margin-bottom:14px" onclick="updateRiskRequestAdmin(${requestId})">💾 حفظ الحالة والتكليف</button>
+
+    <div class="sec-title" style="font-size:13px">📋 بيانات الطلب</div>
+    <div class="card"><div class="card-body" style="font-size:11.5px;line-height:2">
+      <div><b>القطاع:</b> ${r.sector||"—"}</div>
+      <div><b>نطاق التقييم:</b> ${r.scope||"—"}</div>
+      <div><b>أنواع المخاطر المطلوبة:</b> ${r.risk_types_needed||"—"}</div>
+      <div><b>الموعد المفضّل:</b> ${r.preferred_date||"—"}</div>
+    </div></div>
+
+    <div class="sec-title" style="font-size:13px;margin-top:14px">📎 ملفات العميل</div>
+    <div class="card"><div class="card-body">${filesHtml}</div></div>
+
+    <div class="sec-title" style="font-size:13px;margin-top:14px">🌡️ المصفوفة الحرارية</div>
+    <div class="card"><div class="card-body">${renderRiskHeatMap(items)}</div></div>
+
+    <div class="sec-title" style="font-size:13px;margin-top:14px">📄 التقرير النهائي</div>
+    <div class="card"><div class="card-body">
+      ${r.final_report_url ? `<a href="${r.final_report_url}" target="_blank" style="font-size:12px;color:var(--green);font-weight:700">📄 عرض التقرير المرفوع</a>` : '<div style="font-size:11px;color:var(--gray3);margin-bottom:8px">لم يُرفع تقرير نهائي بعد.</div>'}
+      <input type="file" class="fi" id="rad-report-file" style="margin-top:8px"/>
+      <button class="btn-xs primary" style="margin-top:6px" onclick="uploadFinalRiskReport(${requestId})">رفع التقرير النهائي</button>
+    </div></div>
+
+    <div class="sec-title" style="font-size:13px;margin-top:14px">📌 إضافة خطر</div>
+    <div class="card"><div class="card-body">
+      <input class="fi" id="rad-item-desc" placeholder="وصف الخطر" style="margin-bottom:6px"/>
+      <div class="row2">
+        <input class="fi" id="rad-item-source" placeholder="مصدر الخطر" style="margin:0"/>
+        <select class="fs" id="rad-item-category" style="margin:0">
+          <option>استراتيجية</option><option>تشغيلية</option><option>مالية</option><option>امتثال / قانونية</option><option>سلامة / بيئية</option>
+        </select>
+      </div>
+      <div class="row2" style="margin-top:6px">
+        <div><label style="font-size:10.5px;color:var(--gray3)">الاحتمالية (1-5)</label><input type="number" min="1" max="5" class="fi" id="rad-item-likelihood" style="margin:0"/></div>
+        <div><label style="font-size:10.5px;color:var(--gray3)">التأثير (1-5)</label><input type="number" min="1" max="5" class="fi" id="rad-item-impact" style="margin:0"/></div>
+      </div>
+      <textarea class="fi" id="rad-item-treatment" rows="2" placeholder="خطة المعالجة المقترحة" style="margin-top:6px"></textarea>
+      <div class="row2" style="margin-top:6px">
+        <input class="fi" id="rad-item-responsible" placeholder="المسؤول عن التنفيذ" style="margin:0"/>
+        <input type="date" class="fi" id="rad-item-target-date" style="margin:0"/>
+      </div>
+      <button class="btn-xs primary" style="margin-top:8px" onclick="addRiskItem(${requestId})">إضافة الخطر</button>
+      ${itemsHtml}
+    </div></div>
+
+    <div class="sec-title" style="font-size:13px;margin-top:14px">💬 التواصل مع العميل</div>
+    <div class="card"><div class="card-body">
+      <div style="max-height:200px;overflow-y:auto;margin-bottom:10px">${chatHtml}</div>
+      <div style="display:flex;gap:6px">
+        <input class="fi" id="rad-chat-input" placeholder="اكتب ردًا للعميل..." style="flex:1;margin:0">
+        <button class="btn-xs primary" onclick="sendRiskAdminMessage(${requestId})">إرسال</button>
+      </div>
+    </div></div>
+  `;
+}
+
+async function updateRiskRequestAdmin(requestId){
+  const status = document.getElementById("rad-status").value;
+  const assigned_consultant_email = document.getElementById("rad-consultant").value.trim() || null;
+  const payload = { status, assigned_consultant_email };
+  if(status === "مغلق") payload.closed_at = new Date().toISOString();
+  const { error } = await sb.from("risk_requests").update(payload).eq("id", requestId);
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  alert("تم التحديث ✅");
+  loadRiskAdmin();
+}
+
+async function addRiskItem(requestId){
+  const description = document.getElementById("rad-item-desc").value.trim();
+  if(!description){ alert("الرجاء إدخال وصف الخطر"); return; }
+  const source = document.getElementById("rad-item-source").value.trim();
+  const category = document.getElementById("rad-item-category").value;
+  const likelihood = Number(document.getElementById("rad-item-likelihood").value) || null;
+  const impact = Number(document.getElementById("rad-item-impact").value) || null;
+  const treatment_plan = document.getElementById("rad-item-treatment").value.trim();
+  const responsible_person = document.getElementById("rad-item-responsible").value.trim();
+  const target_close_date = document.getElementById("rad-item-target-date").value || null;
+  const { error } = await sb.from("risk_items").insert([{
+    request_id: requestId, description, source, category, likelihood, impact, treatment_plan, responsible_person, target_close_date
+  }]);
+  if(error){ alert("تعذّر الإضافة: " + error.message); return; }
+  openRiskAdminDetail(requestId);
+}
+
+async function updateRiskItemStatus(itemId, action_status, requestId){
+  await sb.from("risk_items").update({ action_status }).eq("id", itemId);
+  openRiskAdminDetail(requestId);
+}
+
+async function deleteRiskItem(itemId, requestId){
+  if(!confirm("حذف هذا الخطر؟")) return;
+  await sb.from("risk_items").delete().eq("id", itemId);
+  openRiskAdminDetail(requestId);
+}
+
+async function uploadFinalRiskReport(requestId){
+  const input = document.getElementById("rad-report-file");
+  const url = await uploadFile(input, "risk-reports");
+  if(!url) return;
+  const { error } = await sb.from("risk_requests").update({ final_report_url: url, status: "تقرير نهائي جاهز" }).eq("id", requestId);
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  alert("تم رفع التقرير النهائي وتحديث الحالة ✅");
+  openRiskAdminDetail(requestId);
+}
+
+async function sendRiskAdminMessage(requestId){
+  const input = document.getElementById("rad-chat-input");
+  const message = input.value.trim();
+  if(!message) return;
+  const { data: userData } = await sb.auth.getUser();
+  const email = userData && userData.user ? userData.user.email : "";
+  const { error } = await sb.from("risk_messages").insert([{
+    request_id: requestId, sender_email: email, sender_name: currentUserProfile?currentUserProfile.full_name:"فريق المخاطر", message
+  }]);
+  if(error){ alert("تعذّر الإرسال: " + error.message); return; }
+  input.value = "";
+  openRiskAdminDetail(requestId);
+}
+
+async function loadRiskServiceTypesAdmin(){
+  const box = document.getElementById("riskServicesAdminList");
+  if(!box) return;
+  const { data, error } = await sb.from("risk_service_types").select("*").order("id",{ascending:true});
+  if(error){ box.innerHTML = `<div style="color:var(--red);font-size:12px">${error.message}</div>`; return; }
+  if(!data || data.length===0){ box.innerHTML = '<div style="font-size:11px;color:var(--gray3)">لا توجد خدمات بعد.</div>'; return; }
+  box.innerHTML = data.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--gray1)">
+    <span style="font-size:12px">${s.name}</span>
+    <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:3px 8px;font-size:10.5px;cursor:pointer" onclick="deleteRiskServiceType(${s.id})">حذف</button>
+  </div>`).join("");
+}
+
+async function addRiskServiceType(){
+  const name = document.getElementById("rsvc-name").value.trim();
+  if(!name){ alert("الرجاء إدخال اسم الخدمة"); return; }
+  const description = document.getElementById("rsvc-desc").value.trim();
+  const duration_estimate = document.getElementById("rsvc-duration").value.trim();
+  const { error } = await sb.from("risk_service_types").insert([{ name, description, duration_estimate }]);
+  if(error){ alert("تعذّر الإضافة: " + error.message); return; }
+  document.getElementById("rsvc-name").value=""; document.getElementById("rsvc-desc").value=""; document.getElementById("rsvc-duration").value="";
+  loadRiskServiceTypesAdmin();
+}
+
+async function deleteRiskServiceType(id){
+  if(!confirm("حذف هذه الخدمة من الكتالوج؟")) return;
+  await sb.from("risk_service_types").delete().eq("id", id);
+  loadRiskServiceTypesAdmin();
+}
+
 
 /* ══════════ CONSULTANTS ══════════ */
 /* ══════════ CONSULTATION REQUESTS (chairman/secretary → admin quote → chairman decision) ══════════ */
@@ -11219,7 +11579,7 @@ async function go(id, el){
   if(id==='activitylog') loadActivityLog();
   if(id==='shareholders') loadShareholders();
   if(id==='indicators') loadIndicatorsReport();
-  if(id==='adminrequests'){ switchAdminRequestsTab('companyrequests'); loadCompanyRequestsReview(); loadManageCompanies(); loadAuditAdmin(); }
+  if(id==='adminrequests'){ switchAdminRequestsTab('companyrequests'); loadCompanyRequestsReview(); loadManageCompanies(); loadAuditAdmin(); loadRiskAdmin(); }
   if(id==='platformdashboard') loadPlatformDashboard();
   if(id==='platformusers') loadPlatformUsers();
   if(id==='platformactivity') loadPlatformActivity();
