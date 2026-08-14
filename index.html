@@ -650,6 +650,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="nav-group-label">مالك المنصة</div>
     <div class="nav-item" onclick="go('companyrequests',this)"><span class="ni-icon">🏢</span><span class="ni-text">طلبات إدراج الشركات</span></div>
     <div class="nav-item" onclick="go('managecompanies',this)"><span class="ni-icon">⚙️</span><span class="ni-text">إدارة الشركات والاشتراكات</span></div>
+    <div class="nav-item" onclick="go('auditadmin',this)"><span class="ni-icon">🗂️</span><span class="ni-text">إدارة طلبات المراجعة</span></div>
   </div>
 
   <div class="sidebar-footer">
@@ -1308,35 +1309,52 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 <div id="p-audit" class="page content">
-  <div class="sec-title">🔍 التدقيق الداخلي</div>
+  <div class="sec-title">🔍 خدمات المراجعة الداخلية</div>
+  <p style="font-size:12px;color:var(--gray3);margin-bottom:14px">اطلب خدمة مراجعة من فريقنا، وتابع حالتها خطوة بخطوة حتى استلام التقرير النهائي.</p>
 
-  <div id="auditStatsBar" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px">
-    <div style="background:#FDE8E8;border-radius:10px;padding:14px;text-align:center"><div style="font-size:24px;font-weight:900;color:var(--red)" id="audit-stat-open">—</div><div style="font-size:11px;color:var(--gray3);margin-top:2px">مفتوحة</div></div>
-    <div style="background:#FEF3E2;border-radius:10px;padding:14px;text-align:center"><div style="font-size:24px;font-weight:900;color:var(--gold)" id="audit-stat-progress">—</div><div style="font-size:11px;color:var(--gray3);margin-top:2px">قيد المتابعة</div></div>
-    <div style="background:#E5F6F4;border-radius:10px;padding:14px;text-align:center"><div style="font-size:24px;font-weight:900;color:var(--teal)" id="audit-stat-closed">—</div><div style="font-size:11px;color:var(--gray3);margin-top:2px">مغلقة</div></div>
-    <div style="background:var(--offwhite);border-radius:10px;padding:14px;text-align:center"><div style="font-size:24px;font-weight:900;color:var(--primary)" id="audit-stat-total">—</div><div style="font-size:11px;color:var(--gray3);margin-top:2px">إجمالي البنود</div></div>
+  <div id="auditServicesGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:24px">
+    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
   </div>
 
-  <div class="sec-title">📋 متابعة توصيات التدقيق</div>
-  <div class="card" style="margin-bottom:18px">
-    <div class="card-body" id="auditFollowup">
-      <div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div>
-    </div>
-  </div>
-
-  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
-    <span>🔍 سجل بنود التدقيق</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('ma-id').value='';document.getElementById('ma-title-h').textContent='+ إضافة بند';openM('m-audit')">+ إضافة بند</button>
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span>📂 طلباتي</span>
   </div>
   <div class="card">
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>البند</th><th>التوصية</th><th>الحالة</th><th>إجراء</th></tr></thead>
-        <tbody id="auditTbody">
+        <thead><tr><th>الخدمة</th><th>تاريخ الطلب</th><th>الحالة</th><th></th></tr></thead>
+        <tbody id="auditRequestsTbody">
           <tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
       </table>
     </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-audit-new-request">
+  <div class="modal">
+    <div class="modal-title" id="anr-title-h">📝 طلب خدمة مراجعة</div>
+    <input type="hidden" id="anr-service-id" value=""/>
+    <div class="fg"><label>الخدمة المطلوبة</label><div id="anr-service-name" style="font-weight:800;color:var(--primary);font-size:13px;padding:6px 0"></div></div>
+    <div class="row2">
+      <div class="fg"><label>اسم مقدّم الطلب</label><input class="fi" id="anr-client-name"/></div>
+      <div class="fg"><label>القطاع</label><input class="fi" id="anr-sector" placeholder="مثال: تجزئة، صناعي، خدمات..."/></div>
+    </div>
+    <div class="fg"><label>حجم المؤسسة</label>
+      <select class="fs" id="anr-org-size"><option>صغيرة (أقل من 50 موظف)</option><option>متوسطة (50-250 موظف)</option><option>كبيرة (أكثر من 250 موظف)</option></select>
+    </div>
+    <div class="fg"><label>نطاق المراجعة المطلوب</label><textarea class="fi" id="anr-scope" rows="3" placeholder="مثال: المراجعة على مستوى إدارة المشتريات والمخزون..."></textarea></div>
+    <div class="fg"><label>الملفات الداعمة (اختياري — إجراءات، تقارير سابقة...)</label><input type="file" class="fi" id="anr-files" multiple/></div>
+    <div class="fg"><label>الموعد المبدئي المفضّل</label><input type="date" class="fi" id="anr-date"/></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-audit-new-request')">إلغاء</button><button class="btn btn-gold" onclick="submitAuditRequest()">✅ إرسال الطلب</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-audit-request-detail">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-title" id="ard-title-h">تفاصيل الطلب</div>
+    <div id="ard-body"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-audit-request-detail')">إغلاق</button></div>
   </div>
 </div>
 
@@ -1719,6 +1737,45 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="sec-title">⚙️ إدارة الشركات والاشتراكات</div>
   <div id="manageCompaniesList">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
+  </div>
+</div>
+
+<!-- ══ AUDIT BACK OFFICE (platform team) ══════ -->
+<div id="p-auditadmin" class="page content">
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span>🗂️ إدارة طلبات المراجعة</span>
+    <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openM('m-auditadmin-services');loadAuditServiceTypesAdmin()">⚙️ إدارة كتالوج الخدمات</button>
+  </div>
+  <div class="card">
+    <div class="card-body" style="padding:0">
+      <table class="tbl">
+        <thead><tr><th>الشركة</th><th>مقدّم الطلب</th><th>الخدمة</th><th>التاريخ</th><th>الحالة</th><th>المراجع المكلَّف</th><th></th></tr></thead>
+        <tbody id="auditAdminTbody">
+          <tr><td colspan="7" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-auditadmin-detail">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-title" id="aad-title-h">إدارة الطلب</div>
+    <div id="aad-body"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-auditadmin-detail')">إغلاق</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-auditadmin-services">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title">⚙️ كتالوج خدمات المراجعة</div>
+    <div id="auditServicesAdminList" style="margin-bottom:14px"></div>
+    <div class="sec-title" style="font-size:13px">+ إضافة خدمة جديدة</div>
+    <div class="fg"><label>اسم الخدمة</label><input class="fi" id="svc-name"/></div>
+    <div class="fg"><label>الوصف</label><textarea class="fi" id="svc-desc" rows="2"></textarea></div>
+    <div class="fg"><label>مدة التنفيذ التقديرية</label><input class="fi" id="svc-duration" placeholder="مثال: 2-3 أسابيع"/></div>
+    <button class="btn btn-gold" style="width:100%" onclick="addAuditServiceType()">✅ إضافة الخدمة</button>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-auditadmin-services')">إغلاق</button></div>
   </div>
 </div>
 
@@ -2836,6 +2893,7 @@ function isPageAllowed(pageId, role){
   const hasNoCompany = currentUserProfile && userMemberships.length === 0;
   if(pageId === 'companyrequests') return isPlatformAdmin;
   if(pageId === 'managecompanies') return isPlatformAdmin;
+  if(pageId === 'auditadmin') return isPlatformAdmin;
   if(pageId === 'companyrequest') return true;
   if(hasNoCompany && !isPlatformAdmin) return false;
   if(pageId === 'users') return role === 'مدير النظام';
@@ -3286,6 +3344,7 @@ function reloadCurrentPageData(){
   if(id==='shareholders') loadShareholders();
   if(id==='indicators') loadIndicatorsReport();
   if(id==='managecompanies') loadManageCompanies();
+  if(id==='auditadmin') loadAuditAdmin();
 }
 
 const REPORT_MANUAL_FIELDS = [
@@ -9976,91 +10035,389 @@ async function viewGovAssessment(id){
   document.getElementById("govassessFormView").style.display = "block";
 }
 
+/* ══════════ AUDIT SERVICES (client-facing: browse, request, track, respond, rate) ══════════ */
+const AUDIT_STATUS_ORDER = ["تم الاستلام","قيد التحليل","تحت المراجعة الميدانية","تقرير نهائي جاهز","مغلق"];
+const AUDIT_STATUS_COLOR = { "تم الاستلام":"var(--primary)", "قيد التحليل":"var(--gold)", "تحت المراجعة الميدانية":"#8B2FC9", "تقرير نهائي جاهز":"var(--green)", "مغلق":"var(--gray3)" };
+
 async function loadAudit(){
-  const tbody = document.getElementById("auditTbody");
-  if(!tbody) return;
-  const { data, error } = await sb.from("audit_items").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
-  if(error){ tbody.innerHTML = errorRowHTML(4, error.message); return; }
-  auditCache = data || [];
-  if(auditCache.length===0){
-    tbody.innerHTML = emptyRowHTML(4, 'لا توجد بيانات بعد. اضغط "+ إضافة بند" للبدء.');
-    renderAuditStats([]); renderAuditFollowup([]);
-    return;
-  }
-  tbody.innerHTML = auditCache.map(a => `<tr>
-    <td>${a.item||""}</td><td>${a.recommendation||"—"}</td><td>${a.status||"—"}</td>
-    <td>
-      <button class="btn-xs primary" onclick="editAudit(${a.id})">✏️ تعديل</button>
-      <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;margin-right:4px" onclick="deleteAudit(${a.id})">🗑️ حذف</button>
-    </td>
-  </tr>`).join("");
-  renderAuditStats(auditCache);
-  renderAuditFollowup(auditCache);
-}
+  const grid = document.getElementById("auditServicesGrid");
+  const tbody = document.getElementById("auditRequestsTbody");
+  if(!grid || !tbody) return;
 
-function renderAuditStats(items){
-  setText("audit-stat-open", items.filter(a=>a.status==="مفتوحة").length);
-  setText("audit-stat-progress", items.filter(a=>a.status==="قيد المتابعة").length);
-  setText("audit-stat-closed", items.filter(a=>a.status==="مغلقة").length);
-  setText("audit-stat-total", items.length);
-}
+  const [{ data: services, error: svcErr }, { data: requests, error: reqErr }] = await Promise.all([
+    sb.from("audit_service_types").select("*").order("id",{ascending:true}),
+    sb.from("audit_requests").select("*").eq("company_id", currentCompanyId).order("created_at",{ascending:false})
+  ]);
 
-function renderAuditFollowup(items){
-  const box = document.getElementById("auditFollowup");
-  if(!box) return;
-  if(items.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا توجد بنود تدقيق بعد.</div>'; return; }
-  const sorted = [...items].sort((a,b) => {
-    const order = { "مفتوحة":0, "قيد المتابعة":1, "مغلقة":2 };
-    return (order[a.status]??3) - (order[b.status]??3);
-  });
-  const dotColor = { "مفتوحة":"var(--red)", "قيد المتابعة":"var(--gold)", "مغلقة":"var(--teal)" };
-  box.innerHTML = sorted.map(a => {
-    const color = dotColor[a.status] || "var(--gray3)";
-    const mark = a.status==="مغلقة" ? " ✅" : "";
-    return `<div onclick="editAudit(${a.id})" style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray1);cursor:pointer">
-      <span style="width:9px;height:9px;border-radius:50%;background:${color};margin-top:5px;flex-shrink:0"></span>
-      <div style="min-width:0">
-        <div style="font-size:12.5px;font-weight:700;color:var(--dark)">${a.item||""}${mark}</div>
-        <div style="font-size:11px;color:var(--gray3);margin-top:2px">${a.recommendation||""} — ${a.status||""}</div>
+  if(svcErr){ grid.innerHTML = `<div style="color:var(--red);font-size:12px;grid-column:1/-1">${svcErr.message}</div>`; }
+  else if(!services || services.length===0){ grid.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">لا توجد خدمات متاحة حاليًا.</div>'; }
+  else {
+    grid.innerHTML = services.map(s => `<div class="card" style="margin:0;display:flex;flex-direction:column">
+      <div class="card-body" style="display:flex;flex-direction:column;flex:1">
+        <div style="font-weight:800;font-size:13.5px;color:var(--dark)">${s.name}</div>
+        <div style="font-size:11.5px;color:var(--gray3);margin-top:6px;line-height:1.6;flex:1">${s.description||""}</div>
+        ${s.duration_estimate ? `<div style="font-size:11px;color:var(--primary);margin-top:8px">⏱️ ${s.duration_estimate}</div>` : ""}
+        <button class="btn btn-gold" style="width:100%;margin-top:12px;font-size:11.5px" onclick="openNewAuditRequest(${s.id},'${s.name.replace(/'/g,"")}')">📝 اطلب الخدمة الآن</button>
       </div>
-    </div>`;
-  }).join("");
+    </div>`).join("");
+  }
+
+  if(reqErr){ tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red);font-size:12px">${reqErr.message}</td></tr>`; return; }
+  if(!requests || requests.length===0){ tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد طلبات بعد.</td></tr>'; return; }
+  const svcNameById = {}; (services||[]).forEach(s=>{ svcNameById[s.id]=s.name; });
+  tbody.innerHTML = requests.map(r => `<tr style="cursor:pointer" onclick="openAuditRequestDetail(${r.id})">
+    <td>${svcNameById[r.service_type_id]||"—"}</td>
+    <td>${new Date(r.created_at).toLocaleDateString('ar-SA')}</td>
+    <td><span style="color:${AUDIT_STATUS_COLOR[r.status]||'var(--gray3)'};font-weight:700;font-size:11.5px">${r.status}</span></td>
+    <td><button class="btn-xs primary" onclick="event.stopPropagation();openAuditRequestDetail(${r.id})">عرض</button></td>
+  </tr>`).join("");
 }
 
-function editAudit(id){
-  const a = auditCache.find(x => x.id === id);
-  if(!a) return;
-  document.getElementById("ma-id").value = a.id;
-  document.getElementById("ma-title-h").textContent = "✏️ تعديل بند تدقيق";
-  document.getElementById("ma-item").value = a.item || "";
-  document.getElementById("ma-recommendation").value = a.recommendation || "";
-  document.getElementById("ma-status").value = a.status || "مفتوحة";
-  openM("m-audit");
+function openNewAuditRequest(serviceId, serviceName){
+  document.getElementById("anr-service-id").value = serviceId;
+  document.getElementById("anr-service-name").textContent = serviceName;
+  document.getElementById("anr-client-name").value = currentUserProfile ? (currentUserProfile.full_name||"") : "";
+  document.getElementById("anr-sector").value = "";
+  document.getElementById("anr-scope").value = "";
+  document.getElementById("anr-date").value = "";
+  document.getElementById("anr-files").value = "";
+  openM("m-audit-new-request");
 }
 
-async function deleteAudit(id){
-  if(!confirm("هل أنت متأكد من حذف هذا البند؟")) return;
-  const { error } = await sb.from("audit_items").delete().eq("id", id);
-  if(error){ alert("تعذّر الحذف: " + error.message); return; }
+async function submitAuditRequest(){
+  const service_type_id = Number(document.getElementById("anr-service-id").value);
+  const client_name = document.getElementById("anr-client-name").value.trim();
+  if(!client_name){ alert("الرجاء إدخال اسم مقدّم الطلب"); return; }
+  const sector = document.getElementById("anr-sector").value.trim();
+  const org_size = document.getElementById("anr-org-size").value;
+  const scope = document.getElementById("anr-scope").value.trim();
+  const preferred_date = document.getElementById("anr-date").value || null;
+
+  const filesInput = document.getElementById("anr-files");
+  const file_urls = [];
+  if(filesInput.files && filesInput.files.length){
+    for(const f of filesInput.files){
+      const fakeInput = { files: [f] };
+      const url = await uploadFile(fakeInput, "audit-requests");
+      if(url) file_urls.push({ name: f.name, url });
+    }
+  }
+
+  const { data: userData } = await sb.auth.getUser();
+  const requested_by_email = userData && userData.user ? userData.user.email : null;
+
+  const { error } = await sb.from("audit_requests").insert([{
+    company_id: currentCompanyId, service_type_id, requested_by_email, client_name, sector, org_size, scope,
+    file_urls, preferred_date, status: "تم الاستلام"
+  }]);
+  if(error){ alert("تعذّر إرسال الطلب: " + error.message); return; }
+  logActivity("إنشاء", "طلب مراجعة", client_name, "");
+  alert("تم إرسال طلبك بنجاح ✅ — سيتواصل معك فريق المراجعة قريبًا.");
+  closeM("m-audit-new-request");
   loadAudit();
 }
 
-async function saveAudit(){
-  const id = document.getElementById("ma-id").value;
-  const item = document.getElementById("ma-item").value.trim();
-  if(!item){ alert("الرجاء إدخال البند"); return; }
-  const recommendation = document.getElementById("ma-recommendation").value.trim();
-  const status = document.getElementById("ma-status").value;
-  const payload = { item, recommendation, status, company_id: currentCompanyId };
-  const { error } = id
-    ? await sb.from("audit_items").update(payload).eq("id", id)
-    : await sb.from("audit_items").insert([payload]);
-  if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
-  document.getElementById("ma-id").value = "";
-  document.getElementById("ma-title-h").textContent = "🔍 إضافة بند تدقيق";
-  document.getElementById("ma-item").value=""; document.getElementById("ma-recommendation").value="";
-  closeM("m-audit"); loadAudit();
+async function openAuditRequestDetail(requestId){
+  const box = document.getElementById("ard-body");
+  box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>';
+  openM("m-audit-request-detail");
+
+  const [{ data: r }, { data: findings }, { data: messages }, { data: rating }] = await Promise.all([
+    sb.from("audit_requests").select("*").eq("id", requestId).single(),
+    sb.from("audit_findings").select("*").eq("request_id", requestId).order("created_at",{ascending:true}),
+    sb.from("audit_messages").select("*").eq("request_id", requestId).order("created_at",{ascending:true}),
+    sb.from("audit_ratings").select("*").eq("request_id", requestId).limit(1)
+  ]);
+  if(!r){ box.innerHTML = '<div style="color:var(--red);font-size:12px">تعذّر تحميل الطلب</div>'; return; }
+
+  document.getElementById("ard-title-h").textContent = "🔍 " + (r.client_name||"طلب مراجعة");
+  const existingRating = (rating||[])[0];
+
+  const statusIdx = AUDIT_STATUS_ORDER.indexOf(r.status);
+  const timeline = `<div style="display:flex;align-items:center;margin:14px 0">
+    ${AUDIT_STATUS_ORDER.slice(0,4).map((st,i) => {
+      const done = i <= statusIdx;
+      return `<div style="display:flex;align-items:center;flex:${i<3?'1':'0'}">
+        <div title="${st}" style="width:${i===statusIdx?'14px':'10px'};height:${i===statusIdx?'14px':'10px'};border-radius:50%;background:${done?AUDIT_STATUS_COLOR[st]:'var(--gray1)'};flex-shrink:0"></div>
+        ${i<3 ? `<div style="flex:1;height:3px;background:${i<statusIdx?'var(--green)':'var(--gray1)'};margin:0 2px"></div>` : ""}
+      </div>`;
+    }).join("")}
+  </div><div style="text-align:center;font-size:11px;font-weight:700;color:${AUDIT_STATUS_COLOR[r.status]}">${r.status}</div>`;
+
+  const findingsHtml = (findings||[]).length ? findings.map(f => `<div style="background:var(--offwhite);border-radius:8px;padding:10px;margin-bottom:8px">
+    <div style="font-size:11px;font-weight:700;color:var(--primary)">📌 ملاحظة المراجع</div>
+    <div style="font-size:12px;color:var(--dark);margin:4px 0">${f.finding_text}</div>
+    <div style="font-size:10px;color:${f.status==='مغلقة'?'var(--green)':'var(--gray3)'};margin-bottom:6px">الحالة: ${f.status}</div>
+    <textarea class="fi" id="finding-resp-${f.id}" rows="2" placeholder="اكتب ردك أو الإجراء التصحيحي..." style="font-size:11.5px">${f.client_response||""}</textarea>
+    <button class="btn-xs primary" style="margin-top:6px" onclick="submitFindingResponse(${f.id},${requestId})">إرسال الرد</button>
+  </div>`).join("") : '<div style="font-size:11.5px;color:var(--gray3)">لا توجد ملاحظات بعد.</div>';
+
+  const filesHtml = (r.file_urls||[]).length ? r.file_urls.map(f => `<a href="${f.url}" target="_blank" style="display:block;font-size:11.5px;color:var(--primary);margin-bottom:4px">📎 ${f.name}</a>`).join("") : '<div style="font-size:11px;color:var(--gray3)">لا توجد ملفات مرفوعة.</div>';
+
+  const chatHtml = (messages||[]).length ? messages.map(m => `<div style="margin-bottom:8px;text-align:${m.sender_email===r.requested_by_email?'left':'right'}">
+    <div style="display:inline-block;max-width:80%;background:${m.sender_email===r.requested_by_email?'var(--primary)':'var(--offwhite)'};color:${m.sender_email===r.requested_by_email?'#fff':'var(--dark)'};border-radius:10px;padding:8px 12px;font-size:11.5px">
+      <b style="font-size:10px;opacity:0.8">${m.sender_name||m.sender_email}</b><br>${m.message}
+    </div>
+  </div>`).join("") : '<div style="font-size:11px;color:var(--gray3);text-align:center">لا توجد رسائل بعد.</div>';
+
+  const ratingHtml = (r.status === "تقرير نهائي جاهز" || r.status === "مغلق") ? `
+    <div class="sec-title" style="font-size:13px;margin-top:16px">⭐ تقييم الخدمة</div>
+    <div class="card"><div class="card-body">
+      ${existingRating ? `<div style="text-align:center;font-size:20px;color:var(--gold)">${"⭐".repeat(existingRating.rating)}</div><div style="font-size:11.5px;color:var(--gray3);text-align:center;margin-top:4px">${existingRating.comment||""}</div>`
+        : `<div style="display:flex;justify-content:center;gap:6px;margin-bottom:10px" id="rating-stars">
+             ${[1,2,3,4,5].map(n=>`<span onclick="setAuditRatingValue(${n})" id="star-${n}" style="font-size:24px;cursor:pointer;color:var(--gray1)">⭐</span>`).join("")}
+           </div>
+           <textarea class="fi" id="rating-comment" rows="2" placeholder="ملاحظاتك على الخدمة (اختياري)"></textarea>
+           <button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="submitAuditRating(${requestId})">إرسال التقييم</button>`}
+    </div></div>` : "";
+
+  box.innerHTML = `
+    ${timeline}
+    <div class="sec-title" style="font-size:13px">📌 الملاحظات والإجراءات التصحيحية</div>
+    ${findingsHtml}
+    <div class="sec-title" style="font-size:13px;margin-top:14px">📎 الملفات</div>
+    <div class="card"><div class="card-body">${filesHtml}${r.final_report_url ? `<a href="${r.final_report_url}" target="_blank" style="display:block;font-size:12px;color:var(--green);font-weight:700;margin-top:8px">📄 تحميل التقرير النهائي</a>` : ""}</div></div>
+    <div class="sec-title" style="font-size:13px;margin-top:14px">💬 التواصل مع فريق المراجعة</div>
+    <div class="card"><div class="card-body">
+      <div id="audit-chat-box" style="max-height:220px;overflow-y:auto;margin-bottom:10px">${chatHtml}</div>
+      <div style="display:flex;gap:6px">
+        <input class="fi" id="audit-chat-input" placeholder="اكتب رسالتك..." style="flex:1;margin:0">
+        <button class="btn-xs primary" onclick="sendAuditMessage(${requestId})">إرسال</button>
+      </div>
+    </div></div>
+    ${ratingHtml}
+  `;
+  window.currentAuditRatingValue = 0;
 }
+
+async function submitFindingResponse(findingId, requestId){
+  const val = document.getElementById(`finding-resp-${findingId}`).value.trim();
+  const { error } = await sb.from("audit_findings").update({ client_response: val }).eq("id", findingId);
+  if(error){ alert("تعذّر إرسال الرد: " + error.message); return; }
+  alert("تم إرسال ردك ✅");
+  openAuditRequestDetail(requestId);
+}
+
+async function sendAuditMessage(requestId){
+  const input = document.getElementById("audit-chat-input");
+  const message = input.value.trim();
+  if(!message) return;
+  const { data: userData } = await sb.auth.getUser();
+  const email = userData && userData.user ? userData.user.email : "";
+  const { error } = await sb.from("audit_messages").insert([{
+    request_id: requestId, sender_email: email, sender_name: currentUserProfile?currentUserProfile.full_name:email, message
+  }]);
+  if(error){ alert("تعذّر إرسال الرسالة: " + error.message); return; }
+  input.value = "";
+  openAuditRequestDetail(requestId);
+}
+
+function setAuditRatingValue(n){
+  window.currentAuditRatingValue = n;
+  for(let i=1;i<=5;i++){ document.getElementById(`star-${i}`).style.color = i<=n ? "var(--gold)" : "var(--gray1)"; }
+}
+
+async function submitAuditRating(requestId){
+  const rating = window.currentAuditRatingValue || 0;
+  if(!rating){ alert("الرجاء اختيار عدد النجوم"); return; }
+  const comment = document.getElementById("rating-comment").value.trim();
+  const { error } = await sb.from("audit_ratings").insert([{ request_id: requestId, rating, comment }]);
+  if(error){ alert("تعذّر إرسال التقييم: " + error.message); return; }
+  alert("شكرًا لتقييمك ✅");
+  openAuditRequestDetail(requestId);
+}
+
+/* ══════════ AUDIT SERVICES — BACK OFFICE (platform team manages all clients' requests) ══════════ */
+async function loadAuditAdmin(){
+  const tbody = document.getElementById("auditAdminTbody");
+  if(!tbody) return;
+  const [{ data: requests, error }, { data: companies }, { data: services }] = await Promise.all([
+    sb.from("audit_requests").select("*").order("created_at",{ascending:false}),
+    sb.from("companies").select("id,name"),
+    sb.from("audit_service_types").select("id,name")
+  ]);
+  if(error){ tbody.innerHTML = `<tr><td colspan="7" style="color:var(--red);font-size:12px">${error.message}</td></tr>`; return; }
+  if(!requests || requests.length===0){ tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد طلبات بعد.</td></tr>'; return; }
+
+  const companyNameById = {}; (companies||[]).forEach(c=>{ companyNameById[c.id]=c.name; });
+  const svcNameById = {}; (services||[]).forEach(s=>{ svcNameById[s.id]=s.name; });
+
+  tbody.innerHTML = requests.map(r => `<tr style="cursor:pointer" onclick="openAuditAdminDetail(${r.id})">
+    <td>${companyNameById[r.company_id]||"—"}</td>
+    <td>${r.client_name||"—"}</td>
+    <td>${svcNameById[r.service_type_id]||"—"}</td>
+    <td>${new Date(r.created_at).toLocaleDateString('ar-SA')}</td>
+    <td><span style="color:${AUDIT_STATUS_COLOR[r.status]||'var(--gray3)'};font-weight:700;font-size:11.5px">${r.status}</span></td>
+    <td style="font-size:11px">${r.assigned_reviewer_email||"— غير مكلَّف —"}</td>
+    <td><button class="btn-xs primary" onclick="event.stopPropagation();openAuditAdminDetail(${r.id})">إدارة</button></td>
+  </tr>`).join("");
+}
+
+async function openAuditAdminDetail(requestId){
+  const box = document.getElementById("aad-body");
+  box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>';
+  openM("m-auditadmin-detail");
+
+  const [{ data: r }, { data: findings }, { data: messages }] = await Promise.all([
+    sb.from("audit_requests").select("*").eq("id", requestId).single(),
+    sb.from("audit_findings").select("*").eq("request_id", requestId).order("created_at",{ascending:true}),
+    sb.from("audit_messages").select("*").eq("request_id", requestId).order("created_at",{ascending:true})
+  ]);
+  if(!r){ box.innerHTML = '<div style="color:var(--red);font-size:12px">تعذّر تحميل الطلب</div>'; return; }
+
+  document.getElementById("aad-title-h").textContent = "🗂️ " + (r.client_name||"طلب مراجعة");
+
+  const filesHtml = (r.file_urls||[]).length ? r.file_urls.map(f => `<a href="${f.url}" target="_blank" style="display:block;font-size:11.5px;color:var(--primary);margin-bottom:4px">📎 ${f.name}</a>`).join("") : '<div style="font-size:11px;color:var(--gray3)">لا توجد ملفات مرفوعة من العميل.</div>';
+
+  const findingsHtml = (findings||[]).length ? findings.map(f => `<div style="background:var(--offwhite);border-radius:8px;padding:10px;margin-bottom:8px">
+    <div style="font-size:12px;color:var(--dark)">${f.finding_text}</div>
+    ${f.client_response ? `<div style="font-size:11px;color:var(--teal);margin-top:6px"><b>رد العميل:</b> ${f.client_response}</div>` : '<div style="font-size:10px;color:var(--gray3);margin-top:4px">بانتظار رد العميل...</div>'}
+    <div style="display:flex;gap:6px;margin-top:6px;align-items:center">
+      <select class="fs" style="font-size:11px;padding:4px" onchange="updateFindingStatus(${f.id},this.value,${requestId})">
+        <option ${f.status==='مفتوحة'?'selected':''}>مفتوحة</option>
+        <option ${f.status==='مغلقة'?'selected':''}>مغلقة</option>
+      </select>
+      <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:3px 8px;font-size:10.5px;cursor:pointer" onclick="deleteAuditFinding(${f.id},${requestId})">حذف</button>
+    </div>
+  </div>`).join("") : '<div style="font-size:11px;color:var(--gray3)">لا توجد ملاحظات مضافة بعد.</div>';
+
+  const chatHtml = (messages||[]).length ? messages.map(m => `<div style="margin-bottom:8px;text-align:${m.sender_email===r.requested_by_email?'right':'left'}">
+    <div style="display:inline-block;max-width:80%;background:${m.sender_email===r.requested_by_email?'var(--offwhite)':'var(--primary)'};color:${m.sender_email===r.requested_by_email?'var(--dark)':'#fff'};border-radius:10px;padding:8px 12px;font-size:11.5px">
+      <b style="font-size:10px;opacity:0.8">${m.sender_name||m.sender_email}</b><br>${m.message}
+    </div>
+  </div>`).join("") : '<div style="font-size:11px;color:var(--gray3);text-align:center">لا توجد رسائل بعد.</div>';
+
+  box.innerHTML = `
+    <div class="row2">
+      <div class="fg"><label style="font-size:11px">الحالة</label>
+        <select class="fs" id="aad-status">
+          ${AUDIT_STATUS_ORDER.map(st=>`<option ${r.status===st?'selected':''}>${st}</option>`).join("")}
+        </select>
+      </div>
+      <div class="fg"><label style="font-size:11px">المراجع المكلَّف (إيميل)</label><input class="fi" id="aad-reviewer" value="${r.assigned_reviewer_email||''}" placeholder="reviewer@email.com"/></div>
+    </div>
+    <button class="btn btn-gold" style="width:100%;margin-bottom:14px" onclick="updateAuditRequestAdmin(${requestId})">💾 حفظ الحالة والتكليف</button>
+
+    <div class="sec-title" style="font-size:13px">📋 بيانات الطلب</div>
+    <div class="card"><div class="card-body" style="font-size:11.5px;line-height:2">
+      <div><b>القطاع:</b> ${r.sector||"—"}</div>
+      <div><b>حجم المؤسسة:</b> ${r.org_size||"—"}</div>
+      <div><b>نطاق المراجعة:</b> ${r.scope||"—"}</div>
+      <div><b>الموعد المفضّل:</b> ${r.preferred_date||"—"}</div>
+    </div></div>
+
+    <div class="sec-title" style="font-size:13px;margin-top:14px">📎 ملفات العميل</div>
+    <div class="card"><div class="card-body">${filesHtml}</div></div>
+
+    <div class="sec-title" style="font-size:13px;margin-top:14px">📄 التقرير النهائي</div>
+    <div class="card"><div class="card-body">
+      ${r.final_report_url ? `<a href="${r.final_report_url}" target="_blank" style="font-size:12px;color:var(--green);font-weight:700">📄 عرض التقرير المرفوع</a>` : '<div style="font-size:11px;color:var(--gray3);margin-bottom:8px">لم يُرفع تقرير نهائي بعد.</div>'}
+      <input type="file" class="fi" id="aad-report-file" style="margin-top:8px"/>
+      <button class="btn-xs primary" style="margin-top:6px" onclick="uploadFinalAuditReport(${requestId})">رفع التقرير النهائي</button>
+    </div></div>
+
+    <div class="sec-title" style="font-size:13px;margin-top:14px">📌 إضافة ملاحظة/إجراء مطلوب</div>
+    <div class="card"><div class="card-body">
+      <textarea class="fi" id="aad-new-finding" rows="2" placeholder="اكتب ملاحظة المراجعة..."></textarea>
+      <button class="btn-xs primary" style="margin-top:6px" onclick="addAuditFinding(${requestId})">إضافة الملاحظة</button>
+      ${findingsHtml}
+    </div></div>
+
+    <div class="sec-title" style="font-size:13px;margin-top:14px">💬 التواصل مع العميل</div>
+    <div class="card"><div class="card-body">
+      <div style="max-height:200px;overflow-y:auto;margin-bottom:10px">${chatHtml}</div>
+      <div style="display:flex;gap:6px">
+        <input class="fi" id="aad-chat-input" placeholder="اكتب ردًا للعميل..." style="flex:1;margin:0">
+        <button class="btn-xs primary" onclick="sendAuditAdminMessage(${requestId})">إرسال</button>
+      </div>
+    </div></div>
+  `;
+}
+
+async function updateAuditRequestAdmin(requestId){
+  const status = document.getElementById("aad-status").value;
+  const assigned_reviewer_email = document.getElementById("aad-reviewer").value.trim() || null;
+  const payload = { status, assigned_reviewer_email };
+  if(status === "مغلق") payload.closed_at = new Date().toISOString();
+  const { error } = await sb.from("audit_requests").update(payload).eq("id", requestId);
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  alert("تم التحديث ✅");
+  loadAuditAdmin();
+}
+
+async function addAuditFinding(requestId){
+  const el = document.getElementById("aad-new-finding");
+  const finding_text = el.value.trim();
+  if(!finding_text) return;
+  const { error } = await sb.from("audit_findings").insert([{ request_id: requestId, finding_text }]);
+  if(error){ alert("تعذّر الإضافة: " + error.message); return; }
+  openAuditAdminDetail(requestId);
+}
+
+async function updateFindingStatus(findingId, status, requestId){
+  await sb.from("audit_findings").update({ status }).eq("id", findingId);
+  openAuditAdminDetail(requestId);
+}
+
+async function deleteAuditFinding(findingId, requestId){
+  if(!confirm("حذف هذه الملاحظة؟")) return;
+  await sb.from("audit_findings").delete().eq("id", findingId);
+  openAuditAdminDetail(requestId);
+}
+
+async function uploadFinalAuditReport(requestId){
+  const input = document.getElementById("aad-report-file");
+  const url = await uploadFile(input, "audit-reports");
+  if(!url) return;
+  const { error } = await sb.from("audit_requests").update({ final_report_url: url, status: "تقرير نهائي جاهز" }).eq("id", requestId);
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  alert("تم رفع التقرير النهائي وتحديث الحالة ✅");
+  openAuditAdminDetail(requestId);
+}
+
+async function sendAuditAdminMessage(requestId){
+  const input = document.getElementById("aad-chat-input");
+  const message = input.value.trim();
+  if(!message) return;
+  const { data: userData } = await sb.auth.getUser();
+  const email = userData && userData.user ? userData.user.email : "";
+  const { error } = await sb.from("audit_messages").insert([{
+    request_id: requestId, sender_email: email, sender_name: currentUserProfile?currentUserProfile.full_name:"فريق المراجعة", message
+  }]);
+  if(error){ alert("تعذّر الإرسال: " + error.message); return; }
+  input.value = "";
+  openAuditAdminDetail(requestId);
+}
+
+async function loadAuditServiceTypesAdmin(){
+  const box = document.getElementById("auditServicesAdminList");
+  if(!box) return;
+  const { data, error } = await sb.from("audit_service_types").select("*").order("id",{ascending:true});
+  if(error){ box.innerHTML = `<div style="color:var(--red);font-size:12px">${error.message}</div>`; return; }
+  if(!data || data.length===0){ box.innerHTML = '<div style="font-size:11px;color:var(--gray3)">لا توجد خدمات بعد.</div>'; return; }
+  box.innerHTML = data.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--gray1)">
+    <span style="font-size:12px">${s.name}</span>
+    <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:3px 8px;font-size:10.5px;cursor:pointer" onclick="deleteAuditServiceType(${s.id})">حذف</button>
+  </div>`).join("");
+}
+
+async function addAuditServiceType(){
+  const name = document.getElementById("svc-name").value.trim();
+  if(!name){ alert("الرجاء إدخال اسم الخدمة"); return; }
+  const description = document.getElementById("svc-desc").value.trim();
+  const duration_estimate = document.getElementById("svc-duration").value.trim();
+  const { error } = await sb.from("audit_service_types").insert([{ name, description, duration_estimate }]);
+  if(error){ alert("تعذّر الإضافة: " + error.message); return; }
+  document.getElementById("svc-name").value=""; document.getElementById("svc-desc").value=""; document.getElementById("svc-duration").value="";
+  loadAuditServiceTypesAdmin();
+}
+
+async function deleteAuditServiceType(id){
+  if(!confirm("حذف هذه الخدمة من الكتالوج؟")) return;
+  await sb.from("audit_service_types").delete().eq("id", id);
+  loadAuditServiceTypesAdmin();
+}
+
 
 /* ══════════ CONSULTANTS ══════════ */
 /* ══════════ CONSULTATION REQUESTS (chairman/secretary → admin quote → chairman decision) ══════════ */
@@ -10642,6 +10999,7 @@ async function go(id, el){
   if(id==='shareholders') loadShareholders();
   if(id==='indicators') loadIndicatorsReport();
   if(id==='managecompanies') loadManageCompanies();
+  if(id==='auditadmin') loadAuditAdmin();
   if(id==='members') loadMembers();
   if(id==='governance') loadPolicies();
   if(id==='meetings' || id==='committees' || id==='agm') loadMeetingsAll();
