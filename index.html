@@ -3409,7 +3409,7 @@ async function switchCompany(id){
   if(id === "__platform__"){
     viewingPlatformOverview = true;
     currentCompanyId = null;
-    await applyRolePermissions();
+    await applyRolePermissions(); // already redirects to platformdashboard if needed
     return;
   }
   viewingPlatformOverview = false;
@@ -3417,7 +3417,12 @@ async function switchCompany(id){
   await applyRolePermissions();
   await refreshCompanyTypeVisibility();
   checkPendingApprovalBadges();
-  reloadCurrentPageData();
+  const platformOnlyPages = ['adminrequests','platformdashboard','platformusers','platformactivity'];
+  if(platformOnlyPages.includes(currentPageId)){
+    go('dashboard');
+  } else {
+    reloadCurrentPageData();
+  }
 }
 
 function reloadCurrentPageData(){
