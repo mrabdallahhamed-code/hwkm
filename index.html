@@ -681,6 +681,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     </div>
   </div>
   <div class="tb-right">
+    <button id="btnLangToggle" class="btn btn-ghost" style="font-size:11px;padding:6px 12px;font-weight:800" onclick="toggleLanguage()">EN</button>
     <div style="position:relative">
       <input id="globalSearchInput" class="search-in" placeholder="🔍 ابحث بالمنصة..." oninput="handleGlobalSearchInput(this.value)" onfocus="handleGlobalSearchInput(this.value)">
       <div id="globalSearchResults" style="display:none;position:absolute;top:calc(100% + 6px);left:0;width:340px;max-height:420px;overflow-y:auto;background:#fff;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,0.18);z-index:500;padding:6px"></div>
@@ -2769,6 +2770,258 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 /* ══════════ SUPABASE CONFIG ══════════ */
 const SUPABASE_URL = "https://omddnkofsdtwfjkxdktt.supabase.co";
 const SUPABASE_KEY = "sb_publishable_SbHWC7JAuyvXypZyJeiWkg_I9Y4gjbj";
+/* ══════════ ENGLISH TRANSLATION LAYER ══════════
+   Rather than rewrite every function that builds Arabic HTML (hundreds of them), we translate
+   the rendered DOM after the fact: a dictionary of exact Arabic phrases → English, applied to
+   every text node (and placeholder/title attributes) on load and again via MutationObserver
+   whenever new content renders (page navigation, data loading, modals opening). Any Arabic
+   string with no dictionary entry is simply left as-is — a safe fallback, never a broken UI. */
+let currentLang = localStorage.getItem('hawkim_lang') || 'ar';
+
+const TRANSLATIONS = {
+  // Sidebar nav
+  "لوحة التحكم":"Dashboard","إدارة الصلاحيات":"User Permissions","سجل النشاط":"Activity Log",
+  "إدارة الطلبات":"Manage Requests","السياسات والحوكمة":"Policies & Governance",
+  "سياسات الموارد البشرية":"HR Policies","تقييم فعالية الحوكمة":"Governance Effectiveness Assessment",
+  "الهيكل التنظيمي":"Organizational Structure","أعضاء المجلس":"Board Members","طلب تعيين عضو":"Request Member Appointment",
+  "مصفوفة الصلاحيات":"Permissions Matrix","تقييم الأداء":"Performance Evaluation","اجتماعات المجلس":"Board Meetings",
+  "الجمعيات العامة":"General Assemblies","سجل المساهمين":"Shareholders Registry","سجل الشركاء":"Partners Registry",
+  "اللجان":"Committees","التصويت الإلكتروني":"Electronic Voting","التوقيع الإلكتروني":"Electronic Signing",
+  "إدارة المخاطر":"Risk Management","التدقيق الداخلي":"Internal Audit","الالتزام التنظيمي":"Regulatory Compliance",
+  "الأرشيف والوثائق":"Archive & Documents","تقارير الحوكمة":"Governance Reports","التقرير المالي والتشغيلي":"Financial & Operational Report",
+  "الاستشارات":"Consultations","طلب إدراج شركة":"Company Registration Request","الرئيسية":"Main","الحوكمة المؤسسية":"Corporate Governance",
+  "الاجتماعات والتصويت":"Meetings & Voting","الرقابة والمخاطر":"Control & Risk","الوثائق والتقارير":"Documents & Reports",
+  "الإدارة":"Administration","الشركة":"Company","مالك المنصة — نظرة عامة":"Platform Owner — Overview",
+
+  // Common buttons/actions
+  "حفظ":"Save","إلغاء":"Cancel","إضافة":"Add","تعديل":"Edit","حذف":"Delete","بحث":"Search","إرسال":"Send",
+  "موافقة":"Approve","رفض":"Reject","إغلاق":"Close","عرض":"View","تحميل":"Download","رفع":"Upload",
+  "تسجيل الدخول":"Log In","تسجيل الخروج":"Log Out","إنشاء حساب":"Create Account","نسيت كلمة المرور؟":"Forgot Password?",
+  "البريد الإلكتروني":"Email","كلمة المرور":"Password","الاسم الكامل":"Full Name","رقم الجوال":"Mobile Number",
+  "رقم الهوية":"National ID","تأكيد":"Confirm","التالي":"Next","السابق":"Previous","بحث بالمنصة...":"Search platform...",
+  "🔍 ابحث بالمنصة...":"🔍 Search platform...","تحديث":"Update","نشط":"Active","غير نشط":"Inactive",
+
+  // Dashboard
+  "اجتماعات هذا الشهر":"Meetings This Month","مخاطر مفتوحة":"Open Risks","نسبة الالتزام":"Compliance Rate",
+  "وثائق قيد التوقيع":"Documents Pending Signature","فعالية الحوكمة":"Governance Effectiveness",
+  "لوحة تحكم مالك المنصة":"Platform Owner Dashboard","إجمالي الشركات":"Total Companies","شركات مساهمة":"Joint-Stock Companies",
+  "ذات مسؤولية محدودة":"Limited Liability Companies","مؤسسات فردية":"Sole Proprietorships",
+  "الاشتراك بالوحدات":"Module Subscriptions","الحوكمة والاجتماعات (أساسية)":"Governance & Meetings (Base)",
+  "المراجعة الداخلية":"Internal Audit","المخاطر":"Risk","الشركات بفترة تجربة":"Companies in Trial",
+  "متوسط أيام التحول من تجربة إلى اشتراك مدفوع":"Avg. Days from Trial to Paid Subscription",
+
+  // Login/signup screen
+  "مرحبًا بك في حوكم":"Welcome to Hawkim","منصة الحوكمة المؤسسية":"Corporate Governance Platform",
+  "عضو مجلس":"Board Member","مساهم":"Shareholder","مدير النظام":"System Admin","رئيس مجلس":"Board Chairman",
+  "سكرتير المجلس":"Board Secretary","نوع الحساب":"Account Type","رقم الأسهم":"Shares Count",
+
+  // Meetings
+  "اجتماعات المجلس":"Board Meetings","+ إضافة اجتماع":"+ Add Meeting","عنوان الاجتماع":"Meeting Title",
+  "تاريخ الاجتماع":"Meeting Date","نوع الاجتماع":"Meeting Type","الحالة":"Status","الحضور":"Attendance",
+  "محضر الاجتماع":"Meeting Minutes","بنود جدول الأعمال":"Agenda Items",
+
+  // Policies/Governance
+  "+ إضافة سياسة":"+ Add Policy","اسم السياسة":"Policy Name","الفئة":"Category","تاريخ الاعتماد":"Approval Date",
+  "تاريخ المراجعة":"Review Date","مسودة":"Draft","معتمدة نهائيًا":"Finally Approved",
+
+  // Risks
+  "خدمات إدارة المخاطر":"Risk Management Services","🚀 ابدأ تقييم المخاطر":"🚀 Start Risk Assessment",
+  "طلباتي":"My Requests","الخدمة":"Service","تاريخ الطلب":"Request Date","تم الاستلام":"Received",
+  "قيد التحليل":"Under Analysis","قيد المراجعة الميدانية":"Under Field Review","تقرير نهائي جاهز":"Final Report Ready",
+  "مغلق":"Closed",
+
+  // Audit
+  "خدمات المراجعة الداخلية":"Internal Audit Services","📝 اطلب الخدمة الآن":"📝 Request Service Now",
+
+  // Signing
+  "الملف الأصلي (غير موقّع)":"Original File (Unsigned)","تحميل الوثيقة الموقّعة (PDF)":"Download Signed Document (PDF)",
+
+  // Reports
+  "تقرير مجلس الإدارة السنوي":"Annual Board Report","التقرير السنوي":"Annual Report",
+
+  // Common table headers
+  "الاسم":"Name","النوع":"Type","التاريخ":"Date","الإجراءات":"Actions","الوصف":"Description",
+  "البريد":"Email","الدور":"Role","الشركة":"Company","المبلغ":"Amount",
+
+  // Form fields (add/edit modals across the platform)
+  "اسم الجهة":"Entity Name","اسم الخدمة":"Service Name","اسم الخطر":"Risk Name","اسم السياسة":"Policy Name",
+  "اسم الشخص المخوّل بالتمثيل":"Authorized Representative Name","اسم الشركة":"Company Name","اسم اللجنة":"Committee Name",
+  "اسم المرشح":"Candidate Name","اسم المساهم":"Shareholder Name","اسم المساهم الجديد":"New Shareholder Name",
+  "اسم الوثيقة":"Document Name","اسم شاغل المنصب":"Position Holder Name","اسم مقدّم الطلب":"Requester Name",
+  "الإيميل":"Email","الاحتمالية %":"Likelihood %","الاحتمالية (1-5)":"Likelihood (1-5)","الاختصاص":"Specialty",
+  "الاختصاصات والصلاحيات":"Responsibilities & Authorities","الاسم الكامل":"Full Name","البريد الإلكتروني":"Email",
+  "البند":"Item","التأثير":"Impact","التأثير (1-5)":"Impact (1-5)","التخصص":"Specialty",
+  "التشكيل وعضوية اللجنة":"Composition & Committee Membership","التوصية":"Recommendation","الجنسية":"Nationality",
+  "الجهة التنظيمية":"Regulatory Authority","الجهة المنفذة للتقييم":"Assessment Conducted By",
+  "الجهة/الشخص المُقيَّم":"Entity/Person Evaluated","الحالة":"Status","الخدمة المطلوبة":"Requested Service",
+  "الخدمة المقدَّمة":"Service Provided","الدور المقترح له":"Proposed Role","الدور بشركتك":"Role at Your Company",
+  "السعر الاسمي للسهم (ريال)":"Nominal Share Price (SAR)","الشخص المسؤول":"Responsible Person",
+  "الصفة (نص وصفي)":"Title (Description)","الصلاحيات الحالية لكل جهة":"Current Authorities per Entity",
+  "الغرض والهدف من اللجنة":"Committee Purpose & Objective","الفئة":"Category","الفترة":"Period",
+  "الفترة محل التقييم":"Assessment Period","القطاع":"Sector","القيمة المدفوعة (ريال)":"Paid Value (SAR)",
+  "اللجنة":"Committee","المؤهل العلمي":"Academic Qualification","المالك":"Owner",
+  "المراجع المكلَّف (إيميل)":"Assigned Reviewer (Email)","المستشار المكلَّف (إيميل)":"Assigned Consultant (Email)",
+  "المستوى التنظيمي":"Organizational Level","الملف":"File","المنصب":"Position","المنصب / اسم الجهة":"Position / Entity Name",
+  "المنصب المقترح":"Proposed Position","المهنة":"Profession","الموعد":"Date","الموعد البديل":"Alternative Date",
+  "الموعد المبدئي المفضّل":"Preferred Initial Date","الموعد المفضّل لبدء التقييم":"Preferred Assessment Start Date",
+  "الموعد المقترح":"Proposed Date","النتيجة":"Result","الوقت":"Time","الوقت البديل":"Alternative Time",
+  "الوقت المقترح":"Proposed Time","بداية التصويت":"Voting Start","بنود الاجتماع / ملاحظات":"Meeting Items / Notes",
+  "تأكيد كلمة المرور":"Confirm Password","تاريخ اعتماد الميثاق":"Charter Approval Date","تاريخ الإفصاح":"Disclosure Date",
+  "تاريخ الاعتماد":"Approval Date","تاريخ الانضمام":"Join Date","تاريخ التحويل":"Transfer Date","تاريخ التصويت":"Voting Date",
+  "تاريخ التعيين":"Appointment Date","تاريخ التقييم":"Assessment Date","تاريخ الرفع":"Upload Date","تاريخ السجل":"Registry Date",
+  "تاريخ انتقال الملكية":"Ownership Transfer Date","تاريخ انتهاء الهوية":"ID Expiry Date","تاريخ تعيين اللجنة":"Committee Appointment Date",
+  "تخصص المرشح":"Candidate Specialty","تفاصيل الطلب":"Request Details","تنظيم الاجتماعات":"Meeting Organization",
+  "جوال المسؤول":"Responsible Person's Mobile","حالة الاعتماد (مسار الموافقة)":"Approval Status",
+  "حجم المؤسسة":"Organization Size","رأس المال (ريال)":"Capital (SAR)","رئيس اللجنة":"Committee Chairman",
+  "رابط الدعوة":"Invitation Link","رقم الجوال":"Mobile Number","رقم الدعوة":"Invitation Number",
+  "رقم السجل التجاري":"Commercial Registration Number","رقم الشهادة":"Certificate Number","رقم الهوية":"National ID",
+  "رقم الهوية الوطنية":"National ID Number","رقم بطاقة التصويت":"Voting Card Number","سنوات الخبرة":"Years of Experience",
+  "طريقة الانعقاد":"Meeting Format","عدد أيام التجربة:":"Trial Days:","عدد الأسهم":"Number of Shares",
+  "عدد الأسهم المنقولة":"Shares Transferred","عدد الأسهم — أصالة (حضور شخصي)":"Shares — In Person",
+  "عدد الأسهم — وكالة (توكيل)":"Shares — By Proxy","عدد الموقّعين المطلوب":"Required Signers Count",
+  "عضو في إحدى اللجان؟":"Member of a Committee?","عضويات ومناصب بمجالس إدارة أخرى":"Other Board Memberships & Positions",
+  "علاقات قرابة مع أعضاء مجلس أو تنفيذيين آخرين":"Family Relations with Other Board/Executive Members",
+  "علاقات مع أطراف ذات صلة":"Related Party Relationships","عنوان الاجتماع":"Meeting Title","فئة الاستشارة":"Consultation Category",
+  "فئة اللجنة":"Committee Category","قيمة عرض السعر (ريال)":"Quote Value (SAR)","كلمة المرور":"Password",
+  "كلمة المرور الجديدة":"New Password","مبرر الترشيح":"Nomination Justification","محل الإقامة":"Place of Residence",
+  "مدة التنفيذ التقديرية":"Estimated Duration","مصالح مالية قد تتعارض مع عمل الشركة":"Financial Interests That May Conflict",
+  "ملاحظات":"Notes","ملاحظات العرض":"Quote Notes","ملاحظات عامة إضافية":"Additional General Notes",
+  "ملف السياسة (PDF/Word)":"Policy File (PDF/Word)","ملف الميثاق الرسمي (اختياري)":"Official Charter File (Optional)",
+  "من":"From","موضوع القرار":"Decision Subject","موعد المراجعة":"Review Date","نص البند":"Item Text","نص الرسالة":"Message Text",
+  "نطاق التقييم (قسم / عملية / مشروع)":"Assessment Scope (Dept/Process/Project)","نطاق المراجعة المطلوب":"Requested Audit Scope",
+  "نهاية التصويت":"Voting End","نوع الاجتماع":"Meeting Type","نوع التحويل":"Transfer Type","نوع الجمعية":"Assembly Type",
+  "نوع الحساب":"Account Type","نوع الشركة":"Company Type","نوع الطلب":"Request Type","نوع المساهم":"Shareholder Type",
+  "نوع النشاط":"Activity Type","هل تنفيذي؟":"Is Executive?","يتبع لـ (المنصب الأعلى)":"Reports To (Higher Position)",
+  "إلى (مساهم موجود)":"To (Existing Shareholder)","إيميل المسؤول":"Responsible Person's Email",
+  "اختر ملف PDF":"Choose PDF File","اسم المساهم (لو ما اخترته من القائمة)":"Shareholder Name (if not selected above)",
+
+  // Statuses & common values
+  "مسودة":"Draft","معتمدة نهائيًا":"Finally Approved","قيد المراجعة":"Under Review","معتمد":"Approved","مرفوض":"Rejected",
+  "نشط":"Active","غير نشط":"Inactive","فرد":"Individual","كيان اعتباري":"Legal Entity","ذكر":"Male","أنثى":"Female",
+
+  // Modal titles
+  "إدارة الطلب":"Manage Request","تفاصيل الاجتماع":"Meeting Details","تفاصيل الجمعية":"Assembly Details",
+  "تفاصيل الطلب":"Request Details","كتالوج خدمات المخاطر":"Risk Services Catalog","كتالوج خدمات المراجعة":"Audit Services Catalog",
+  "إضافة خطر جديد":"Add New Risk","طلب تقييم مخاطر":"Request Risk Assessment","إضافة بند امتثال":"Add Compliance Item",
+  "الموافقة على طلب إدراج شركة":"Approve Company Registration Request","تفعيل الاشتراك":"Activate Subscription",
+  "إضافة وثيقة للتوقيع":"Add Document for Signing","ارسم توقيعك":"Draw Your Signature","تعديل البند":"Edit Item",
+  "تعديل البنود":"Edit Items","تعديل الجهات (أصحاب الصلاحية)":"Edit Entities (Authority Holders)",
+  "تعديل بيانات العضو":"Edit Member Data","إضافة بند صلاحية":"Add Authority Item",
+  "إضافة منصب في الهيكل التنظيمي":"Add Position in Org Structure","إضافة سياسة جديدة":"Add New Policy",
+  "إضافة شركة جديدة":"Add New Company","إضافة عضو مجلس إدارة":"Add Board Member","تفاصيل طلب الاستشارة":"Consultation Request Details",
+  "تقديم طلب استشارة":"Submit Consultation Request","استيراد سجل المساهمين من PDF":"Import Shareholders Registry from PDF",
+  "إضافة اجتماع جديد":"Add New Meeting","إضافة بند تقييم حوكمة":"Add Governance Assessment Item","إضافة لجنة":"Add Committee",
+  "إفصاح عضو مجلس الإدارة":"Board Member Disclosure","فتح تقييم جديد":"Open New Evaluation","ميثاق اللجنة":"Committee Charter",
+  "طلب خدمة مراجعة":"Request Audit Service","مشاركة عبر واتساب":"Share via WhatsApp","نقل ملكية أسهم":"Transfer Share Ownership",
+  "إضافة بند تدقيق":"Add Audit Item","تتبع الطلب":"Track Request","الأمان — التحقق بخطوتين":"Security — Two-Factor Verification",
+  "التحقق بخطوتين":"Two-Factor Verification","تعيين كلمة مرور جديدة":"Set New Password","نسيت كلمة المرور":"Forgot Password",
+  "دعوة عضو جديد":"Invite New Member","السجل الزمني":"Timeline","رفع وثيقة للأرشيف":"Upload Document to Archive",
+  "إضافة قرار تصويت":"Add Voting Decision","طلب اجتماع جديد":"Request New Meeting","إضافة جهة وساطة":"Add Intermediary Entity",
+
+  // Common action buttons
+  "✅ حفظ":"✅ Save","✅ حفظ الخطر":"✅ Save Risk","✅ إرسال الطلب":"✅ Send Request","✅ إضافة":"✅ Add",
+  "✅ موافقة":"✅ Approve","❌ رفض":"❌ Reject","🗑️ حذف":"🗑️ Delete","✏️ تعديل":"✏️ Edit",
+  "+ إضافة":"+ Add","+ إضافة مساهم":"+ Add Shareholder","+ إضافة سياسة":"+ Add Policy","+ إضافة اجتماع":"+ Add Meeting",
+
+  // Section titles
+  "+ إضافة خدمة جديدة":"+ Add New Service","متوسط أيام التحول من تجربة إلى اشتراك مدفوع":"Avg Days from Trial to Paid Subscription",
+  "خدمات إدارة المخاطر":"Risk Management Services","وثائق التوقيع الإلكتروني":"E-Signing Documents",
+  "طلب تعيين عضو مجلس أو عضو لجنة":"Request Board/Committee Member Appointment","تقييم الخدمة":"Rate the Service",
+  "المصفوفة الحرارية":"Heat Map","المصفوفة الحرارية لهذا الطلب":"Heat Map for This Request",
+  "الهيكل التنظيمي للشركة":"Company Organizational Structure","الشركات بفترة تجربة":"Companies in Trial",
+  "فريق المنصة (صلاحيات محدودة بتخصص)":"Platform Team (Module-Limited Access)","أعضاء الشركات":"Company Members",
+  "فريق حوكمة الشركة":"Company Governance Team","نسبة الحضور الفعلية (من سجلات الاجتماعات الحقيقية)":"Actual Attendance Rate",
+  "التواصل مع العميل":"Communication with Client","التواصل مع فريق المخاطر":"Communication with Risk Team",
+  "التواصل مع فريق المراجعة":"Communication with Audit Team","التقرير النهائي":"Final Report",
+  "قوالب المستندات (Word)":"Document Templates (Word)","الجمعيات القادمة":"Upcoming Assemblies",
+  "لوحة تحكم مالك المنصة":"Platform Owner Dashboard","نتائج التصويت الكاملة":"Full Voting Results",
+  "الطلبات السابقة":"Previous Requests","بيانات الطلب":"Request Data","كل التقييمات (جدول)":"All Evaluations (Table)",
+  "إضافة خطر":"Add Risk","إضافة ملاحظة/إجراء مطلوب":"Add Note/Required Action",
+  "المخاطر المسجَّلة وخطط المعالجة":"Registered Risks & Treatment Plans","الملاحظات والإجراءات التصحيحية":"Findings & Corrective Actions",
+  "الملفات":"Files","ملفات العميل":"Client Files","سجل تقييمات الأداء (النتائج النهائية والمفتوحة)":"Performance Evaluations Log",
+  "تقارير الحوكمة الأخرى":"Other Governance Reports","سجل اجتماعات اللجان السابقة":"Previous Committee Meetings Log",
+  "سجل الاجتماعات السابقة":"Previous Meetings Log","سجل الجمعيات السابقة":"Previous Assemblies Log",
+  "سجل النشاط — كل الشركات":"Activity Log — All Companies","محاضر اللجان":"Committee Minutes","محاضر المجلس":"Board Minutes",
+  "الاشتراك بالوحدات":"Module Subscriptions","سجل تحويلات الملكية":"Ownership Transfer Log",
+  "خدمات المراجعة الداخلية":"Internal Audit Services","إدارة الصلاحيات — كل الشركات":"User Permissions — All Companies",
+
+  // Card titles & remaining common phrases
+  "اختر جمعية للتصويت":"Select an Assembly to Vote","القيادات العليا والإدارات — هيكل تفاعلي":"Leadership & Departments — Interactive Structure",
+  "إجراءات مطلوبة":"Required Actions","الاجتماعات القادمة":"Upcoming Meetings","النتيجة النهائية":"Final Result",
+  "مستوى الامتثال — حسب الجهة التنظيمية":"Compliance Level — By Regulatory Authority","الطلبات الجديدة المُقدَّمة":"New Submitted Requests",
+  "حالة التدقيق الداخلي":"Internal Audit Status","التنبيهات التنفيذية":"Executive Alerts","دعوات لم تُستخدم بعد":"Unused Invitations",
+  "أعلى المخاطر":"Top Risks","تقييمات تحتاج تقييمك":"Evaluations Needing Your Input","سياسات تحتاج رأي المجلس":"Policies Needing Board Review",
+  "طلبات اجتماعات تحتاج رأيك":"Meeting Requests Needing Your Input","طلبات تحتاج رأيك":"Requests Needing Your Input",
+  "جارِ التحميل...":"Loading...","لا توجد بيانات بعد":"No data yet","لا توجد بيانات":"No data",
+  "تم بنجاح":"Success","حدث خطأ":"An error occurred","الرجاء المحاولة مرة أخرى":"Please try again",
+  "مطلوب":"Required","اختياري":"Optional","نعم":"Yes","لا":"No","الكل":"All","بدون":"None",
+};
+
+// Regex-based rules for strings that mix fixed text with dynamic data (counts, names) that a
+// plain dictionary lookup can't catch — matched against the FULL trimmed text of a node.
+const TRANSLATION_PATTERNS = [
+  [/^متبقٍ (\d+) يوم$/, (m)=>`${m[1]} days remaining`],
+  [/^جارِ التحميل\.\.\.$/, ()=>"Loading..."],
+  [/^لا توجد بيانات بعد$/, ()=>"No data yet"],
+];
+
+function translateText(text){
+  const trimmed = text.trim();
+  if(!trimmed) return text;
+  if(TRANSLATIONS[trimmed]) return text.replace(trimmed, TRANSLATIONS[trimmed]);
+  for(const [pattern, fn] of TRANSLATION_PATTERNS){
+    const m = trimmed.match(pattern);
+    if(m) return text.replace(trimmed, fn(m));
+  }
+  return text;
+}
+
+function translateSubtree(root){
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+  const nodes = [];
+  let n;
+  while((n = walker.nextNode())) nodes.push(n);
+  nodes.forEach(node => { node.textContent = translateText(node.textContent); });
+  root.querySelectorAll?.('[placeholder]').forEach(el => { el.placeholder = translateText(el.placeholder); });
+  root.querySelectorAll?.('[title]').forEach(el => { el.title = translateText(el.title); });
+}
+
+let langObserver = null;
+function applyTranslation(){
+  if(currentLang !== 'en') return;
+  translateSubtree(document.body);
+}
+
+function toggleLanguage(){
+  setLanguage(currentLang === 'ar' ? 'en' : 'ar');
+}
+
+function setLanguage(lang){
+  currentLang = lang;
+  localStorage.setItem('hawkim_lang', lang);
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'en' ? 'ltr' : 'rtl';
+  const btn = document.getElementById('btnLangToggle');
+  if(btn) btn.textContent = lang === 'en' ? 'AR' : 'EN';
+  if(lang === 'en'){
+    applyTranslation();
+    if(!langObserver){
+      langObserver = new MutationObserver((mutations) => {
+        for(const m of mutations){
+          m.addedNodes.forEach(node => {
+            if(node.nodeType === Node.ELEMENT_NODE) translateSubtree(node);
+            else if(node.nodeType === Node.TEXT_NODE) node.textContent = translateText(node.textContent);
+          });
+        }
+      });
+    }
+    langObserver.observe(document.body, { childList: true, subtree: true });
+  } else if(langObserver){
+    langObserver.disconnect();
+    location.reload(); // simplest reliable way back to full Arabic without stale translated text lingering
+  }
+}
+
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /* ══════════ FILE UPLOAD HELPER ══════════ */
@@ -4860,6 +5113,27 @@ checkSession();
 if(new URLSearchParams(window.location.search).get("invite") && authMode === "login"){
   toggleAuthMode();
 }
+// Apply any saved language preference immediately (before login, so the login screen itself
+// is translated too) — this runs synchronously at script parse time, ahead of any page render.
+document.documentElement.lang = currentLang;
+document.documentElement.dir = currentLang === 'en' ? 'ltr' : 'rtl';
+window.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('btnLangToggle');
+  if(btn) btn.textContent = currentLang === 'en' ? 'AR' : 'EN';
+  if(currentLang === 'en'){
+    applyTranslation();
+    langObserver = new MutationObserver((mutations) => {
+      for(const m of mutations){
+        m.addedNodes.forEach(node => {
+          if(node.nodeType === Node.ELEMENT_NODE) translateSubtree(node);
+          else if(node.nodeType === Node.TEXT_NODE) node.textContent = translateText(node.textContent);
+        });
+      }
+    });
+    langObserver.observe(document.body, { childList: true, subtree: true });
+  }
+});
+
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(()=>{}); });
 }
