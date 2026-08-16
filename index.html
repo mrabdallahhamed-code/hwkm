@@ -3186,6 +3186,9 @@ function isMutatingOnchange(val){
     || /^toggleTemplateDefault\(/.test(val)
     || /^openActivateSubModal\(/.test(val)
     || /^saveGovAssessment\(/.test(val)
+    || /^finalApproveAuditRequest\(/.test(val)
+    || /^finalApproveRiskRequest\(/.test(val)
+    || /^finalApproveSubscription\(/.test(val)
     || /^openNewGovAssessment\(/.test(val)
     || /^activateSubscription\(/.test(val)
     || /^cancelTrial\(/.test(val)
@@ -4389,6 +4392,9 @@ async function loadManageCompanies(){
         </div>
         ${inTrial ? `<span class="badge pending">🎁 تجربة — متبقٍ ${daysLeft} يوم</span>` : c.trial_ends_at ? `<span class="badge urgent">⚠️ انتهت التجربة</span>` : `<span class="badge done">✅ مشترك</span>`}
       </div>
+      ${c.pending_subscription_approval ? `<div style="background:#FEF3E2;border-radius:8px;padding:8px 10px;margin-top:8px;font-size:11px;color:var(--gold);font-weight:700">🟡 اعتماد أولي من ${c.staff_activated_by||"—"} — بانتظار الاعتماد النهائي
+        ${(currentUserProfile && currentUserProfile.is_platform_admin===true) ? `<button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:4px 10px;font-size:10.5px;cursor:pointer;margin-right:8px" onclick="finalApproveSubscription(${c.id})">✅ اعتماد نهائي</button>` : ""}
+      </div>` : ""}
       ${(inTrial || (c.trial_ends_at && !inTrial)) ? `<div style="display:flex;gap:6px;margin-top:10px">
         <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="openActivateSubModal(${c.id},'${c.name.replace(/'/g,"")}')">✅ تفعيل الاشتراك</button>
         <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="cancelTrial(${c.id},'${c.name.replace(/'/g,"")}')">🚫 إلغاء التجربة</button>
@@ -4409,11 +4415,35 @@ async function activateSubscription(){
   const companyId = Number(document.getElementById("mas-company-id").value);
   const module_internal_audit = document.getElementById("mas-audit").checked;
   const module_risk_management = document.getElementById("mas-risk").checked;
-  const { error } = await sb.from("companies").update({ module_internal_audit, module_risk_management, trial_ends_at: null, converted_to_paid_at: new Date().toISOString() }).eq("id", companyId);
+  const isFullOwner = currentUserProfile && currentUserProfile.is_platform_admin === true;
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+
+  if(!isFullOwner){
+    const { error } = await sb.from("companies").update({
+      pending_subscription_approval: true, staff_activated_by: myEmail,
+      module_internal_audit, module_risk_management // proposed selection, applied on final approval
+    }).eq("id", companyId);
+    if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+    alert("تم تسجيل اعتمادك الأولي ✅ — بانتظار الاعتماد النهائي من مالك المنصة قبل ما يُفعَّل فعليًا.");
+    closeM("m-activate-sub");
+    loadManageCompanies();
+    return;
+  }
+
+  const { error } = await sb.from("companies").update({ module_internal_audit, module_risk_management, trial_ends_at: null, converted_to_paid_at: new Date().toISOString(), pending_subscription_approval: false }).eq("id", companyId);
   if(error){ alert("تعذّر التفعيل: " + error.message); return; }
   logActivity("موافقة", "اشتراك", String(companyId), "تفعيل اشتراك مدفوع وإنهاء فترة التجربة");
   alert("تم تفعيل الاشتراك بنجاح ✅");
   closeM("m-activate-sub");
+  loadManageCompanies();
+}
+
+async function finalApproveSubscription(companyId){
+  const { error } = await sb.from("companies").update({ trial_ends_at: null, converted_to_paid_at: new Date().toISOString(), pending_subscription_approval: false }).eq("id", companyId);
+  if(error){ alert("تعذّر الاعتماد: " + error.message); return; }
+  logActivity("موافقة", "اشتراك", String(companyId), "اعتماد نهائي لتفعيل الاشتراك");
+  alert("تم الاعتماد النهائي وتفعيل الاشتراك ✅");
   loadManageCompanies();
 }
 
@@ -4433,6 +4463,7 @@ async function loadCompanyRequestsReview(){
   const { data, error } = await sb.from("company_requests").select("*").order("id",{ascending:false});
   if(error){ pendingBox.innerHTML = `<div style="color:var(--red);font-size:12px">${error.message}</div>`; return; }
 
+  const isFullOwner = currentUserProfile && currentUserProfile.is_platform_admin === true;
   const pending = (data||[]).filter(r => r.status === "قيد المراجعة");
   pendingBox.innerHTML = pending.length===0
     ? '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">لا توجد طلبات جديدة حاليًا.</div>'
@@ -4442,8 +4473,9 @@ async function loadCompanyRequestsReview(){
           <div style="font-size:11.5px;color:var(--gray3);margin-top:4px">النوع: ${r.company_type} · س.ت: ${r.cr_number||"—"} ${r.cr_date?(' · تاريخ: '+r.cr_date):''}</div>
           <div style="font-size:11.5px;color:var(--gray3);margin-top:2px">المسؤول: ${r.responsible_person||"—"} · ${r.responsible_phone||""} · ${r.responsible_email||""}</div>
           <div style="font-size:10.5px;color:var(--gray3);margin-top:4px">مقدَّم من: ${r.requested_by_name||r.requested_by_email} · ${new Date(r.created_at).toLocaleDateString('ar-SA')}</div>
+          ${r.staff_approved_by ? `<div style="font-size:11px;color:var(--gold);font-weight:700;margin-top:6px">🟡 اعتماد أولي من ${r.staff_approved_by} — بانتظار الاعتماد النهائي</div>` : ""}
           <div style="display:flex;gap:6px;margin-top:10px">
-            <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="openApproveCompanyModal(${r.id})">✅ موافقة وإنشاء الشركة</button>
+            <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="openApproveCompanyModal(${r.id})">${isFullOwner ? '✅ موافقة نهائية وإنشاء الشركة' : (r.staff_approved_by ? '✅ تم اعتمادك مسبقًا' : '✅ اعتماد أولي')}</button>
             <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="rejectCompanyRequest(${r.id})">❌ رفض</button>
           </div>
         </div>
@@ -4486,6 +4518,25 @@ async function approveCompanyRequest(requestId){
   const { data: r, error: rErr } = await sb.from("company_requests").select("*").eq("id", requestId).single();
   if(rErr || !r){ alert("تعذّر تحميل الطلب"); return; }
 
+  const isFullOwner = currentUserProfile && currentUserProfile.is_platform_admin === true;
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+
+  if(!isFullOwner){
+    // Platform-team staff can only give a preliminary sign-off — the real company creation
+    // (and the requester's login access) only happens once a full owner does the final approval.
+    const { error } = await sb.from("company_requests").update({
+      staff_approved_by: myEmail, staff_approved_at: new Date().toISOString(),
+      payment_confirmed, payment_confirmed_at: payment_confirmed ? new Date().toISOString() : null,
+      requested_modules: { internal_audit: module_internal_audit, risk_management: module_risk_management, trial: isTrial, trial_days: trialDays }
+    }).eq("id", requestId);
+    if(error){ alert("تعذّر حفظ الاعتماد الأولي: " + error.message); return; }
+    alert("تم تسجيل اعتمادك الأولي ✅ — بانتظار الاعتماد النهائي من مالك المنصة.");
+    closeM("m-approve-company");
+    loadCompanyRequestsReview();
+    return;
+  }
+
   const { data: newCompany, error: cErr } = await sb.from("companies").insert([{
     name: r.company_name, company_type: r.company_type, cr_number: r.cr_number, cr_date: r.cr_date,
     responsible_person: r.responsible_person, responsible_phone: r.responsible_phone, responsible_email: r.responsible_email,
@@ -4500,8 +4551,6 @@ async function approveCompanyRequest(requestId){
     [{ email: r.requested_by_email, company_id: newCompany.id, role: "مدير النظام" }], { onConflict: 'email,company_id' }
   );
 
-  const { data: userData } = await sb.auth.getUser();
-  const myEmail = userData && userData.user ? userData.user.email : null;
   await sb.from("company_requests").update({
     status: "معتمد", reviewed_at: new Date().toISOString(), reviewed_by: myEmail, company_id: newCompany.id,
     payment_confirmed, payment_confirmed_at: payment_confirmed ? new Date().toISOString() : null,
@@ -10811,6 +10860,13 @@ async function openAuditAdminDetail(requestId){
   </div>`).join("") : '<div style="font-size:11px;color:var(--gray3);text-align:center">لا توجد رسائل بعد.</div>';
 
   box.innerHTML = `
+    ${r.pending_final_approval ? `<div style="background:#FEF3E2;border:2px solid var(--gold);border-radius:10px;padding:12px;margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--gold)">🟡 بانتظار الاعتماد النهائي — اعتمد أوليًا: ${r.staff_closed_by||"—"}</div>
+      ${(currentUserProfile && currentUserProfile.is_platform_admin===true) ? `<div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="finalApproveAuditRequest(${requestId}, 'تقرير نهائي جاهز')">✅ اعتماد نهائي — تقرير جاهز</button>
+        <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="finalApproveAuditRequest(${requestId}, 'مغلق')">✅ اعتماد نهائي — إغلاق كامل</button>
+      </div>` : `<div style="font-size:11px;color:var(--gray3);margin-top:4px">لن يظهر للعميل حتى يعتمده مالك المنصة.</div>`}
+    </div>` : ""}
     <div class="row2">
       <div class="fg"><label style="font-size:11px">الحالة</label>
         <select class="fs" id="aad-status">
@@ -10860,8 +10916,23 @@ async function openAuditAdminDetail(requestId){
 async function updateAuditRequestAdmin(requestId){
   const status = document.getElementById("aad-status").value;
   const assigned_reviewer_email = document.getElementById("aad-reviewer").value.trim() || null;
+  const isFullOwner = currentUserProfile && currentUserProfile.is_platform_admin === true;
+  const isFinalStatus = status === "مغلق" || status === "تقرير نهائي جاهز";
+
+  if(isFinalStatus && !isFullOwner){
+    const { data: userData } = await sb.auth.getUser();
+    const myEmail = userData && userData.user ? userData.user.email : null;
+    const { error } = await sb.from("audit_requests").update({ assigned_reviewer_email, pending_final_approval: true, staff_closed_by: myEmail }).eq("id", requestId);
+    if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+    alert("تم حفظ التغييرات — إنهاء الطلب يحتاج اعتماد نهائي من مالك المنصة قبل ما يظهر للعميل.");
+    loadAuditAdmin();
+    openAuditAdminDetail(requestId);
+    return;
+  }
+
   const payload = { status, assigned_reviewer_email };
   if(status === "مغلق") payload.closed_at = new Date().toISOString();
+  if(isFullOwner) payload.pending_final_approval = false;
   const { error } = await sb.from("audit_requests").update(payload).eq("id", requestId);
   if(error){ alert("تعذّر الحفظ: " + error.message); return; }
   alert("تم التحديث ✅");
@@ -10892,10 +10963,28 @@ async function uploadFinalAuditReport(requestId){
   const input = document.getElementById("aad-report-file");
   const url = await uploadFile(input, "audit-reports");
   if(!url) return;
-  const { error } = await sb.from("audit_requests").update({ final_report_url: url, status: "تقرير نهائي جاهز" }).eq("id", requestId);
+  const isFullOwner = currentUserProfile && currentUserProfile.is_platform_admin === true;
+  if(!isFullOwner){
+    const { data: userData } = await sb.auth.getUser();
+    const myEmail = userData && userData.user ? userData.user.email : null;
+    const { error } = await sb.from("audit_requests").update({ final_report_url: url, pending_final_approval: true, staff_closed_by: myEmail }).eq("id", requestId);
+    if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+    alert("تم رفع التقرير ✅ — بانتظار اعتماد مالك المنصة قبل ما يظهر للعميل.");
+    openAuditAdminDetail(requestId);
+    return;
+  }
+  const { error } = await sb.from("audit_requests").update({ final_report_url: url, status: "تقرير نهائي جاهز", pending_final_approval: false }).eq("id", requestId);
   if(error){ alert("تعذّر الحفظ: " + error.message); return; }
   alert("تم رفع التقرير النهائي وتحديث الحالة ✅");
   openAuditAdminDetail(requestId);
+}
+
+async function finalApproveAuditRequest(requestId, targetStatus){
+  const { error } = await sb.from("audit_requests").update({ status: targetStatus, pending_final_approval: false, closed_at: targetStatus==="مغلق" ? new Date().toISOString() : null }).eq("id", requestId);
+  if(error){ alert("تعذّر الاعتماد: " + error.message); return; }
+  alert("تم الاعتماد النهائي ✅");
+  openAuditAdminDetail(requestId);
+  loadAuditAdmin();
 }
 
 async function sendAuditAdminMessage(requestId){
@@ -11009,6 +11098,13 @@ async function openRiskAdminDetail(requestId){
   </div>`).join("") : '<div style="font-size:11px;color:var(--gray3);text-align:center">لا توجد رسائل بعد.</div>';
 
   box.innerHTML = `
+    ${r.pending_final_approval ? `<div style="background:#FEF3E2;border:2px solid var(--gold);border-radius:10px;padding:12px;margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--gold)">🟡 بانتظار الاعتماد النهائي — اعتمد أوليًا: ${r.staff_closed_by||"—"}</div>
+      ${(currentUserProfile && currentUserProfile.is_platform_admin===true) ? `<div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="finalApproveRiskRequest(${requestId}, 'تقرير نهائي جاهز')">✅ اعتماد نهائي — تقرير جاهز</button>
+        <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="finalApproveRiskRequest(${requestId}, 'مغلق')">✅ اعتماد نهائي — إغلاق كامل</button>
+      </div>` : `<div style="font-size:11px;color:var(--gray3);margin-top:4px">لن يظهر للعميل حتى يعتمده مالك المنصة.</div>`}
+    </div>` : ""}
     <div class="row2">
       <div class="fg"><label style="font-size:11px">الحالة</label>
         <select class="fs" id="rad-status">
@@ -11076,8 +11172,23 @@ async function openRiskAdminDetail(requestId){
 async function updateRiskRequestAdmin(requestId){
   const status = document.getElementById("rad-status").value;
   const assigned_consultant_email = document.getElementById("rad-consultant").value.trim() || null;
+  const isFullOwner = currentUserProfile && currentUserProfile.is_platform_admin === true;
+  const isFinalStatus = status === "مغلق" || status === "تقرير نهائي جاهز";
+
+  if(isFinalStatus && !isFullOwner){
+    const { data: userData } = await sb.auth.getUser();
+    const myEmail = userData && userData.user ? userData.user.email : null;
+    const { error } = await sb.from("risk_requests").update({ assigned_consultant_email, pending_final_approval: true, staff_closed_by: myEmail }).eq("id", requestId);
+    if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+    alert("تم حفظ التغييرات — إنهاء الطلب يحتاج اعتماد نهائي من مالك المنصة قبل ما يظهر للعميل.");
+    loadRiskAdmin();
+    openRiskAdminDetail(requestId);
+    return;
+  }
+
   const payload = { status, assigned_consultant_email };
   if(status === "مغلق") payload.closed_at = new Date().toISOString();
+  if(isFullOwner) payload.pending_final_approval = false;
   const { error } = await sb.from("risk_requests").update(payload).eq("id", requestId);
   if(error){ alert("تعذّر الحفظ: " + error.message); return; }
   alert("تم التحديث ✅");
@@ -11116,10 +11227,28 @@ async function uploadFinalRiskReport(requestId){
   const input = document.getElementById("rad-report-file");
   const url = await uploadFile(input, "risk-reports");
   if(!url) return;
-  const { error } = await sb.from("risk_requests").update({ final_report_url: url, status: "تقرير نهائي جاهز" }).eq("id", requestId);
+  const isFullOwner = currentUserProfile && currentUserProfile.is_platform_admin === true;
+  if(!isFullOwner){
+    const { data: userData } = await sb.auth.getUser();
+    const myEmail = userData && userData.user ? userData.user.email : null;
+    const { error } = await sb.from("risk_requests").update({ final_report_url: url, pending_final_approval: true, staff_closed_by: myEmail }).eq("id", requestId);
+    if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+    alert("تم رفع التقرير ✅ — بانتظار اعتماد مالك المنصة قبل ما يظهر للعميل.");
+    openRiskAdminDetail(requestId);
+    return;
+  }
+  const { error } = await sb.from("risk_requests").update({ final_report_url: url, status: "تقرير نهائي جاهز", pending_final_approval: false }).eq("id", requestId);
   if(error){ alert("تعذّر الحفظ: " + error.message); return; }
   alert("تم رفع التقرير النهائي وتحديث الحالة ✅");
   openRiskAdminDetail(requestId);
+}
+
+async function finalApproveRiskRequest(requestId, targetStatus){
+  const { error } = await sb.from("risk_requests").update({ status: targetStatus, pending_final_approval: false, closed_at: targetStatus==="مغلق" ? new Date().toISOString() : null }).eq("id", requestId);
+  if(error){ alert("تعذّر الاعتماد: " + error.message); return; }
+  alert("تم الاعتماد النهائي ✅");
+  openRiskAdminDetail(requestId);
+  loadRiskAdmin();
 }
 
 async function sendRiskAdminMessage(requestId){
