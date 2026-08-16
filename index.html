@@ -1761,6 +1761,35 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
 <div id="p-platformusers" class="page content">
   <div class="sec-title">🛡️ إدارة الصلاحيات — كل الشركات</div>
+
+  <div class="sec-title" style="font-size:14px">👤 فريق المنصة (صلاحيات محدودة بتخصص)</div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-body">
+      <p style="font-size:11.5px;color:var(--gray3);margin-bottom:10px">عيّن موظفًا (لازم يكون مسجّل حساب بالمنصة أصلاً) بتخصص محدد — يشوف صلاحية كاملة بتخصصه على كل الشركات، واطّلاع فقط بالحوكمة (إلا موظف الحوكمة، له كل شي).</p>
+      <div class="row2">
+        <div class="fg"><label>البريد الإلكتروني</label><input class="fi" id="pts-email" placeholder="employee@email.com"/></div>
+        <div class="fg"><label>التخصص</label>
+          <select class="fs" id="pts-module">
+            <option value="تدقيق داخلي">تدقيق داخلي</option>
+            <option value="حوكمة">حوكمة (صلاحية كاملة بكل الأقسام)</option>
+            <option value="مخاطر">مخاطر</option>
+            <option value="التزام">التزام</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-gold" style="width:100%" onclick="assignPlatformTeamModule()">✅ تعيين التخصص</button>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-body" style="padding:0">
+      <table class="tbl">
+        <thead><tr><th>الاسم</th><th>البريد الإلكتروني</th><th>التخصص</th><th></th></tr></thead>
+        <tbody id="platformTeamTbody"><tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="sec-title" style="font-size:14px">👥 أعضاء الشركات</div>
   <div class="card">
     <div class="card-body" style="padding:0">
       <table class="tbl">
@@ -2947,8 +2976,9 @@ async function loadCurrentUserProfile(){
   // view should never default them into "belonging" to that company. They explicitly pick a
   // company from the switcher only when they actually need to look at one.
   const isPlatformAdminAccount = currentUserProfile && currentUserProfile.is_platform_admin === true;
-  const preferred = (currentUserProfile && !isPlatformAdminAccount) ? currentUserProfile.company_id : null;
-  if(isPlatformAdminAccount) viewingPlatformOverview = true;
+  const isTeamMemberAccount = currentUserProfile && currentUserProfile.platform_team_module && !isPlatformAdminAccount;
+  const preferred = (currentUserProfile && !isPlatformAdminAccount && !isTeamMemberAccount) ? currentUserProfile.company_id : null;
+  if(isPlatformAdminAccount || isTeamMemberAccount) viewingPlatformOverview = true;
   await loadCompanies(preferred);
   await applyRolePermissions();
   checkPendingApprovalBadges();
@@ -2962,12 +2992,33 @@ const SHAREHOLDER_PAGES = ['agm','voting','signing'];
 // A person's role can differ per company they belong to (e.g. board member at one company,
 // shareholder-only at another) — always resolve against whichever company is currently
 // selected, not a single global role.
+// Module a platform-team staffer has FULL control over (their specialty) — everything else
+// they touch inside a company is either read-only (governance context, since it informs their
+// work) or fully blocked, per the page-group map below.
+const PLATFORM_TEAM_FULL_PAGE = { 'تدقيق داخلي':'audit', 'مخاطر':'risks', 'التزام':'compliance' };
+// Governance staff are the one exception — full access everywhere, same as a real "مدير النظام".
+const GOVERNANCE_VIEW_ONLY_PAGES = ['governance','govassess','structure','members','permissions','reports','dashboard','appoint','perf'];
+
 function getCurrentRole(){
   // Platform owners manage every tenant on the platform — whatever company they're currently
   // viewing, they need the same full access a real "مدير النظام" of that company would have
   // (permissions page, activity log, editing every section), even though they intentionally
   // hold no membership row anywhere (see the company-less-by-design note in loadCurrentUserProfile).
   if(currentUserProfile && currentUserProfile.is_platform_admin === true) return 'مدير النظام';
+
+  // Platform team members hold a NARROW specialty (audit/risk/compliance) or the broad
+  // "حوكمة" specialty (full access everywhere, like an owner). Their effective role varies by
+  // WHICH PAGE they're currently on: full control on their own module's page, read-only on
+  // governance-adjacent pages (since seeing policies/structure genuinely helps their work), and
+  // isPageAllowed() blocks everything else outright.
+  const teamModule = currentUserProfile && currentUserProfile.platform_team_module;
+  if(teamModule){
+    if(teamModule === 'حوكمة') return 'مدير النظام';
+    if(currentPageId === PLATFORM_TEAM_FULL_PAGE[teamModule]) return 'مدير النظام';
+    if(GOVERNANCE_VIEW_ONLY_PAGES.includes(currentPageId)) return 'عضو مجلس';
+    return 'عضو مجلس'; // isPageAllowed() is what actually blocks pages outside their scope
+  }
+
   const membership = userMemberships.find(m => m.company_id === currentCompanyId);
   if(membership && membership.role) return membership.role;
   return currentUserProfile ? (currentUserProfile.role || 'عضو مجلس') : 'عضو مجلس';
@@ -2977,6 +3028,8 @@ async function applyRolePermissions(){
   const role = getCurrentRole();
   const isShareholder = role === 'مساهم';
   const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
+  const teamModule = currentUserProfile && currentUserProfile.platform_team_module;
+  const isPlatformTeamMember = !!teamModule && !isPlatformAdmin;
   const hasNoCompany = currentUserProfile && userMemberships.length === 0;
 
   const nameEl = document.getElementById('sidebarUserName');
@@ -2984,7 +3037,7 @@ async function applyRolePermissions(){
   const avEl = document.getElementById('sidebarUserAv');
   const displayName = currentUserProfile ? (currentUserProfile.full_name || currentUserProfile.email || "مستخدم") : "مستخدم";
   if(nameEl) nameEl.textContent = displayName;
-  if(roleEl) roleEl.textContent = isPlatformAdmin ? "مالك المنصة" : (hasNoCompany ? "بانتظار ربط شركة" : role);
+  if(roleEl) roleEl.textContent = isPlatformAdmin ? "مالك المنصة" : (isPlatformTeamMember ? `فريق المنصة — ${teamModule}` : (hasNoCompany ? "بانتظار ربط شركة" : role));
   if(avEl) avEl.textContent = displayName.trim().charAt(0) || "م";
 
   const btnAddCompany = document.getElementById('btnAddCompany');
@@ -2993,13 +3046,21 @@ async function applyRolePermissions(){
   // Platform owners get a dedicated, minimal sidebar (aggregate dashboard/permissions/activity/
   // requests across every tenant) until they actually pick a specific company from the switcher
   // — at which point the full sidebar takes over exactly as a real "مدير النظام" of that company
-  // would see it. Regular users never see this toggle at all.
-  if(isPlatformAdmin && viewingPlatformOverview){
+  // would see it. Team members with a narrow specialty get the same landing concept, but scoped
+  // down to just "إدارة الطلبات" (their own module's back-office tab) — the aggregate dashboard/
+  // permissions/activity pages stay owner-only. Regular users never see this toggle at all.
+  if((isPlatformAdmin || isPlatformTeamMember) && viewingPlatformOverview){
     document.getElementById('platformOverviewNavGroup').style.display = 'block';
     document.getElementById('companyNavGroups').style.display = 'none';
-    document.querySelectorAll('#platformOverviewNavGroup .nav-item').forEach(item=>{ item.style.display = ''; });
-    if(!['platformdashboard','platformusers','platformactivity','adminrequests'].includes(currentPageId)){
-      go('platformdashboard');
+    document.querySelectorAll('#platformOverviewNavGroup .nav-item').forEach(item=>{
+      const pageId = item.getAttribute('onclick')?.match(/go\('([a-z]+)'/)?.[1];
+      const ownerOnly = ['platformdashboard','platformusers','platformactivity'];
+      item.style.display = (isPlatformTeamMember && ownerOnly.includes(pageId)) ? 'none' : '';
+    });
+    const landingPage = isPlatformTeamMember ? 'adminrequests' : 'platformdashboard';
+    const validPages = isPlatformTeamMember ? ['adminrequests'] : ['platformdashboard','platformusers','platformactivity','adminrequests'];
+    if(!validPages.includes(currentPageId)){
+      go(landingPage);
     }
     restrictMutatingButtons();
     startMutationGuard();
@@ -3008,7 +3069,7 @@ async function applyRolePermissions(){
   document.getElementById('platformOverviewNavGroup').style.display = 'none';
   document.getElementById('companyNavGroups').style.display = 'block';
 
-  if(hasNoCompany && !isPlatformAdmin){
+  if(hasNoCompany && !isPlatformAdmin && !isPlatformTeamMember){
     // No company yet: hide every other section and force the "request a company" page —
     // this account has nothing to see until an owner request is approved.
     document.querySelectorAll('.nav-group').forEach(g => { g.style.display = 'none'; });
@@ -3026,6 +3087,17 @@ async function applyRolePermissions(){
   document.querySelectorAll('.nav-item').forEach(item=>{ item.style.display = ''; });
   await refreshCompanyTypeVisibility();
 
+  if(isPlatformTeamMember && teamModule !== 'حوكمة'){
+    // Narrow specialty inside a company: hide every nav item outside their own module and the
+    // governance-adjacent read-only set, matching exactly what isPageAllowed() would block.
+    const allowedPages = [PLATFORM_TEAM_FULL_PAGE[teamModule], ...GOVERNANCE_VIEW_ONLY_PAGES];
+    document.querySelectorAll('#companyNavGroups .nav-item').forEach(item => {
+      const pageId = item.getAttribute('onclick')?.match(/go\('([a-z]+)'/)?.[1];
+      if(pageId && !allowedPages.includes(pageId)) item.style.display = 'none';
+    });
+    document.getElementById('adminNavGroup').style.display = 'none';
+  }
+
   if(isShareholder){
     go('agm');
   }
@@ -3042,8 +3114,9 @@ async function applyRolePermissions(){
 let currentCompanyType = null;
 function isPageAllowed(pageId, role){
   const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
+  const teamModule = currentUserProfile && currentUserProfile.platform_team_module;
   const hasNoCompany = currentUserProfile && userMemberships.length === 0;
-  if(pageId === 'adminrequests') return isPlatformAdmin;
+  if(pageId === 'adminrequests') return isPlatformAdmin || !!teamModule;
   if(pageId === 'platformdashboard') return isPlatformAdmin;
   if(pageId === 'platformusers') return isPlatformAdmin;
   if(pageId === 'platformactivity') return isPlatformAdmin;
@@ -3051,7 +3124,14 @@ function isPageAllowed(pageId, role){
   if(pageId === 'managecompanies') return isPlatformAdmin;
   if(pageId === 'auditadmin') return isPlatformAdmin;
   if(pageId === 'companyrequest') return true;
-  if(hasNoCompany && !isPlatformAdmin) return false;
+  if(hasNoCompany && !isPlatformAdmin && !teamModule) return false;
+  // A narrow-specialty team member (audit/risk/compliance) is blocked from any company page
+  // outside their own module and the governance-adjacent read-only set — "حوكمة" staff are the
+  // one specialty exempted from this, since their whole job is full-breadth access.
+  if(teamModule && teamModule !== 'حوكمة' && !isPlatformAdmin){
+    const allowedPages = [PLATFORM_TEAM_FULL_PAGE[teamModule], ...GOVERNANCE_VIEW_ONLY_PAGES];
+    if(!allowedPages.includes(pageId)) return false;
+  }
   if(pageId === 'users') return role === 'مدير النظام';
   if(pageId === 'activitylog') return role === 'مدير النظام';
   if(role === 'مساهم') return SHAREHOLDER_PAGES.includes(pageId);
@@ -3439,26 +3519,29 @@ async function updateUserRole(membershipId, role){
 async function loadCompanies(preferredCompanyId){
   const sel = document.getElementById("companySwitcher");
   const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
+  const isTeamMember = currentUserProfile && currentUserProfile.platform_team_module && !isPlatformAdmin;
+  const seesAllCompanies = isPlatformAdmin || isTeamMember;
 
   // Regular users now see every company they hold a membership in (could be more than one);
-  // only the platform owner (is_platform_admin) additionally sees every tenant on the platform.
+  // the platform owner AND narrow-specialty team members additionally see every tenant on the
+  // platform — team members need this to review companies' data within their specialty.
   const memberCompanyIds = userMemberships.map(m => m.company_id).filter(Boolean);
-  const query = isPlatformAdmin
+  const query = seesAllCompanies
     ? sb.from("companies").select("*").order("id",{ascending:true})
     : (memberCompanyIds.length ? sb.from("companies").select("*").in("id", memberCompanyIds).order("id",{ascending:true}) : sb.from("companies").select("*").eq("id", -1));
   const { data, error } = await query;
 
   if(error || !data || data.length===0){
-    if(sel) sel.innerHTML = isPlatformAdmin ? '<option value="__platform__">🏠 نظرة عامة على المنصة</option>' : '<option>لا توجد شركة مرتبطة بحسابك</option>';
+    if(sel) sel.innerHTML = seesAllCompanies ? '<option value="__platform__">🏠 نظرة عامة على المنصة</option>' : '<option>لا توجد شركة مرتبطة بحسابك</option>';
     currentCompanyId = null;
     reloadCurrentPageData();
     return;
   }
   if(sel){
     const companyOptions = data.map(c => `<option value="${c.id}">${c.name}</option>`).join("");
-    sel.innerHTML = isPlatformAdmin ? `<option value="__platform__">🏠 نظرة عامة على المنصة</option>${companyOptions}` : companyOptions;
+    sel.innerHTML = seesAllCompanies ? `<option value="__platform__">🏠 نظرة عامة على المنصة</option>${companyOptions}` : companyOptions;
   }
-  if(isPlatformAdmin && viewingPlatformOverview){
+  if(seesAllCompanies && viewingPlatformOverview){
     currentCompanyId = null;
     if(sel) sel.value = "__platform__";
     reloadCurrentPageData();
@@ -4209,9 +4292,43 @@ async function loadPlatformDashboard(){
   }
 }
 
+async function assignPlatformTeamModule(){
+  const email = document.getElementById("pts-email").value.trim();
+  if(!email){ alert("الرجاء إدخال البريد الإلكتروني"); return; }
+  const platform_team_module = document.getElementById("pts-module").value;
+  const { data: existing, error: findErr } = await sb.from("user_profiles").select("*").ilike("email", email).maybeSingle();
+  if(findErr || !existing){ alert("لا يوجد حساب مسجّل بهذا البريد الإلكتروني — لازم يسجّل حساب بالمنصة أولًا."); return; }
+  const { error } = await sb.from("user_profiles").update({ platform_team_module }).ilike("email", email);
+  if(error){ alert("تعذّر التعيين: " + error.message); return; }
+  alert(`تم تعيين "${existing.full_name||email}" بتخصص "${platform_team_module}" ✅ — عليه تسجيل خروج ثم دخول من جديد.`);
+  document.getElementById("pts-email").value = "";
+  loadPlatformTeam();
+}
+
+async function removePlatformTeamModule(email, name){
+  if(!confirm(`إزالة تخصص "${name}" من فريق المنصة؟ يرجع حساب عادي بدون صلاحيات خاصة.`)) return;
+  const { error } = await sb.from("user_profiles").update({ platform_team_module: null }).ilike("email", email);
+  if(error){ alert("تعذّر الإزالة: " + error.message); return; }
+  loadPlatformTeam();
+}
+
+async function loadPlatformTeam(){
+  const tbody = document.getElementById("platformTeamTbody");
+  if(!tbody) return;
+  const { data, error } = await sb.from("user_profiles").select("*").not("platform_team_module","is",null);
+  if(error){ tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red);font-size:12px">${error.message}</td></tr>`; return; }
+  if(!data || data.length===0){ tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا يوجد فريق منصة معيّن بعد.</td></tr>'; return; }
+  tbody.innerHTML = data.map(u => `<tr>
+    <td>${u.full_name||"—"}</td><td style="font-size:11px">${u.email}</td>
+    <td><span style="background:#EAF0F8;color:var(--primary);font-weight:700;font-size:11px;padding:2px 8px;border-radius:6px">${u.platform_team_module}</span></td>
+    <td><button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:3px 8px;font-size:10.5px;cursor:pointer" onclick="removePlatformTeamModule('${u.email}','${(u.full_name||u.email).replace(/'/g,"")}')">إزالة</button></td>
+  </tr>`).join("");
+}
+
 async function loadPlatformUsers(){
   const tbody = document.getElementById("platformUsersTbody");
   if(!tbody) return;
+  loadPlatformTeam();
   const [{ data: memberships, error }, { data: companies }, { data: profiles }] = await Promise.all([
     sb.from("user_company_memberships").select("*").order("company_id",{ascending:true}),
     sb.from("companies").select("id,name"),
@@ -10606,7 +10723,25 @@ async function submitAuditRating(requestId){
 }
 
 /* ══════════ AUDIT SERVICES — BACK OFFICE (platform team manages all clients' requests) ══════════ */
+function applyAdminRequestsTabVisibility(){
+  const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
+  const teamModule = currentUserProfile && currentUserProfile.platform_team_module;
+  const tabVisibility = { companyrequests: true, managecompanies: true, auditadmin: true, riskadmin: true };
+  if(!isPlatformAdmin && teamModule && teamModule !== 'حوكمة'){
+    tabVisibility.auditadmin = (teamModule === 'تدقيق داخلي');
+    tabVisibility.riskadmin = (teamModule === 'مخاطر');
+  }
+  document.querySelectorAll(".adminreq-tab-btn").forEach(btn => {
+    btn.style.display = tabVisibility[btn.dataset.tab] ? '' : 'none';
+  });
+  return tabVisibility;
+}
+
 function switchAdminRequestsTab(tab){
+  const visibility = applyAdminRequestsTabVisibility();
+  if(!visibility[tab]){
+    tab = Object.keys(visibility).find(k => visibility[k]) || 'companyrequests';
+  }
   document.querySelectorAll(".adminreq-tab-content").forEach(el => { el.style.display = "none"; });
   document.getElementById("adminreq-tab-" + tab).style.display = "block";
   document.querySelectorAll(".adminreq-tab-btn").forEach(btn => {
