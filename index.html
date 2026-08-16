@@ -580,6 +580,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <button class="login-btn" id="loginBtn" onclick="handleAuth()">تسجيل الدخول</button>
     <div id="forgotPasswordLink" style="text-align:center;margin-top:10px;font-size:12px;color:var(--gray3);cursor:pointer" onclick="openForgotPasswordModal()">نسيت كلمة المرور؟</div>
     <div class="login-switch" id="authSwitch" onclick="toggleAuthMode()">ليس لديك حساب؟ <b>إنشاء حساب جديد</b></div>
+    <div style="text-align:center;margin-top:12px;font-size:10.5px;color:var(--gray3);cursor:pointer;text-decoration:underline" onclick="openM('m-privacy-policy')">سياسة الخصوصية</div>
   </div>
 </div>
 
@@ -690,6 +691,9 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
   <div class="tb-right">
     <button id="btnLangToggle" class="btn btn-ghost" style="font-size:11px;padding:6px 12px;font-weight:800" onclick="toggleLanguage()">EN</button>
+    <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="openSupportModal()">🆘 الدعم</button>
+    <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="openOnboardingGuide()">❓</button>
+    <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="openM('m-privacy-policy')">🔒</button>
     <div style="position:relative">
       <input id="globalSearchInput" class="search-in" placeholder="🔍 ابحث بالمنصة..." oninput="handleGlobalSearchInput(this.value)" onfocus="handleGlobalSearchInput(this.value)">
       <div id="globalSearchResults" style="display:none;position:absolute;top:calc(100% + 6px);left:0;width:340px;max-height:420px;overflow-y:auto;background:#fff;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,0.18);z-index:500;padding:6px"></div>
@@ -699,6 +703,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     </select>
     <button id="btnAddCompany" class="btn btn-ghost" style="font-size:11px;padding:6px 12px;display:none" onclick="openNewCompanyModal()">+ شركة</button>
     <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="openEditCompanyModal()">✏️ تعديل الشركة</button>
+    <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="exportAllCompanyData()">📦 تصدير بياناتي</button>
     <div style="position:relative">
       <button class="notif-btn" onclick="toggleNotifPanel()">🔔<div class="notif-dot" id="notifDot" style="display:none"></div></button>
       <div id="notifPanel" style="display:none;position:absolute;left:0;top:calc(100% + 8px);width:320px;max-height:420px;overflow-y:auto;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(13,36,71,0.18);z-index:200;padding:10px">
@@ -2510,6 +2515,50 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
+<div class="modal-bg" id="m-privacy-policy">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-title">🔒 سياسة الخصوصية — منصة حوكم</div>
+    <div style="font-size:12.5px;line-height:2;color:var(--dark);max-height:60vh;overflow-y:auto">
+      <p><b>١. البيانات التي نجمعها</b><br>نجمع بيانات التسجيل (الاسم، البريد الإلكتروني، رقم الجوال، رقم الهوية الوطنية عند الحاجة للتحقق التلقائي)، وبيانات الاستخدام (سجلات الدخول والنشاط)، والمحتوى الذي تُدخله شركتكم بالمنصة (محاضر، سياسات، بيانات مساهمين وأعضاء مجلس).</p>
+      <p><b>٢. الغرض من المعالجة</b><br>نستخدم بياناتكم لتقديم خدمات المنصة، التحقق من الهوية وربط الحسابات تلقائيًا، إرسال الإشعارات والتنبيهات المتعلقة باستخدامكم، والتواصل بخصوص الدعم الفني والفوترة.</p>
+      <p><b>٣. أساس المعالجة</b><br>نعالج بياناتكم بناءً على تنفيذ العقد المبرم معكم (اتفاقية الاشتراك)، والموافقة الصريحة عند التسجيل، والمصلحة المشروعة في تشغيل وتأمين المنصة.</p>
+      <p><b>٤. مشاركة البيانات</b><br>لا نبيع بياناتكم لأي طرف ثالث. قد نشارك بيانات محدودة مع مزودي خدمات تقنية ضروريين لتشغيل المنصة (استضافة، بريد إلكتروني، رسائل نصية)، بموجب التزامات تعاقدية بحماية البيانات.</p>
+      <p><b>٥. أمن البيانات</b><br>نطبّق تدابير تقنية وتنظيمية مناسبة لحماية بياناتكم، بما في ذلك التشفير، والصلاحيات المحدودة، ومراقبة الأنشطة غير المعتادة.</p>
+      <p><b>٦. حقوقكم</b><br>يحق لكم الوصول لبياناتكم (عبر زر "تصدير بياناتي")، طلب تصحيحها، أو طلب حذفها وفق سياسة الاحتفاظ بالبيانات والالتزامات النظامية المعمول بها.</p>
+      <p><b>٧. الاحتفاظ بالبيانات</b><br>نحتفظ ببياناتكم طوال مدة اشتراككم، ولمدة إضافية بعد الإلغاء حسب ما تقتضيه الالتزامات النظامية، ما لم تطلبوا الحذف المبكر وفق الأنظمة المعمول بها.</p>
+      <p><b>٨. التواصل</b><br>لأي استفسار متعلق بخصوصية بياناتكم، تواصلوا معنا عبر زر "🆘 الدعم" داخل المنصة.</p>
+      <p style="color:var(--gray3);font-size:11px;margin-top:16px">آخر تحديث: أغسطس ٢٠٢٦. هذه السياسة جزء مكمّل لاتفاقية الاشتراك الموقّعة، ولا تُغني عنها.</p>
+    </div>
+    <div class="modal-foot"><button class="btn btn-gold" style="width:100%" onclick="closeM('m-privacy-policy')">إغلاق</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-support">
+  <div class="modal">
+    <div class="modal-title">🆘 الدعم الفني</div>
+    <div class="fg"><label>الموضوع</label><input class="fi" id="sup-subject" placeholder="مثال: مشكلة برفع ملف"/></div>
+    <div class="fg"><label>وصف المشكلة</label><textarea class="fi" id="sup-message" rows="4" placeholder="اشرح المشكلة بالتفصيل..."></textarea></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-support')">إلغاء</button><button class="btn btn-gold" onclick="submitSupportTicket()">✅ إرسال</button></div>
+    <div class="sec-title" style="font-size:13px;margin-top:16px">📂 طلباتي السابقة</div>
+    <div id="mySupportTicketsList" style="max-height:220px;overflow-y:auto"></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-onboarding">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-title">👋 مرحبًا بك في حوكم</div>
+    <div style="font-size:13px;line-height:2;color:var(--dark)">
+      <p>منصة حوكم تساعدكم على إدارة الحوكمة المؤسسية والاجتماعات والمخاطر والالتزام من مكان واحد. إليك أهم الأقسام:</p>
+      <p>🏛️ <b>السياسات والحوكمة</b> — سياساتكم، الهيكل التنظيمي، أعضاء المجلس، ومصفوفة الصلاحيات.</p>
+      <p>📅 <b>الاجتماعات والتصويت</b> — اجتماعات المجلس، الجمعيات العامة، سجل المساهمين، والتوقيع الإلكتروني.</p>
+      <p>⚠️ <b>الرقابة والمخاطر</b> — إدارة المخاطر، المراجعة الداخلية، والالتزام التنظيمي (تُطلب كخدمات من فريقنا).</p>
+      <p>📄 <b>الوثائق والتقارير</b> — الأرشيف، تقارير الحوكمة، والتقرير المالي والتشغيلي الشهري.</p>
+      <p>🆘 احتجت مساعدة بأي وقت؟ اضغط زر "الدعم" بالأعلى، أو ارجع لهذي الجولة بزر "❓".</p>
+    </div>
+    <div class="modal-foot"><button class="btn btn-gold" style="width:100%" onclick="closeOnboardingGuide()">✅ فهمت، ابدأ</button></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-forgot-password">
   <div class="modal">
     <div class="modal-title">🔑 نسيت كلمة المرور</div>
@@ -3243,6 +3292,10 @@ async function loadCurrentUserProfile(){
   await loadCompanies(preferred);
   await applyRolePermissions();
   checkPendingApprovalBadges();
+  resetIdleTimer();
+  if(currentUserProfile && !currentUserProfile.onboarding_seen && !isPlatformAdminAccount){
+    setTimeout(() => openOnboardingGuide(), 600);
+  }
 }
 
 /* ══════════ ROLES & PERMISSIONS ══════════ */
@@ -3446,6 +3499,7 @@ function isMutatingOnchange(val){
     || /^deleteCheckin\(/.test(val)
     || /^toggleTemplateDefault\(/.test(val)
     || /^openActivateSubModal\(/.test(val)
+    || /^exportAllCompanyData\(/.test(val)
     || /^saveGovAssessment\(/.test(val)
     || /^finalApproveAuditRequest\(/.test(val)
     || /^finalApproveRiskRequest\(/.test(val)
@@ -5034,6 +5088,124 @@ async function verifyMfaLogin(){
   document.getElementById("mfaLoginCode").value = "";
   closeM("m-mfa-challenge");
   showApp();
+}
+
+/* ══════════ AUTO-LOGOUT AFTER INACTIVITY ══════════
+   The platform holds sensitive governance/financial data — a session left open indefinitely on
+   a shared or public device is a real exposure risk. After 30 minutes with no mouse/keyboard/
+   touch activity, sign the person out automatically with a clear message. */
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+let idleTimer = null;
+function resetIdleTimer(){
+  if(!currentUserProfile) return; // no active session to protect yet
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(async () => {
+    await sb.auth.signOut();
+    alert("تم تسجيل خروجك تلقائيًا بسبب عدم النشاط لفترة طويلة، لحماية بيانات شركتك.");
+    location.reload();
+  }, IDLE_TIMEOUT_MS);
+}
+['mousemove','mousedown','keydown','touchstart','scroll'].forEach(evt => {
+  window.addEventListener(evt, resetIdleTimer, { passive: true });
+});
+
+/* ══════════ SUPPORT TICKETS ══════════ */
+async function openSupportModal(){
+  document.getElementById("sup-subject").value = "";
+  document.getElementById("sup-message").value = "";
+  openM("m-support");
+  loadMySupportTickets();
+}
+
+async function submitSupportTicket(){
+  const subject = document.getElementById("sup-subject").value.trim();
+  const message = document.getElementById("sup-message").value.trim();
+  if(!subject || !message){ alert("الرجاء تعبئة الموضوع والوصف"); return; }
+  const { data: userData } = await sb.auth.getUser();
+  const email = userData && userData.user ? userData.user.email : null;
+  const { error } = await sb.from("support_tickets").insert([{
+    company_id: currentCompanyId || null, submitted_by_email: email,
+    submitted_by_name: currentUserProfile ? currentUserProfile.full_name : email, subject, message
+  }]);
+  if(error){ alert("تعذّر إرسال الطلب: " + error.message); return; }
+
+  const { data: admins } = await sb.from("user_profiles").select("email").eq("is_platform_admin", true);
+  if(admins && admins.length){
+    const html = `<div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px">
+      <h2 style="color:#1A3A6B">🆘 طلب دعم فني جديد</h2>
+      <p><b>من:</b> ${currentUserProfile?currentUserProfile.full_name:email} (${email})</p>
+      <p><b>الموضوع:</b> ${subject}</p>
+      <p><b>الرسالة:</b> ${message}</p>
+    </div>`;
+    for(const a of admins){ await sendNotificationEmail(a.email, `🆘 طلب دعم: ${subject}`, html); }
+  }
+  alert("تم إرسال طلبك ✅ — سيتواصل معك فريق الدعم قريبًا.");
+  document.getElementById("sup-subject").value = "";
+  document.getElementById("sup-message").value = "";
+  loadMySupportTickets();
+}
+
+async function loadMySupportTickets(){
+  const box = document.getElementById("mySupportTicketsList");
+  if(!box) return;
+  const { data: userData } = await sb.auth.getUser();
+  const email = userData && userData.user ? userData.user.email : null;
+  const { data, error } = await sb.from("support_tickets").select("*").eq("submitted_by_email", email).order("created_at",{ascending:false});
+  if(error || !data || data.length===0){ box.innerHTML = '<div style="font-size:11px;color:var(--gray3);text-align:center;padding:10px">لا توجد طلبات سابقة.</div>'; return; }
+  box.innerHTML = data.map(t => `<div style="background:var(--offwhite);border-radius:8px;padding:8px 10px;margin-bottom:6px">
+    <div style="font-size:12px;font-weight:700">${t.subject}</div>
+    <div style="font-size:10.5px;color:var(--gray3);margin-top:2px">الحالة: <b style="color:${t.status==='مغلقة'?'var(--green)':'var(--gold)'}">${t.status}</b> · ${new Date(t.created_at).toLocaleDateString('ar-SA')}</div>
+    ${t.admin_reply ? `<div style="font-size:11px;color:var(--teal);margin-top:6px"><b>رد الدعم:</b> ${t.admin_reply}</div>` : ""}
+  </div>`).join("");
+}
+
+/* ══════════ ONBOARDING GUIDE ══════════ */
+/* ══════════ EXPORT ALL COMPANY DATA ══════════
+   The subscription agreement (Article 22) grants the client the right to extract their data —
+   this is the "one button" version of that: pull everything scoped to the current company
+   across every major table and package it as a single downloadable JSON file. */
+const EXPORT_TABLES = [
+  "meetings","policies","risks","board_members","shareholders","committees","compliance_items",
+  "audit_items","signing_documents","document_signatures","governance_assessments","performance_evaluations",
+  "vote_topics","agm_attendance","share_transfers","activity_log","ceo_monthly_reports",
+  "audit_requests","risk_requests","company_requests","document_templates"
+];
+
+async function exportAllCompanyData(){
+  if(!currentCompanyId){ alert("لا توجد شركة محددة حاليًا"); return; }
+  if(!confirm("سيتم تجميع كل بيانات شركتك المسجَّلة بالمنصة بملف واحد قابل للتحميل. قد يأخذ هذا بضع ثوانٍ. متابعة؟")) return;
+
+  const { data: company } = await sb.from("companies").select("*").eq("id", currentCompanyId).single();
+  const exportData = { exported_at: new Date().toISOString(), company: company || {}, data: {} };
+
+  for(const table of EXPORT_TABLES){
+    try{
+      const { data, error } = await sb.from(table).select("*").eq("company_id", currentCompanyId);
+      exportData.data[table] = error ? { error: error.message } : (data || []);
+    }catch(e){
+      exportData.data[table] = { error: e.message };
+    }
+  }
+
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `بيانات-${(company?.name||"الشركة").replace(/[\\/:*?"<>|]/g,"_")}-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 5000);
+  alert("تم تحميل ملف بيانات شركتك بنجاح ✅");
+}
+
+function openOnboardingGuide(){ openM("m-onboarding"); }
+async function closeOnboardingGuide(){
+  closeM("m-onboarding");
+  if(currentUserProfile && !currentUserProfile.onboarding_seen){
+    const { data: userData } = await sb.auth.getUser();
+    const email = userData && userData.user ? userData.user.email : null;
+    if(email) await sb.from("user_profiles").update({ onboarding_seen: true }).eq("email", email);
+    currentUserProfile.onboarding_seen = true;
+  }
 }
 
 async function logout(){
