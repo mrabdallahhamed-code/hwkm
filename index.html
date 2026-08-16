@@ -2430,7 +2430,20 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="modal">
     <div class="modal-title" id="msh-title-h">+ إضافة مساهم</div>
     <input type="hidden" id="msh-id" value="" />
-    <div class="fg"><label>اسم المساهم</label><input class="fi" id="msh-name" placeholder="مثال: عبدالله الحامد"/></div>
+    <div class="fg"><label>نوع المساهم</label>
+      <select class="fs" id="msh-type" onchange="toggleShareholderEntityFields()">
+        <option value="فرد">فرد</option>
+        <option value="كيان اعتباري">كيان اعتباري (شركة أو مؤسسة فردية)</option>
+      </select>
+    </div>
+    <div class="fg"><label id="msh-name-label">اسم المساهم</label><input class="fi" id="msh-name" placeholder="مثال: عبدالله الحامد"/></div>
+    <div id="msh-entity-fields" style="display:none">
+      <div class="row2">
+        <div class="fg"><label>رقم السجل التجاري للكيان <span style="color:var(--red)">*</span></label><input class="fi" id="msh-entity-cr"/></div>
+        <div class="fg"><label>اسم الشخص المخوّل بالتمثيل</label><input class="fi" id="msh-authorized-rep"/></div>
+      </div>
+      <p style="font-size:10.5px;color:var(--gray3);margin-top:-6px">رقم الهوية أدناه هو رقم هوية <b>الشخص المخوّل</b> نفسه (يُستخدم لربط حسابه تلقائيًا عند تسجيله بالمنصة كممثل لهذا المساهم).</p>
+    </div>
     <div class="row2">
       <div class="fg"><label>الجنسية</label><input class="fi" id="msh-nationality"/></div>
       <div class="fg"><label>محل الإقامة</label><input class="fi" id="msh-residence"/></div>
@@ -2447,7 +2460,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
     <div style="border-top:1px dashed var(--gray1);margin:14px 0 10px;padding-top:10px;font-size:11.5px;font-weight:700;color:var(--gray3)">بيانات إضافية (تُعبّى يدويًا)</div>
     <div class="row2">
-      <div class="fg"><label>رقم الهوية</label><input class="fi" id="msh-nationalid"/></div>
+      <div class="fg"><label id="msh-nationalid-label">رقم الهوية</label><input class="fi" id="msh-nationalid"/></div>
       <div class="fg"><label>رقم الجوال</label><input class="fi" id="msh-phone"/></div>
     </div>
     <div class="row2">
@@ -8983,7 +8996,7 @@ async function loadShareholders(){
     tbody.innerHTML = shareholdersCache.map(s => {
       const pct = companyTotal ? ((Number(s.shares_count)||0)/companyTotal*100).toFixed(2) : "—";
       return `<tr>
-        <td>${s.name||""}</td><td>${s.nationality||"—"}</td><td>${s.place_of_residence||"—"}</td><td>${s.profession||"—"}</td><td>${s.certificate_number||"—"}</td>
+        <td>${s.name||""}${s.shareholder_type==='كيان اعتباري'?' <span style="background:#EAF0F8;color:var(--primary);font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:5px">🏢 كيان اعتباري</span>':''}</td><td>${s.nationality||"—"}</td><td>${s.place_of_residence||"—"}</td><td>${s.profession||"—"}</td><td>${s.certificate_number||"—"}</td>
         <td>${(Number(s.shares_count)||0).toLocaleString('ar-SA')}</td><td>${pct!=="—"?pct+"%":"—"}</td>
         <td>${s.paid_value!=null?Number(s.paid_value).toLocaleString('ar-SA'):"—"}</td><td>${s.ownership_transfer_date||"—"}</td>
         <td>
@@ -9013,8 +9026,17 @@ async function loadShareTransfers(){
 function openNewShareholderModal(){
   document.getElementById("msh-id").value = "";
   document.getElementById("msh-title-h").textContent = "+ إضافة مساهم";
-  ["msh-name","msh-nationality","msh-residence","msh-profession","msh-certificate","msh-shares","msh-paidvalue","msh-transferdate","msh-nationalid","msh-phone","msh-idexpiry","msh-email","msh-notes"].forEach(id => { document.getElementById(id).value = ""; });
+  ["msh-name","msh-nationality","msh-residence","msh-profession","msh-certificate","msh-shares","msh-paidvalue","msh-transferdate","msh-nationalid","msh-phone","msh-idexpiry","msh-email","msh-notes","msh-entity-cr","msh-authorized-rep"].forEach(id => { document.getElementById(id).value = ""; });
+  document.getElementById("msh-type").value = "فرد";
+  toggleShareholderEntityFields();
   openM("m-shareholder");
+}
+
+function toggleShareholderEntityFields(){
+  const isEntity = document.getElementById("msh-type").value === "كيان اعتباري";
+  document.getElementById("msh-entity-fields").style.display = isEntity ? "block" : "none";
+  document.getElementById("msh-name-label").textContent = isEntity ? "اسم الكيان (الشركة/المؤسسة)" : "اسم المساهم";
+  document.getElementById("msh-nationalid-label").textContent = isEntity ? "رقم هوية الشخص المخوّل" : "رقم الهوية";
 }
 
 function editShareholder(id){
@@ -9022,7 +9044,10 @@ function editShareholder(id){
   if(!s) return;
   document.getElementById("msh-id").value = s.id;
   document.getElementById("msh-title-h").textContent = "✏️ تعديل مساهم";
+  document.getElementById("msh-type").value = s.shareholder_type || "فرد";
   document.getElementById("msh-name").value = s.name || "";
+  document.getElementById("msh-entity-cr").value = s.entity_cr_number || "";
+  document.getElementById("msh-authorized-rep").value = s.authorized_rep_name || "";
   document.getElementById("msh-nationality").value = s.nationality || "";
   document.getElementById("msh-residence").value = s.place_of_residence || "";
   document.getElementById("msh-profession").value = s.profession || "";
@@ -9035,6 +9060,7 @@ function editShareholder(id){
   document.getElementById("msh-idexpiry").value = s.id_expiry_date || "";
   document.getElementById("msh-email").value = s.email || "";
   document.getElementById("msh-notes").value = s.notes || "";
+  toggleShareholderEntityFields();
   openM("m-shareholder");
 }
 
@@ -9042,8 +9068,17 @@ async function saveShareholder(){
   const id = document.getElementById("msh-id").value;
   const name = document.getElementById("msh-name").value.trim();
   if(!name){ alert("الرجاء إدخال اسم المساهم"); return; }
+  const shareholder_type = document.getElementById("msh-type").value;
+  const entity_cr_number = document.getElementById("msh-entity-cr").value.trim();
+  if(shareholder_type === "كيان اعتباري" && !entity_cr_number){
+    alert("رقم السجل التجاري إلزامي عند اختيار \"كيان اعتباري\" — هذا الرقم للتوثيق فقط، ولا يُستخدم لأي ربط تلقائي (الربط يعتمد فقط على رقم هوية الشخص المخوّل).");
+    return;
+  }
   const payload = {
     name,
+    shareholder_type,
+    entity_cr_number: shareholder_type === "كيان اعتباري" ? entity_cr_number : null,
+    authorized_rep_name: shareholder_type === "كيان اعتباري" ? document.getElementById("msh-authorized-rep").value.trim() : null,
     nationality: document.getElementById("msh-nationality").value.trim(),
     place_of_residence: document.getElementById("msh-residence").value.trim(),
     profession: document.getElementById("msh-profession").value.trim(),
