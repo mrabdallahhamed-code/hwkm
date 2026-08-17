@@ -12628,6 +12628,14 @@ async function voteItem(btn, topic, result){
 let voteSigPadCtx = null, voteSigPadDrawing = false;
 let voteCardData = null; // cached data between preview and final PDF generation
 
+const ARABIC_DAY_NAMES = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+function arabicDayName(dateStr){
+  if(!dateStr) return "";
+  const d = new Date(dateStr + "T00:00:00");
+  if(isNaN(d.getTime())) return "";
+  return ARABIC_DAY_NAMES[d.getDay()];
+}
+
 async function generateShareholderVotePDF(){
   const nameEl = document.getElementById('gm-shareholder-name');
   const sharesEl = document.getElementById('gm-shares-count');
@@ -12636,26 +12644,39 @@ async function generateShareholderVotePDF(){
   if(!shareholder_name){ alert("الرجاء إدخال اسم المساهم أولاً"); return; }
   if(!currentVotingMeetingId){ alert("تعذّر تحديد الجمعية الحالية"); return; }
 
-  const [{ data: m }, { data: topics }, { data: votes }] = await Promise.all([
+  const [{ data: m }, { data: topics }, { data: votes }, { data: companyRow }] = await Promise.all([
     sb.from("meetings").select("*").eq("id", currentVotingMeetingId).single(),
     sb.from("vote_topics").select("*").eq("meeting_id", currentVotingMeetingId).order("id",{ascending:true}),
-    sb.from("votes").select("*").eq("company_id", currentCompanyId).eq("meeting_id", currentVotingMeetingId).eq("shareholder_name", shareholder_name)
+    sb.from("votes").select("*").eq("company_id", currentCompanyId).eq("meeting_id", currentVotingMeetingId).eq("shareholder_name", shareholder_name),
+    sb.from("companies").select("name").eq("id", currentCompanyId).single()
   ]);
-  const companyName = document.getElementById("reportCompanyName1")?.textContent || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "الشركة";
+  const companyName = companyRow?.name || "الشركة";
+
+  // Real attendance record (card number + actual in-person/proxy share split), if this
+  // shareholder has checked in — falls back to the totals typed in the voting form otherwise.
+  const { list: attendees } = await getAttendeesList(currentVotingMeetingId);
+  const mine = (attendees||[]).find(a => a.name === shareholder_name);
+  const card_number = mine ? mine.shareholderNo : "—";
+  const shares_own = mine ? (mine.sharesAsalah ?? mine.shares) : (shares_count || 0);
+  const shares_proxy = mine ? (mine.sharesWakala ?? 0) : 0;
+  const shares_total = Number(shares_own||0) + Number(shares_proxy||0);
+
   const resultByTopic = {};
   (votes||[]).forEach(v => { resultByTopic[v.topic] = v.result; });
-  const agendaRows = (topics||[]).map(t => ({ topic: t.topic_text || t.topic || "", result: resultByTopic[t.topic_text || t.topic] || "لم يُصوَّت بعد" }));
+  const agendaRows = (topics||[]).map(t => ({ topic: t.topic_text || t.topic || "", result: resultByTopic[t.topic_text || t.topic] || null }));
 
-  voteCardData = { shareholder_name, shares_count, companyName, meeting: m, agendaRows };
+  voteCardData = { shareholder_name, companyName, meeting: m, agendaRows, card_number, shares_own, shares_proxy, shares_total };
 
   const preview = document.getElementById("voteCardPreview");
   preview.innerHTML = `
-    <div><b>الشركة:</b> ${companyName}</div>
-    <div><b>نوع الجمعية:</b> ${m?.agm_type || "عادية"} — <b>طريقة الانعقاد:</b> ${m?.method || "—"}</div>
-    <div><b>التاريخ:</b> ${m?.meeting_date || "—"} &nbsp; <b>الوقت:</b> ${m?.meeting_time || "—"}</div>
-    <div><b>اسم المساهم:</b> ${shareholder_name} — <b>عدد الأسهم:</b> ${shares_count || "—"}</div>
+    <div style="text-align:center;font-weight:800;font-size:14px;margin-bottom:6px">بطاقة تصويت</div>
+    <div><b>الرقم:</b> ${card_number}</div>
+    <div><b>الجمعية العامة ${m?.agm_type || "العادية"} لشركة ${companyName}</b></div>
+    <div>المنعقدة ${m?.method || "—"} في يوم ${arabicDayName(m?.meeting_date)} الموافق ${m?.meeting_date || "—"} في تمام الساعة (${m?.meeting_time || "—"})</div>
+    <div style="margin-top:6px"><b>اسم المساهم:</b> ${shareholder_name}</div>
+    <div>عدد الأسهم أصالة (${shares_own}) — عدد الأسهم وكالة (${shares_proxy}) — مجموع الأسهم (${shares_total})</div>
     <div style="margin-top:8px"><b>بنود جدول الأعمال:</b></div>
-    ${agendaRows.length ? agendaRows.map((r,i)=>`<div>${i+1}. ${r.topic} — <span style="font-weight:700">${r.result}</span></div>`).join("") : '<div style="color:var(--gray3)">لا توجد بنود مسجَّلة لهذا الاجتماع بعد.</div>'}
+    ${agendaRows.length ? agendaRows.map((r,i)=>`<div>${i+1}. ${r.topic} — <span style="font-weight:700">${r.result || "لم يُصوَّت بعد"}</span></div>`).join("") : '<div style="color:var(--gray3)">لا توجد بنود مسجَّلة لهذا الاجتماع بعد.</div>'}
   `;
   openM("m-vote-card-sign");
   setTimeout(initVoteSignaturePad, 50);
@@ -12693,13 +12714,15 @@ function isVoteSignaturePadEmpty(){
   return true;
 }
 
-// Builds the entire card (header, meeting/shareholder info, agenda table, signature) on an
-// offscreen canvas — the browser's own text engine correctly shapes Arabic — then embeds that
-// as a real PDF page via pdf-lib, so the signature is genuinely part of the downloaded file.
+// Redraws the card matching the official regulatory template layout exactly (title, card
+// number, assembly line, meeting line, shareholder/shares line, the م|البند|موافق|غير موافق|
+// ممتنع table with a checkmark in the actual result column, and a signature line) — rendered on
+// an offscreen canvas so Arabic text shapes correctly, then embedded as a real PDF page via
+// pdf-lib so the signature is genuinely part of the file, not a separate image.
 async function confirmVoteCardSignature(){
   if(isVoteSignaturePadEmpty()){ alert("الرجاء رسم توقيعك أولًا قبل التأكيد"); return; }
   if(!voteCardData){ alert("تعذّر تحميل بيانات البطاقة"); return; }
-  const { shareholder_name, shares_count, companyName, meeting: m, agendaRows } = voteCardData;
+  const { shareholder_name, companyName, meeting: m, agendaRows, card_number, shares_own, shares_proxy, shares_total } = voteCardData;
 
   const scale = 2;
   const W = 595 * scale, H = 842 * scale;
@@ -12707,60 +12730,66 @@ async function confirmVoteCardSignature(){
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext("2d");
   ctx.fillStyle = "#ffffff"; ctx.fillRect(0,0,W,H);
-  ctx.direction = "rtl"; ctx.textAlign = "right";
-  const RM = W - 50*scale;
+  ctx.direction = "rtl"; ctx.textAlign = "center";
+  const CX = W/2, RM = W - 45*scale, LM = 45*scale;
 
-  ctx.fillStyle = "#1A3A6B"; ctx.fillRect(0,0,W,6*scale);
-  ctx.font = `bold ${20*scale}px Tajawal, Arial`; ctx.fillStyle = "#1A3A6B";
-  ctx.fillText(companyName, RM, 46*scale);
-  ctx.font = `bold ${16*scale}px Tajawal, Arial`; ctx.fillStyle = "#8B95A5";
-  ctx.fillText("🪪 بطاقة تصويت المساهم", RM, 72*scale);
+  ctx.font = `bold ${18*scale}px Tajawal, Arial`; ctx.fillStyle = "#0D2447";
+  ctx.fillText("بطاقة تصويت", CX, 50*scale);
 
-  let y = 105*scale;
-  ctx.font = `${12.5*scale}px Tajawal, Arial`; ctx.fillStyle = "#0D2447";
-  const line = (label, value) => { ctx.fillText(`${label}: ${value||"—"}`, RM, y); y += 21*scale; };
-  line("نوع الجمعية", m?.agm_type || "عادية");
-  line("طريقة الانعقاد", m?.method);
-  line("تاريخ الاجتماع", m?.meeting_date);
-  line("وقت الاجتماع", m?.meeting_time);
-  line("اسم المساهم", shareholder_name);
-  line("عدد الأسهم", shares_count);
+  ctx.textAlign = "right"; ctx.font = `bold ${12.5*scale}px Tajawal, Arial`;
+  let y = 85*scale;
+  ctx.fillText(`الرقم ${card_number}`, RM, y); y += 28*scale;
 
-  y += 12*scale;
-  ctx.font = `bold ${14*scale}px Tajawal, Arial`; ctx.fillStyle = "#1A3A6B";
-  ctx.fillText("بنود جدول الأعمال ونتيجة التصويت", RM, y);
-  y += 14*scale;
-  ctx.strokeStyle = "#cccccc"; ctx.beginPath(); ctx.moveTo(50*scale,y); ctx.lineTo(RM,y); ctx.stroke();
-  y += 24*scale;
+  ctx.textAlign = "center"; ctx.font = `bold ${13*scale}px Tajawal, Arial`;
+  ctx.fillText(`الجمعية العامة ${m?.agm_type || "العادية"} لشركة ${companyName}`, CX, y); y += 26*scale;
 
   ctx.font = `${11.5*scale}px Tajawal, Arial`;
-  if(agendaRows.length === 0){
-    ctx.fillStyle = "#C0392B";
-    ctx.fillText("لا توجد بنود مسجَّلة لهذا الاجتماع.", RM, y);
-    y += 24*scale;
-  } else {
-    agendaRows.forEach((r, i) => {
-      ctx.fillStyle = "#0D2447";
-      const wrapped = `${i+1}. ${r.topic}`;
-      ctx.fillText(wrapped.length > 70 ? wrapped.slice(0,70)+"…" : wrapped, RM, y);
-      const resultColor = r.result==="موافق" ? "#1E8E5A" : r.result==="معارض" ? "#C0392B" : r.result==="ممتنع" ? "#C99A2E" : "#8B95A5";
-      ctx.font = `bold ${11*scale}px Tajawal, Arial`; ctx.fillStyle = resultColor;
-      ctx.fillText(r.result, RM - 5*scale, y + 15*scale);
-      ctx.font = `${11.5*scale}px Tajawal, Arial`;
-      y += 34*scale;
-    });
-  }
+  ctx.fillText(`المنعقدة ${m?.method || "—"} في يوم ${arabicDayName(m?.meeting_date)} الموافق ${m?.meeting_date || "—"} في تمام الساعة (${m?.meeting_time || "—"}) مساءً.`, CX, y);
+  y += 36*scale;
 
-  y += 20*scale;
-  ctx.font = `bold ${13*scale}px Tajawal, Arial`; ctx.fillStyle = "#1A3A6B";
-  ctx.fillText("توقيع المساهم:", RM, y);
+  ctx.textAlign = "right"; ctx.font = `${12*scale}px Tajawal, Arial`;
+  ctx.fillText(`اسم المساهم / ${shareholder_name}`, RM, y); y += 26*scale;
+  ctx.fillText(`عدد الأسهم أصالة (${shares_own})     عدد الأسهم وكالة (${shares_proxy})     مجموع الأسهم (${shares_total})`, RM, y);
+  y += 34*scale;
+
+  // Table: م | البند | موافق | غير موافق | ممتنع عن التصويت
+  const colNo = RM, colItem = RM - 30*scale, colAgree = LM + 105*scale, colDisagree = LM + 65*scale, colAbstain = LM + 15*scale;
+  const tableTop = y;
+  ctx.strokeStyle = "#333"; ctx.lineWidth = 1*scale;
+  ctx.font = `bold ${10.5*scale}px Tajawal, Arial`; ctx.textAlign = "center";
+  const headerH = 26*scale;
+  ctx.strokeRect(LM, y, RM-LM, headerH);
+  [ [colNo,"م"], [ (colItem+RM)/2 - 55*scale, "البند"], [colAgree,"موافق"], [colDisagree,"غير موافق"], [colAbstain,"ممتنع"] ]
+    .forEach(([x,label]) => ctx.fillText(label, x, y + 17*scale));
+  y += headerH;
+
+  ctx.font = `${10.5*scale}px Tajawal, Arial`;
+  const rowsToShow = agendaRows.length ? agendaRows : [{ topic: "", result: null }];
+  rowsToShow.forEach((r, i) => {
+    const rowH = 30*scale;
+    ctx.strokeRect(LM, y, RM-LM, rowH);
+    ctx.textAlign = "center";
+    ctx.fillText(String(i+1), colNo - 15*scale, y + rowH/2 + 4*scale);
+    ctx.textAlign = "right";
+    const itemText = r.topic.length > 38 ? r.topic.slice(0,38)+"…" : r.topic;
+    ctx.fillText(itemText, RM - 40*scale, y + rowH/2 + 4*scale);
+    ctx.textAlign = "center";
+    if(r.result === "موافق") ctx.fillText("✓", colAgree, y + rowH/2 + 5*scale);
+    if(r.result === "معارض") ctx.fillText("✓", colDisagree, y + rowH/2 + 5*scale);
+    if(r.result === "ممتنع") ctx.fillText("✓", colAbstain, y + rowH/2 + 5*scale);
+    y += rowH;
+  });
+
+  y += 40*scale;
+  ctx.textAlign = "right"; ctx.font = `${12*scale}px Tajawal, Arial`; ctx.fillStyle = "#0D2447";
+  ctx.fillText("التوقيع/", RM, y);
   const sigCanvas = document.getElementById("voteSigCanvas");
   const sigDataUrl = sigCanvas.toDataURL("image/png");
   const sigImg = await new Promise(res => { const img = new Image(); img.onload = () => res(img); img.src = sigDataUrl; });
-  const sigW = 180*scale, sigH = sigW * (sigImg.height/sigImg.width);
-  ctx.drawImage(sigImg, RM - sigW, y + 10*scale, sigW, sigH);
-  ctx.font = `${10*scale}px Tajawal, Arial`; ctx.fillStyle = "#8B95A5";
-  ctx.fillText(`تاريخ التوقيع: ${new Date().toLocaleDateString("ar-SA")}`, RM, y + sigH + 30*scale);
+  const sigW = 160*scale, sigH = sigW * (sigImg.height/sigImg.width);
+  ctx.drawImage(sigImg, RM - 130*scale - sigW, y - sigH + 8*scale, sigW, sigH);
+  ctx.font = `${9.5*scale}px Tajawal, Arial`; ctx.fillStyle = "#8B95A5"; ctx.textAlign = "right";
+  ctx.fillText(`تاريخ التوقيع: ${new Date().toLocaleDateString("ar-SA")}`, RM, y + 20*scale);
 
   const cardPng = canvas.toDataURL("image/png");
   const { PDFDocument } = PDFLib;
@@ -12782,7 +12811,6 @@ async function confirmVoteCardSignature(){
   alert("تم تحميل بطاقة التصويت موقّعة بنجاح ✅");
 }
 
-function vote(type){const msg=document.getElementById("vote-msg");const labels={"yes":"✅ تم تسجيل تصويتك: موافق","no":"❌ تم تسجيل تصويتك: معارض","abs":"🔵 تم تسجيل تصويتك: ممتنع"};msg.textContent=labels[type]||"تم التسجيل";msg.style.display="block";if(type==="no"){msg.style.background="#FDE8E8";msg.style.color="var(--red)";}else if(type==="abs"){msg.style.background="#FEF3E2";msg.style.color="var(--orange)";}else{msg.style.background="#E8F8EF";msg.style.color="var(--green)";}};
 function vote(type){const msg=document.getElementById("vote-msg");const labels={"yes":"✅ تم تسجيل تصويتك: موافق","no":"❌ تم تسجيل تصويتك: معارض","abs":"🔵 تم تسجيل تصويتك: ممتنع"};msg.textContent=labels[type]||"تم التسجيل";msg.style.display="block";if(type==="no"){msg.style.background="#FDE8E8";msg.style.color="var(--red)";}else if(type==="abs"){msg.style.background="#FEF3E2";msg.style.color="var(--orange)";}else{msg.style.background="#E8F8EF";msg.style.color="var(--green)";}};
 
 /* ══════════ VOTE PDF REPORT (per AGM meeting) ══════════ */
