@@ -585,6 +585,37 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 </div>
 
 <!-- ══ APP (hidden until logged in) ══ -->
+<div class="modal-bg" id="m-forgot-password">
+  <div class="modal">
+    <div class="modal-title">🔑 نسيت كلمة المرور</div>
+    <p style="font-size:12.5px;color:var(--gray3)">أدخل بريدك الإلكتروني، وسنرسل لك رابط لإعادة تعيين كلمة المرور.</p>
+    <div class="fg"><label>البريد الإلكتروني</label><input type="email" class="fi" id="forgot-email" placeholder="example@email.com"/></div>
+    <div id="forgot-msg" style="font-size:11.5px;display:none;margin-bottom:8px"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-forgot-password')">إلغاء</button><button class="btn btn-gold" onclick="sendPasswordResetEmail()">📨 إرسال رابط إعادة التعيين</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-reset-password">
+  <div class="modal">
+    <div class="modal-title">🔑 تعيين كلمة مرور جديدة</div>
+    <p style="font-size:12.5px;color:var(--gray3)">أدخل كلمة مرور جديدة لحسابك.</p>
+    <div class="fg"><label>كلمة المرور الجديدة</label><input type="password" class="fi" id="reset-new-password" placeholder="••••••••"/></div>
+    <div class="fg"><label>تأكيد كلمة المرور</label><input type="password" class="fi" id="reset-confirm-password" placeholder="••••••••"/></div>
+    <div id="reset-msg" style="font-size:11.5px;display:none;margin-bottom:8px"></div>
+    <div class="modal-foot"><button class="btn btn-gold" style="width:100%" onclick="confirmPasswordReset()">✅ تعيين كلمة المرور</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-mfa-challenge">
+  <div class="modal">
+    <div class="modal-title">🔐 التحقق بخطوتين</div>
+    <p style="font-size:12.5px;color:var(--dark)">أدخل الرمز المكوّن من 6 أرقام من تطبيق المصادقة على جوالك.</p>
+    <div class="fg"><input class="fi" id="mfaLoginCode" maxlength="6" placeholder="000000" style="text-align:center;letter-spacing:4px;font-size:18px"></div>
+    <div id="mfaLoginError" style="color:var(--red);font-size:11.5px;display:none;margin-bottom:8px"></div>
+    <div class="modal-foot"><button class="btn btn-gold" style="width:100%" onclick="verifyMfaLogin()">تأكيد الدخول</button></div>
+  </div>
+</div>
+
 <div id="appWrapper" style="display:none">
 
 <!-- Overlay -->
@@ -2559,27 +2590,6 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
-<div class="modal-bg" id="m-forgot-password">
-  <div class="modal">
-    <div class="modal-title">🔑 نسيت كلمة المرور</div>
-    <p style="font-size:12.5px;color:var(--gray3)">أدخل بريدك الإلكتروني، وسنرسل لك رابط لإعادة تعيين كلمة المرور.</p>
-    <div class="fg"><label>البريد الإلكتروني</label><input type="email" class="fi" id="forgot-email" placeholder="example@email.com"/></div>
-    <div id="forgot-msg" style="font-size:11.5px;display:none;margin-bottom:8px"></div>
-    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-forgot-password')">إلغاء</button><button class="btn btn-gold" onclick="sendPasswordResetEmail()">📨 إرسال رابط إعادة التعيين</button></div>
-  </div>
-</div>
-
-<div class="modal-bg" id="m-reset-password">
-  <div class="modal">
-    <div class="modal-title">🔑 تعيين كلمة مرور جديدة</div>
-    <p style="font-size:12.5px;color:var(--gray3)">أدخل كلمة مرور جديدة لحسابك.</p>
-    <div class="fg"><label>كلمة المرور الجديدة</label><input type="password" class="fi" id="reset-new-password" placeholder="••••••••"/></div>
-    <div class="fg"><label>تأكيد كلمة المرور</label><input type="password" class="fi" id="reset-confirm-password" placeholder="••••••••"/></div>
-    <div id="reset-msg" style="font-size:11.5px;display:none;margin-bottom:8px"></div>
-    <div class="modal-foot"><button class="btn btn-gold" style="width:100%" onclick="confirmPasswordReset()">✅ تعيين كلمة المرور</button></div>
-  </div>
-</div>
-
 <div class="modal-bg" id="m-activate-sub">
   <div class="modal">
     <div class="modal-title" id="mas-title-h">✅ تفعيل الاشتراك</div>
@@ -2710,16 +2720,6 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     </div>
 
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-security')">إغلاق</button></div>
-  </div>
-</div>
-
-<div class="modal-bg" id="m-mfa-challenge">
-  <div class="modal">
-    <div class="modal-title">🔐 التحقق بخطوتين</div>
-    <p style="font-size:12.5px;color:var(--dark)">أدخل الرمز المكوّن من 6 أرقام من تطبيق المصادقة على جوالك.</p>
-    <div class="fg"><input class="fi" id="mfaLoginCode" maxlength="6" placeholder="000000" style="text-align:center;letter-spacing:4px;font-size:18px"></div>
-    <div id="mfaLoginError" style="color:var(--red);font-size:11.5px;display:none;margin-bottom:8px"></div>
-    <div class="modal-foot"><button class="btn btn-gold" style="width:100%" onclick="verifyMfaLogin()">تأكيد الدخول</button></div>
   </div>
 </div>
 
@@ -5237,8 +5237,6 @@ async function showApp(){
 
 /* ══════════ FORGOT / RESET PASSWORD ══════════ */
 function openForgotPasswordModal(){
-  document.body.style.outline = "10px solid lime";
-  setTimeout(()=>{ document.body.style.outline = ""; }, 3000);
   document.getElementById("forgot-email").value = document.getElementById("loginEmail")?.value || "";
   document.getElementById("forgot-msg").style.display = "none";
   openM("m-forgot-password");
