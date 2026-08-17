@@ -585,6 +585,56 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 </div>
 
 <!-- ══ APP (hidden until logged in) ══ -->
+<div class="modal-bg" id="m-forgot-password">
+  <div class="modal">
+    <div class="modal-title">🔑 نسيت كلمة المرور</div>
+    <p style="font-size:12.5px;color:var(--gray3)">أدخل بريدك الإلكتروني، وسنرسل لك رابط لإعادة تعيين كلمة المرور.</p>
+    <div class="fg"><label>البريد الإلكتروني</label><input type="email" class="fi" id="forgot-email" placeholder="example@email.com"/></div>
+    <div id="forgot-msg" style="font-size:11.5px;display:none;margin-bottom:8px"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-forgot-password')">إلغاء</button><button class="btn btn-gold" onclick="sendPasswordResetEmail()">📨 إرسال رابط إعادة التعيين</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-reset-password">
+  <div class="modal">
+    <div class="modal-title">🔑 تعيين كلمة مرور جديدة</div>
+    <p style="font-size:12.5px;color:var(--gray3)">أدخل كلمة مرور جديدة لحسابك.</p>
+    <div class="fg"><label>كلمة المرور الجديدة</label><input type="password" class="fi" id="reset-new-password" placeholder="••••••••"/></div>
+    <div class="fg"><label>تأكيد كلمة المرور</label><input type="password" class="fi" id="reset-confirm-password" placeholder="••••••••"/></div>
+    <div id="reset-msg" style="font-size:11.5px;display:none;margin-bottom:8px"></div>
+    <div class="modal-foot"><button class="btn btn-gold" style="width:100%" onclick="confirmPasswordReset()">✅ تعيين كلمة المرور</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-mfa-challenge">
+  <div class="modal">
+    <div class="modal-title">🔐 التحقق بخطوتين</div>
+    <p style="font-size:12.5px;color:var(--dark)">أدخل الرمز المكوّن من 6 أرقام من تطبيق المصادقة على جوالك.</p>
+    <div class="fg"><input class="fi" id="mfaLoginCode" maxlength="6" placeholder="000000" style="text-align:center;letter-spacing:4px;font-size:18px"></div>
+    <div id="mfaLoginError" style="color:var(--red);font-size:11.5px;display:none;margin-bottom:8px"></div>
+    <div class="modal-foot"><button class="btn btn-gold" style="width:100%" onclick="verifyMfaLogin()">تأكيد الدخول</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-privacy-policy">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-title">🔒 سياسة الخصوصية — منصة حوكم</div>
+    <div style="font-size:12.5px;line-height:2;color:var(--dark);max-height:60vh;overflow-y:auto">
+      <p><b>١. البيانات التي نجمعها</b><br>نجمع بيانات التسجيل (الاسم، البريد الإلكتروني، رقم الجوال، رقم الهوية الوطنية عند الحاجة للتحقق التلقائي)، وبيانات الاستخدام (سجلات الدخول والنشاط)، والمحتوى الذي تُدخله شركتكم بالمنصة (محاضر، سياسات، بيانات مساهمين وأعضاء مجلس).</p>
+      <p><b>٢. الغرض من المعالجة</b><br>نستخدم بياناتكم لتقديم خدمات المنصة، التحقق من الهوية وربط الحسابات تلقائيًا، إرسال الإشعارات والتنبيهات المتعلقة باستخدامكم، والتواصل بخصوص الدعم الفني والفوترة.</p>
+      <p><b>٣. أساس المعالجة</b><br>نعالج بياناتكم بناءً على تنفيذ العقد المبرم معكم (اتفاقية الاشتراك)، والموافقة الصريحة عند التسجيل، والمصلحة المشروعة في تشغيل وتأمين المنصة.</p>
+      <p><b>٤. مشاركة البيانات</b><br>لا نبيع بياناتكم لأي طرف ثالث. قد نشارك بيانات محدودة مع مزودي خدمات تقنية ضروريين لتشغيل المنصة (استضافة، بريد إلكتروني، رسائل نصية)، بموجب التزامات تعاقدية بحماية البيانات.</p>
+      <p><b>٥. أمن البيانات</b><br>نطبّق تدابير تقنية وتنظيمية مناسبة لحماية بياناتكم، بما في ذلك التشفير، والصلاحيات المحدودة، ومراقبة الأنشطة غير المعتادة.</p>
+      <p><b>٦. حقوقكم</b><br>يحق لكم الوصول لبياناتكم (عبر زر "تصدير بياناتي")، طلب تصحيحها، أو طلب حذفها وفق سياسة الاحتفاظ بالبيانات والالتزامات النظامية المعمول بها.</p>
+      <p><b>٧. الاحتفاظ بالبيانات</b><br>نحتفظ ببياناتكم طوال مدة اشتراككم، ولمدة إضافية بعد الإلغاء حسب ما تقتضيه الالتزامات النظامية، ما لم تطلبوا الحذف المبكر وفق الأنظمة المعمول بها.</p>
+      <p><b>٨. التواصل</b><br>لأي استفسار متعلق بخصوصية بياناتكم، تواصلوا معنا عبر زر "🆘 الدعم" داخل المنصة.</p>
+      <p style="color:var(--gray3);font-size:11px;margin-top:16px">آخر تحديث: أغسطس ٢٠٢٦. هذه السياسة جزء مكمّل لاتفاقية الاشتراك الموقّعة، ولا تُغني عنها.</p>
+    </div>
+    <div class="modal-foot"><button class="btn btn-gold" style="width:100%" onclick="closeM('m-privacy-policy')">إغلاق</button></div>
+  </div>
+</div>
+
+
 <div id="appWrapper" style="display:none">
 
 <!-- Overlay -->
@@ -2515,24 +2565,6 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
-<div class="modal-bg" id="m-privacy-policy">
-  <div class="modal" style="max-width:640px">
-    <div class="modal-title">🔒 سياسة الخصوصية — منصة حوكم</div>
-    <div style="font-size:12.5px;line-height:2;color:var(--dark);max-height:60vh;overflow-y:auto">
-      <p><b>١. البيانات التي نجمعها</b><br>نجمع بيانات التسجيل (الاسم، البريد الإلكتروني، رقم الجوال، رقم الهوية الوطنية عند الحاجة للتحقق التلقائي)، وبيانات الاستخدام (سجلات الدخول والنشاط)، والمحتوى الذي تُدخله شركتكم بالمنصة (محاضر، سياسات، بيانات مساهمين وأعضاء مجلس).</p>
-      <p><b>٢. الغرض من المعالجة</b><br>نستخدم بياناتكم لتقديم خدمات المنصة، التحقق من الهوية وربط الحسابات تلقائيًا، إرسال الإشعارات والتنبيهات المتعلقة باستخدامكم، والتواصل بخصوص الدعم الفني والفوترة.</p>
-      <p><b>٣. أساس المعالجة</b><br>نعالج بياناتكم بناءً على تنفيذ العقد المبرم معكم (اتفاقية الاشتراك)، والموافقة الصريحة عند التسجيل، والمصلحة المشروعة في تشغيل وتأمين المنصة.</p>
-      <p><b>٤. مشاركة البيانات</b><br>لا نبيع بياناتكم لأي طرف ثالث. قد نشارك بيانات محدودة مع مزودي خدمات تقنية ضروريين لتشغيل المنصة (استضافة، بريد إلكتروني، رسائل نصية)، بموجب التزامات تعاقدية بحماية البيانات.</p>
-      <p><b>٥. أمن البيانات</b><br>نطبّق تدابير تقنية وتنظيمية مناسبة لحماية بياناتكم، بما في ذلك التشفير، والصلاحيات المحدودة، ومراقبة الأنشطة غير المعتادة.</p>
-      <p><b>٦. حقوقكم</b><br>يحق لكم الوصول لبياناتكم (عبر زر "تصدير بياناتي")، طلب تصحيحها، أو طلب حذفها وفق سياسة الاحتفاظ بالبيانات والالتزامات النظامية المعمول بها.</p>
-      <p><b>٧. الاحتفاظ بالبيانات</b><br>نحتفظ ببياناتكم طوال مدة اشتراككم، ولمدة إضافية بعد الإلغاء حسب ما تقتضيه الالتزامات النظامية، ما لم تطلبوا الحذف المبكر وفق الأنظمة المعمول بها.</p>
-      <p><b>٨. التواصل</b><br>لأي استفسار متعلق بخصوصية بياناتكم، تواصلوا معنا عبر زر "🆘 الدعم" داخل المنصة.</p>
-      <p style="color:var(--gray3);font-size:11px;margin-top:16px">آخر تحديث: أغسطس ٢٠٢٦. هذه السياسة جزء مكمّل لاتفاقية الاشتراك الموقّعة، ولا تُغني عنها.</p>
-    </div>
-    <div class="modal-foot"><button class="btn btn-gold" style="width:100%" onclick="closeM('m-privacy-policy')">إغلاق</button></div>
-  </div>
-</div>
-
 <div class="modal-bg" id="m-support">
   <div class="modal">
     <div class="modal-title">🆘 الدعم الفني</div>
@@ -2556,27 +2588,6 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <p>🆘 احتجت مساعدة بأي وقت؟ اضغط زر "الدعم" بالأعلى، أو ارجع لهذي الجولة بزر "❓".</p>
     </div>
     <div class="modal-foot"><button class="btn btn-gold" style="width:100%" onclick="closeOnboardingGuide()">✅ فهمت، ابدأ</button></div>
-  </div>
-</div>
-
-<div class="modal-bg" id="m-forgot-password">
-  <div class="modal">
-    <div class="modal-title">🔑 نسيت كلمة المرور</div>
-    <p style="font-size:12.5px;color:var(--gray3)">أدخل بريدك الإلكتروني، وسنرسل لك رابط لإعادة تعيين كلمة المرور.</p>
-    <div class="fg"><label>البريد الإلكتروني</label><input type="email" class="fi" id="forgot-email" placeholder="example@email.com"/></div>
-    <div id="forgot-msg" style="font-size:11.5px;display:none;margin-bottom:8px"></div>
-    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-forgot-password')">إلغاء</button><button class="btn btn-gold" onclick="sendPasswordResetEmail()">📨 إرسال رابط إعادة التعيين</button></div>
-  </div>
-</div>
-
-<div class="modal-bg" id="m-reset-password">
-  <div class="modal">
-    <div class="modal-title">🔑 تعيين كلمة مرور جديدة</div>
-    <p style="font-size:12.5px;color:var(--gray3)">أدخل كلمة مرور جديدة لحسابك.</p>
-    <div class="fg"><label>كلمة المرور الجديدة</label><input type="password" class="fi" id="reset-new-password" placeholder="••••••••"/></div>
-    <div class="fg"><label>تأكيد كلمة المرور</label><input type="password" class="fi" id="reset-confirm-password" placeholder="••••••••"/></div>
-    <div id="reset-msg" style="font-size:11.5px;display:none;margin-bottom:8px"></div>
-    <div class="modal-foot"><button class="btn btn-gold" style="width:100%" onclick="confirmPasswordReset()">✅ تعيين كلمة المرور</button></div>
   </div>
 </div>
 
@@ -2713,16 +2724,6 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
-<div class="modal-bg" id="m-mfa-challenge">
-  <div class="modal">
-    <div class="modal-title">🔐 التحقق بخطوتين</div>
-    <p style="font-size:12.5px;color:var(--dark)">أدخل الرمز المكوّن من 6 أرقام من تطبيق المصادقة على جوالك.</p>
-    <div class="fg"><input class="fi" id="mfaLoginCode" maxlength="6" placeholder="000000" style="text-align:center;letter-spacing:4px;font-size:18px"></div>
-    <div id="mfaLoginError" style="color:var(--red);font-size:11.5px;display:none;margin-bottom:8px"></div>
-    <div class="modal-foot"><button class="btn btn-gold" style="width:100%" onclick="verifyMfaLogin()">تأكيد الدخول</button></div>
-  </div>
-</div>
-
 <div class="modal-bg" id="m-invite">
   <div class="modal">
     <div class="modal-title" id="mi-title-h">🔗 دعوة عضو جديد</div>
@@ -2825,8 +2826,8 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
 <script>
 /* ══════════ SUPABASE CONFIG ══════════ */
-const SUPABASE_URL = "https://hfvsnmafzehkpuofqogy.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmdnNubWFmemVoa3B1b2Zxb2d5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5MDg4MTcsImV4cCI6MjEwMjQ4NDgxN30.DoqKag4jarONfdWrxHLB722RoKgQk3lPCUxpT5iVqb0";
+const SUPABASE_URL = "https://omddnkofsdtwfjkxdktt.supabase.co";
+const SUPABASE_KEY = "sb_publishable_SbHWC7JAuyvXypZyJeiWkg_I9Y4gjbj";
 /* ══════════ ENGLISH TRANSLATION LAYER ══════════
    Rather than rewrite every function that builds Arabic HTML (hundreds of them), we translate
    the rendered DOM after the fact: a dictionary of exact Arabic phrases → English, applied to
@@ -4530,8 +4531,11 @@ async function submitCompanyRequest(){
   const responsible_phone = document.getElementById("cr-resp-phone").value.trim();
   const responsible_email = document.getElementById("cr-resp-email").value.trim();
 
+  const { data: userData } = await sb.auth.getUser();
+  const sessionEmail = userData && userData.user ? userData.user.email : currentUserProfile.email;
+
   const { error } = await sb.from("company_requests").insert([{
-    requested_by_email: currentUserProfile.email, requested_by_name: currentUserProfile.full_name,
+    requested_by_email: sessionEmail, requested_by_name: currentUserProfile.full_name,
     company_name, company_type, cr_number, cr_date, responsible_person, responsible_phone, responsible_email,
     status: "قيد المراجعة"
   }]);
