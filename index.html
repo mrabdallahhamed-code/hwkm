@@ -3234,15 +3234,19 @@ async function handleAuth(){
     if(inviteRowId){
       await sb.from("company_invites").update({ used: true, used_by_email: email, used_at: new Date().toISOString() }).eq("id", inviteRowId);
     }
-    for(const rec of claimedRecords){
-      await sb.from(rec.table).update({ claimed_by_email: email }).eq("id", rec.id);
-    }
     if(inviteCompanyId && memberships.length === 0){
       // Invite-code path: single membership from the invite itself.
       memberships = [{ company_id: inviteCompanyId, role: inviteRole }];
     }
     if(memberships.length){
       await sb.from("user_company_memberships").insert(memberships.map(m => ({ email, company_id: m.company_id, role: m.role })));
+    }
+    // Claiming board_members/shareholders rows must happen AFTER the membership rows above are
+    // created — the RLS policy on those tables requires is_member_of(company_id), which only
+    // becomes true once the membership insert just above has actually gone through. Doing this
+    // in the old order silently failed every claim (RLS blocked it with no visible error).
+    for(const rec of claimedRecords){
+      await sb.from(rec.table).update({ claimed_by_email: email }).eq("id", rec.id);
     }
 
     showLoginMsg(inviteCompanyId ? (memberships.length > 1 ? `تم إنشاء الحساب وربطه تلقائيًا بـ${memberships.length} شركات ✅ يمكنك تسجيل الدخول الآن.` : "تم إنشاء الحساب وربطه بشركتك تلقائيًا ✅ يمكنك تسجيل الدخول الآن.") : "تم إنشاء الحساب. يمكنك تسجيل الدخول الآن (أو تحقق من بريدك للتفعيل)", true);
