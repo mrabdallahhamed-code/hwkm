@@ -5237,10 +5237,22 @@ async function showApp(){
 
 /* ══════════ FORGOT / RESET PASSWORD ══════════ */
 function openForgotPasswordModal(){
-  alert("🔧 تشخيص: الدالة اشتغلت فعليًا");
-  document.getElementById("forgot-email").value = document.getElementById("loginEmail")?.value || "";
-  document.getElementById("forgot-msg").style.display = "none";
-  openM("m-forgot-password");
+  try{
+    const emailEl = document.getElementById("forgot-email");
+    const msgEl = document.getElementById("forgot-msg");
+    const modalEl = document.getElementById("m-forgot-password");
+    let report = `emailEl: ${!!emailEl} | msgEl: ${!!msgEl} | modalEl: ${!!modalEl}`;
+    if(emailEl) emailEl.value = document.getElementById("loginEmail")?.value || "";
+    if(msgEl) msgEl.style.display = "none";
+    if(modalEl){
+      modalEl.classList.add('open');
+      report += ` | classList after: ${modalEl.className}`;
+      report += ` | computed display: ${getComputedStyle(modalEl).display}`;
+    }
+    alert("🔧 تشخيص: " + report);
+  }catch(e){
+    alert("🔧 خطأ بالتشخيص: " + e.message);
+  }
 }
 
 async function sendPasswordResetEmail(){
