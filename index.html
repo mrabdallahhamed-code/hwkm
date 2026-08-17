@@ -5237,6 +5237,7 @@ async function showApp(){
 
 /* ══════════ FORGOT / RESET PASSWORD ══════════ */
 function openForgotPasswordModal(){
+  alert("🔧 تشخيص: الدالة اشتغلت فعليًا");
   document.getElementById("forgot-email").value = document.getElementById("loginEmail")?.value || "";
   document.getElementById("forgot-msg").style.display = "none";
   openM("m-forgot-password");
