@@ -479,6 +479,11 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   .page-title{max-width:38vw;font-size:15px;}
   #companySwitcher{max-width:70px;font-size:10.5px;}
 }
+/* These 4 modals must appear above the full-screen login overlay (z-index:1000) since they're
+   used from the pre-login screen itself (forgot password, MFA challenge, password reset, privacy
+   policy) — without this override they'd render correctly but stay hidden behind it. */
+#m-forgot-password, #m-reset-password, #m-mfa-challenge, #m-privacy-policy{ z-index:1100; }
+
 /* ── LOGIN SCREEN ── */
 #loginScreen{
   position:fixed;inset:0;z-index:1000;
