@@ -2180,6 +2180,24 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
+<div class="modal-bg" id="m-vote-card-sign">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title">🪪 بطاقة تصويت المساهم — التوقيع</div>
+    <div id="voteCardPreview" style="background:var(--offwhite);border-radius:10px;padding:14px;margin-bottom:12px;font-size:12px;line-height:1.9"></div>
+    <p style="font-size:11.5px;color:var(--gray3);margin-bottom:6px">وقّع بإصبعك أو الماوس لتأكيد صحة تصويتك، ثم نزّل بطاقتك موقّعة كملف PDF.</p>
+    <div style="border:2px dashed var(--gray1);border-radius:10px;background:#fff;touch-action:none">
+      <canvas id="voteSigCanvas" width="460" height="150" style="width:100%;height:150px;cursor:crosshair;display:block"></canvas>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-ghost" style="flex:1" onclick="clearVoteSignaturePad()">🧹 مسح</button>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeM('m-vote-card-sign')">إلغاء</button>
+      <button class="btn btn-gold" onclick="confirmVoteCardSignature()">📥 تنزيل البطاقة الموقّعة (PDF)</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-signature-pad">
   <div class="modal">
     <div class="modal-title">✍️ ارسم توقيعك</div>
@@ -12607,6 +12625,9 @@ async function voteItem(btn, topic, result){
 }
 
 /* Personalized PDF for the shareholder currently filling the form */
+let voteSigPadCtx = null, voteSigPadDrawing = false;
+let voteCardData = null; // cached data between preview and final PDF generation
+
 async function generateShareholderVotePDF(){
   const nameEl = document.getElementById('gm-shareholder-name');
   const sharesEl = document.getElementById('gm-shares-count');
@@ -12615,65 +12636,153 @@ async function generateShareholderVotePDF(){
   if(!shareholder_name){ alert("الرجاء إدخال اسم المساهم أولاً"); return; }
   if(!currentVotingMeetingId){ alert("تعذّر تحديد الجمعية الحالية"); return; }
 
-  const templateRow = docTemplatesCache["vote_card"];
-  if(templateRow){
-    try{
-      const { data: m } = await sb.from("meetings").select("*").eq("id", currentVotingMeetingId).single();
-      const { list: attendees } = await getAttendeesList(currentVotingMeetingId);
-      const mine = attendees.find(a => a.name === shareholder_name);
-      const companyName = document.getElementById("reportCompanyName1")?.textContent || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "الشركة";
-      await fillDocxTemplate(templateRow.file_url, {
-        card_number: mine ? mine.shareholderNo : "-",
-        company_name: companyName,
-        meeting_type_label: m?.agm_type || "عادية",
-        method: m?.method || "",
-        meeting_date: m?.meeting_date || "",
-        meeting_time: m?.meeting_time || "",
-        shareholder_name: shareholder_name,
-        shares_own: shares_count || (mine ? mine.shares : ""),
-        shares_proxy: 0,
-        shares_total: shares_count || (mine ? mine.shares : "")
-      }, `بطاقة تصويت - ${shareholder_name}.docx`);
-      return;
-    }catch(e){ alert("تعذّر تعبئة القالب، سيُستخدم التصميم الافتراضي بدلًا منه: " + e.message); }
-  }
+  const [{ data: m }, { data: topics }, { data: votes }] = await Promise.all([
+    sb.from("meetings").select("*").eq("id", currentVotingMeetingId).single(),
+    sb.from("vote_topics").select("*").eq("meeting_id", currentVotingMeetingId).order("id",{ascending:true}),
+    sb.from("votes").select("*").eq("company_id", currentCompanyId).eq("meeting_id", currentVotingMeetingId).eq("shareholder_name", shareholder_name)
+  ]);
+  const companyName = document.getElementById("reportCompanyName1")?.textContent || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "الشركة";
+  const resultByTopic = {};
+  (votes||[]).forEach(v => { resultByTopic[v.topic] = v.result; });
+  const agendaRows = (topics||[]).map(t => ({ topic: t.topic_text || t.topic || "", result: resultByTopic[t.topic_text || t.topic] || "لم يُصوَّت بعد" }));
 
-  const w = window.open("", "_blank");
-  if(w){ w.document.write('<html dir="rtl"><body style="font-family:sans-serif;padding:30px">جارِ تجهيز الملف...</body></html>'); w.document.close(); }
-  const { data, error } = await sb.from("votes").select("*").eq("company_id", currentCompanyId).eq("meeting_id", currentVotingMeetingId).eq("shareholder_name", shareholder_name).order("id",{ascending:true});
-  if(error){ alert("تعذّر توليد الملف: " + error.message); if(w) w.close(); return; }
-  if(!w){ alert("المتصفح منع فتح نافذة الملف — الرجاء السماح بالنوافذ المنبثقة (Pop-ups) ثم المحاولة مرة أخرى."); return; }
-  const rows = data || [];
-  const dateNow = new Date().toLocaleDateString("ar-SA");
-  const meetingTitle = document.getElementById("votingMeetingTitle")?.textContent || "الجمعية العامة";
+  voteCardData = { shareholder_name, shares_count, companyName, meeting: m, agendaRows };
 
-  w.document.open();
-  w.document.write(`
-    <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>بطاقة تصويت المساهم — ${shareholder_name}</title>
-    <style>
-      body{font-family:'Tajawal',Arial,sans-serif;padding:30px;color:#0D2447}
-      h1{color:#1A3A6B;font-size:19px;border-bottom:3px solid #D4AF37;padding-bottom:10px}
-      table{width:100%;border-collapse:collapse;margin-top:14px}
-      th,td{border:1px solid #ccc;padding:8px;text-align:right;font-size:13px}
-      th{background:#EAF0F8}
-    </style></head><body>
-    <h1>🗳️ بطاقة تصويت المساهم — ${meetingTitle}</h1>
-    <p><b>اسم المساهم:</b> ${shareholder_name}</p>
-    <p><b>عدد الأسهم:</b> ${shares_count || "—"}</p>
-    <p><b>تاريخ الإصدار:</b> ${dateNow}</p>
-    ${rows.length===0 ? '<p style="color:#C0392B">لم يتم تسجيل أي تصويت بعد لهذا المساهم.</p>' : `
-    <table>
-      <thead><tr><th>البند</th><th>نتيجة تصويته</th></tr></thead>
-      <tbody>
-        ${rows.map(r=>`<tr><td>${r.topic||""}</td><td>${r.result||""}</td></tr>`).join("")}
-      </tbody>
-    </table>`}
-    <script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>
-    </body></html>
-  `);
-  w.document.close();
+  const preview = document.getElementById("voteCardPreview");
+  preview.innerHTML = `
+    <div><b>الشركة:</b> ${companyName}</div>
+    <div><b>نوع الجمعية:</b> ${m?.agm_type || "عادية"} — <b>طريقة الانعقاد:</b> ${m?.method || "—"}</div>
+    <div><b>التاريخ:</b> ${m?.meeting_date || "—"} &nbsp; <b>الوقت:</b> ${m?.meeting_time || "—"}</div>
+    <div><b>اسم المساهم:</b> ${shareholder_name} — <b>عدد الأسهم:</b> ${shares_count || "—"}</div>
+    <div style="margin-top:8px"><b>بنود جدول الأعمال:</b></div>
+    ${agendaRows.length ? agendaRows.map((r,i)=>`<div>${i+1}. ${r.topic} — <span style="font-weight:700">${r.result}</span></div>`).join("") : '<div style="color:var(--gray3)">لا توجد بنود مسجَّلة لهذا الاجتماع بعد.</div>'}
+  `;
+  openM("m-vote-card-sign");
+  setTimeout(initVoteSignaturePad, 50);
 }
 
+function initVoteSignaturePad(){
+  const canvas = document.getElementById("voteSigCanvas");
+  if(!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width; canvas.height = rect.height;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle = "#0D2447"; ctx.lineWidth = 2.5; ctx.lineCap = "round"; ctx.lineJoin = "round";
+  voteSigPadCtx = ctx;
+  const getPos = (e) => { const r = canvas.getBoundingClientRect(); const p = e.touches ? e.touches[0] : e; return { x: p.clientX - r.left, y: p.clientY - r.top }; };
+  const start = (e) => { e.preventDefault(); voteSigPadDrawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+  const move = (e) => { if(!voteSigPadDrawing) return; e.preventDefault(); const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+  const end = () => { voteSigPadDrawing = false; };
+  canvas.onmousedown = start; canvas.onmousemove = move; canvas.onmouseup = end; canvas.onmouseleave = end;
+  canvas.ontouchstart = start; canvas.ontouchmove = move; canvas.ontouchend = end;
+}
+
+function clearVoteSignaturePad(){
+  if(!voteSigPadCtx) return;
+  const canvas = document.getElementById("voteSigCanvas");
+  voteSigPadCtx.clearRect(0,0,canvas.width,canvas.height);
+}
+
+function isVoteSignaturePadEmpty(){
+  const canvas = document.getElementById("voteSigCanvas");
+  if(!canvas) return true;
+  const ctx = canvas.getContext("2d");
+  const data = ctx.getImageData(0,0,canvas.width,canvas.height).data;
+  for(let i=3; i<data.length; i+=4){ if(data[i] !== 0) return false; }
+  return true;
+}
+
+// Builds the entire card (header, meeting/shareholder info, agenda table, signature) on an
+// offscreen canvas — the browser's own text engine correctly shapes Arabic — then embeds that
+// as a real PDF page via pdf-lib, so the signature is genuinely part of the downloaded file.
+async function confirmVoteCardSignature(){
+  if(isVoteSignaturePadEmpty()){ alert("الرجاء رسم توقيعك أولًا قبل التأكيد"); return; }
+  if(!voteCardData){ alert("تعذّر تحميل بيانات البطاقة"); return; }
+  const { shareholder_name, shares_count, companyName, meeting: m, agendaRows } = voteCardData;
+
+  const scale = 2;
+  const W = 595 * scale, H = 842 * scale;
+  const canvas = document.createElement("canvas");
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(0,0,W,H);
+  ctx.direction = "rtl"; ctx.textAlign = "right";
+  const RM = W - 50*scale;
+
+  ctx.fillStyle = "#1A3A6B"; ctx.fillRect(0,0,W,6*scale);
+  ctx.font = `bold ${20*scale}px Tajawal, Arial`; ctx.fillStyle = "#1A3A6B";
+  ctx.fillText(companyName, RM, 46*scale);
+  ctx.font = `bold ${16*scale}px Tajawal, Arial`; ctx.fillStyle = "#8B95A5";
+  ctx.fillText("🪪 بطاقة تصويت المساهم", RM, 72*scale);
+
+  let y = 105*scale;
+  ctx.font = `${12.5*scale}px Tajawal, Arial`; ctx.fillStyle = "#0D2447";
+  const line = (label, value) => { ctx.fillText(`${label}: ${value||"—"}`, RM, y); y += 21*scale; };
+  line("نوع الجمعية", m?.agm_type || "عادية");
+  line("طريقة الانعقاد", m?.method);
+  line("تاريخ الاجتماع", m?.meeting_date);
+  line("وقت الاجتماع", m?.meeting_time);
+  line("اسم المساهم", shareholder_name);
+  line("عدد الأسهم", shares_count);
+
+  y += 12*scale;
+  ctx.font = `bold ${14*scale}px Tajawal, Arial`; ctx.fillStyle = "#1A3A6B";
+  ctx.fillText("بنود جدول الأعمال ونتيجة التصويت", RM, y);
+  y += 14*scale;
+  ctx.strokeStyle = "#cccccc"; ctx.beginPath(); ctx.moveTo(50*scale,y); ctx.lineTo(RM,y); ctx.stroke();
+  y += 24*scale;
+
+  ctx.font = `${11.5*scale}px Tajawal, Arial`;
+  if(agendaRows.length === 0){
+    ctx.fillStyle = "#C0392B";
+    ctx.fillText("لا توجد بنود مسجَّلة لهذا الاجتماع.", RM, y);
+    y += 24*scale;
+  } else {
+    agendaRows.forEach((r, i) => {
+      ctx.fillStyle = "#0D2447";
+      const wrapped = `${i+1}. ${r.topic}`;
+      ctx.fillText(wrapped.length > 70 ? wrapped.slice(0,70)+"…" : wrapped, RM, y);
+      const resultColor = r.result==="موافق" ? "#1E8E5A" : r.result==="معارض" ? "#C0392B" : r.result==="ممتنع" ? "#C99A2E" : "#8B95A5";
+      ctx.font = `bold ${11*scale}px Tajawal, Arial`; ctx.fillStyle = resultColor;
+      ctx.fillText(r.result, RM - 5*scale, y + 15*scale);
+      ctx.font = `${11.5*scale}px Tajawal, Arial`;
+      y += 34*scale;
+    });
+  }
+
+  y += 20*scale;
+  ctx.font = `bold ${13*scale}px Tajawal, Arial`; ctx.fillStyle = "#1A3A6B";
+  ctx.fillText("توقيع المساهم:", RM, y);
+  const sigCanvas = document.getElementById("voteSigCanvas");
+  const sigDataUrl = sigCanvas.toDataURL("image/png");
+  const sigImg = await new Promise(res => { const img = new Image(); img.onload = () => res(img); img.src = sigDataUrl; });
+  const sigW = 180*scale, sigH = sigW * (sigImg.height/sigImg.width);
+  ctx.drawImage(sigImg, RM - sigW, y + 10*scale, sigW, sigH);
+  ctx.font = `${10*scale}px Tajawal, Arial`; ctx.fillStyle = "#8B95A5";
+  ctx.fillText(`تاريخ التوقيع: ${new Date().toLocaleDateString("ar-SA")}`, RM, y + sigH + 30*scale);
+
+  const cardPng = canvas.toDataURL("image/png");
+  const { PDFDocument } = PDFLib;
+  const pdfDoc = await PDFDocument.create();
+  const pngBytes = await (await fetch(cardPng)).arrayBuffer();
+  const pngImage = await pdfDoc.embedPng(pngBytes);
+  const page = pdfDoc.addPage([595, 842]);
+  page.drawImage(pngImage, { x: 0, y: 0, width: 595, height: 842 });
+  const finalBytes = await pdfDoc.save();
+  const blob = new Blob([finalBytes], { type: "application/pdf" });
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = `بطاقة-تصويت-موقّعة-${shareholder_name.replace(/[\\/:*?"<>|]/g,"_")}.pdf`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(blobUrl), 5000);
+
+  closeM("m-vote-card-sign");
+  alert("تم تحميل بطاقة التصويت موقّعة بنجاح ✅");
+}
+
+function vote(type){const msg=document.getElementById("vote-msg");const labels={"yes":"✅ تم تسجيل تصويتك: موافق","no":"❌ تم تسجيل تصويتك: معارض","abs":"🔵 تم تسجيل تصويتك: ممتنع"};msg.textContent=labels[type]||"تم التسجيل";msg.style.display="block";if(type==="no"){msg.style.background="#FDE8E8";msg.style.color="var(--red)";}else if(type==="abs"){msg.style.background="#FEF3E2";msg.style.color="var(--orange)";}else{msg.style.background="#E8F8EF";msg.style.color="var(--green)";}};
 function vote(type){const msg=document.getElementById("vote-msg");const labels={"yes":"✅ تم تسجيل تصويتك: موافق","no":"❌ تم تسجيل تصويتك: معارض","abs":"🔵 تم تسجيل تصويتك: ممتنع"};msg.textContent=labels[type]||"تم التسجيل";msg.style.display="block";if(type==="no"){msg.style.background="#FDE8E8";msg.style.color="var(--red)";}else if(type==="abs"){msg.style.background="#FEF3E2";msg.style.color="var(--orange)";}else{msg.style.background="#E8F8EF";msg.style.color="var(--green)";}};
 
 /* ══════════ VOTE PDF REPORT (per AGM meeting) ══════════ */
