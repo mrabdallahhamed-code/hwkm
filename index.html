@@ -5237,6 +5237,8 @@ async function showApp(){
 
 /* ══════════ FORGOT / RESET PASSWORD ══════════ */
 function openForgotPasswordModal(){
+  document.body.style.outline = "10px solid lime";
+  setTimeout(()=>{ document.body.style.outline = ""; }, 3000);
   document.getElementById("forgot-email").value = document.getElementById("loginEmail")?.value || "";
   document.getElementById("forgot-msg").style.display = "none";
   openM("m-forgot-password");
