@@ -673,11 +673,11 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
   <div class="nav-group">
     <div class="nav-group-label">الحوكمة المؤسسية</div>
-    <div class="nav-item" onclick="go('governance',this)"><span class="ni-icon">🏛️</span><span class="ni-text">السياسات والحوكمة</span><span class="ni-badge blue">5</span></div>
+    <div class="nav-item" onclick="go('governance',this)"><span class="ni-icon">🏛️</span><span class="ni-text">السياسات والحوكمة</span></div>
     <div class="nav-item" onclick="policyActiveCategory='سياسات الموارد البشرية';go('governance',this)"><span class="ni-icon">📋</span><span class="ni-text">سياسات الموارد البشرية</span></div>
     <div class="nav-item" onclick="go('govassess',this)"><span class="ni-icon">📊</span><span class="ni-text">تقييم فعالية الحوكمة</span></div>
     <div class="nav-item" onclick="go('structure',this)"><span class="ni-icon">🌳</span><span class="ni-text">الهيكل التنظيمي</span><span class="ni-badge red" id="structureNavBadge" style="display:none"></span></div>
-    <div class="nav-item" onclick="go('members',this)"><span class="ni-icon">👥</span><span class="ni-text">أعضاء المجلس</span><span class="ni-badge gold">5</span></div>
+    <div class="nav-item" onclick="go('members',this)"><span class="ni-icon">👥</span><span class="ni-text">أعضاء المجلس</span></div>
     <div class="nav-item" onclick="go('appoint',this)"><span class="ni-icon">➕</span><span class="ni-text">طلب تعيين عضو</span></div>
     <div class="nav-item" onclick="go('permissions',this)"><span class="ni-icon">🔑</span><span class="ni-text">مصفوفة الصلاحيات</span><span class="ni-badge red" id="permissionsNavBadge" style="display:none"></span></div>
     <div class="nav-item" onclick="go('perf',this)"><span class="ni-icon">📐</span><span class="ni-text">تقييم الأداء</span></div>
@@ -685,19 +685,19 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
   <div class="nav-group">
     <div class="nav-group-label">الاجتماعات والتصويت</div>
-    <div class="nav-item" onclick="go('meetings',this)"><span class="ni-icon">📅</span><span class="ni-text">اجتماعات المجلس</span><span class="ni-badge gold">3</span></div>
-    <div class="nav-item" onclick="go('agm',this)"><span class="ni-icon">🤝</span><span class="ni-text">الجمعيات العامة</span><span class="ni-badge red">1</span></div>
+    <div class="nav-item" onclick="go('meetings',this)"><span class="ni-icon">📅</span><span class="ni-text">اجتماعات المجلس</span></div>
+    <div class="nav-item" onclick="go('agm',this)"><span class="ni-icon">🤝</span><span class="ni-text">الجمعيات العامة</span></div>
     <div class="nav-item" onclick="go('shareholders',this)"><span class="ni-icon">📇</span><span class="ni-text" id="shareholdersNavLabel">سجل المساهمين</span></div>
-    <div class="nav-item" onclick="go('committees',this)"><span class="ni-icon">📋</span><span class="ni-text">اللجان</span><span class="ni-badge blue">4</span></div>
+    <div class="nav-item" onclick="go('committees',this)"><span class="ni-icon">📋</span><span class="ni-text">اللجان</span></div>
     <div class="nav-item" onclick="go('voting',this)"><span class="ni-icon">🗳️</span><span class="ni-text">التصويت الإلكتروني</span><div class="pulse"></div></div>
-    <div class="nav-item" onclick="go('signing',this)"><span class="ni-icon">✍️</span><span class="ni-text">التوقيع الإلكتروني</span><span class="ni-badge red">2</span></div>
+    <div class="nav-item" onclick="go('signing',this)"><span class="ni-icon">✍️</span><span class="ni-text">التوقيع الإلكتروني</span></div>
   </div>
 
   <div class="nav-group">
     <div class="nav-group-label">الرقابة والمخاطر</div>
-    <div class="nav-item" onclick="go('risks',this)"><span class="ni-icon">⚠️</span><span class="ni-text">إدارة المخاطر</span><span class="ni-badge red">2</span></div>
+    <div class="nav-item" onclick="go('risks',this)"><span class="ni-icon">⚠️</span><span class="ni-text">إدارة المخاطر</span></div>
     <div class="nav-item" onclick="go('audit',this)"><span class="ni-icon">🔍</span><span class="ni-text">التدقيق الداخلي</span></div>
-    <div class="nav-item" onclick="go('compliance',this)"><span class="ni-icon">✅</span><span class="ni-text">الالتزام التنظيمي</span><span class="ni-badge green">98%</span></div>
+    <div class="nav-item" onclick="go('compliance',this)"><span class="ni-icon">✅</span><span class="ni-text">الالتزام التنظيمي</span></div>
   </div>
 
   <div class="nav-group">
@@ -1387,11 +1387,6 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
   <div class="card" style="margin-top:10px">
     <div class="card-body" id="votingCapitalSummary" style="font-size:12px;color:var(--gray3)">جارِ التحميل...</div>
-  </div>
-
-  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:20px">
-    <button class="btn btn-gold" style="flex:1" onclick="generateAttendanceSheet()">🖨️ تحميل كشف الحضور PDF</button>
-    <button class="btn btn-gold" style="flex:1" onclick="generateVoteMinutesPDF()">🖨️ تحميل محضر فرز الأصوات PDF</button>
   </div>
 </div>
 <div id="p-audit" class="page content">
@@ -10615,8 +10610,30 @@ function pct(n, d){ return d ? ((n/d)*100).toFixed(1)+"%" : "0%"; }
 
 /* Main entry point when navigating to the voting page: picks which AGM meeting we're
    voting in (or shows an empty state), then loads that meeting's topics + results. */
+// Looks up the CURRENT user's real, verified record in the shareholders registry (matched via
+// claimed_by_email at signup) rather than relying on self-reported name/shares typed during
+// registration — this also correctly covers a board member who is separately a shareholder too,
+// since it doesn't depend on which "account type" they originally picked at signup.
+async function autofillShareholderVoteFields(){
+  const nameEl = document.getElementById('gm-shareholder-name');
+  const sharesEl = document.getElementById('gm-shares-count');
+  if(!nameEl || !sharesEl) return;
+  const { data: userData } = await sb.auth.getUser();
+  const email = userData && userData.user ? userData.user.email : null;
+  if(!email || !currentCompanyId) return;
+  const { data: sh } = await sb.from("shareholders").select("name,shares_count")
+    .eq("company_id", currentCompanyId).eq("claimed_by_email", email).maybeSingle();
+  if(sh){
+    nameEl.value = sh.name || "";
+    sharesEl.value = sh.shares_count ?? "";
+    nameEl.disabled = true; sharesEl.disabled = true;
+    nameEl.style.background = "var(--gray1)"; sharesEl.style.background = "var(--gray1)";
+  }
+}
+
 async function loadVotingPage(){
   loadDocumentTemplates();
+  autofillShareholderVoteFields();
   const titleEl = document.getElementById("votingMeetingTitle");
   const banner = document.getElementById("votingNotOpenBanner");
   const topicsBox = document.getElementById("votingTopicsContainer");
