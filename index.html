@@ -4530,8 +4530,11 @@ async function submitCompanyRequest(){
   const responsible_phone = document.getElementById("cr-resp-phone").value.trim();
   const responsible_email = document.getElementById("cr-resp-email").value.trim();
 
+  const { data: userData } = await sb.auth.getUser();
+  const sessionEmail = userData && userData.user ? userData.user.email : currentUserProfile.email;
+
   const { error } = await sb.from("company_requests").insert([{
-    requested_by_email: currentUserProfile.email, requested_by_name: currentUserProfile.full_name,
+    requested_by_email: sessionEmail, requested_by_name: currentUserProfile.full_name,
     company_name, company_type, cr_number, cr_date, responsible_person, responsible_phone, responsible_email,
     status: "قيد المراجعة"
   }]);
