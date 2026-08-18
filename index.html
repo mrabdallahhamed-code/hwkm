@@ -10239,17 +10239,24 @@ async function generateBaseStructure(){
     ];
   } else {
     // مساهمة مدرجة / مساهمة غير مدرجة (default)
-    if(!confirm('سيُضاف: الجمعية العامة ← مجلس الإدارة (برئيسه واللجان المنبثقة) ← الرئيس التنفيذي ← الإدارات الرئيسية (المالية، الموارد البشرية، التشغيل، المبيعات). يمكنك حذف أو تعديل أي منصب بعدها حسب واقع شركتك الفعلي. أي عنصر قديم بنفس الاسم سيُستبدل تلقائيًا. متابعة؟')) return;
+    if(!confirm('سيُضاف: الجمعية العامة ← مجلس الإدارة (وتحته: اللجان المنبثقة، رئيس مجلس الإدارة ← الرئيس التنفيذي، وأمين سر المجلس) ← الإدارات الرئيسية تحت الرئيس التنفيذي (المالية، الموارد البشرية، التشغيل، المبيعات، التسويق وخدمة العملاء، الإدارة القانونية). يمكنك حذف أو تعديل أي منصب بعدها حسب واقع شركتك الفعلي. أي عنصر قديم بنفس الاسم سيُستبدل تلقائيًا. متابعة؟')) return;
     rows = [
       { position_title: "الجمعية العامة", parent_position: "", level: 1, is_body: true },
       { position_title: "مجلس الإدارة", parent_position: "الجمعية العامة", level: 2, is_body: true },
+      // Insertion order matters here: in this RTL layout the first child of "مجلس الإدارة"
+      // renders on the right, the last on the left — so اللجان المنبثقة (right), رئيس مجلس
+      // الإدارة (center, with الرئيس التنفيذي nested directly beneath it — giving the
+      // "stacked in one line" look requested), then أمين سر المجلس (left).
+      { position_title: "اللجان المنبثقة", parent_position: "مجلس الإدارة", level: 2, is_body: true },
       { position_title: "رئيس مجلس الإدارة", parent_position: "مجلس الإدارة", level: 2, is_body: false, is_leadership: true },
-      { position_title: "اللجان المنبثقة", parent_position: "مجلس الإدارة", level: 3, is_body: true },
-      { position_title: "الرئيس التنفيذي", parent_position: "مجلس الإدارة", level: 4, is_body: false, is_leadership: true },
+      { position_title: "الرئيس التنفيذي", parent_position: "رئيس مجلس الإدارة", level: 2, is_body: false, is_leadership: true },
+      { position_title: "أمين سر المجلس", parent_position: "مجلس الإدارة", level: 2, is_body: false, is_leadership: false },
       { position_title: "الإدارة المالية", parent_position: "الرئيس التنفيذي", level: 5, is_body: false, is_leadership: true },
       { position_title: "إدارة الموارد البشرية", parent_position: "الرئيس التنفيذي", level: 5, is_body: false, is_leadership: true },
       { position_title: "إدارة التشغيل", parent_position: "الرئيس التنفيذي", level: 5, is_body: false, is_leadership: true },
-      { position_title: "إدارة المبيعات والتسويق", parent_position: "الرئيس التنفيذي", level: 5, is_body: false, is_leadership: true }
+      { position_title: "إدارة المبيعات", parent_position: "الرئيس التنفيذي", level: 5, is_body: false, is_leadership: true },
+      { position_title: "إدارة التسويق وخدمة العملاء", parent_position: "الرئيس التنفيذي", level: 5, is_body: false, is_leadership: true },
+      { position_title: "الإدارة القانونية", parent_position: "الرئيس التنفيذي", level: 5, is_body: false, is_leadership: true }
     ];
   }
 
