@@ -7889,9 +7889,14 @@ async function loadSigning(){
 
   const docIds = signingDocsCache.map(d=>d.id);
   let sigsByDoc = {};
+  let officialSigsByDoc = {};
   if(docIds.length){
-    const { data: sigs } = await sb.from("document_signatures").select("*").in("document_id", docIds);
+    const [{ data: sigs }, { data: officialSigs }] = await Promise.all([
+      sb.from("document_signatures").select("*").in("document_id", docIds),
+      sb.from("official_doc_signatures").select("*").in("document_id", docIds)
+    ]);
     (sigs||[]).forEach(s => { if(!sigsByDoc[s.document_id]) sigsByDoc[s.document_id]=[]; sigsByDoc[s.document_id].push(s); });
+    (officialSigs||[]).forEach(s => { if(!officialSigsByDoc[s.document_id]) officialSigsByDoc[s.document_id]=[]; officialSigsByDoc[s.document_id].push(s); });
   }
 
   const { data: userData } = await sb.auth.getUser();
@@ -7907,7 +7912,8 @@ async function loadSigning(){
   // Archive table: full reference list of every document, with real computed signer counts
   if(archiveTbody){
     archiveTbody.innerHTML = signingDocsCache.map(s => {
-      const signed = sigsByDoc[s.id] || [];
+      const isOfficialDocEarly = !!s.signer_roles;
+      const signed = isOfficialDocEarly ? (officialSigsByDoc[s.id] || []) : (sigsByDoc[s.id] || []);
       const total = s.signers_total || 0;
       const isComplete = total>0 && signed.length >= total;
       const statusBadge = isComplete ? '<span class="badge done">مكتمل ✍️</span>' : '<span class="badge pending">قيد التوقيع</span>';
@@ -7931,7 +7937,7 @@ async function loadSigning(){
       actionTbody.innerHTML = emptyRowHTML(7, 'لا توجد وثائق تخصّك.');
     } else {
       const pending = signingDocsCache.filter(s => {
-        const signed = sigsByDoc[s.id] || [];
+        const signed = (!!s.signer_roles ? officialSigsByDoc[s.id] : sigsByDoc[s.id]) || [];
         const total = s.signers_total || 0;
         return !(total>0 && signed.length >= total);
       });
@@ -7939,7 +7945,7 @@ async function loadSigning(){
         actionTbody.innerHTML = emptyRowHTML(7, 'لا توجد وثائق تنتظر التوقيع حاليًا. ✅');
       } else {
         actionTbody.innerHTML = pending.map(s => {
-          const signed = sigsByDoc[s.id] || [];
+          const signed = (!!s.signer_roles ? officialSigsByDoc[s.id] : sigsByDoc[s.id]) || [];
           const total = s.signers_total || 0;
           const iSigned = myEmail && signed.some(x => x.signer_email === myEmail);
           const namesList = signed.length ? signed.map(x=>x.signer_name||x.signer_email).join('، ') : 'لا أحد بعد';
