@@ -11625,7 +11625,7 @@ async function loadShareholdersSummary(){
     <td style="text-align:center;color:var(--green)">${s.yes} بند</td>
     <td style="text-align:center;color:var(--red)">${s.no} بند</td>
     <td style="text-align:center;color:var(--orange)">${s.abs} بند</td>
-    <td><button class="btn-xs primary" onclick="generateShareholderVotePDF('${s.name.replace(/'/g,"")}', ${s.shares})">📄 عرض/تحميل البطاقة</button></td>
+    <td><button class="btn-xs primary" onclick="openVoterSignedCard('${s.name.replace(/'/g,"")}')">📄 عرض/تحميل البطاقة الموقّعة</button></td>
   </tr>`).join("");
 
   const totalVotedShares = list.reduce((sum,s)=>sum+s.shares,0);
@@ -13525,6 +13525,18 @@ function arabicDayName(dateStr){
   return ARABIC_DAY_NAMES[d.getDay()];
 }
 
+async function openVoterSignedCard(shareholderName){
+  if(!currentVotingMeetingId){ alert("تعذّر تحديد الجمعية الحالية"); return; }
+  const { data, error } = await sb.from("agm_attendance").select("signed_vote_card_url")
+    .eq("meeting_id", currentVotingMeetingId).eq("shareholder_name", shareholderName).maybeSingle();
+  if(error){ alert("تعذّر التحقق: " + error.message); return; }
+  if(!data || !data.signed_vote_card_url){
+    alert(`"${shareholderName}" لم يوقّع أو يحمّل بطاقته بعد — بطاقته الموقّعة تُحفظ تلقائيًا بالمنصة بمجرد ما يوقّعها هو بنفسه من حسابه.`);
+    return;
+  }
+  window.open(data.signed_vote_card_url, "_blank");
+}
+
 async function generateShareholderVotePDF(overrideName, overrideShares){
   const nameEl = document.getElementById('gm-shareholder-name');
   const sharesEl = document.getElementById('gm-shares-count');
@@ -13773,6 +13785,16 @@ async function confirmVoteCardSignature(){
   page.drawImage(pngImage, { x: 0, y: 0, width: 595, height: 842 });
   const finalBytes = await pdfDoc.save();
   const blob = new Blob([finalBytes], { type: "application/pdf" });
+
+  // Save a persistent copy the platform (and by extension the company's admin) can retrieve
+  // later — without this, the signed card only ever existed on the shareholder's own device,
+  // which is useless when the company needs to submit it to the Ministry of Commerce.
+  const storedUrl = await uploadBlobToStorage(blob, "signed-vote-cards", `بطاقة-تصويت-${shareholder_name.replace(/[\\/:*?"<>|]/g,"_")}-${Date.now()}.pdf`);
+  if(storedUrl && currentVotingMeetingId){
+    await sb.from("agm_attendance").update({ signed_vote_card_url: storedUrl })
+      .eq("meeting_id", currentVotingMeetingId).eq("shareholder_name", shareholder_name);
+  }
+
   const blobUrl = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = blobUrl;
@@ -13781,7 +13803,7 @@ async function confirmVoteCardSignature(){
   setTimeout(()=>URL.revokeObjectURL(blobUrl), 5000);
 
   closeM("m-vote-card-sign");
-  alert("تم تحميل بطاقة التصويت موقّعة بنجاح ✅");
+  alert("تم تحميل بطاقة التصويت موقّعة بنجاح ✅ — ونُسخة محفوظة تلقائيًا بالمنصة.");
 }
 
 function vote(type){const msg=document.getElementById("vote-msg");const labels={"yes":"✅ تم تسجيل تصويتك: موافق","no":"❌ تم تسجيل تصويتك: معارض","abs":"🔵 تم تسجيل تصويتك: ممتنع"};msg.textContent=labels[type]||"تم التسجيل";msg.style.display="block";if(type==="no"){msg.style.background="#FDE8E8";msg.style.color="var(--red)";}else if(type==="abs"){msg.style.background="#FEF3E2";msg.style.color="var(--orange)";}else{msg.style.background="#E8F8EF";msg.style.color="var(--green)";}};
