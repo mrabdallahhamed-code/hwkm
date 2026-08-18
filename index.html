@@ -10782,7 +10782,7 @@ async function generateBaseStructure(){
       { position_title: "اللجان المنبثقة", parent_position: "مجلس الإدارة", level: 2, is_body: true },
       { position_title: "رئيس مجلس الإدارة", parent_position: "مجلس الإدارة", level: 2, is_body: false, is_leadership: true },
       { position_title: "الرئيس التنفيذي", parent_position: "رئيس مجلس الإدارة", level: 2, is_body: false, is_leadership: true },
-      { position_title: "أمين سر المجلس", parent_position: "مجلس الإدارة", level: 2, is_body: false, is_leadership: false },
+      { position_title: "أمين سر المجلس", parent_position: "مجلس الإدارة", level: 2, is_body: false, is_leadership: true },
       { position_title: "الإدارة المالية", parent_position: "الرئيس التنفيذي", level: 5, is_body: false, is_leadership: true },
       { position_title: "إدارة الموارد البشرية", parent_position: "الرئيس التنفيذي", level: 5, is_body: false, is_leadership: true },
       { position_title: "إدارة التشغيل", parent_position: "الرئيس التنفيذي", level: 5, is_body: false, is_leadership: true },
@@ -11153,7 +11153,10 @@ async function importPermMatrixFromExcel(input){
         const { data: newItem, error } = await sb.from("permission_items")
           .insert([{ item_name: item_text, category, company_id: currentCompanyId, sort_order: 1000+i }])
           .select().single();
-        if(error || !newItem) continue;
+        if(error || !newItem){
+          if(error && !window._permImportFirstError) window._permImportFirstError = error.message;
+          continue;
+        }
         addedItems++;
 
         for(let c=0; c<holderNames.length; c++){
@@ -11167,7 +11170,9 @@ async function importPermMatrixFromExcel(input){
           if(!cellErr) addedCells++;
         }
       }
-      alert(`تم الاستيراد ✅ — أُضيف ${addedItems} بند و${addedCells} خانة صلاحية معبّاة.${skippedRows?` (تم تخطي ${skippedRows} صف ناقص البيانات)`:''}`);
+      const errorNote = window._permImportFirstError ? `\n\nخطأ التحقق: ${window._permImportFirstError}` : "";
+      alert(`${addedItems>0?'تم الاستيراد ✅':'تعذّر الاستيراد ❌'} — أُضيف ${addedItems} بند و${addedCells} خانة صلاحية معبّاة.${skippedRows?` (تم تخطي ${skippedRows} صف ناقص البيانات)`:''}${errorNote}`);
+      window._permImportFirstError = null;
       input.value = "";
       loadPermissionsMatrix();
     }catch(err){
