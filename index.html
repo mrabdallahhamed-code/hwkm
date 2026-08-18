@@ -1346,6 +1346,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <span>🗳️ التصويت الإلكتروني</span>
     <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="go('agm')">🔙 رجوع للجمعية العامة</button>
   </div>
+  <div id="voterSelfSection">
   <div class="card">
     <div class="card-head"><span class="card-title" id="votingMeetingTitle">اختر جمعية للتصويت</span></div>
     <div class="card-body">
@@ -1362,6 +1363,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <button class="btn btn-gold" style="width:100%" onclick="generateShareholderVotePDF()">📄 تحميل بطاقة تصويت المساهم PDF</button>
     </div>
   </div>
+  </div>
 
   <div class="sec-title" style="margin-top:20px">📊 نتائج التصويت الكاملة</div>
   <div class="card">
@@ -1375,23 +1377,29 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     </div>
   </div>
 
-  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
+  <div class="sec-title" id="votingResultsTitle" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
     <span>🧾 جدول المساهمين المصوتين</span>
     <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="generateVoteReport()">🖨️ تحميل تقرير PDF شامل</button>
   </div>
   <div class="card">
     <div class="card-body" style="padding:0;overflow-x:auto">
       <table class="tbl" style="min-width:900px" id="shareholdersTable">
-        <thead><tr><th>اسم المساهم</th><th style="text-align:center">عدد أسهمه</th><th style="text-align:center">نسبته من إجمالي أسهم الشركة</th><th style="text-align:center">موافق</th><th style="text-align:center">معارض</th><th style="text-align:center">ممتنع</th></tr></thead>
+        <thead><tr><th>اسم المساهم</th><th style="text-align:center">عدد أسهمه</th><th style="text-align:center">نسبته من إجمالي أسهم الشركة</th><th style="text-align:center">موافق</th><th style="text-align:center">معارض</th><th style="text-align:center">ممتنع</th><th></th></tr></thead>
         <tbody id="shareholdersTbody">
-          <tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+          <tr><td colspan="7" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
         <tfoot id="shareholdersTfoot"></tfoot>
       </table>
     </div>
   </div>
-  <div class="card" style="margin-top:10px">
-    <div class="card-body" id="votingCapitalSummary" style="font-size:12px;color:var(--gray3)">جارِ التحميل...</div>
+  <div class="sec-title" style="margin-top:20px">🏛️ جدول النصاب</div>
+  <div class="card">
+    <div class="card-body">
+      <div class="row2" style="margin-bottom:10px">
+        <div class="fg" style="margin:0"><label style="font-size:11px">نسبة النصاب المطلوبة نظامًا (%)</label><input type="number" class="fi" id="quorumThresholdInput" value="50" onchange="loadShareholdersSummary()" style="margin:0"/></div>
+      </div>
+      <div id="votingCapitalSummary" style="font-size:12px;color:var(--gray3)">جارِ التحميل...</div>
+    </div>
   </div>
 </div>
 <div id="p-audit" class="page content">
@@ -11455,8 +11463,13 @@ async function autofillShareholderVoteFields(){
 }
 
 async function loadVotingPage(){
-  loadDocumentTemplates();
-  autofillShareholderVoteFields();
+  const isOverseer = getCurrentRole() === 'مدير النظام';
+  const selfSection = document.getElementById("voterSelfSection");
+  if(selfSection) selfSection.style.display = isOverseer ? "none" : "block";
+  const resultsTitle = document.getElementById("votingResultsTitle");
+  if(resultsTitle) resultsTitle.querySelector("span").textContent = isOverseer ? "🧾 نتائج المساهمين المصوّتين" : "🧾 جدول المساهمين المصوتين";
+
+  if(!isOverseer){ loadDocumentTemplates(); autofillShareholderVoteFields(); }
   const titleEl = document.getElementById("votingMeetingTitle");
   const banner = document.getElementById("votingNotOpenBanner");
   const topicsBox = document.getElementById("votingTopicsContainer");
@@ -11484,6 +11497,11 @@ async function loadVotingPage(){
   }
 
   if(titleEl) titleEl.textContent = `${m.title||"جمعية عامة"} — ${m.meeting_date||""}`;
+
+  if(isOverseer){
+    loadCompanySettings().then(() => { loadVoteResults(); loadShareholdersSummary(); });
+    return;
+  }
 
   // Gate voting using the dedicated voting_start / voting_end window (set manually when
   // the AGM was created, or later from its detail view) — topics are fully hidden outside it.
@@ -11605,6 +11623,7 @@ async function loadShareholdersSummary(){
     <td style="text-align:center;color:var(--green)">${s.yes} بند</td>
     <td style="text-align:center;color:var(--red)">${s.no} بند</td>
     <td style="text-align:center;color:var(--orange)">${s.abs} بند</td>
+    <td><button class="btn-xs primary" onclick="generateShareholderVotePDF('${s.name.replace(/'/g,"")}', ${s.shares})">📄 عرض/تحميل البطاقة</button></td>
   </tr>`).join("");
 
   const totalVotedShares = list.reduce((sum,s)=>sum+s.shares,0);
@@ -11617,7 +11636,19 @@ async function loadShareholdersSummary(){
     </tr>`;
   }
   if(summaryBox){
-    summaryBox.innerHTML = `👥 إجمالي المساهمين المصوّتين: <b>${list.length}</b> &nbsp;·&nbsp; إجمالي الأسهم المشاركة بالتصويت: <b>${totalVotedShares}</b> &nbsp;·&nbsp; ما نسبته: <b>${pct(totalVotedShares, totalShares)}</b> من إجمالي رأس مال الشركة`;
+    const thresholdInput = document.getElementById("quorumThresholdInput");
+    const thresholdPct = thresholdInput ? (Number(thresholdInput.value) || 50) : 50;
+    const currentPct = totalShares ? (totalVotedShares/totalShares*100) : 0;
+    const quorumMet = currentPct >= thresholdPct;
+    const sharesNeeded = Math.max(0, Math.ceil(totalShares*thresholdPct/100) - totalVotedShares);
+    summaryBox.innerHTML = `
+      <div style="margin-bottom:10px">👥 إجمالي المساهمين المصوّتين: <b>${list.length}</b> &nbsp;·&nbsp; إجمالي الأسهم المشاركة: <b>${totalVotedShares}</b> &nbsp;·&nbsp; ما نسبته: <b>${pct(totalVotedShares, totalShares)}</b> من رأس المال</div>
+      <div style="background:${quorumMet?'#E8F8EF':'#FEF3E2'};border:2px solid ${quorumMet?'var(--green)':'var(--gold)'};border-radius:10px;padding:14px;text-align:center">
+        <div style="font-size:22px;font-weight:900;color:${quorumMet?'var(--green)':'var(--gold)'}">${currentPct.toFixed(1)}% / ${thresholdPct}%</div>
+        <div style="font-size:12px;font-weight:700;color:${quorumMet?'var(--green)':'var(--gold)'};margin-top:4px">
+          ${quorumMet ? '✅ اكتمل النصاب المطلوب' : `⏳ متبقٍ (${sharesNeeded.toLocaleString('ar-SA')}) سهم لاكتمال النصاب`}
+        </div>
+      </div>`;
   }
 }
 
@@ -13437,13 +13468,14 @@ function arabicDayName(dateStr){
   return ARABIC_DAY_NAMES[d.getDay()];
 }
 
-async function generateShareholderVotePDF(){
+async function generateShareholderVotePDF(overrideName, overrideShares){
   const nameEl = document.getElementById('gm-shareholder-name');
   const sharesEl = document.getElementById('gm-shares-count');
-  const shareholder_name = nameEl ? nameEl.value.trim() : "";
-  const shares_count = sharesEl ? sharesEl.value : "";
+  const shareholder_name = overrideName || (nameEl ? nameEl.value.trim() : "");
+  const shares_count = overrideShares != null ? overrideShares : (sharesEl ? sharesEl.value : "");
   if(!shareholder_name){ alert("الرجاء إدخال اسم المساهم أولاً"); return; }
   if(!currentVotingMeetingId){ alert("تعذّر تحديد الجمعية الحالية"); return; }
+  if(overrideName && !confirm(`سيتم فتح نافذة توقيع بطاقة "${overrideName}" — للعرض/التوثيق فقط، مو للتوقيع نيابة عن المساهم. متابعة؟`)) return;
 
   const [{ data: m }, { data: topics }, { data: votes }, { data: companyRow }] = await Promise.all([
     sb.from("meetings").select("*").eq("id", currentVotingMeetingId).single(),
@@ -13479,8 +13511,75 @@ async function generateShareholderVotePDF(){
     <div style="margin-top:8px"><b>بنود جدول الأعمال:</b></div>
     ${agendaRows.length ? agendaRows.map((r,i)=>`<div>${i+1}. ${r.topic} — <span style="font-weight:700">${r.result || "لم يُصوَّت بعد"}</span></div>`).join("") : '<div style="color:var(--gray3)">لا توجد بنود مسجَّلة لهذا الاجتماع بعد.</div>'}
   `;
+
+  if(overrideName){
+    // Admin/overseer viewing a specific voter's card — this is a reference copy only; it is
+    // not their place to draw a signature on the shareholder's behalf, so skip the sig pad
+    // entirely and generate an unsigned reference PDF straight away.
+    await generateUnsignedVoteCardReference(voteCardData);
+    return;
+  }
   openM("m-vote-card-sign");
   setTimeout(initVoteSignaturePad, 50);
+}
+
+async function generateUnsignedVoteCardReference(data){
+  const { shareholder_name, companyName, meeting: m, agendaRows, card_number, shares_own, shares_proxy, shares_total } = data;
+  const scale = 2;
+  const W = 595 * scale, H = 842 * scale;
+  const canvas = document.createElement("canvas");
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(0,0,W,H);
+  ctx.direction = "rtl"; ctx.textAlign = "center";
+  const CX = W/2, RM = W - 45*scale, LM = 45*scale;
+
+  ctx.font = `bold ${18*scale}px Tajawal, Arial`; ctx.fillStyle = "#0D2447";
+  ctx.fillText("بطاقة تصويت — نسخة مرجعية", CX, 50*scale);
+  ctx.textAlign = "right"; ctx.font = `bold ${12.5*scale}px Tajawal, Arial`;
+  let y = 85*scale;
+  ctx.fillText(`الرقم ${card_number}`, RM, y); y += 28*scale;
+  ctx.textAlign = "center"; ctx.font = `bold ${13*scale}px Tajawal, Arial`;
+  ctx.fillText(`الجمعية العامة ${m?.agm_type || "العادية"} لشركة ${companyName}`, CX, y); y += 26*scale;
+  ctx.font = `${11.5*scale}px Tajawal, Arial`;
+  ctx.fillText(`المنعقدة ${m?.method || "—"} في يوم ${arabicDayName(m?.meeting_date)} الموافق ${m?.meeting_date || "—"} في تمام الساعة (${m?.meeting_time || "—"}) مساءً.`, CX, y);
+  y += 36*scale;
+  ctx.textAlign = "right"; ctx.font = `${12*scale}px Tajawal, Arial`;
+  ctx.fillText(`اسم المساهم / ${shareholder_name}`, RM, y); y += 26*scale;
+  ctx.fillText(`عدد الأسهم أصالة (${shares_own})     عدد الأسهم وكالة (${shares_proxy})     مجموع الأسهم (${shares_total})`, RM, y);
+  y += 40*scale;
+
+  ctx.font = `bold ${11*scale}px Tajawal, Arial`;
+  ctx.fillText("بنود جدول الأعمال ونتيجة التصويت:", RM, y); y += 26*scale;
+  ctx.font = `${10.5*scale}px Tajawal, Arial`;
+  (agendaRows.length?agendaRows:[{topic:"—",result:null}]).forEach((r,i) => {
+    ctx.fillText(`${i+1}. ${r.topic} — ${r.result||"لم يُصوَّت بعد"}`, RM, y);
+    y += 22*scale;
+  });
+
+  y += 30*scale;
+  ctx.fillStyle = "#FEF3E2";
+  ctx.fillRect(LM, y, RM-LM, 40*scale);
+  ctx.strokeStyle = "#C99A2E"; ctx.lineWidth = 1.5*scale;
+  ctx.strokeRect(LM, y, RM-LM, 40*scale);
+  ctx.font = `bold ${11*scale}px Tajawal, Arial`; ctx.fillStyle = "#8A6D1F"; ctx.textAlign = "center";
+  ctx.fillText("⚠️ نسخة مرجعية للاطلاع الإداري — غير موقّعة، لا تعتبر بطاقة تصويت رسمية معتمدة", CX, y + 25*scale);
+
+  const cardPng = canvas.toDataURL("image/png");
+  const { PDFDocument } = PDFLib;
+  const pdfDoc = await PDFDocument.create();
+  const pngBytes = await (await fetch(cardPng)).arrayBuffer();
+  const pngImage = await pdfDoc.embedPng(pngBytes);
+  const page = pdfDoc.addPage([595, 842]);
+  page.drawImage(pngImage, { x: 0, y: 0, width: 595, height: 842 });
+  const finalBytes = await pdfDoc.save();
+  const blob = new Blob([finalBytes], { type: "application/pdf" });
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = `بطاقة-تصويت-مرجعية-${shareholder_name.replace(/[\\/:*?"<>|]/g,"_")}.pdf`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(blobUrl), 5000);
 }
 
 function initVoteSignaturePad(){
