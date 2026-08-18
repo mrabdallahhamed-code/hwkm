@@ -1175,7 +1175,8 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <span>🏛️ السياسات والحوكمة</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportPoliciesList()">📥 تصدير Excel</button>
-      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mp-id').value='';document.getElementById('mp-title-h').textContent='🏛️ إضافة سياسة جديدة';document.getElementById('mp-name').value='';document.getElementById('mp-type').value='';document.getElementById('mp-approval').value='';document.getElementById('mp-review').value='';document.getElementById('mp-requires-agm').checked=false;populatePolicyCategorySelect();openM('m-policy')">+ إضافة سياسة</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openPolicyWorkflowPicker()">⚙️ إعداد تسلسلات التوقيع</button>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mp-id').value='';document.getElementById('mp-title-h').textContent='🏛️ إضافة سياسة جديدة';document.getElementById('mp-name').value='';document.getElementById('mp-type').value='';document.getElementById('mp-approval').value='';document.getElementById('mp-review').value='';document.getElementById('mp-approval-level').value='مجلس الإدارة';populatePolicyCategorySelect();openM('m-policy')">+ إضافة سياسة</button>
     </div>
   </div>
   <div style="background:linear-gradient(135deg,var(--primary),var(--primary2));border-radius:14px;padding:16px 18px;margin-bottom:18px;box-shadow:0 6px 20px rgba(26,58,107,0.18)">
@@ -2114,9 +2115,12 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="fg"><label>اسم السياسة</label><input class="fi" id="mp-name" placeholder="مثال: سياسة إدارة المخاطر" /></div>
     <div class="fg"><label>النوع</label><input class="fi" id="mp-type" placeholder="مثال: رئيسية / أعضاء المجلس / مالية" /></div>
     <div class="row2"><div class="fg"><label>تاريخ الاعتماد</label><input type="date" class="fi" id="mp-approval"/></div><div class="fg"><label>موعد المراجعة</label><input type="date" class="fi" id="mp-review"/></div></div>
-    <div class="fg" style="display:flex;align-items:center;gap:8px;background:var(--offwhite);padding:10px 12px;border-radius:8px">
-      <input type="checkbox" id="mp-requires-agm" style="width:16px;height:16px" />
-      <label for="mp-requires-agm" style="margin:0;font-size:12px;cursor:pointer">تحتاج هذه السياسة اعتماد الجمعية العامة (وليس مجلس الإدارة فقط)؟</label>
+    <div class="fg"><label>مستوى الاعتماد المطلوب (يحدد تسلسل التوقيع تلقائيًا)</label>
+      <select class="fs" id="mp-approval-level">
+        <option value="داخلية">داخلية — الحوكمة والرئيس التنفيذي فقط</option>
+        <option value="مجلس الإدارة">تحتاج اعتماد مجلس الإدارة</option>
+        <option value="جمعية عامة">تحتاج اعتماد الجمعية العامة</option>
+      </select>
     </div>
     <div class="fg"><label>حالة الاعتماد (مسار الموافقة)</label>
       <select class="fs" id="mp-status">
@@ -2212,6 +2216,18 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <button class="btn btn-ghost" onclick="closeM('m-official-sign')">إلغاء</button>
       <button class="btn btn-gold" onclick="confirmOfficialSignature()">✅ تأكيد التوقيع</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-policy-workflow-picker">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">⚙️ إعداد تسلسلات توقيع السياسات</div>
+    <p style="font-size:11.5px;color:var(--gray3);margin-bottom:12px">لكل مسار اعتماد تسلسل توقيع مستقل — اختر أي وحد تبي تعدّله:</p>
+    <button class="btn btn-ghost" style="width:100%;margin-bottom:8px;text-align:right" onclick="closeM('m-policy-workflow-picker');openWorkflowTemplateModal('policy_hr')">👥 سياسات الموارد البشرية</button>
+    <button class="btn btn-ghost" style="width:100%;margin-bottom:8px;text-align:right" onclick="closeM('m-policy-workflow-picker');openWorkflowTemplateModal('policy_board')">🏛️ سياسات تحتاج مجلس الإدارة</button>
+    <button class="btn btn-ghost" style="width:100%;margin-bottom:8px;text-align:right" onclick="closeM('m-policy-workflow-picker');openWorkflowTemplateModal('policy_agm')">🤝 سياسات تحتاج الجمعية العامة</button>
+    <button class="btn btn-ghost" style="width:100%;text-align:right" onclick="closeM('m-policy-workflow-picker');openWorkflowTemplateModal('policy_internal')">📋 السياسات الداخلية</button>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-policy-workflow-picker')">إغلاق</button></div>
   </div>
 </div>
 
@@ -3612,6 +3628,7 @@ function isMutatingOnchange(val){
     || /^openWorkflowTemplateModal\(/.test(val)
     || /^saveWorkflowTemplate\(/.test(val)
     || /^startGovernanceApproval\(/.test(val)
+    || /^startPolicyGovernanceApproval\(/.test(val)
     || /^sendApprovalReminder\(/.test(val)
     || /^requestCharterApproval\(/.test(val)
     || /^updateUserRole\(/.test(val)
@@ -6861,7 +6878,7 @@ async function loadPolicyStageContext(){
 function getPolicyStageSequence(policy){
   return POLICY_STAGES.filter(s => {
     if(s === "معتمدة من لجنة الحوكمة" && !policyStageContext.hasGovernanceCommittee) return false;
-    if(s === "مرفوعة للجمعية العامة" && !policy.requires_agm_approval) return false;
+    if(s === "مرفوعة للجمعية العامة" && policy.approval_level !== "جمعية عامة") return false;
     return true;
   });
 }
@@ -7031,7 +7048,7 @@ function renderPoliciesFiltered(){
           <div style="font-size:11px;color:var(--gray3);display:flex;gap:14px;margin-top:6px;flex-wrap:wrap">
             <span>📅 اعتماد: ${p.approval_date||"—"}</span>
             <span>🔁 مراجعة: ${p.review_date||"—"}</span>
-            ${p.requires_agm_approval ? '<span style="color:var(--gold)">🏛️ تحتاج الجمعية العامة</span>' : ""}
+            ${p.approval_level === "جمعية عامة" ? '<span style="color:var(--gold)">🏛️ تحتاج الجمعية العامة</span>' : p.approval_level === "داخلية" ? '<span style="color:var(--gray3)">📋 داخلية</span>' : ""}
           </div>
           <div style="margin-top:auto;padding-top:10px">
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
@@ -7040,7 +7057,9 @@ function renderPoliciesFiltered(){
               <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="openPolicyHistoryModal(${p.id})">🕒 السجل</button>
               <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="deletePolicy(${p.id})">🗑️ حذف</button>
               ${stageIdx < stages.length-1 ? `<button class="btn-xs" style="background:#E8F0FA;color:var(--primary);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="sendPolicyApprovalReminder(${p.id})">🔔 تذكير الموافقة</button>` : ""}
+              <button class="btn-xs gold" onclick="startPolicyGovernanceApproval(${p.id})">📤 بدء دورة اعتماد وتوقيع</button>
             </div>
+            <div id="policy-gov-status-${p.id}" style="margin-top:6px"></div>
             ${nextBtn}
           </div>
         </div>
@@ -7049,6 +7068,7 @@ function renderPoliciesFiltered(){
     html += `</div>`;
   });
   wrap.innerHTML = html;
+  list.forEach(p => loadPolicyApprovalStatus(p.id, `policy-gov-status-${p.id}`));
 }
 
 
@@ -7240,8 +7260,79 @@ function editPolicy(id){
   document.getElementById("mp-review").value = p.review_date || "";
   document.getElementById("mp-status").value = p.status || "مسودة";
   populatePolicyCategorySelect(p.category || "لوائح داخلية");
-  document.getElementById("mp-requires-agm").checked = !!p.requires_agm_approval;
+  document.getElementById("mp-approval-level").value = p.approval_level || "مجلس الإدارة";
   openM("m-policy");
+}
+
+/* ══════════ POLICY GOVERNANCE WORKFLOW (reuses the same vote+sequential-sign engine) ══════════
+   Which of the 4 signing sequences applies is derived automatically from the policy's own
+   fields — HR category takes priority (its own dedicated path regardless of approval_level),
+   otherwise approval_level picks between داخلية / مجلس الإدارة / جمعية عامة. */
+function openPolicyWorkflowPicker(){ openM("m-policy-workflow-picker"); }
+
+function getPolicyWorkflowType(policy){
+  if(policy.category === "سياسات الموارد البشرية") return "policy_hr";
+  if(policy.approval_level === "جمعية عامة") return "policy_agm";
+  if(policy.approval_level === "داخلية") return "policy_internal";
+  return "policy_board";
+}
+
+const POLICY_WORKFLOW_LABELS = {
+  policy_hr: "سياسات الموارد البشرية",
+  policy_board: "سياسات تحتاج مجلس الإدارة",
+  policy_agm: "سياسات تحتاج الجمعية العامة",
+  policy_internal: "السياسات الداخلية"
+};
+
+async function buildPolicyCanvasPages(policy, signaturesMap, orderedRoles){
+  const b = new CanvasPDFBuilder();
+  b.wrapAndDraw(policy.policy_name || "سياسة", { align:"center", font:`bold ${16*b.scale}px Tajawal, Arial`, color:"#1A3A6B" });
+  b.spacer(6);
+  b.wrapAndDraw(getMatrixCompanyName(), { align:"center", font:`bold ${12*b.scale}px Tajawal, Arial` });
+  b.spacer(20);
+
+  b.wrapAndDraw(`الفئة: ${policy.category||"—"}`, { font:`${11.5*b.scale}px Tajawal, Arial`, lineHeight:20*b.scale });
+  b.wrapAndDraw(`النوع: ${policy.policy_type||"—"}`, { font:`${11.5*b.scale}px Tajawal, Arial`, lineHeight:20*b.scale });
+  b.wrapAndDraw(`تاريخ الاعتماد: ${policy.approval_date||"—"}`, { font:`${11.5*b.scale}px Tajawal, Arial`, lineHeight:20*b.scale });
+  b.wrapAndDraw(`موعد المراجعة القادمة: ${policy.review_date||"—"}`, { font:`${11.5*b.scale}px Tajawal, Arial`, lineHeight:20*b.scale });
+  b.wrapAndDraw(`مستوى الاعتماد: ${policy.approval_level||"مجلس الإدارة"}`, { font:`${11.5*b.scale}px Tajawal, Arial`, lineHeight:20*b.scale });
+  b.spacer(14);
+  if(policy.file_url){
+    b.wrapAndDraw("📎 نص السياسة الكامل مرفق كملف منفصل عند تحميلها من المنصة — هذه الوثيقة سجل اعتماد وتوقيع رسمي، وليست بديلاً عن نص السياسة.", { font:`${10.5*b.scale}px Tajawal, Arial`, color:"#8B95A5", lineHeight:18*b.scale });
+  }
+
+  if(orderedRoles && orderedRoles.length){
+    b.spacer(30);
+    b.wrapAndDraw("توقيعات الاعتماد", { align:"center", font:`bold ${13*b.scale}px Tajawal, Arial`, color:"#1A3A6B" });
+    b.spacer(16);
+    await b.preloadSignatures(signaturesMap);
+    orderedRoles.forEach((role) => {
+      b.ensureSpace(65*b.scale);
+      b.drawSigSlot(role, (signaturesMap[role]&&signaturesMap[role].name)||"", b.W/2, b.y, signaturesMap);
+      b.spacer(70);
+    });
+  }
+  return b;
+}
+
+async function startPolicyGovernanceApproval(policyId){
+  const policy = policiesCache.find(p => p.id === policyId);
+  if(!policy){ alert("تعذّر تحميل السياسة"); return; }
+  const docType = getPolicyWorkflowType(policy);
+  await startGovernanceApproval(docType, policyId);
+}
+
+async function loadPolicyApprovalStatus(policyId, containerId){
+  const box = document.getElementById(containerId);
+  if(!box) return;
+  const { data: approvals } = await sb.from("governance_approvals").select("*").eq("company_id", currentCompanyId).eq("document_ref_id", policyId).order("created_at",{ascending:false}).limit(1);
+  const current = (approvals||[])[0];
+  if(!current){ box.innerHTML = ""; return; }
+  if(current.status === "مكتملة" || current.status === "مرفوضة"){
+    box.innerHTML = `<span style="font-size:10.5px;color:${current.status==='مكتملة'?'var(--green)':'var(--red)'};cursor:pointer;text-decoration:underline" onclick="openGovernanceApprovalModal(${current.id})">${current.status}</span>`;
+    return;
+  }
+  box.innerHTML = `<span style="font-size:10.5px;color:var(--gold);cursor:pointer;text-decoration:underline" onclick="openGovernanceApprovalModal(${current.id})">🟡 ${current.status}</span>`;
 }
 
 async function savePolicy(){
@@ -7252,7 +7343,7 @@ async function savePolicy(){
   const review_date = document.getElementById("mp-review").value || null;
   const status = document.getElementById("mp-status").value;
   const category = document.getElementById("mp-category").value;
-  const requires_agm_approval = document.getElementById("mp-requires-agm").checked;
+  const approval_level = document.getElementById("mp-approval-level").value;
   if(!policy_name){ alert("الرجاء إدخال اسم السياسة"); return; }
 
   const fileInput = document.getElementById("mp-file");
@@ -7260,7 +7351,7 @@ async function savePolicy(){
 
   const previous = id ? policiesCache.find(x => x.id === Number(id)) : null;
 
-  const payload = { policy_name, policy_type, approval_date, review_date, status, category, requires_agm_approval, company_id: currentCompanyId };
+  const payload = { policy_name, policy_type, approval_date, review_date, status, category, approval_level, company_id: currentCompanyId };
   if(file_url) payload.file_url = file_url;
   if(!id || (previous && previous.status !== status)) payload.stage_entered_at = new Date().toISOString();
 
@@ -9473,7 +9564,7 @@ function getMatrixCompanyName(){
 
 async function openWorkflowTemplateModal(docType){
   currentWorkflowDocType = docType;
-  const label = docType === "matrix" ? "مصفوفة الصلاحيات" : "السياسات";
+  const label = docType === "matrix" ? "مصفوفة الصلاحيات" : (POLICY_WORKFLOW_LABELS[docType] || "السياسات");
   document.getElementById("wft-title").textContent = `⚙️ إعداد تسلسل التوقيع — ${label}`;
   const { data } = await sb.from("signing_workflow_templates").select("*").eq("company_id", currentCompanyId).eq("document_type", docType).maybeSingle();
   workflowDraftRoles = (data && data.ordered_roles) ? [...data.ordered_roles] : [];
@@ -9603,15 +9694,24 @@ async function buildMatrixCanvasPages(signaturesMap, orderedRoles){
 async function startGovernanceApproval(docType, refId){
   const { data: template } = await sb.from("signing_workflow_templates").select("*").eq("company_id", currentCompanyId).eq("document_type", docType).maybeSingle();
   if(!template || !template.ordered_roles || template.ordered_roles.length===0){
-    alert('لازم تحدد تسلسل التوقيع أولًا — اضغط "⚙️ إعداد تسلسل التوقيع".');
+    alert(`لازم تحدد تسلسل التوقيع أولًا لهذا النوع (${POLICY_WORKFLOW_LABELS[docType]||docType}) — اضغط زر "⚙️ إعداد التسلسل" المطابق.`);
     return;
   }
   if(!confirm("سيبدأ هذا دورة اعتماد جديدة: تصويت المجلس أولًا، ثم توقيع تسلسلي بالمناصب المحددة. متابعة؟")) return;
 
-  const b = await buildMatrixCanvasPages({}, null);
+  const isMatrix = docType === "matrix";
+  const docLabel = isMatrix ? "مصفوفة الصلاحيات" : "سياسة";
+  let b;
+  if(isMatrix){
+    b = await buildMatrixCanvasPages({}, null);
+  } else {
+    const policy = policiesCache.find(p => p.id === refId);
+    if(!policy){ alert("تعذّر تحميل السياسة"); return; }
+    b = await buildPolicyCanvasPages(policy, {}, null);
+  }
   const bytes = await b.toPDFBytes();
   const blob = new Blob([bytes], { type: "application/pdf" });
-  const snapshotUrl = await uploadBlobToStorage(blob, "governance-approvals", `مصفوفة-صلاحيات-${Date.now()}.pdf`);
+  const snapshotUrl = await uploadBlobToStorage(blob, "governance-approvals", `${docLabel}-${Date.now()}.pdf`);
   if(!snapshotUrl) return;
 
   const { data: approval, error } = await sb.from("governance_approvals").insert([{
@@ -9622,8 +9722,8 @@ async function startGovernanceApproval(docType, refId){
 
   const board = await getBoardApprovers();
   for(const b2 of board){
-    await sendNotificationEmail(b2.email, "🗳️ طلب تصويت — مصفوفة الصلاحيات",
-      `<div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px"><h2>🗳️ طلب تصويت</h2><p>مطلوب تصويتك على مصفوفة الصلاحيات المحدثة. ادخل المنصة لتسجيل تصويتك.</p></div>`);
+    await sendNotificationEmail(b2.email, `🗳️ طلب تصويت — ${docLabel}`,
+      `<div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px"><h2>🗳️ طلب تصويت</h2><p>مطلوب تصويتك على ${docLabel} المحدثة. ادخل المنصة لتسجيل تصويتك.</p></div>`);
   }
   alert("تم بدء دورة الاعتماد ✅ — أُرسل طلب تصويت لأعضاء المجلس.");
   loadMatrixApprovalStatus();
@@ -9817,10 +9917,21 @@ async function confirmGovernanceSignature(){
   const { data: allSigs } = await sb.from("governance_signatures").select("*").eq("approval_id", currentGovSignApprovalId);
   const signaturesMap = {};
   (allSigs||[]).forEach(s => { signaturesMap[s.role] = { name: s.signer_name, image: s.signature_image }; });
-  const b = await buildMatrixCanvasPages(signaturesMap, orderedRoles);
+  const isMatrix = approval.document_type === "matrix";
+  let policyForRegen = null;
+  if(!isMatrix){
+    policyForRegen = policiesCache.find(p=>p.id===approval.document_ref_id);
+    if(!policyForRegen){
+      const { data: fetchedPolicy } = await sb.from("policies").select("*").eq("id", approval.document_ref_id).single();
+      policyForRegen = fetchedPolicy || {};
+    }
+  }
+  const b = isMatrix
+    ? await buildMatrixCanvasPages(signaturesMap, orderedRoles)
+    : await buildPolicyCanvasPages(policyForRegen, signaturesMap, orderedRoles);
   const bytes = await b.toPDFBytes();
   const blob = new Blob([bytes], { type: "application/pdf" });
-  const newUrl = await uploadBlobToStorage(blob, "governance-approvals", `مصفوفة-صلاحيات-موقّعة-${Date.now()}.pdf`);
+  const newUrl = await uploadBlobToStorage(blob, "governance-approvals", `${isMatrix?'مصفوفة-صلاحيات':'سياسة'}-موقّعة-${Date.now()}.pdf`);
 
   const allSigned = orderedRoles.every(r => signaturesMap[r]);
   await sb.from("governance_approvals").update({
