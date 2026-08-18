@@ -1271,8 +1271,12 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportPermissionsMatrix()">📥 تصدير Excel</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openPermHoldersManager()">✏️ تعديل الجهات</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openPermItemsManager()">✏️ تعديل البنود</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="downloadPermMatrixTemplate()">📥 تحميل نموذج Excel</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="triggerPermMatrixImport()">📤 استيراد من Excel</button>
+      <input type="file" id="permMatrixImportFile" accept=".xlsx" style="display:none" onchange="importPermMatrixFromExcel(this)"/>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openPermItemModal()">+ إضافة بند</button>
-      <button class="btn" id="approvalBtnMatrix" style="background:var(--gold);color:#fff;font-size:11px;padding:6px 14px" onclick="requestBoardApproval('matrix')">📤 طلب موافقة من المجلس</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openWorkflowTemplateModal('matrix')">⚙️ إعداد تسلسل التوقيع</button>
+      <button class="btn" id="approvalBtnMatrix" style="background:var(--gold);color:#fff;font-size:11px;padding:6px 14px" onclick="startGovernanceApproval('matrix', null)">📤 بدء دورة الاعتماد والتوقيع</button>
     </div>
   </div>
   <div id="matrixApprovalStatus" style="margin-bottom:14px"></div>
@@ -2208,6 +2212,42 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <button class="btn btn-ghost" onclick="closeM('m-official-sign')">إلغاء</button>
       <button class="btn btn-gold" onclick="confirmOfficialSignature()">✅ تأكيد التوقيع</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-workflow-template">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title" id="wft-title">⚙️ إعداد تسلسل التوقيع</div>
+    <p style="font-size:11.5px;color:var(--gray3);margin-bottom:10px">حدد المناصب اللي لازم توقّع على هذا النوع من الوثائق، **بالترتيب** — ما أحد يقدر يوقّع قبل دوره.</p>
+    <div id="wft-roles-list" style="margin-bottom:10px"></div>
+    <div style="display:flex;gap:6px;margin-bottom:14px">
+      <input class="fi" id="wft-new-role" placeholder="مثال: مدير إدارة الحوكمة" style="flex:1;margin:0">
+      <button class="btn-xs primary" onclick="addWorkflowRole()">+ إضافة</button>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-workflow-template')">إلغاء</button><button class="btn btn-gold" onclick="saveWorkflowTemplate()">✅ حفظ الترتيب</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-governance-approval">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title" id="ga-title">دورة الاعتماد والتوقيع</div>
+    <div id="ga-body"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-governance-approval')">إغلاق</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-governance-sign">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">✍️ توقيعك على الوثيقة</div>
+    <div id="gs-info" style="font-size:12px;color:var(--gray3);margin-bottom:10px"></div>
+    <p style="font-size:11px;color:var(--gray3);margin-bottom:6px">وقّع بإصبعك أو الماوس — سيندمج بمكانه الصحيح على الوثيقة فورًا.</p>
+    <div style="border:2px dashed var(--gray1);border-radius:10px;background:#fff;touch-action:none">
+      <canvas id="govSigCanvas" width="440" height="150" style="width:100%;height:150px;cursor:crosshair;display:block"></canvas>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-ghost" style="flex:1" onclick="clearGovSigPad()">🧹 مسح</button>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-governance-sign')">إلغاء</button><button class="btn btn-gold" onclick="confirmGovernanceSignature()">✅ تأكيد التوقيع</button></div>
   </div>
 </div>
 
@@ -3514,6 +3554,7 @@ function isMutatingOnclick(val){
   if(!val) return false;
   return /^openM\(\s*'m-/.test(val)
     || /^openPermItemModal\(/.test(val)
+    || /^triggerPermMatrixImport\(/.test(val)
     || /^openPermHoldersManager\(/.test(val)
     || /^openPermItemsManager\(/.test(val)
     || /^openPermItemEditModal\(/.test(val)
@@ -3568,6 +3609,9 @@ function isMutatingOnchange(val){
     || /^sendPermissionItemNotification\(/.test(val)
     || /^sendPermissionItemWhatsApp\(/.test(val)
     || /^requestBoardApproval\(/.test(val)
+    || /^openWorkflowTemplateModal\(/.test(val)
+    || /^saveWorkflowTemplate\(/.test(val)
+    || /^startGovernanceApproval\(/.test(val)
     || /^sendApprovalReminder\(/.test(val)
     || /^requestCharterApproval\(/.test(val)
     || /^updateUserRole\(/.test(val)
@@ -3957,7 +4001,7 @@ function reloadCurrentPageData(){
   if(id==='signing') loadSigning();
   if(id==='committees') loadCommittees();
   if(id==='structure'){ loadStructure(); renderApprovalStatus('structure','structureApprovalStatus'); }
-  if(id==='permissions'){ loadPermissionsMatrix(); renderApprovalStatus('matrix','matrixApprovalStatus'); }
+  if(id==='permissions'){ loadPermissionsMatrix(); loadMatrixApprovalStatus(); }
   if(id==='voting') loadVotingPage();
   if(id==='audit') loadAudit();
   if(id==='govassess'){ document.getElementById('govassessListView').style.display='block'; document.getElementById('govassessFormView').style.display='none'; loadGovAssessments(); }
@@ -9412,6 +9456,383 @@ async function getBoardApprovers(){
   return data || [];
 }
 
+/* ══════════ GOVERNANCE APPROVAL ENGINE (vote + sequential position-based signing) ══════════
+   Two independent stages, both required: (1) board VOTES موافقة/رفض/اعتراض — any رفض halts the
+   document; اعتراض is a recorded objection but doesn't block. (2) once voting clears, a STRICT,
+   ORDERED chain of position-holders signs — nobody can sign out of turn, which is what makes
+   "who's holding things up" traceable afterward. Reusable across document types (currently
+   matrix; policies use the same engine later) via a per-company, per-type ordered role template. */
+let workflowDraftRoles = [];
+let currentWorkflowDocType = null;
+
+function getMatrixCompanyName(){
+  return document.getElementById("reportCompanyName1")?.textContent && document.getElementById("reportCompanyName1").textContent !== "—"
+    ? document.getElementById("reportCompanyName1").textContent
+    : (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent || "الشركة");
+}
+
+async function openWorkflowTemplateModal(docType){
+  currentWorkflowDocType = docType;
+  const label = docType === "matrix" ? "مصفوفة الصلاحيات" : "السياسات";
+  document.getElementById("wft-title").textContent = `⚙️ إعداد تسلسل التوقيع — ${label}`;
+  const { data } = await sb.from("signing_workflow_templates").select("*").eq("company_id", currentCompanyId).eq("document_type", docType).maybeSingle();
+  workflowDraftRoles = (data && data.ordered_roles) ? [...data.ordered_roles] : [];
+  renderWorkflowRolesList();
+  document.getElementById("wft-new-role").value = "";
+  openM("m-workflow-template");
+}
+
+function renderWorkflowRolesList(){
+  const box = document.getElementById("wft-roles-list");
+  if(workflowDraftRoles.length === 0){
+    box.innerHTML = '<div style="font-size:11px;color:var(--gray3);text-align:center;padding:10px">لم تُضف أي مناصب بعد.</div>';
+    return;
+  }
+  box.innerHTML = workflowDraftRoles.map((role, i) => `<div style="display:flex;align-items:center;gap:8px;background:var(--offwhite);border-radius:8px;padding:8px 10px;margin-bottom:6px">
+    <span style="background:var(--primary);color:#fff;font-weight:800;font-size:11px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</span>
+    <span style="flex:1;font-size:12.5px">${role}</span>
+    <button class="btn-xs" style="background:none;border:none;color:var(--gray3);cursor:pointer" onclick="moveWorkflowRole(${i},-1)" ${i===0?'disabled style="opacity:0.3"':''}>▲</button>
+    <button class="btn-xs" style="background:none;border:none;color:var(--gray3);cursor:pointer" onclick="moveWorkflowRole(${i},1)" ${i===workflowDraftRoles.length-1?'disabled style="opacity:0.3"':''}>▼</button>
+    <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:3px 8px;font-size:10.5px;cursor:pointer" onclick="removeWorkflowRole(${i})">حذف</button>
+  </div>`).join("");
+}
+
+function addWorkflowRole(){
+  const input = document.getElementById("wft-new-role");
+  const role = input.value.trim();
+  if(!role) return;
+  workflowDraftRoles.push(role);
+  input.value = "";
+  renderWorkflowRolesList();
+}
+
+function removeWorkflowRole(i){ workflowDraftRoles.splice(i,1); renderWorkflowRolesList(); }
+function moveWorkflowRole(i, dir){
+  const j = i + dir;
+  if(j < 0 || j >= workflowDraftRoles.length) return;
+  [workflowDraftRoles[i], workflowDraftRoles[j]] = [workflowDraftRoles[j], workflowDraftRoles[i]];
+  renderWorkflowRolesList();
+}
+
+async function saveWorkflowTemplate(){
+  if(workflowDraftRoles.length === 0){ alert("أضف منصبًا واحدًا على الأقل"); return; }
+  const { data: existing } = await sb.from("signing_workflow_templates").select("id").eq("company_id", currentCompanyId).eq("document_type", currentWorkflowDocType).maybeSingle();
+  const payload = { company_id: currentCompanyId, document_type: currentWorkflowDocType, ordered_roles: workflowDraftRoles };
+  const { error } = existing
+    ? await sb.from("signing_workflow_templates").update(payload).eq("id", existing.id)
+    : await sb.from("signing_workflow_templates").insert([payload]);
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  alert("تم حفظ تسلسل التوقيع ✅");
+  closeM("m-workflow-template");
+}
+
+/* ── Building the matrix content as a canvas page (reused for the voting snapshot AND the
+   final signed PDF — same drawing code, signatures just get added once collected) ── */
+async function buildMatrixCanvasPages(signaturesMap, orderedRoles){
+  const [{ data: holders }, { data: items }, { data: cells }] = await Promise.all([
+    sb.from("permission_holders").select("*").eq("company_id", currentCompanyId).order("sort_order",{ascending:true}),
+    sb.from("permission_items").select("*").eq("company_id", currentCompanyId).order("sort_order",{ascending:true}),
+    sb.from("permission_cells").select("*").eq("company_id", currentCompanyId)
+  ]);
+  const cellMap = {};
+  (cells||[]).forEach(c => { cellMap[c.item_id+'-'+c.holder_id] = c.code; });
+
+  const b = new CanvasPDFBuilder();
+  b.wrapAndDraw("مصفوفة الصلاحيات والمسؤوليات", { align:"center", font:`bold ${16*b.scale}px Tajawal, Arial`, color:"#1A3A6B" });
+  b.spacer(6);
+  b.wrapAndDraw(getMatrixCompanyName(), { align:"center", font:`bold ${12*b.scale}px Tajawal, Arial` });
+  b.spacer(20);
+
+  const byCategory = {};
+  (items||[]).forEach(it => { (byCategory[it.category||"عام"] = byCategory[it.category||"عام"]||[]).push(it); });
+
+  const tableW = b.W - b.margin*2;
+  const wItem = tableW*0.34;
+  const wHolder = (tableW - wItem) / Math.max(1,(holders||[]).length);
+  const RM = b.W - b.margin;
+
+  Object.entries(byCategory).forEach(([cat, catItems]) => {
+    b.ensureSpace(30*b.scale);
+    b.wrapAndDraw(cat, { font:`bold ${12*b.scale}px Tajawal, Arial`, color:"#1A3A6B", lineHeight:20*b.scale });
+    b.spacer(4);
+
+    const xItemStart = RM - wItem;
+    const holderBounds = (holders||[]).map((h,i) => ({ h, s: xItemStart - wHolder*(i+1), e: xItemStart - wHolder*i }));
+    b.ensureSpace(26*b.scale);
+    const headerH = 26*b.scale;
+    b.ctx.strokeStyle="#333"; b.ctx.lineWidth=0.7*b.scale; b.ctx.font=`bold ${8.5*b.scale}px Tajawal, Arial`; b.ctx.textAlign="center";
+    b.ctx.strokeRect(xItemStart, b.y, RM-xItemStart, headerH);
+    b.ctx.fillText("البند", (xItemStart+RM)/2, b.y+17*b.scale);
+    holderBounds.forEach(hb => { b.ctx.strokeRect(hb.s, b.y, hb.e-hb.s, headerH); const nm=(hb.h.name||"").length>10?hb.h.name.slice(0,10)+"…":hb.h.name; b.ctx.fillText(nm, (hb.s+hb.e)/2, b.y+17*b.scale); });
+    b.y += headerH;
+
+    b.ctx.font=`${8.5*b.scale}px Tajawal, Arial`;
+    catItems.forEach(it => {
+      b.ensureSpace(24*b.scale);
+      const rowH = 24*b.scale;
+      b.ctx.strokeRect(xItemStart, b.y, RM-xItemStart, rowH);
+      b.ctx.textAlign="right";
+      const txt = (it.item_name||"").length>34 ? it.item_name.slice(0,34)+"…" : (it.item_name||"");
+      b.ctx.fillText(txt, RM-4*b.scale, b.y+rowH/2+3*b.scale);
+      b.ctx.textAlign="center";
+      holderBounds.forEach(hb => {
+        b.ctx.strokeRect(hb.s, b.y, hb.e-hb.s, rowH);
+        const code = cellMap[it.id+'-'+hb.h.id];
+        if(code) b.ctx.fillText(code, (hb.s+hb.e)/2, b.y+rowH/2+3*b.scale);
+      });
+      b.y += rowH;
+    });
+    b.spacer(10);
+  });
+
+  // Signature block, in the mandated order, one per row
+  if(orderedRoles && orderedRoles.length){
+    b.spacer(20);
+    b.wrapAndDraw("توقيعات الاعتماد", { align:"center", font:`bold ${13*b.scale}px Tajawal, Arial`, color:"#1A3A6B" });
+    b.spacer(16);
+    await b.preloadSignatures(signaturesMap);
+    orderedRoles.forEach((role) => {
+      b.ensureSpace(65*b.scale);
+      b.drawSigSlot(role, (signaturesMap[role]&&signaturesMap[role].name)||"", b.W/2, b.y, signaturesMap);
+      b.spacer(70);
+    });
+  }
+  return b;
+}
+
+async function startGovernanceApproval(docType, refId){
+  const { data: template } = await sb.from("signing_workflow_templates").select("*").eq("company_id", currentCompanyId).eq("document_type", docType).maybeSingle();
+  if(!template || !template.ordered_roles || template.ordered_roles.length===0){
+    alert('لازم تحدد تسلسل التوقيع أولًا — اضغط "⚙️ إعداد تسلسل التوقيع".');
+    return;
+  }
+  if(!confirm("سيبدأ هذا دورة اعتماد جديدة: تصويت المجلس أولًا، ثم توقيع تسلسلي بالمناصب المحددة. متابعة؟")) return;
+
+  const b = await buildMatrixCanvasPages({}, null);
+  const bytes = await b.toPDFBytes();
+  const blob = new Blob([bytes], { type: "application/pdf" });
+  const snapshotUrl = await uploadBlobToStorage(blob, "governance-approvals", `مصفوفة-صلاحيات-${Date.now()}.pdf`);
+  if(!snapshotUrl) return;
+
+  const { data: approval, error } = await sb.from("governance_approvals").insert([{
+    company_id: currentCompanyId, document_type: docType, document_ref_id: refId,
+    document_snapshot_url: snapshotUrl, status: "قيد التصويت"
+  }]).select().single();
+  if(error){ alert("تعذّر بدء الدورة: " + error.message); return; }
+
+  const board = await getBoardApprovers();
+  for(const b2 of board){
+    await sendNotificationEmail(b2.email, "🗳️ طلب تصويت — مصفوفة الصلاحيات",
+      `<div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px"><h2>🗳️ طلب تصويت</h2><p>مطلوب تصويتك على مصفوفة الصلاحيات المحدثة. ادخل المنصة لتسجيل تصويتك.</p></div>`);
+  }
+  alert("تم بدء دورة الاعتماد ✅ — أُرسل طلب تصويت لأعضاء المجلس.");
+  loadMatrixApprovalStatus();
+}
+
+async function loadMatrixApprovalStatus(){
+  const box = document.getElementById("matrixApprovalStatus");
+  if(!box) return;
+  const { data: approvals } = await sb.from("governance_approvals").select("*").eq("company_id", currentCompanyId).eq("document_type","matrix").order("created_at",{ascending:false}).limit(1);
+  const current = (approvals||[])[0];
+  if(!current || current.status === "مكتملة" || current.status === "مرفوضة"){
+    box.innerHTML = current ? `<div style="font-size:11.5px;color:${current.status==='مكتملة'?'var(--green)':'var(--red)'}">آخر دورة اعتماد: ${current.status}. <span style="cursor:pointer;text-decoration:underline;color:var(--primary)" onclick="openGovernanceApprovalModal(${current.id})">عرض التفاصيل</span></div>` : "";
+    return;
+  }
+  box.innerHTML = `<div style="background:#FEF3E2;border:2px solid var(--gold);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--gold);cursor:pointer" onclick="openGovernanceApprovalModal(${current.id})">
+    🟡 دورة اعتماد جارية — الحالة: <b>${current.status}</b> — اضغط لعرض التفاصيل والمشاركة
+  </div>`;
+}
+
+async function openGovernanceApprovalModal(approvalId){
+  const { data: approval } = await sb.from("governance_approvals").select("*").eq("id", approvalId).single();
+  if(!approval){ alert("تعذّر تحميل الدورة"); return; }
+  const { data: template } = await sb.from("signing_workflow_templates").select("*").eq("company_id", currentCompanyId).eq("document_type", approval.document_type).maybeSingle();
+  const [{ data: votes }, { data: sigs }] = await Promise.all([
+    sb.from("governance_votes").select("*").eq("approval_id", approvalId),
+    sb.from("governance_signatures").select("*").eq("approval_id", approvalId).order("order_position",{ascending:true})
+  ]);
+  const board = await getBoardApprovers();
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData?.user?.email;
+  const myVote = (votes||[]).find(v => v.voter_email === myEmail);
+
+  document.getElementById("ga-title").textContent = `دورة اعتماد — ${approval.document_type==='matrix'?'مصفوفة الصلاحيات':'سياسة'}`;
+  const body = document.getElementById("ga-body");
+
+  let html = `<div class="sec-title" style="font-size:13px">📄 نسخة الوثيقة</div>
+    <a href="${approval.document_snapshot_url}" target="_blank" style="font-size:12px;color:var(--primary);font-weight:700">📄 عرض النسخة الحالية (PDF)</a>`;
+
+  html += `<div class="sec-title" style="font-size:13px;margin-top:16px">🗳️ التصويت (${(votes||[]).length}/${board.length})</div>`;
+  html += `<div style="margin-bottom:10px">${(votes||[]).map(v => `<div style="font-size:11.5px;padding:4px 0">
+    <b>${v.voter_name||v.voter_email}</b> — <span style="color:${v.decision==='موافقة'?'var(--green)':v.decision==='رفض'?'var(--red)':'var(--gold)'};font-weight:700">${v.decision}</span>
+    ${v.notes?` — <span style="color:var(--gray3)">${v.notes}</span>`:""}
+  </div>`).join("") || '<div style="font-size:11px;color:var(--gray3)">لا توجد أصوات بعد.</div>'}</div>`;
+
+  if(approval.status === "قيد التصويت" && !myVote && board.some(b2=>b2.email===myEmail)){
+    html += `<div class="card"><div class="card-body">
+      <textarea class="fi" id="ga-vote-notes" rows="2" placeholder="ملاحظاتك (اختياري، خصوصًا عند الاعتراض)"></textarea>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn-xs" style="flex:1;background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:8px;cursor:pointer" onclick="castGovernanceVote(${approvalId},'موافقة')">✅ موافقة</button>
+        <button class="btn-xs" style="flex:1;background:#FEF3E2;color:var(--gold);border:none;border-radius:6px;padding:8px;cursor:pointer" onclick="castGovernanceVote(${approvalId},'اعتراض')">⚠️ اعتراض (مع ملاحظات)</button>
+        <button class="btn-xs" style="flex:1;background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:8px;cursor:pointer" onclick="castGovernanceVote(${approvalId},'رفض')">❌ رفض</button>
+      </div>
+    </div></div>`;
+  }
+
+  if(approval.status === "مرفوضة"){
+    html += `<div style="background:#FDE8E8;border-radius:8px;padding:10px;margin-top:10px;font-size:12px;color:var(--red);font-weight:700">❌ رُفضت الوثيقة — لم تنتقل لمرحلة التوقيع.</div>`;
+  }
+
+  if(["قيد التوقيع","مكتملة"].includes(approval.status) && template){
+    html += `<div class="sec-title" style="font-size:13px;margin-top:16px">✍️ التوقيع التسلسلي بالمناصب</div>`;
+    template.ordered_roles.forEach((role, i) => {
+      const sig = (sigs||[]).find(s => s.role === role);
+      const prevSigned = i === 0 || (sigs||[]).some(s => s.role === template.ordered_roles[i-1]);
+      const isMyTurn = !sig && prevSigned;
+      const daysWaiting = (!sig && prevSigned) ? Math.floor((Date.now() - new Date((sigs||[]).find(s=>s.role===template.ordered_roles[i-1])?.signed_at || approval.created_at).getTime())/86400000) : 0;
+      html += `<div style="display:flex;align-items:center;gap:10px;background:var(--offwhite);border-radius:8px;padding:10px;margin-bottom:6px">
+        <span style="background:${sig?'var(--green)':isMyTurn?'var(--gold)':'var(--gray2)'};color:#fff;font-weight:800;font-size:11px;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</span>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:700">${role}</div>
+          ${sig ? `<div style="font-size:10.5px;color:var(--green)">✅ وقّع: ${sig.signer_name} — ${new Date(sig.signed_at).toLocaleString('ar-SA')}</div>`
+            : isMyTurn ? `<div style="font-size:10.5px;color:var(--gold)">🟡 بانتظار التوقيع${daysWaiting>2?` — متأخر ${daysWaiting} يوم`:''}</div>`
+            : `<div style="font-size:10.5px;color:var(--gray3)">⏳ بانتظار دور المنصب السابق</div>`}
+        </div>
+        ${isMyTurn ? `<button class="btn-xs gold" onclick="openGovernanceSignModal(${approvalId},'${role.replace(/'/g,"")}')">توقيع</button>` : ""}
+      </div>`;
+    });
+  }
+
+  if(approval.status === "مكتملة"){
+    html += `<div style="background:#E8F8EF;border-radius:8px;padding:10px;margin-top:10px;font-size:12px;color:var(--green);font-weight:700">✅ اكتملت الدورة — كل التوقيعات مجمّعة بالوثيقة النهائية.</div>`;
+  }
+
+  body.innerHTML = html;
+  openM("m-governance-approval");
+}
+
+async function castGovernanceVote(approvalId, decision){
+  const notes = document.getElementById("ga-vote-notes")?.value.trim() || "";
+  const { data: userData } = await sb.auth.getUser();
+  const email = userData?.user?.email;
+  const { error } = await sb.from("governance_votes").insert([{
+    approval_id: approvalId, voter_email: email, voter_name: currentUserProfile?currentUserProfile.full_name:email, decision, notes
+  }]);
+  if(error){ alert("تعذّر تسجيل تصويتك: " + error.message); return; }
+
+  if(decision === "رفض"){
+    await sb.from("governance_approvals").update({ status: "مرفوضة" }).eq("id", approvalId);
+  } else {
+    const board = await getBoardApprovers();
+    const { data: votes } = await sb.from("governance_votes").select("*").eq("approval_id", approvalId);
+    const anyReject = (votes||[]).some(v => v.decision === "رفض");
+    if(anyReject){
+      await sb.from("governance_approvals").update({ status: "مرفوضة" }).eq("id", approvalId);
+    } else if((votes||[]).length >= board.length){
+      // Voting cleared — move to sequential signing, seeding an empty ordered row per role.
+      const { data: approval } = await sb.from("governance_approvals").select("*").eq("id", approvalId).single();
+      const { data: template } = await sb.from("signing_workflow_templates").select("*").eq("company_id", currentCompanyId).eq("document_type", approval.document_type).maybeSingle();
+      await sb.from("governance_approvals").update({ status: "قيد التوقيع" }).eq("id", approvalId);
+      // governance_signatures rows are created lazily at signing time (not pre-seeded), so no
+      // insert needed here — openGovernanceApprovalModal derives sequence state from what
+      // exists vs. the template's ordered_roles list.
+    }
+  }
+  alert("تم تسجيل تصويتك ✅");
+  openGovernanceApprovalModal(approvalId);
+  loadMatrixApprovalStatus();
+}
+
+let govSigPadCtx = null, govSigPadDrawing = false, currentGovSignApprovalId = null, currentGovSignRole = null;
+
+function openGovernanceSignModal(approvalId, role){
+  currentGovSignApprovalId = approvalId; currentGovSignRole = role;
+  document.getElementById("gs-info").innerHTML = `<b>توقّع بصفتك:</b> ${role}`;
+  openM("m-governance-sign");
+  setTimeout(initGovSigPad, 50);
+}
+
+function initGovSigPad(){
+  const canvas = document.getElementById("govSigCanvas");
+  if(!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width; canvas.height = rect.height;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle = "#0D2447"; ctx.lineWidth = 2.5; ctx.lineCap = "round"; ctx.lineJoin = "round";
+  govSigPadCtx = ctx;
+  const getPos = (e) => { const r = canvas.getBoundingClientRect(); const p = e.touches ? e.touches[0] : e; return { x: p.clientX - r.left, y: p.clientY - r.top }; };
+  const start = (e) => { e.preventDefault(); govSigPadDrawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+  const move = (e) => { if(!govSigPadDrawing) return; e.preventDefault(); const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+  const end = () => { govSigPadDrawing = false; };
+  canvas.onmousedown = start; canvas.onmousemove = move; canvas.onmouseup = end; canvas.onmouseleave = end;
+  canvas.ontouchstart = start; canvas.ontouchmove = move; canvas.ontouchend = end;
+}
+
+function clearGovSigPad(){
+  if(!govSigPadCtx) return;
+  const canvas = document.getElementById("govSigCanvas");
+  govSigPadCtx.clearRect(0,0,canvas.width,canvas.height);
+}
+
+function isGovSigPadEmpty(){
+  const canvas = document.getElementById("govSigCanvas");
+  if(!canvas) return true;
+  const ctx = canvas.getContext("2d");
+  const data = ctx.getImageData(0,0,canvas.width,canvas.height).data;
+  for(let i=3; i<data.length; i+=4){ if(data[i] !== 0) return false; }
+  return true;
+}
+
+async function confirmGovernanceSignature(){
+  if(isGovSigPadEmpty()){ alert("الرجاء رسم التوقيع أولًا"); return; }
+  const { data: approval } = await sb.from("governance_approvals").select("*").eq("id", currentGovSignApprovalId).single();
+  const { data: template } = await sb.from("signing_workflow_templates").select("*").eq("company_id", currentCompanyId).eq("document_type", approval.document_type).maybeSingle();
+  const orderedRoles = template.ordered_roles;
+  const orderPos = orderedRoles.indexOf(currentGovSignRole);
+
+  // Re-verify sequence server-side-equivalent (not just trusting the UI state) before writing.
+  const { data: existingSigs } = await sb.from("governance_signatures").select("role").eq("approval_id", currentGovSignApprovalId);
+  const signedRoles = (existingSigs||[]).map(s=>s.role);
+  if(orderPos > 0 && !signedRoles.includes(orderedRoles[orderPos-1])){
+    alert(`لا يمكنك التوقيع الآن — بانتظار توقيع "${orderedRoles[orderPos-1]}" أولًا.`);
+    return;
+  }
+  if(signedRoles.includes(currentGovSignRole)){ alert("هذا المنصب وقّع مسبقًا"); return; }
+
+  const { data: userData } = await sb.auth.getUser();
+  const email = userData?.user?.email;
+  const signature_image = document.getElementById("govSigCanvas").toDataURL("image/png");
+  const { error } = await sb.from("governance_signatures").insert([{
+    approval_id: currentGovSignApprovalId, role: currentGovSignRole, order_position: orderPos,
+    signer_name: currentUserProfile?currentUserProfile.full_name:email, signer_email: email,
+    signature_image, signed_at: new Date().toISOString()
+  }]);
+  if(error){ alert("تعذّر حفظ التوقيع: " + error.message); return; }
+
+  closeM("m-governance-sign");
+  alert("⏳ جارِ دمج توقيعك بالوثيقة...");
+
+  // Regenerate the full document with every collected signature embedded at its slot.
+  const { data: allSigs } = await sb.from("governance_signatures").select("*").eq("approval_id", currentGovSignApprovalId);
+  const signaturesMap = {};
+  (allSigs||[]).forEach(s => { signaturesMap[s.role] = { name: s.signer_name, image: s.signature_image }; });
+  const b = await buildMatrixCanvasPages(signaturesMap, orderedRoles);
+  const bytes = await b.toPDFBytes();
+  const blob = new Blob([bytes], { type: "application/pdf" });
+  const newUrl = await uploadBlobToStorage(blob, "governance-approvals", `مصفوفة-صلاحيات-موقّعة-${Date.now()}.pdf`);
+
+  const allSigned = orderedRoles.every(r => signaturesMap[r]);
+  await sb.from("governance_approvals").update({
+    document_snapshot_url: newUrl || approval.document_snapshot_url,
+    status: allSigned ? "مكتملة" : "قيد التوقيع"
+  }).eq("id", currentGovSignApprovalId);
+
+  alert(allSigned ? "تم دمج توقيعك — واكتملت دورة الاعتماد بالكامل ✅" : "تم دمج توقيعك ✅ — بانتظار باقي المناصب.");
+  openGovernanceApprovalModal(currentGovSignApprovalId);
+  loadMatrixApprovalStatus();
+}
+
 async function requestBoardApproval(type){
   const isMatrix = type === "matrix";
   const title = isMatrix ? "طلب موافقة على مصفوفة الصلاحيات" : "طلب موافقة على الهيكل التنظيمي";
@@ -10547,7 +10968,106 @@ function renderPermItemsManageList(){
     </div>`).join('');
 }
 
+const STANDARD_PERM_MATRIX_ITEMS = {"الصلاحيات الاستراتيجية والتنظيمية": ["تعديل عقد التأسيس والنظام الأساسي للشركة", "اعتماد سياسات الشركة", "اعتماد إعادة هيلكة الإدارات التفصيلية", "اعتماد إجراءات العمل", "تصميم الرؤيا والرسالة والأهداف والاستراتيجيات العامة", "اعتماد الأهداف الاستراتيجية", "اعتماد خطة عمل الشركة ( Business Plan ) الخمسية", "اعتماد خطط عمل ( Action Plans ) سنوية للإدارات", "الدخول في مجالات عمل جديدة", "الخروج من مجالات عمل حالية", "الهيكل التنظيمي للشركة (الإدارة العليا)", "اعتماد مصفوفة مصفوفات الصلاحيات والمسؤوليات", "عقد تحالف استراتيجي مع جهات خارج الشركة", "اعتماد عمليات الاستحواذ والاندماج", "التوسع الجغرافي في أعمال الشركة داخل المملكة", "التوسع الجغرافي في أعمال الشركة خارج المملكة", "وقف التعامل مع عميل استراتيجي للشركة", "اعتماد وضع مؤشرات الأداء", "إعادة هيكلة الإدارات الإدارة الوسطى فما دون", "تعديل مهام وحدة تنظيمية (إدارة) على مستوى الشركة", "اعتماد تقييم تقارير الأداء الدورية للإدارات", "مؤشرات الأداء الرئيس التنفيذي", "مؤشرات الأداء للرئيس التنفيذي", "مؤشرات الأداء لنواب الرئيس", "مؤشرات الأداء لمديري الإدارات", "مؤشرات الأداء للموظفين", "التعديل على الأنظمة الآلية وتدفق الإجراءات", "إلغاء أو تعديل أو إضافة إجراء على النظام الآلي"], "الصلاحيات المتعلقة بالموارد البشرية": ["اعتماد دليل سياسات وإجراءات الموارد البشرية وتعديل لوائح الموارد البشرية", "اعتماد خطة احتياجات الشركة السنوية من الموارد البشرية", "اعتماد وتعديل سلم الرواتب والاجور", "تفسير احكام سياسات الموارد البشرية", "اعتماد استحداث وظيفة جديدة خارج خطة التوظيف", "اعتماد تعديل وصف الوظائف وإعادة تصنيف الوظائف ضمن سلم المرتبات", "اعتماد النص النمطي للأعلان عن الوظيفة", "توقيع عرض / عقد العمل", "إعطاء موافقة لنقل خدمات موظف لشركة أخرى", "الاتفاق مع مؤسسات التوظيف المتخصصة لإيجاد الأشخاص الكافات المطلوبة", "الأشتراك في مواقع التوظيف المتخصصة لتوفير السير الذاتية للوظائف المطلوبة", "اعتماد تجديد او تعديل عقد العمل", "الموافقة على تعين موظفين مؤقتين", "موافقة على تمديد مدة تجربة الموظف الجديد", "اعتماد دفع بدل ساعات إضافية بموجب تصريح مسبق بالعمل الإضافي", "اعتماد دفع بدل ساعات إضافية للموظفين دون وجود امر كتابي مسبق", "اعتماد توفير مسكن لأحد الموظفين أو دفع بدل سكن حسب السياسات", "التدريب داخل المملكة بحسب الموازنة", "اعتماد توفير سيارة لأحد موظفي الشركة أو دفع بدل نقل حسب سياسات الشركة", "التدريب خارج المملكة بحسب الموازنة", "الموافقة على حضور / اشتراك الموظف في المؤتمرات والمحاضرات الخارجية ( مدفوعه )", "الموافقة على حضور / اشتراك الموظف في المؤتمرات والمحاضرات الداخلية ( مدفوعه )", "لغاية 10 أيام (لمرة واحدة في السنة)", "لغاية 20 يوم (لمرة واحدة في السنة)", "أكثر من 20 يوم وحتى 30 يوم على الاتزيد الاجازة السنوية عن 60 يوم متصلة.", "تقييم أداء الموظفين", "الزيادة الدورية الاعتيادية للموظفين / العلاوات السنوية", "الترقيات", "المكافآت السنوية لجميع الموظفين (جماعية)/ العمولات بناءً على الأداء", "زيادة راتب/ ترقية/ علاوة/ مكافأة (استثنائيا)", "زيادة الراتب بما يزيد عن 20% من راتب الموظف الاجمالي", "مكافآت استثنائية للموظفين بما لا يزيد عن الراتب الإجمالي الشهري للموظف ولا يتجاوز 100 ألف بالسنة", "اعتماد تكليف موظف للعمل في وظيفة أخرى ضمن نفس الإدارة", "اعتماد تكليف موظف للعمل في وظيفة أخرى في إدارة أخرى", "اعتماد أعارة موظفين إلى مؤسسات أخرى", "الموافقة على تأخر / مغادرة الموظف في الحضور أو الأنصراف لمكان العمل لفترة محدودة", "التصريح بالبقاء في مواقع العمل أو الدخول أو الخروج منها خارج أوقات الدوام الرسمي", "البت بتظلم الموظفين", "دفع مستحقات موظفي الشركة للإجازة أو نهاية الخدمة", "دفع مستحقات موظفي الشركة نهاية الخدمة", "تصفية على رأس العمل دون الذهاب للإجازة لحاجة العمل", "صرف دفعات لا تزيد عن 50% من مستحقات الموظفين المنتهية خدماتهم ومعتمد نقل كفالاتهم قبل نقل الكفالة", "الموافقة على تغيب الموظف عن العمل مقابل ساعات عمل أضافي", "الموافقة على تراكم الأجازات السنوية في حدود السياسة المعتمدة", "البت في الخالفات الناتجه عن تضارب مواعيد الأجازات السنوية للموظفين", "اعتماد صرف النفقات التي تكبدها الموظف الذي قطعت أجازته بناء طلب الشركة", "اعتماد صرف قيمة تذكرة السفر نقدا في حال عدم تمتع الموظف في الأجازة السنوية", "اعتماد قبول التقرير الطبي المدعم لطلب الأجازةالمرضية", "اعتماد منح الموظف أجازت الحج", "التنقل الداخلي بين الإدارات / القطاعات", "التنقل داخل القطاع مدير إدارة / موظفين", "التنقل خارج القطاع مدير إدارة / موظفين", "اعتماد ترقية درجة التأمين الطبي للموظف على حسابه الشخصي (بشرط عدم مخالفة وثيقة التأمين الطبي السارية)", "الخدمات الحكومية لموظفي الشركة", "مخاطبات إدارة الجوازات", "إصدار تصاريح العمل", "تجديد وإصدار الاقامات لمرة وأكثر من مرة", "إصدار تأشيرة خروج وعودة متعدد لحاجة العمل", "إصدار تأشيرة خروج وعودة متعدد على حساب الموظف", "إصدار تأشيرة خروج وعودة مفرد بما يتجاوز المدة المحددة بسياسات الشركة", "تعديل المهنة لضرورات العمل على حساب الشركة", "طلب إصدار تأشيرات العمل الجديدة", "إصدار وتمديد تأشيرات الزيارات لأغراض العمل", "الموافقة على منح الموظفة المتزوجة أجازة أمومة", "أقرار اعفاء الموظف المستقيل أو المفصول من فترة الأنذار", "اعتماد تمديد خدمة الموظف الذي وصل إلى سن التقاعد", "انهاء خدمة الموظف بسبب العجز الدائم أو عدم اللياقه الصحية", "توقيع شهادة اخلاء الطرف / شهادة الخبرة", "تعديل مهام وحدة / قسم / إدارة أو تعديل وتغير مسمى وظيفي", "الموافقة على سحب ملفات وسجلات الموظفين أو الأطلاع عليها", "اعتماد عمل إضافي خارج أوقات الدوام الرسمي (يصرف لما هو دون مدير الادارة) بما لايزيد عن 50% عن الراتب الشهري", "اعتماد منح السلف للموظفين حسب السياسات", "سلف استثنائية السياسات بما لا يزيد عن راتب شهرين للموظف الواحد وبسقف لا يتجاوز رصيده 100,000 ريال لجميع السلف الاستثنائية القائمة", "اعتماد تأجيل خصم أقساط سلفة موظف لمدة لا تزيد عن شهر.", "اعتماد تأجيل خصم أقساط سلفة موظف لمدة لا تزيد عن ثلاثة شهور", "التنازل عن شرط الكفيل اللازم للحصول على سلفة في حدود رصيد مكافأة نهاية الخدمة المرصودة للموظف بتاريخ السلفة.", "اعتماد اوامر الاركاب لإصدار تذاكر السفر بالطائرة بحسب السياسه", "تحديد المناطق المحظورة على زوار الشركة أو الموظفين الغير عاملين فيها", "الموافقة على نشر تعميم داخلي على بريد الشركة الألكتروني", "اعتماد منح صلاحية نشر التعاميم الداخلية على بريد الشركة الألكتروني", "اعتماد زيادة سعر تذاكر الطيران عن المبلغ المخصص بمبلغ لا يتجاوز 300 ريال بغرض التمتع بالاجازة", "اعتماد زيادة سعر تذاكر الطيران عن المبلغ المخصص بمبلغ يتجاوز 150 ريال ويقل عن 1000 ريال", "اعتماد زيادة سعر تذاكر الطيران عن المبلغ المخصص بمبلغ يتجاوز 1000 ريال"], "الصلاحيات المالية والاستثمارية": ["تعديل رأس المال", "توزيع الأرباح على المساهمين", "تجنيب احتياطيات إضافية", "اعتماد و/ أو تعديل الموازنة", "اعتماد القوائم المالية", "اعتماد سياسة المخاطر المالية الائتمانية", "اعتماد السياسات والإجراءات المالية والتشغيلية والإدارية", "فتح حسابات بالعملة السعودية أو العملات الأخرى في البنوك المعتمدة", "اعتماد سياسة الاقتراض من البنوك المعتمدة", "رهن موجودات الشركة", "سياسة الاستثمارات قصيرة الأجل للسيولة النقدية الفائضة في أسواق المال والبنوك", "تحديد المفوضين بالتوقيع لدى البنوك، ووضع وتعديل حدود صلاحياتهم.", "العقود والمناقصات", "تحديد الموصفات ( كراسة الشروط والمتطلبات الفنية )", "طرح المناقصات", "فحص العروض", "توقيع العقود الرأسمالية والتشغيلية ( ضمن الموازنة )", "من 500 ألف ريال حتى 2 مليون ريال", "أكثر من أثنين مليون ريال", "أعتماد طلبات الشراء ( الشراء المباشر بحسب السياسات )", "أكثر من 200 ألف ريال وأقل من 500 ألف ريال", "استئجار الممتلكات الضرورية للشركة (مباني، سيارات، معدات...) \" ضمن الموازنة \"", "من 300 ألف ريال إلى مليون ريال للعملية الواحدة", "أكثر من مليون ريال للعملية الواحدة", "التوقيع على عقود المؤجرين (ضمن الشروط المعتمدة)", "الاعفاء من تقديم خطاب الضمان مقابل ضمان حسن التنفيذ او مقابل دفعات مقدمة بمبلغ لا يزيد عن 20,000 ريال", "الاعفاء من تقديم خطاب الضمان مقابل ضمان حسن التنفيذ او مقابل دفعات مقدمة بمبلغ لا يزيد عن 30,000 ريال", "الاعفاء من تقديم خطاب الضمان مقابل ضمان حسن التنفيذ او مقابل دفعات مقدمة بمبلغ يزيد عن 30,000 ريال", "استبعاد الأصول الثابتة بالشطب أو البيع واعتماد سعر البيع", "القيمة الدفترية أقل من 10 الاف ريال", "القيمة الدفترية أكثر من 10 الاف ريال", "تعديل معدلات إهلاك للأصول الثابتة", "تشكيل لجنة جرد الأصول الثابتة", "اعتماد نتائج جرد الأصول الثابتة بفروقات لا تزيد عن 200 ألف ريال في السنة", "اعتماد صرف الهدايا والهبات والتبرعات.", "أقل من 20.000 ريال . سنوياً", "أكثر من 20 ألف ريال وأقل من 200 ألف ريال سنوياً", "أكثر من 200 ألف ريال سنوياً", "اعتماد المخصصات بجميع أنواعها.", "الزكاة والضرائب", "اعتماد إقرارات الزكاة وإقرارت الضرائب", "- اعتماد قرارات الربط الزكوي الصادرة عن مصلحة الزكاة، أو الاعتراض عليها أو استئنافها", "- تعيين المستشار الزكوي (إذا كان هناك حاجة)", "العهد المستديمة والمؤقتة (وفقاً للسياسة)", "تأسيس عهدة بحد أقصى 20.000 ريال", "تأسيس عهدة أكثر من 20.000 ريال وبحد أقصى 200.000 ريال", "وضع وتعديل حدود الشراء عن طريق عهدة المصروفات النثرية"], "الصلاحيات التشغيلية": ["اعتماد سياسة التعامل بالآجل والتسعير والتعديل عليهما", "التوقيع على عقود العملاء حسب العقد الموحد المعتمد", "التوقيع على عقود العملاء باختلاف عن العقد الموحد المعتمد", "اعتماد سياسة الخصم من الاسعار المعتمدة بما يزيد عن (20%)", "اعتماد سياسة الخصم من الاسعار المعتمدة بما لا يزيد عن (20%)", "اعتماد سياسة الخصم من الاسعار المعتمدة بما لا يزيد عن (5%)", "زيادة الحد الائتماني حتى 20% عن السياسة"]};
+
+/* ══════════ PERMISSIONS MATRIX — bulk Excel template + import ══════════
+   Typing 165 real items one-by-one through a modal is genuinely impractical — Excel is a much
+   faster, more reliable medium than parsing an arbitrary Word file: clean rows/columns, no
+   merged-cell ambiguity, and the person can paste/edit dozens of rows in seconds. The template
+   is pre-filled with real items extracted from the company's own reference matrix document. */
+function triggerPermMatrixImport(){
+  document.getElementById('permMatrixImportFile').click();
+}
+
+async function downloadPermMatrixTemplate(){
+  const [{ data: holders }] = await Promise.all([
+    sb.from("permission_holders").select("*").eq("company_id", currentCompanyId).order("sort_order",{ascending:true})
+  ]);
+  const holderNames = (holders||[]).map(h => h.name);
+  if(holderNames.length === 0){
+    alert("أضف جهات القرار أولًا (زر \"✏️ تعديل الجهات\") قبل تحميل النموذج — كل جهة تصير عمودًا بملف Excel.");
+    return;
+  }
+
+  const header = ["الفئة", "البند", ...holderNames];
+  const seedRows = [];
+  Object.entries(STANDARD_PERM_MATRIX_ITEMS).forEach(([category, items]) => {
+    items.forEach(item => {
+      seedRows.push([category, item, ...holderNames.map(()=>"")]);
+    });
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet([header, ...seedRows]);
+  ws['!cols'] = [{wch:30},{wch:55}, ...holderNames.map(()=>({wch:14}))];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "مصفوفة الصلاحيات");
+
+  const notesWs = XLSX.utils.aoa_to_sheet([
+    ["تعليمات التعبئة"],
+    ["- لكل جهة عمود مستقل — اكتب بخليتها: ت (توصية) أو م (مراجعة) أو ع (اعتماد)، أو اتركها فاضية إن لم تكن معنية."],
+    ["- تقدر تحذف أي بند مو محتاجه، أو تضيف بنود جديدة بنفس الشكل (فئة + بند)."],
+    ["- الفئات المتاحة بالضبط: الصلاحيات الاستراتيجية والتنظيمية، الصلاحيات المتعلقة بالموارد البشرية، الصلاحيات المالية والاستثمارية، الصلاحيات التشغيلية."],
+    ["- بعد التعبئة، ارجع للمنصة واضغط \"📤 استيراد من Excel\" وارفع هذا الملف."]
+  ]);
+  XLSX.utils.book_append_sheet(wb, notesWs, "تعليمات");
+
+  XLSX.writeFile(wb, "نموذج-مصفوفة-الصلاحيات.xlsx");
+}
+
+async function importPermMatrixFromExcel(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try{
+      const wb = XLSX.read(e.target.result, { type: "binary" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+      if(rows.length < 2){ alert("الملف فاضي أو غير صحيح"); return; }
+
+      const header = rows[0];
+      const holderNames = header.slice(2).map(h => String(h||"").trim()).filter(Boolean);
+      const { data: holders } = await sb.from("permission_holders").select("*").eq("company_id", currentCompanyId);
+      const holderIdByName = {};
+      (holders||[]).forEach(h => { holderIdByName[(h.name||"").trim()] = h.id; });
+
+      let addedItems = 0, addedCells = 0, skippedRows = 0;
+      for(let i=1; i<rows.length; i++){
+        const row = rows[i];
+        if(!row || !row[1]) continue; // no item text
+        const category = String(row[0]||"").trim();
+        const item_text = String(row[1]||"").trim();
+        if(!category || !item_text){ skippedRows++; continue; }
+
+        const { data: newItem, error } = await sb.from("permission_items")
+          .insert([{ item_name: item_text, category, company_id: currentCompanyId, sort_order: 1000+i }])
+          .select().single();
+        if(error || !newItem) continue;
+        addedItems++;
+
+        for(let c=0; c<holderNames.length; c++){
+          const code = String(row[2+c]||"").trim();
+          if(!code) continue;
+          const holderId = holderIdByName[holderNames[c]];
+          if(!holderId) continue;
+          const { error: cellErr } = await sb.from("permission_cells").insert([{
+            item_id: newItem.id, holder_id: holderId, code, company_id: currentCompanyId
+          }]);
+          if(!cellErr) addedCells++;
+        }
+      }
+      alert(`تم الاستيراد ✅ — أُضيف ${addedItems} بند و${addedCells} خانة صلاحية معبّاة.${skippedRows?` (تم تخطي ${skippedRows} صف ناقص البيانات)`:''}`);
+      input.value = "";
+      loadPermissionsMatrix();
+    }catch(err){
+      alert("تعذّر قراءة الملف: " + err.message);
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
 function openPermItemsManager(){
+
   renderPermItemsManageList();
   openM("m-perm-items-manage");
 }
@@ -12551,7 +13071,7 @@ async function go(id, el){
   if(id==='signing') loadSigning();
   if(id==='committees') loadCommittees();
   if(id==='structure'){ loadStructure(); renderApprovalStatus('structure','structureApprovalStatus'); }
-  if(id==='permissions'){ loadPermissionsMatrix(); renderApprovalStatus('matrix','matrixApprovalStatus'); }
+  if(id==='permissions'){ loadPermissionsMatrix(); loadMatrixApprovalStatus(); }
   if(id==='voting') loadVotingPage();
   if(id==='audit') loadAudit();
   if(id==='govassess'){ document.getElementById('govassessListView').style.display='block'; document.getElementById('govassessFormView').style.display='none'; loadGovAssessments(); }
