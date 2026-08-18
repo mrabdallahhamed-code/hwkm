@@ -2180,6 +2180,27 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
+<div class="modal-bg" id="m-official-sign">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">✍️ توقيع مستند رسمي</div>
+    <div id="officialSignInfo" style="font-size:12px;color:var(--gray3);margin-bottom:10px"></div>
+    <div class="fg"><label>أوقّع بصفتي</label>
+      <select class="fs" id="official-sign-role"></select>
+    </div>
+    <p style="font-size:11px;color:var(--gray3);margin-bottom:6px">وقّع بإصبعك أو الماوس — سيندمج توقيعك بمكانه الصحيح على المستند نفسه فورًا.</p>
+    <div style="border:2px dashed var(--gray1);border-radius:10px;background:#fff;touch-action:none">
+      <canvas id="officialSigCanvas" width="440" height="150" style="width:100%;height:150px;cursor:crosshair;display:block"></canvas>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-ghost" style="flex:1" onclick="clearOfficialSigPad()">🧹 مسح</button>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeM('m-official-sign')">إلغاء</button>
+      <button class="btn btn-gold" onclick="confirmOfficialSignature()">✅ تأكيد التوقيع</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-vote-card-sign">
   <div class="modal" style="max-width:520px">
     <div class="modal-title">🪪 بطاقة تصويت المساهم — التوقيع</div>
@@ -7712,11 +7733,15 @@ async function loadSigning(){
       const total = s.signers_total || 0;
       const isComplete = total>0 && signed.length >= total;
       const statusBadge = isComplete ? '<span class="badge done">مكتمل ✍️</span>' : '<span class="badge pending">قيد التوقيع</span>';
+      const isOfficialDoc = !!s.signer_roles;
+      const actionCell = isOfficialDoc
+        ? `${s.file_url ? `<a class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:4px 10px;font-size:11px;text-decoration:none" href="${s.file_url}" target="_blank" rel="noopener">📄 عرض المستند</a>` : ""} ${isComplete ? "" : `<button class="btn-xs gold" onclick="openOfficialSignModal(${s.id})">✍️ توقيع</button>`}`
+        : `${s.file_url ? `<a class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:4px 10px;font-size:11px;text-decoration:none" href="${s.file_url}" target="_blank" rel="noopener">📄 الملف الأصلي (غير موقّع)</a>` : ""} <button class="btn-xs gold" onclick="generateSignedDocumentPDF(${s.id},this)">${isComplete ? "📥 تحميل الوثيقة الموقّعة (PDF)" : "🖨️ حالة التوقيع"}</button>`;
       return `<tr>
         <td>${s.document_name||""}</td><td>${s.doc_type||"—"}</td>
         <td>${signed.length}/${total||"?"} وقّعوا</td>
         <td>${statusBadge}</td><td>${s.due_date||"—"}</td>
-        <td>${s.file_url ? `<a class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:4px 10px;font-size:11px;text-decoration:none" href="${s.file_url}" target="_blank" rel="noopener">📄 الملف الأصلي (غير موقّع)</a>` : ""} <button class="btn-xs gold" onclick="generateSignedDocumentPDF(${s.id},this)">${isComplete ? "📥 تحميل الوثيقة الموقّعة (PDF)" : "🖨️ حالة التوقيع"}</button></td>
+        <td>${actionCell}</td>
         <td><button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="deleteSigningDoc(${s.id})">🗑️ حذف</button></td>
       </tr>`;
     }).join("");
@@ -7844,6 +7869,90 @@ async function deleteSigningDoc(id){
   if(!confirm("حذف هذه الوثيقة وكل توقيعاتها نهائيًا؟")) return;
   const { error } = await sb.from("signing_documents").delete().eq("id", id);
   if(error){ alert("تعذّر الحذف: " + error.message); return; }
+  loadSigning();
+}
+
+/* ══════════ OFFICIAL DOCUMENT SIGNING (signatures embedded in-place, not a certificate page) ══════════ */
+let officialSigPadCtx = null, officialSigPadDrawing = false, currentOfficialSignDocId = null;
+
+async function openOfficialSignModal(docId){
+  const { data: doc } = await sb.from("signing_documents").select("*").eq("id", docId).single();
+  if(!doc || !doc.signer_roles){ alert("هذا المستند لا يستخدم نظام التوقيع بالمواضع"); return; }
+  const { data: sigs } = await sb.from("official_doc_signatures").select("role").eq("document_id", docId);
+  const signedRoles = (sigs||[]).map(s => s.role);
+  const remainingRoles = (doc.signer_roles||[]).map(r => r.role).filter(r => !signedRoles.includes(r));
+
+  currentOfficialSignDocId = docId;
+  document.getElementById("officialSignInfo").innerHTML =
+    `<b>${doc.document_name}</b><br>وقّع حتى الآن: ${signedRoles.length} من ${doc.signer_roles.length}`;
+  const sel = document.getElementById("official-sign-role");
+  if(remainingRoles.length === 0){
+    sel.innerHTML = '<option>اكتمل توقيع كل الأطراف المطلوبة</option>';
+    sel.disabled = true;
+  } else {
+    sel.disabled = false;
+    sel.innerHTML = remainingRoles.map(r => `<option value="${r}">${r}</option>`).join("");
+  }
+  openM("m-official-sign");
+  setTimeout(initOfficialSigPad, 50);
+}
+
+function initOfficialSigPad(){
+  const canvas = document.getElementById("officialSigCanvas");
+  if(!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width; canvas.height = rect.height;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle = "#0D2447"; ctx.lineWidth = 2.5; ctx.lineCap = "round"; ctx.lineJoin = "round";
+  officialSigPadCtx = ctx;
+  const getPos = (e) => { const r = canvas.getBoundingClientRect(); const p = e.touches ? e.touches[0] : e; return { x: p.clientX - r.left, y: p.clientY - r.top }; };
+  const start = (e) => { e.preventDefault(); officialSigPadDrawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+  const move = (e) => { if(!officialSigPadDrawing) return; e.preventDefault(); const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+  const end = () => { officialSigPadDrawing = false; };
+  canvas.onmousedown = start; canvas.onmousemove = move; canvas.onmouseup = end; canvas.onmouseleave = end;
+  canvas.ontouchstart = start; canvas.ontouchmove = move; canvas.ontouchend = end;
+}
+
+function clearOfficialSigPad(){
+  if(!officialSigPadCtx) return;
+  const canvas = document.getElementById("officialSigCanvas");
+  officialSigPadCtx.clearRect(0,0,canvas.width,canvas.height);
+}
+
+function isOfficialSigPadEmpty(){
+  const canvas = document.getElementById("officialSigCanvas");
+  if(!canvas) return true;
+  const ctx = canvas.getContext("2d");
+  const data = ctx.getImageData(0,0,canvas.width,canvas.height).data;
+  for(let i=3; i<data.length; i+=4){ if(data[i] !== 0) return false; }
+  return true;
+}
+
+async function confirmOfficialSignature(){
+  const sel = document.getElementById("official-sign-role");
+  if(sel.disabled){ alert("لا توجد أدوار متبقية للتوقيع بهذا المستند"); return; }
+  const role = sel.value;
+  if(isOfficialSigPadEmpty()){ alert("الرجاء رسم التوقيع أولًا"); return; }
+
+  const { data: userData } = await sb.auth.getUser();
+  const email = userData && userData.user ? userData.user.email : null;
+  const signer_name = currentUserProfile ? currentUserProfile.full_name : email;
+  const signature_image = document.getElementById("officialSigCanvas").toDataURL("image/png");
+
+  const { error } = await sb.from("official_doc_signatures").insert([{
+    document_id: currentOfficialSignDocId, role, signer_name, signer_email: email, signature_image
+  }]);
+  if(error){ alert("تعذّر حفظ التوقيع: " + error.message); return; }
+
+  closeM("m-official-sign");
+  alert("⏳ جارِ دمج توقيعك بالمستند...");
+  const newUrl = await regenerateOfficialDoc(currentOfficialSignDocId);
+  if(newUrl){
+    alert("تم دمج توقيعك بالمستند بنجاح ✅");
+  } else {
+    alert("تم حفظ توقيعك، لكن تعذّر إعادة توليد المستند — تواصل مع الدعم الفني.");
+  }
   loadSigning();
 }
 
@@ -12940,6 +13049,7 @@ class CanvasPDFBuilder {
   constructor(){
     this.scale = 2;
     this.W = 595*this.scale; this.H = 842*this.scale;
+    this.sigImageCache = {};
     this.margin = 50*this.scale;
     this.pages = [];
     this.newPage();
@@ -12979,6 +13089,35 @@ class CanvasPDFBuilder {
     });
   }
   spacer(h){ this.y += h*this.scale; }
+  // Preloads every provided signature data-URL into an Image ahead of time (drawImage needs a
+  // loaded image, and awaiting mid-draw would complicate the synchronous drawing flow below).
+  async preloadSignatures(signaturesMap){
+    const entries = Object.entries(signaturesMap||{}).filter(([,v]) => v && v.image);
+    await Promise.all(entries.map(([role, v]) => new Promise(res => {
+      const img = new Image();
+      img.onload = () => { this.sigImageCache[role] = img; res(); };
+      img.onerror = () => res();
+      img.src = v.image;
+    })));
+  }
+  // Draws one signature slot: role label above, then either the actual signature image (if
+  // this role has signed) or a plain dotted line — plus the expected signer's name either way.
+  drawSigSlot(role, expectedName, x, y, signaturesMap){
+    const sig = (signaturesMap||{})[role];
+    this.ctx.textAlign = "center";
+    this.ctx.font = `bold ${11*this.scale}px Tajawal, Arial`; this.ctx.fillStyle = "#0D2447";
+    this.ctx.fillText(role, x, y);
+    const img = this.sigImageCache[role];
+    if(sig && img){
+      const sigW = 120*this.scale, sigH = sigW * (img.height/img.width);
+      this.ctx.drawImage(img, x - sigW/2, y + 8*this.scale, sigW, sigH);
+      this.ctx.font = `${9*this.scale}px Tajawal, Arial`; this.ctx.fillStyle = "#8B95A5";
+      this.ctx.fillText(sig.name || expectedName || "", x, y + sigH + 22*this.scale);
+    } else {
+      this.ctx.font = `${11*this.scale}px Tajawal, Arial`; this.ctx.fillStyle = "#8B95A5";
+      this.ctx.fillText(expectedName || "..........................", x, y + 20*this.scale);
+    }
+  }
   async toPDFBytes(){
     const { PDFDocument } = PDFLib;
     const pdfDoc = await PDFDocument.create();
@@ -13009,318 +13148,337 @@ async function uploadOfficialDocForSigning(pdfBytes, fileName, docName, docType,
 }
 
 /* ══════════ 1) دعوة الجمعية العامة — موقّع واحد: رئيس مجلس الإدارة ══════════ */
-async function generateAGMInvitationDoc(meetingId){
-  const chairman_name = prompt("اسم رئيس مجلس الإدارة (للتوقيع):", "");
-  if(chairman_name === null) return;
+/* ══════════ OFFICIAL AGM DOCUMENTS — regenerate-on-each-signature architecture ══════════
+   Each doc type below is split into prepareData() (fetch everything needed from the DB, once)
+   and draw() (pure canvas drawing, called both at first creation with empty signatures AND
+   again after every single signature, with the FULL set of signatures collected so far — this
+   is what lets each signature land in its correct spot on the actual document, not a bolted-on
+   certificate page, matching how regulators expect these to look). */
+const OFFICIAL_DOC_TYPES = {
+  "دعوة جمعية عامة": {
+    roles: ["رئيس مجلس الإدارة"],
+    async prepareData(meetingId){
+      const [{ data: m }, { data: topics }, { data: companyRow }] = await Promise.all([
+        sb.from("meetings").select("*").eq("id", meetingId).single(),
+        sb.from("vote_topics").select("*").eq("meeting_id", meetingId).order("id",{ascending:true}),
+        sb.from("companies").select("name").eq("id", currentCompanyId).single()
+      ]);
+      return { m, topics: topics||[], companyName: companyRow?.name || "الشركة" };
+    },
+    async draw(b, data, signaturesMap, roleNames){
+      const { m, topics, companyName } = data;
+      const callLabel = { 1:"الأول", 2:"الثاني", 3:"الثالث" }[m.call_number||1] || "الأول";
+      const todayStr = new Date().toLocaleDateString("ar-SA");
+      b.wrapAndDraw(`التاريخ: ${todayStr}`, { align:"left", x: b.margin, font:`${10*b.scale}px Tajawal, Arial` });
+      b.spacer(20);
+      b.wrapAndDraw(`دعوة لانعقاد ${m.title||"الجمعية العامة"} ${m.agm_type||"العادية"}`, { align:"center", font:`bold ${16*b.scale}px Tajawal, Arial`, color:"#1A3A6B" });
+      b.spacer(24);
+      b.wrapAndDraw(
+        `يتشرف مجلس إدارة ${companyName} بدعوة السادة مساهمي الشركة الكرام لحضور اجتماع ${m.title||"الجمعية العامة"} ${m.agm_type||"العادية"} ${callLabel} للشركة، والذي سينعقد إن شاء الله ${m.method||""} في تمام الساعة (${m.meeting_time||""}) مساءً بتاريخ ${m.meeting_date||""} وذلك للنظر في جدول الأعمال التالي:`,
+        { font:`${12*b.scale}px Tajawal, Arial`, lineHeight: 22*b.scale }
+      );
+      b.spacer(18);
+      topics.forEach(t => b.wrapAndDraw(`- ${t.topic_text||t.topic||""}`, { font:`${11.5*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale }));
+      b.spacer(40);
+      b.wrapAndDraw("وتقبلوا خالص تحياتي.", { font:`${12*b.scale}px Tajawal, Arial` });
+      b.spacer(30);
+      await b.preloadSignatures(signaturesMap);
+      b.ensureSpace(50*b.scale);
+      b.drawSigSlot("رئيس مجلس الإدارة", roleNames["رئيس مجلس الإدارة"], b.W/2, b.y, signaturesMap);
+    }
+  },
 
-  const { data: m } = await sb.from("meetings").select("*").eq("id", meetingId).single();
-  if(!m) return;
-  const { data: topics } = await sb.from("vote_topics").select("*").eq("meeting_id", meetingId).order("id",{ascending:true});
-  const { data: companyRow } = await sb.from("companies").select("name").eq("id", currentCompanyId).single();
-  const companyName = companyRow?.name || "الشركة";
-  const callLabel = { 1:"الأول", 2:"الثاني", 3:"الثالث" }[m.call_number||1] || "الأول";
+  "محضر جمعية عامة": {
+    roles: ["سكرتير الجمعية", "رئيس الجمعية"],
+    async prepareData(meetingId){
+      const [{ data: m }, { data: company }, { data: topics }, { data: votes }] = await Promise.all([
+        sb.from("meetings").select("*").eq("id", meetingId).single(),
+        sb.from("companies").select("name,total_shares").eq("id", currentCompanyId).single(),
+        sb.from("vote_topics").select("*").eq("meeting_id", meetingId).order("id",{ascending:true}),
+        sb.from("votes").select("*").eq("meeting_id", meetingId).not("shareholder_name","is",null)
+      ]);
+      const { list: attendees } = await getAttendeesList(meetingId);
+      return { m, company, topics: topics||[], votes: votes||[], attendees: attendees||[] };
+    },
+    async draw(b, data, signaturesMap, roleNames, extra){
+      const { m, company, topics, votes, attendees } = data;
+      const companyName = company?.name || "الشركة";
+      const companyTotalShares = Number(company?.total_shares)||0;
+      const attendee_count = attendees.length;
+      const attendee_shares = attendees.reduce((s,a)=>s+(Number(a.shares)||0),0);
+      const attendance_pct = companyTotalShares ? Math.round(attendee_shares/companyTotalShares*100) : 0;
+      const quorum_threshold = extra?.quorum_threshold || 50;
+      const quorum_status = attendance_pct >= quorum_threshold ? "مكتمل النصاب" : "غير مكتمل النصاب";
+      const committee1 = extra?.committee1 || "....................", committee2 = extra?.committee2 || "....................";
+      const chairman_name = roleNames["رئيس الجمعية"], secretary_name = roleNames["سكرتير الجمعية"];
 
+      const topicResults = topics.map(t => {
+        const topicText = t.topic_text || t.topic || "";
+        const relevant = votes.filter(v => v.topic === topicText);
+        const totalVotes = relevant.length || 1;
+        const yes = relevant.filter(v=>v.result==="موافق").length;
+        const no = relevant.filter(v=>v.result==="معارض").length;
+        const abs = relevant.filter(v=>v.result==="ممتنع").length;
+        const yes_pct = Math.round(yes/totalVotes*100), no_pct = Math.round(no/totalVotes*100), abs_pct = Math.round(abs/totalVotes*100);
+        return { topic_text: topicText, yes_pct, no_pct, abs_pct, decision: yes_pct>=50 ? "تمت الموافقة" : "لم تتم الموافقة" };
+      });
+
+      b.wrapAndDraw(`محضر اجتماع الجمعية العامة ${m.agm_type||"العادية"}`, { align:"center", font:`bold ${16*b.scale}px Tajawal, Arial`, color:"#1A3A6B" });
+      b.spacer(6);
+      b.wrapAndDraw(`لشركة ${companyName}`, { align:"center", font:`bold ${13*b.scale}px Tajawal, Arial` });
+      b.spacer(4);
+      b.wrapAndDraw(`(${m.title||""})`, { align:"center", font:`${11*b.scale}px Tajawal, Arial`, color:"#8B95A5" });
+      b.spacer(6);
+      b.wrapAndDraw(`يوم .................. بتاريخ ${m.meeting_date||""} الموافق ${m.meeting_date||""}م`, { align:"center", font:`${11*b.scale}px Tajawal, Arial` });
+      b.spacer(20);
+      b.wrapAndDraw(`بناءً على الدعوة التي وجهها مجلس إدارة شركة ${companyName} إلى المساهمين على عناوينهم المعتمدة لعقد اجتماع الجمعية العامة ${m.agm_type||"العادية"} لشركة ${companyName} ${m.method||""} في تمام الساعة (${m.meeting_time||""}) من مساء يوم .................. بتاريخ ${m.meeting_date||""}.`, { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
+      b.spacer(14);
+      b.wrapAndDraw(`عليه عقد الاجتماع برئاسة الأستاذ ${chairman_name||".................................."} (رئيس مجلس إدارة الشركة).`, { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
+      b.spacer(14);
+      b.wrapAndDraw(`افتتح رئيس الجمعية – رئيس مجلس الإدارة الأستاذ ${chairman_name||".................................."} الاجتماع، ورحب بجميع السادة المساهمين الحضور. ومن ثم سأل رئيس الجمعية السادة المساهمين الحضور فيما إذا رغب أحدهم الترشح ليكون سكرتيرًا للجمعية أو المشاركة في لجنة جمع وفرز الأصوات، وباعتذار المساهمين عن الترشيح قام رئيس الجمعية بتعيين ${secretary_name||".................................."} سكرتيرًا للجمعية، كما تم تعيين كلٍّ من الأستاذ ${committee1} والأستاذ ${committee2} أعضاءً في لجنة جمع وفرز الأصوات.`, { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
+      b.spacer(14);
+      b.wrapAndDraw(`وبعد التأكد من الحضور أعلن رئيس الاجتماع بأن النصاب مكتمل والجلسة نظامية وفقًا للمادة الرابعة والتسعين من نظام الشركات، حيث بلغت الأسهم الحاضرة والممثلة بالاجتماع عدد (${attendee_shares}) سهمًا بحضور (${attendee_count}) مساهمًا، وبنسبة (${attendance_pct}%) من إجمالي أسهم رأس مال الشركة — ${quorum_status} (الحد الأدنى النظامي: ${quorum_threshold}%)، ومن ثم بدأت مناقشة جدول الأعمال.`, { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
+      b.spacer(14);
+      b.wrapAndDraw("عقب ذلك طلب رئيس الجمعية من المساهمين أن يتفضلوا بالاستفسار عن أي نقاط أو أسئلة عن بنود الجمعية، وقد أجاب رئيس مجلس الإدارة عن كافة الأسئلة والاستفسارات.", { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
+      b.spacer(14);
+      b.wrapAndDraw("بعد ذلك طلب سكرتير الجمعية من المساهمين الإدلاء بأصواتهم على البنود في بطاقة التصويت التي وُزّعت عليهم. وبعد انتهاء عملية التصويت قام عضوا لجنة جمع وفرز الأصوات بجمع بطاقات التصويت وفرزها.", { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
+      b.spacer(14);
+      b.wrapAndDraw("وعليه تم فرز نتائج التصويت وإعداد المحضر المرفق بنتائج التصويت، حيث كانت نتائج التصويت على البنود المدرجة في جدول أعمال الجمعية كما يلي:", { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
+      b.spacer(16);
+      topicResults.forEach(r => {
+        b.wrapAndDraw(`القرار — ${r.topic_text}:`, { font:`bold ${11.5*b.scale}px Tajawal, Arial`, color:"#1A3A6B", lineHeight: 20*b.scale });
+        b.wrapAndDraw(`الموافقة بنسبة (${r.yes_pct}%) من الحضور، مقابل (${r.no_pct}%) غير موافق و(${r.abs_pct}%) ممتنع — النتيجة: ${r.decision}.`, { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
+        b.spacer(10);
+      });
+      b.spacer(10);
+      b.wrapAndDraw(`وبانتهاء جدول أعمال الجمعية العامة ${m.agm_type||"العادية"} بتاريخ ${m.meeting_date||""} وبالتصديق على قراراتها، رُفعت بحمد الله الجلسة، ونُظم هذا المحضر بكل ما سبق ووُقّع من قبل رئيس الجمعية والسكرتير.`, { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
+      b.spacer(10);
+      b.wrapAndDraw("والله ولي التوفيق", { align:"center", font:`bold ${12*b.scale}px Tajawal, Arial` });
+      b.spacer(45);
+      await b.preloadSignatures(signaturesMap);
+      b.ensureSpace(70*b.scale);
+      b.drawSigSlot("سكرتير الجمعية", secretary_name, b.W*0.28, b.y, signaturesMap);
+      b.drawSigSlot("رئيس الجمعية", chairman_name, b.W*0.72, b.y, signaturesMap);
+    }
+  },
+
+  "محضر فرز الأصوات": {
+    roles: ["سكرتير الجمعية", "رئيس الجمعية", "عضو اللجنة 1", "عضو اللجنة 2"],
+    async prepareData(meetingId){
+      const [{ data: m }, { data: companyRow }, { data: topics }, { data: votes }] = await Promise.all([
+        sb.from("meetings").select("*").eq("id", meetingId).single(),
+        sb.from("companies").select("name").eq("id", currentCompanyId).single(),
+        sb.from("vote_topics").select("*").eq("meeting_id", meetingId).order("id",{ascending:true}),
+        sb.from("votes").select("*").eq("meeting_id", meetingId).not("shareholder_name","is",null)
+      ]);
+      const { list: attendees } = await getAttendeesList(meetingId);
+      return { m, companyName: companyRow?.name||"الشركة", topics: topics||[], votes: votes||[], attendees: attendees||[] };
+    },
+    async draw(b, data, signaturesMap, roleNames){
+      const { m, companyName, topics, votes, attendees } = data;
+      const total_attendees = attendees.length;
+      const total_shares = attendees.reduce((s,a)=>s+(Number(a.shares)||0),0);
+      const results = topics.map(t => {
+        const topicText = t.topic_text || t.topic || "";
+        const relevant = votes.filter(v => v.topic === topicText);
+        const totalVotes = relevant.length || 1;
+        const yes = relevant.filter(v=>v.result==="موافق").length;
+        const no = relevant.filter(v=>v.result==="معارض").length;
+        const abs = relevant.filter(v=>v.result==="ممتنع").length;
+        return { topic: topicText, yes_pct: Math.round(yes/totalVotes*100), no_pct: Math.round(no/totalVotes*100), abs_pct: Math.round(abs/totalVotes*100) };
+      });
+
+      b.wrapAndDraw("محضر فرز الأصوات", { align:"center", font:`bold ${17*b.scale}px Tajawal, Arial`, color:"#1A3A6B" });
+      b.spacer(22);
+      b.wrapAndDraw(`لقد تم انعقاد الجمعية العامة العادية لشركة ${companyName} في يوم .................. الموافق ${m.meeting_date||""}، وفي تمام الساعة (${m.meeting_time||"—"}) مساءً، وتم جمع بطاقات التصويت البالغة (${total_attendees}) بطاقة، واجتمعت لجنة الفرز واتضح أن الأصوات الممثلة في الاجتماع بلغت (${total_shares}) سهم، وبفرز الأصوات كانت النتائج على النحو التالي:`, { font:`${11.5*b.scale}px Tajawal, Arial`, lineHeight: 21*b.scale });
+      b.spacer(20);
+
+      const tableW = b.W - b.margin*2;
+      const wNo = tableW*0.06, wCol = tableW*0.18, wItem = tableW - wNo - wCol*3;
+      const xNoStart = (b.W-b.margin) - wNo;
+      const xItemStart = xNoStart - wItem;
+      const xAgreeStart = xItemStart - wCol;
+      const xDisagreeStart = xAgreeStart - wCol;
+      const xAbstainStart = xDisagreeStart - wCol;
+      const cols = [ {s:xNoStart,e:b.W-b.margin,l:"م"}, {s:xItemStart,e:xNoStart,l:"البند"}, {s:xAgreeStart,e:xItemStart,l:"موافق"}, {s:xDisagreeStart,e:xAgreeStart,l:"غير موافق"}, {s:xAbstainStart,e:xDisagreeStart,l:"ممتنع"} ];
+      b.ensureSpace(30*b.scale);
+      const headerH = 26*b.scale;
+      b.ctx.strokeStyle="#333"; b.ctx.lineWidth=1*b.scale; b.ctx.font=`bold ${10*b.scale}px Tajawal, Arial`; b.ctx.textAlign="center";
+      cols.forEach(c => { b.ctx.strokeRect(c.s, b.y, c.e-c.s, headerH); b.ctx.fillText(c.l, (c.s+c.e)/2, b.y+17*b.scale); });
+      b.y += headerH;
+      b.ctx.font=`${10*b.scale}px Tajawal, Arial`;
+      (results.length?results:[{topic:"",yes_pct:0,no_pct:0,abs_pct:0}]).forEach((r,i) => {
+        b.ensureSpace(30*b.scale);
+        const rowH = 30*b.scale;
+        cols.forEach(c => b.ctx.strokeRect(c.s, b.y, c.e-c.s, rowH));
+        b.ctx.textAlign="center"; b.ctx.fillText(String(i+1), (xNoStart+b.W-b.margin)/2, b.y+rowH/2+4*b.scale);
+        b.ctx.textAlign="right";
+        const t = r.topic.length>26 ? r.topic.slice(0,26)+"…" : r.topic;
+        b.ctx.fillText(t, xNoStart-6*b.scale, b.y+rowH/2+4*b.scale);
+        b.ctx.textAlign="center";
+        b.ctx.fillText(`${r.yes_pct}%`, (xAgreeStart+xItemStart)/2, b.y+rowH/2+4*b.scale);
+        b.ctx.fillText(`${r.no_pct}%`, (xDisagreeStart+xAgreeStart)/2, b.y+rowH/2+4*b.scale);
+        b.ctx.fillText(`${r.abs_pct}%`, (xAbstainStart+xDisagreeStart)/2, b.y+rowH/2+4*b.scale);
+        b.y += rowH;
+      });
+      b.spacer(24);
+      b.wrapAndDraw("ويتضح موافقة الحاضرين على جميع بنود جدول الأعمال بالإجماع / بالأغلبية.", { font:`${11.5*b.scale}px Tajawal, Arial` });
+      b.spacer(50);
+
+      await b.preloadSignatures(signaturesMap);
+      b.ensureSpace(70*b.scale);
+      b.drawSigSlot("سكرتير الجمعية", roleNames["سكرتير الجمعية"], b.W*0.28, b.y, signaturesMap);
+      b.drawSigSlot("رئيس الجمعية", roleNames["رئيس الجمعية"], b.W*0.72, b.y, signaturesMap);
+      b.spacer(55);
+      b.wrapAndDraw("لجنة فرز الأصوات", { align:"center", font:`bold ${12*b.scale}px Tajawal, Arial`, color:"#1A3A6B" });
+      b.spacer(35);
+      b.ensureSpace(70*b.scale);
+      b.drawSigSlot("عضو اللجنة 1", roleNames["عضو اللجنة 1"], b.W*0.28, b.y, signaturesMap);
+      b.drawSigSlot("عضو اللجنة 2", roleNames["عضو اللجنة 2"], b.W*0.72, b.y, signaturesMap);
+    }
+  },
+
+  "كشف حضور": {
+    roles: ["سكرتير الجمعية", "رئيس الجمعية"],
+    async prepareData(meetingId){
+      const [{ data: m }, { data: companyRow }] = await Promise.all([
+        sb.from("meetings").select("*").eq("id", meetingId).single(),
+        sb.from("companies").select("name").eq("id", currentCompanyId).single()
+      ]);
+      const { list: attendees } = await getAttendeesList(meetingId);
+      return { m, companyName: companyRow?.name||"الشركة", attendees: attendees||[] };
+    },
+    async draw(b, data, signaturesMap, roleNames){
+      const { m, companyName, attendees: rows } = data;
+      const totalShares = rows.reduce((s,a)=>s+(Number(a.shares)||0),0);
+
+      b.wrapAndDraw("كشف الحضور", { align:"center", font:`bold ${17*b.scale}px Tajawal, Arial`, color:"#1A3A6B" });
+      b.spacer(6);
+      b.wrapAndDraw(`الجمعية العامة ${m.agm_type||"العادية"} لشركة ${companyName}`, { align:"center", font:`bold ${13*b.scale}px Tajawal, Arial` });
+      b.spacer(4);
+      b.wrapAndDraw(`المنعقدة ${m.method||""} في يوم .................. الموافق ${m.meeting_date||""} في تمام الساعة (${m.meeting_time||"—"}) مساءً.`, { align:"center", font:`${11*b.scale}px Tajawal, Arial` });
+      b.spacer(20);
+
+      const tableW = b.W - b.margin*2;
+      const widths = { no:0.05, name:0.25, asalah:0.11, wakala:0.11, total:0.13, card:0.15, sh:0.20 };
+      const RM = b.W - b.margin;
+      const xNoS = RM - tableW*widths.no;
+      const xNameS = xNoS - tableW*widths.name;
+      const xAsalahS = xNameS - tableW*widths.asalah;
+      const xWakalaS = xAsalahS - tableW*widths.wakala;
+      const xTotalS = xWakalaS - tableW*widths.total;
+      const xCardS = xTotalS - tableW*widths.card;
+      const xShS = b.margin;
+      const cols = [
+        {s:xNoS,e:RM,l:"م"}, {s:xNameS,e:xNoS,l:"الاسم"}, {s:xAsalahS,e:xNameS,l:"أصالة"}, {s:xWakalaS,e:xAsalahS,l:"وكالة"},
+        {s:xTotalS,e:xWakalaS,l:"المجموع"}, {s:xCardS,e:xTotalS,l:"رقم البطاقة"}, {s:xShS,e:xCardS,l:"رقم المساهم"}
+      ];
+      b.ensureSpace(30*b.scale);
+      const headerH = 26*b.scale;
+      b.ctx.strokeStyle="#333"; b.ctx.lineWidth=1*b.scale; b.ctx.font=`bold ${9.5*b.scale}px Tajawal, Arial`; b.ctx.textAlign="center";
+      cols.forEach(c => { b.ctx.strokeRect(c.s, b.y, c.e-c.s, headerH); b.ctx.fillText(c.l, (c.s+c.e)/2, b.y+17*b.scale); });
+      b.y += headerH;
+      b.ctx.font=`${9.5*b.scale}px Tajawal, Arial`;
+      (rows.length?rows:[{name:"",sharesAsalah:0,sharesWakala:0,shares:0,shareholderNo:""}]).forEach((r,i) => {
+        b.ensureSpace(26*b.scale);
+        const rowH = 26*b.scale;
+        cols.forEach(c => b.ctx.strokeRect(c.s, b.y, c.e-c.s, rowH));
+        const cy = b.y + rowH/2 + 3.5*b.scale;
+        b.ctx.textAlign="center";
+        b.ctx.fillText(String(i+1), (xNoS+RM)/2, cy);
+        const nm = (r.name||"").length>18 ? r.name.slice(0,18)+"…" : (r.name||"");
+        b.ctx.fillText(nm, (xNameS+xNoS)/2, cy);
+        b.ctx.fillText(String(r.sharesAsalah ?? r.shares ?? 0), (xAsalahS+xNameS)/2, cy);
+        b.ctx.fillText(String(r.sharesWakala ?? 0), (xWakalaS+xAsalahS)/2, cy);
+        b.ctx.fillText(String(r.shares ?? 0), (xTotalS+xWakalaS)/2, cy);
+        b.ctx.fillText(String(r.cardNo || r.shareholderNo || i+1), (xCardS+xTotalS)/2, cy);
+        b.ctx.fillText(String(r.shareholderNo ?? ""), (xShS+xCardS)/2, cy);
+        b.y += rowH;
+      });
+      b.ensureSpace(26*b.scale);
+      const rowH = 26*b.scale;
+      cols.forEach(c => b.ctx.strokeRect(c.s, b.y, c.e-c.s, rowH));
+      b.ctx.textAlign="center"; b.ctx.font=`bold ${10*b.scale}px Tajawal, Arial`;
+      b.ctx.fillText("الإجمالي", (xTotalS+xNoS)/2, b.y+rowH/2+3.5*b.scale);
+      b.ctx.fillText(String(totalShares), (xTotalS+xWakalaS)/2, b.y+rowH/2+3.5*b.scale);
+      b.ctx.fillText(String(rows.length), (xShS+xCardS)/2, b.y+rowH/2+3.5*b.scale);
+      b.y += rowH;
+
+      b.spacer(50);
+      await b.preloadSignatures(signaturesMap);
+      b.ensureSpace(70*b.scale);
+      b.drawSigSlot("سكرتير الجمعية", roleNames["سكرتير الجمعية"], b.W*0.28, b.y, signaturesMap);
+      b.drawSigSlot("رئيس الجمعية", roleNames["رئيس الجمعية"], b.W*0.72, b.y, signaturesMap);
+    }
+  }
+};
+
+async function generateOfficialDoc(docTypeKey, meetingId){
+  const config = OFFICIAL_DOC_TYPES[docTypeKey];
+  if(!config){ alert("نوع مستند غير معروف"); return; }
+  const roleNames = {};
+  for(const role of config.roles){
+    const name = prompt(`اسم ${role}:`, "");
+    if(name === null) return;
+    roleNames[role] = name;
+  }
+  let extra = {};
+  if(docTypeKey === "محضر جمعية عامة"){
+    extra.committee1 = prompt("اسم عضو لجنة الفرز الأول (اختياري):", "") || "";
+    extra.committee2 = prompt("اسم عضو لجنة الفرز الثاني (اختياري):", "") || "";
+    extra.quorum_threshold = Number(prompt("الحد الأدنى النظامي للنصاب (%):", "50")) || 50;
+  }
+
+  const data = await config.prepareData(meetingId);
   const b = new CanvasPDFBuilder();
-  const todayStr = new Date().toLocaleDateString("ar-SA");
-  b.wrapAndDraw(`التاريخ: ${todayStr}`, { align:"left", x: b.margin, font:`${10*b.scale}px Tajawal, Arial` });
-  b.spacer(20);
-  b.wrapAndDraw(`دعوة لانعقاد ${m.title||"الجمعية العامة"} ${m.agm_type||"العادية"}`, { align:"center", font:`bold ${16*b.scale}px Tajawal, Arial`, color:"#1A3A6B" });
-  b.spacer(24);
-  b.wrapAndDraw(
-    `يتشرف مجلس إدارة ${companyName} بدعوة السادة مساهمي الشركة الكرام لحضور اجتماع ${m.title||"الجمعية العامة"} ${m.agm_type||"العادية"} ${callLabel} للشركة، والذي سينعقد إن شاء الله ${m.method||""} في تمام الساعة (${m.meeting_time||""}) مساءً بتاريخ ${m.meeting_date||""} وذلك للنظر في جدول الأعمال التالي:`,
-    { font:`${12*b.scale}px Tajawal, Arial`, lineHeight: 22*b.scale }
-  );
-  b.spacer(18);
-  (topics||[]).forEach((t,i) => {
-    b.wrapAndDraw(`- ${t.topic_text||t.topic||""}`, { font:`${11.5*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
-  });
-  b.spacer(40);
-  b.wrapAndDraw("وتقبلوا خالص تحياتي.", { font:`${12*b.scale}px Tajawal, Arial` });
-  b.spacer(30);
-  b.wrapAndDraw("رئيس مجلس الإدارة", { font:`bold ${12*b.scale}px Tajawal, Arial` });
-  b.spacer(6);
-  b.wrapAndDraw(chairman_name || "..........................................", { font:`${13*b.scale}px Tajawal, Arial`, color:"#8B95A5" });
-
+  await config.draw(b, data, {}, roleNames, extra);
   const bytes = await b.toPDFBytes();
-  const doc = await uploadOfficialDocForSigning(bytes, `دعوة-${m.title||'الجمعية'}.pdf`, `دعوة ${m.title||'الجمعية'}`, "دعوة جمعية عامة", 1);
-  if(doc) alert("تم إنشاء دعوة الجمعية ✅ — بانتظار توقيع رئيس مجلس الإدارة من صفحة التوقيع الإلكتروني.");
+  const blob = new Blob([bytes], { type: "application/pdf" });
+  const fileName = `${docTypeKey}-${data.m?.title||''}-${Date.now()}.pdf`;
+  const file_url = await uploadBlobToStorage(blob, "official-documents", fileName);
+  if(!file_url) return;
+
+  const { error } = await sb.from("signing_documents").insert([{
+    company_id: currentCompanyId, document_name: `${docTypeKey} — ${data.m?.title||'الجمعية'}`, doc_type: docTypeKey,
+    file_url, signers_total: config.roles.length, related_meeting_id: meetingId,
+    signer_roles: config.roles.map(r => ({ role: r, name: roleNames[r] })),
+    signature_slots: extra
+  }]);
+  if(error){ alert("تعذّر الإنشاء: " + error.message); return; }
+  alert(`تم إنشاء "${docTypeKey}" ✅ — بانتظار توقيع: ${config.roles.join('، ')}. أكمل التوقيع من صفحة "التوقيع الإلكتروني".`);
 }
 
-/* ══════════ 2) محضر فرز الأصوات — 4 موقّعين: رئيس الجمعية، أمين السر، عضوا لجنة الفرز ══════════ */
-async function generateVoteMinutesPDF(meetingId){
-  const chairman_name = prompt("اسم رئيس الجمعية:", "");
-  if(chairman_name === null) return;
-  const secretary_name = prompt("اسم أمين سر الجمعية:", "");
-  if(secretary_name === null) return;
-  const committee1 = prompt("اسم عضو لجنة الفرز الأول:", "");
-  if(committee1 === null) return;
-  const committee2 = prompt("اسم عضو لجنة الفرز الثاني:", "");
-  if(committee2 === null) return;
+// Re-draws the entire document from scratch with every signature collected so far embedded at
+// its correct slot, then replaces the stored file — called after every single new signature.
+async function regenerateOfficialDoc(signingDocId){
+  const { data: doc } = await sb.from("signing_documents").select("*").eq("id", signingDocId).single();
+  if(!doc || !doc.doc_type || !OFFICIAL_DOC_TYPES[doc.doc_type] || !doc.related_meeting_id) return null;
+  const config = OFFICIAL_DOC_TYPES[doc.doc_type];
+  const roleNames = {};
+  (doc.signer_roles||[]).forEach(r => { roleNames[r.role] = r.name; });
 
-  const { data: m } = await sb.from("meetings").select("*").eq("id", meetingId).single();
-  if(!m) return;
-  const { data: companyRow } = await sb.from("companies").select("name").eq("id", currentCompanyId).single();
-  const companyName = companyRow?.name || "الشركة";
-  const { list: attendees } = await getAttendeesList(meetingId);
-  const total_attendees = (attendees||[]).length;
-  const total_shares = (attendees||[]).reduce((s,a)=>s+(Number(a.shares)||0),0);
-
-  const { data: topics } = await sb.from("vote_topics").select("*").eq("meeting_id", meetingId).order("id",{ascending:true});
-  const { data: votes } = await sb.from("votes").select("*").eq("meeting_id", meetingId).not("shareholder_name","is",null);
-  const results = (topics||[]).map(t => {
-    const topicText = t.topic_text || t.topic || "";
-    const relevant = (votes||[]).filter(v => v.topic === topicText);
-    const totalVotes = relevant.length || 1;
-    const yes = relevant.filter(v=>v.result==="موافق").length;
-    const no = relevant.filter(v=>v.result==="معارض").length;
-    const abs = relevant.filter(v=>v.result==="ممتنع").length;
-    return { topic: topicText, yes_pct: Math.round(yes/totalVotes*100), no_pct: Math.round(no/totalVotes*100), abs_pct: Math.round(abs/totalVotes*100) };
-  });
+  const [data, { data: sigs }] = await Promise.all([
+    config.prepareData(doc.related_meeting_id),
+    sb.from("official_doc_signatures").select("*").eq("document_id", signingDocId)
+  ]);
+  const signaturesMap = {};
+  (sigs||[]).forEach(s => { signaturesMap[s.role] = { name: s.signer_name, image: s.signature_image }; });
 
   const b = new CanvasPDFBuilder();
-  b.wrapAndDraw("محضر فرز الأصوات", { align:"center", font:`bold ${17*b.scale}px Tajawal, Arial`, color:"#1A3A6B" });
-  b.spacer(22);
-  b.wrapAndDraw(
-    `لقد تم انعقاد الجمعية العامة العادية لشركة ${companyName} في يوم .................. الموافق ${m.meeting_date||""}، وفي تمام الساعة (${m.meeting_time||"—"}) مساءً، وتم جمع بطاقات التصويت البالغة (${total_attendees}) بطاقة، واجتمعت لجنة الفرز واتضح أن الأصوات الممثلة في الاجتماع بلغت (${total_shares}) سهم، وبفرز الأصوات كانت النتائج على النحو التالي:`,
-    { font:`${11.5*b.scale}px Tajawal, Arial`, lineHeight: 21*b.scale }
-  );
-  b.spacer(20);
-
-  // Results table: م | البند | موافق | غير موافق | ممتنع — same column-boundary approach as the vote card
-  const tableW = b.W - b.margin*2;
-  const wNo = tableW*0.06, wCol = tableW*0.18, wItem = tableW - wNo - wCol*3;
-  const xNoStart = (b.W-b.margin) - wNo;
-  const xItemStart = xNoStart - wItem;
-  const xAgreeStart = xItemStart - wCol;
-  const xDisagreeStart = xAgreeStart - wCol;
-  const xAbstainStart = xDisagreeStart - wCol;
-  const cols = [ {s:xNoStart,e:b.W-b.margin,l:"م"}, {s:xItemStart,e:xNoStart,l:"البند"}, {s:xAgreeStart,e:xItemStart,l:"موافق"}, {s:xDisagreeStart,e:xAgreeStart,l:"غير موافق"}, {s:xAbstainStart,e:xDisagreeStart,l:"ممتنع"} ];
-  b.ensureSpace(30*b.scale);
-  const headerH = 26*b.scale;
-  b.ctx.strokeStyle="#333"; b.ctx.lineWidth=1*b.scale; b.ctx.font=`bold ${10*b.scale}px Tajawal, Arial`; b.ctx.textAlign="center";
-  cols.forEach(c => { b.ctx.strokeRect(c.s, b.y, c.e-c.s, headerH); b.ctx.fillText(c.l, (c.s+c.e)/2, b.y+17*b.scale); });
-  b.y += headerH;
-  b.ctx.font=`${10*b.scale}px Tajawal, Arial`;
-  (results.length?results:[{topic:"",yes_pct:0,no_pct:0,abs_pct:0}]).forEach((r,i) => {
-    b.ensureSpace(30*b.scale);
-    const rowH = 30*b.scale;
-    cols.forEach(c => b.ctx.strokeRect(c.s, b.y, c.e-c.s, rowH));
-    b.ctx.textAlign="center"; b.ctx.fillText(String(i+1), (xNoStart+b.W-b.margin)/2, b.y+rowH/2+4*b.scale);
-    b.ctx.textAlign="right";
-    const t = r.topic.length>26 ? r.topic.slice(0,26)+"…" : r.topic;
-    b.ctx.fillText(t, xNoStart-6*b.scale, b.y+rowH/2+4*b.scale);
-    b.ctx.textAlign="center";
-    b.ctx.fillText(`${r.yes_pct}%`, (xAgreeStart+xItemStart)/2, b.y+rowH/2+4*b.scale);
-    b.ctx.fillText(`${r.no_pct}%`, (xDisagreeStart+xAgreeStart)/2, b.y+rowH/2+4*b.scale);
-    b.ctx.fillText(`${r.abs_pct}%`, (xAbstainStart+xDisagreeStart)/2, b.y+rowH/2+4*b.scale);
-    b.y += rowH;
-  });
-  b.spacer(24);
-  b.wrapAndDraw("ويتضح موافقة الحاضرين على جميع بنود جدول الأعمال بالإجماع / بالأغلبية.", { font:`${11.5*b.scale}px Tajawal, Arial` });
-  b.spacer(50);
-
-  const drawSigLine = (label, name, x) => {
-    b.ctx.textAlign="center"; b.ctx.font=`bold ${11*b.scale}px Tajawal, Arial`; b.ctx.fillStyle="#0D2447";
-    b.ctx.fillText(label, x, b.y);
-    b.ctx.font=`${11*b.scale}px Tajawal, Arial`; b.ctx.fillStyle="#8B95A5";
-    b.ctx.fillText(name || "..........................", x, b.y + 20*b.scale);
-  };
-  drawSigLine("سكرتير الجمعية", secretary_name, b.W*0.28);
-  drawSigLine("رئيس الجمعية", chairman_name, b.W*0.72);
-  b.spacer(55);
-  b.wrapAndDraw("لجنة فرز الأصوات", { align:"center", font:`bold ${12*b.scale}px Tajawal, Arial`, color:"#1A3A6B" });
-  b.spacer(35);
-  drawSigLine("عضو اللجنة", committee1, b.W*0.28);
-  drawSigLine("عضو اللجنة", committee2, b.W*0.72);
-
+  await config.draw(b, data, signaturesMap, roleNames, doc.signature_slots||{});
   const bytes = await b.toPDFBytes();
-  const doc = await uploadOfficialDocForSigning(bytes, `محضر-فرز-الأصوات-${m.title||''}.pdf`, `محضر فرز الأصوات — ${m.title||'الجمعية'}`, "محضر فرز الأصوات", 4);
-  if(doc) alert("تم إنشاء محضر فرز الأصوات ✅ — بانتظار توقيع الأربعة (رئيس الجمعية، أمين السر، عضوا لجنة الفرز) من صفحة التوقيع الإلكتروني.");
+  const blob = new Blob([bytes], { type: "application/pdf" });
+  const file_url = await uploadBlobToStorage(blob, "official-documents", `${doc.doc_type}-${Date.now()}.pdf`);
+  if(!file_url) return null;
+  await sb.from("signing_documents").update({ file_url }).eq("id", signingDocId);
+  return file_url;
 }
 
-/* ══════════ 3) كشف الحضور — موقّعان: رئيس الجمعية وأمين السر ══════════ */
-async function generateAttendanceSheet(meetingId){
-  const chairman_name = prompt("اسم رئيس الجمعية:", "");
-  if(chairman_name === null) return;
-  const secretary_name = prompt("اسم أمين سر الجمعية:", "");
-  if(secretary_name === null) return;
-
-  const targetMeetingId = meetingId || currentVotingMeetingId;
-  if(!targetMeetingId){ alert("تعذّر تحديد الاجتماع"); return; }
-  const { data: m } = await sb.from("meetings").select("*").eq("id", targetMeetingId).single();
-  if(!m) return;
-  const { data: companyRow } = await sb.from("companies").select("name").eq("id", currentCompanyId).single();
-  const companyName = companyRow?.name || "الشركة";
-  const { list: attendees } = await getAttendeesList(targetMeetingId);
-  const rows = attendees || [];
-  const totalShares = rows.reduce((s,a)=>s+(Number(a.shares)||0),0);
-
-  const b = new CanvasPDFBuilder();
-  b.wrapAndDraw("كشف الحضور", { align:"center", font:`bold ${17*b.scale}px Tajawal, Arial`, color:"#1A3A6B" });
-  b.spacer(6);
-  b.wrapAndDraw(`الجمعية العامة ${m.agm_type||"العادية"} لشركة ${companyName}`, { align:"center", font:`bold ${13*b.scale}px Tajawal, Arial` });
-  b.spacer(4);
-  b.wrapAndDraw(`المنعقدة ${m.method||""} في يوم .................. الموافق ${m.meeting_date||""} في تمام الساعة (${m.meeting_time||"—"}) مساءً.`, { align:"center", font:`${11*b.scale}px Tajawal, Arial` });
-  b.spacer(20);
-
-  // م | الاسم | أصالة | وكالة | المجموع | رقم البطاقة | رقم المساهم
-  const tableW = b.W - b.margin*2;
-  const widths = { no:0.05, name:0.25, asalah:0.11, wakala:0.11, total:0.13, card:0.15, sh:0.20 };
-  const RM = b.W - b.margin;
-  const xNoS = RM - tableW*widths.no;
-  const xNameS = xNoS - tableW*widths.name;
-  const xAsalahS = xNameS - tableW*widths.asalah;
-  const xWakalaS = xAsalahS - tableW*widths.wakala;
-  const xTotalS = xWakalaS - tableW*widths.total;
-  const xCardS = xTotalS - tableW*widths.card;
-  const xShS = b.margin;
-  const cols = [
-    {s:xNoS,e:RM,l:"م"}, {s:xNameS,e:xNoS,l:"الاسم"}, {s:xAsalahS,e:xNameS,l:"أصالة"}, {s:xWakalaS,e:xAsalahS,l:"وكالة"},
-    {s:xTotalS,e:xWakalaS,l:"المجموع"}, {s:xCardS,e:xTotalS,l:"رقم البطاقة"}, {s:xShS,e:xCardS,l:"رقم المساهم"}
-  ];
-  b.ensureSpace(30*b.scale);
-  const headerH = 26*b.scale;
-  b.ctx.strokeStyle="#333"; b.ctx.lineWidth=1*b.scale; b.ctx.font=`bold ${9.5*b.scale}px Tajawal, Arial`; b.ctx.textAlign="center";
-  cols.forEach(c => { b.ctx.strokeRect(c.s, b.y, c.e-c.s, headerH); b.ctx.fillText(c.l, (c.s+c.e)/2, b.y+17*b.scale); });
-  b.y += headerH;
-  b.ctx.font=`${9.5*b.scale}px Tajawal, Arial`;
-  (rows.length?rows:[{name:"",sharesAsalah:0,sharesWakala:0,shares:0,shareholderNo:"",id:""}]).forEach((r,i) => {
-    b.ensureSpace(26*b.scale);
-    const rowH = 26*b.scale;
-    cols.forEach(c => b.ctx.strokeRect(c.s, b.y, c.e-c.s, rowH));
-    const cy = b.y + rowH/2 + 3.5*b.scale;
-    b.ctx.textAlign="center";
-    b.ctx.fillText(String(i+1), (xNoS+RM)/2, cy);
-    const nm = (r.name||"").length>18 ? r.name.slice(0,18)+"…" : (r.name||"");
-    b.ctx.fillText(nm, (xNameS+xNoS)/2, cy);
-    b.ctx.fillText(String(r.sharesAsalah ?? r.shares ?? 0), (xAsalahS+xNameS)/2, cy);
-    b.ctx.fillText(String(r.sharesWakala ?? 0), (xWakalaS+xAsalahS)/2, cy);
-    b.ctx.fillText(String(r.shares ?? 0), (xTotalS+xWakalaS)/2, cy);
-    b.ctx.fillText(String(r.cardNo || r.shareholderNo || i+1), (xCardS+xTotalS)/2, cy);
-    b.ctx.fillText(String(r.shareholderNo ?? ""), (xShS+xCardS)/2, cy);
-    b.y += rowH;
-  });
-  // totals row
-  b.ensureSpace(26*b.scale);
-  const rowH = 26*b.scale;
-  cols.forEach(c => b.ctx.strokeRect(c.s, b.y, c.e-c.s, rowH));
-  b.ctx.textAlign="center"; b.ctx.font=`bold ${10*b.scale}px Tajawal, Arial`;
-  b.ctx.fillText("الإجمالي", (xTotalS+xNoS)/2, b.y+rowH/2+3.5*b.scale);
-  b.ctx.fillText(String(totalShares), (xTotalS+xWakalaS)/2, b.y+rowH/2+3.5*b.scale);
-  b.ctx.fillText(String(rows.length), (xShS+xCardS)/2, b.y+rowH/2+3.5*b.scale);
-  b.y += rowH;
-
-  b.spacer(50);
-  const drawSigLine = (label, name, x) => {
-    b.ctx.textAlign="center"; b.ctx.font=`bold ${11*b.scale}px Tajawal, Arial`; b.ctx.fillStyle="#0D2447";
-    b.ctx.fillText(label, x, b.y);
-    b.ctx.font=`${11*b.scale}px Tajawal, Arial`; b.ctx.fillStyle="#8B95A5";
-    b.ctx.fillText(name || "..........................", x, b.y + 20*b.scale);
-  };
-  drawSigLine("سكرتير الجمعية", secretary_name, b.W*0.28);
-  drawSigLine("رئيس الجمعية", chairman_name, b.W*0.72);
-
-  const bytes = await b.toPDFBytes();
-  const doc = await uploadOfficialDocForSigning(bytes, `كشف-الحضور-${m.title||''}.pdf`, `كشف الحضور — ${m.title||'الجمعية'}`, "كشف حضور", 2);
-  if(doc) alert("تم إنشاء كشف الحضور ✅ — بانتظار توقيع رئيس الجمعية وأمين السر من صفحة التوقيع الإلكتروني.");
-}
-
-/* ══════════ 4) محضر الجمعية العامة — موقّعان: رئيس الجمعية وأمين السر ══════════ */
-async function generateAGMMinutesDoc(meetingId){
-  const chairman_name = prompt("اسم رئيس الجمعية (رئيس مجلس الإدارة):", "");
-  if(chairman_name === null) return;
-  const secretary_name = prompt("اسم أمين سر الجمعية:", "");
-  if(secretary_name === null) return;
-  const committee1 = prompt("اسم عضو لجنة الفرز الأول (اختياري):", "") || "";
-  const committee2 = prompt("اسم عضو لجنة الفرز الثاني (اختياري):", "") || "";
-  const quorum_threshold = Number(prompt("الحد الأدنى النظامي للنصاب (%):", "50")) || 50;
-
-  const { data: m } = await sb.from("meetings").select("*").eq("id", meetingId).single();
-  if(!m) return;
-  const { data: company } = await sb.from("companies").select("name,total_shares").eq("id", currentCompanyId).single();
-  const companyName = company?.name || "الشركة";
-  const companyTotalShares = Number(company?.total_shares)||0;
-
-  const { list: attendees } = await getAttendeesList(meetingId);
-  const attendee_count = (attendees||[]).length;
-  const attendee_shares = (attendees||[]).reduce((s,a)=>s+(Number(a.shares)||0),0);
-  const attendance_pct = companyTotalShares ? Math.round(attendee_shares/companyTotalShares*100) : 0;
-  const quorum_status = attendance_pct >= quorum_threshold ? "مكتمل النصاب" : "غير مكتمل النصاب";
-
-  const { data: topics } = await sb.from("vote_topics").select("*").eq("meeting_id", meetingId).order("id",{ascending:true});
-  const { data: votes } = await sb.from("votes").select("*").eq("meeting_id", meetingId).not("shareholder_name","is",null);
-  const topicResults = (topics||[]).map(t => {
-    const topicText = t.topic_text || t.topic || "";
-    const relevant = (votes||[]).filter(v => v.topic === topicText);
-    const totalVotes = relevant.length || 1;
-    const yes = relevant.filter(v=>v.result==="موافق").length;
-    const no = relevant.filter(v=>v.result==="معارض").length;
-    const abs = relevant.filter(v=>v.result==="ممتنع").length;
-    const yes_pct = Math.round(yes/totalVotes*100), no_pct = Math.round(no/totalVotes*100), abs_pct = Math.round(abs/totalVotes*100);
-    const decision = yes_pct >= 50 ? "تمت الموافقة" : "لم تتم الموافقة";
-    return { topic_text: topicText, yes_pct, no_pct, abs_pct, decision };
-  });
-
-  const b = new CanvasPDFBuilder();
-  b.wrapAndDraw(`محضر اجتماع الجمعية العامة ${m.agm_type||"العادية"}`, { align:"center", font:`bold ${16*b.scale}px Tajawal, Arial`, color:"#1A3A6B" });
-  b.spacer(6);
-  b.wrapAndDraw(`لشركة ${companyName}`, { align:"center", font:`bold ${13*b.scale}px Tajawal, Arial` });
-  b.spacer(4);
-  b.wrapAndDraw(`(${m.title||""})`, { align:"center", font:`${11*b.scale}px Tajawal, Arial`, color:"#8B95A5" });
-  b.spacer(6);
-  b.wrapAndDraw(`يوم .................. بتاريخ ${m.meeting_date||""} الموافق ${m.meeting_date||""}م`, { align:"center", font:`${11*b.scale}px Tajawal, Arial` });
-  b.spacer(20);
-
-  b.wrapAndDraw(
-    `بناءً على الدعوة التي وجهها مجلس إدارة شركة ${companyName} إلى المساهمين على عناوينهم المعتمدة لعقد اجتماع الجمعية العامة ${m.agm_type||"العادية"} لشركة ${companyName} ${m.method||""} في تمام الساعة (${m.meeting_time||""}) من مساء يوم .................. بتاريخ ${m.meeting_date||""}.`,
-    { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale }
-  );
-  b.spacer(14);
-  b.wrapAndDraw(`عليه عقد الاجتماع برئاسة الأستاذ ${chairman_name||".................................."} (رئيس مجلس إدارة الشركة).`, { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
-  b.spacer(14);
-  b.wrapAndDraw(
-    `افتتح رئيس الجمعية – رئيس مجلس الإدارة الأستاذ ${chairman_name||".................................."} الاجتماع، ورحب بجميع السادة المساهمين الحضور. ومن ثم سأل رئيس الجمعية السادة المساهمين الحضور فيما إذا رغب أحدهم الترشح ليكون سكرتيرًا للجمعية أو المشاركة في لجنة جمع وفرز الأصوات، وباعتذار المساهمين عن الترشيح قام رئيس الجمعية بتعيين ${secretary_name||".................................."} سكرتيرًا للجمعية، كما تم تعيين كلٍّ من الأستاذ ${committee1||"...................."} والأستاذ ${committee2||"...................."} أعضاءً في لجنة جمع وفرز الأصوات.`,
-    { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale }
-  );
-  b.spacer(14);
-  b.wrapAndDraw(
-    `وبعد التأكد من الحضور أعلن رئيس الاجتماع بأن النصاب مكتمل والجلسة نظامية وفقًا للمادة الرابعة والتسعين من نظام الشركات، حيث بلغت الأسهم الحاضرة والممثلة بالاجتماع عدد (${attendee_shares}) سهمًا بحضور (${attendee_count}) مساهمًا، وبنسبة (${attendance_pct}%) من إجمالي أسهم رأس مال الشركة — ${quorum_status} (الحد الأدنى النظامي: ${quorum_threshold}%)، ومن ثم بدأت مناقشة جدول الأعمال.`,
-    { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale }
-  );
-  b.spacer(14);
-  b.wrapAndDraw("عقب ذلك طلب رئيس الجمعية من المساهمين أن يتفضلوا بالاستفسار عن أي نقاط أو أسئلة عن بنود الجمعية، وقد أجاب رئيس مجلس الإدارة عن كافة الأسئلة والاستفسارات.", { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
-  b.spacer(14);
-  b.wrapAndDraw("بعد ذلك طلب سكرتير الجمعية من المساهمين الإدلاء بأصواتهم على البنود في بطاقة التصويت التي وُزّعت عليهم. وبعد انتهاء عملية التصويت قام عضوا لجنة جمع وفرز الأصوات بجمع بطاقات التصويت وفرزها.", { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
-  b.spacer(14);
-  b.wrapAndDraw("وعليه تم فرز نتائج التصويت وإعداد المحضر المرفق بنتائج التصويت، حيث كانت نتائج التصويت على البنود المدرجة في جدول أعمال الجمعية كما يلي:", { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
-  b.spacer(16);
-
-  topicResults.forEach(r => {
-    b.wrapAndDraw(`القرار — ${r.topic_text}:`, { font:`bold ${11.5*b.scale}px Tajawal, Arial`, color:"#1A3A6B", lineHeight: 20*b.scale });
-    b.wrapAndDraw(`الموافقة بنسبة (${r.yes_pct}%) من الحضور، مقابل (${r.no_pct}%) غير موافق و(${r.abs_pct}%) ممتنع — النتيجة: ${r.decision}.`, { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
-    b.spacer(10);
-  });
-
-  b.spacer(10);
-  b.wrapAndDraw(`وبانتهاء جدول أعمال الجمعية العامة ${m.agm_type||"العادية"} بتاريخ ${m.meeting_date||""} وبالتصديق على قراراتها، رُفعت بحمد الله الجلسة، ونُظم هذا المحضر بكل ما سبق ووُقّع من قبل رئيس الجمعية والسكرتير.`, { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
-  b.spacer(10);
-  b.wrapAndDraw("والله ولي التوفيق", { align:"center", font:`bold ${12*b.scale}px Tajawal, Arial` });
-  b.spacer(45);
-
-  const drawSigLine = (label, name, x) => {
-    b.ctx.textAlign="center"; b.ctx.font=`bold ${11*b.scale}px Tajawal, Arial`; b.ctx.fillStyle="#0D2447";
-    b.ctx.fillText(label, x, b.y);
-    b.ctx.font=`${11*b.scale}px Tajawal, Arial`; b.ctx.fillStyle="#8B95A5";
-    b.ctx.fillText(name || "..........................", x, b.y + 20*b.scale);
-  };
-  b.ensureSpace(50*b.scale);
-  drawSigLine("سكرتير الجمعية", secretary_name, b.W*0.28);
-  drawSigLine("رئيس الجمعية", chairman_name, b.W*0.72);
-
-  const bytes = await b.toPDFBytes();
-  const doc = await uploadOfficialDocForSigning(bytes, `محضر-الجمعية-${m.title||''}.pdf`, `محضر الجمعية العامة — ${m.title||'الجمعية'}`, "محضر جمعية عامة", 2);
-  if(doc) alert("تم إنشاء محضر الجمعية العامة ✅ — بانتظار توقيع رئيس الجمعية وأمين السر من صفحة التوقيع الإلكتروني.");
-}
+/* Convenience wrappers matching the button labels already wired in the AGM detail view */
+async function generateAGMInvitationDoc(meetingId){ return generateOfficialDoc("دعوة جمعية عامة", meetingId); }
+async function generateAGMMinutesDoc(meetingId){ return generateOfficialDoc("محضر جمعية عامة", meetingId); }
+async function generateVoteMinutesPDF(meetingId){ return generateOfficialDoc("محضر فرز الأصوات", meetingId); }
+async function generateAttendanceSheet(meetingId){ return generateOfficialDoc("كشف حضور", meetingId || currentVotingMeetingId); }
 
 async function generateMeetingMinutesDoc(meetingId){
   const { data: m, error: mErr } = await sb.from("meetings").select("*").eq("id", meetingId).single();
