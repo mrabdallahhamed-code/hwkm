@@ -13416,16 +13416,34 @@ const OFFICIAL_DOC_TYPES = {
 async function generateOfficialDoc(docTypeKey, meetingId){
   const config = OFFICIAL_DOC_TYPES[docTypeKey];
   if(!config){ alert("نوع مستند غير معروف"); return; }
+
+  // Auto-suggest names from the real board members registry so the person signing/generating
+  // doesn't have to retype what's already on file — still editable via the prompt, just no
+  // longer starting blank every time.
+  const { data: members } = await sb.from("board_members").select("name,position,position_level").eq("company_id", currentCompanyId);
+  const chairman = (members||[]).find(m => m.position_level === "رئيس");
+  const secretaryMatch = (members||[]).find(m => (m.position||"").includes("أمين") || (m.position||"").includes("سكرتير") || (m.position||"").includes("سر"));
+  const otherMembers = (members||[]).filter(m => m.position_level !== "رئيس" && m !== secretaryMatch);
+
+  const suggestFor = (role) => {
+    if(role.includes("رئيس")) return chairman?.name || "";
+    if(role.includes("سكرتير") || role.includes("أمين")) return secretaryMatch?.name || "";
+    if(role === "عضو اللجنة 1") return otherMembers[0]?.name || "";
+    if(role === "عضو اللجنة 2") return otherMembers[1]?.name || "";
+    return "";
+  };
+
   const roleNames = {};
   for(const role of config.roles){
-    const name = prompt(`اسم ${role}:`, "");
+    const suggested = suggestFor(role);
+    const name = prompt(`اسم ${role}${suggested ? ' (مقترح من سجل أعضاء المجلس، عدّله لو مختلف)' : ''}:`, suggested);
     if(name === null) return;
     roleNames[role] = name;
   }
   let extra = {};
   if(docTypeKey === "محضر جمعية عامة"){
-    extra.committee1 = prompt("اسم عضو لجنة الفرز الأول (اختياري):", "") || "";
-    extra.committee2 = prompt("اسم عضو لجنة الفرز الثاني (اختياري):", "") || "";
+    extra.committee1 = prompt("اسم عضو لجنة الفرز الأول (اختياري):", otherMembers[0]?.name || "") || "";
+    extra.committee2 = prompt("اسم عضو لجنة الفرز الثاني (اختياري):", otherMembers[1]?.name || "") || "";
     extra.quorum_threshold = Number(prompt("الحد الأدنى النظامي للنصاب (%):", "50")) || 50;
   }
 
