@@ -885,7 +885,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <span>👥 أعضاء مجلس الإدارة</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportMembers()">📥 تصدير Excel</button>
-      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mm-id').value='';document.getElementById('mm-title').textContent='👤 إضافة عضو مجلس إدارة';openM('m-member')">+ إضافة عضو</button>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mm-id').value='';document.getElementById('mm-title').textContent='👤 إضافة عضو مجلس إدارة';document.getElementById('mm-source').value='manual';toggleMemberSource();openM('m-member')">+ إضافة عضو</button>
     </div>
   </div>
 
@@ -2070,6 +2070,16 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="modal">
     <div class="modal-title" id="mm-title">👤 إضافة عضو مجلس إدارة</div>
     <input type="hidden" id="mm-id" value="" />
+    <div class="fg"><label>مصدر بيانات العضو</label>
+      <select class="fs" id="mm-source" onchange="toggleMemberSource()">
+        <option value="manual">إدخال يدوي (غير مساهم)</option>
+        <option value="shareholder">اختيار من سجل المساهمين</option>
+      </select>
+    </div>
+    <div class="fg" id="mm-shareholder-picker-wrap" style="display:none">
+      <label>اختر المساهم</label>
+      <select class="fs" id="mm-shareholder-picker" onchange="fillMemberFromShareholder()"><option value="">— اختر —</option></select>
+    </div>
     <div class="fg"><label>الاسم</label><input class="fi" id="mm-name" placeholder="مثال: خالد العتيبي" /></div>
     <div class="row2">
       <div class="fg"><label>المنصب</label><select class="fs" id="mm-position-level"><option>رئيس</option><option>نائب رئيس</option><option>عضو</option></select></div>
@@ -5459,6 +5469,10 @@ function editMember(id){
   if(!m) return;
   document.getElementById("mm-id").value = m.id;
   document.getElementById("mm-title").textContent = "✏️ تعديل عضو مجلس إدارة";
+  document.getElementById("mm-source").value = "manual";
+  document.getElementById("mm-shareholder-picker-wrap").style.display = "none";
+  document.getElementById("mm-name").disabled = false; document.getElementById("mm-name").style.background = "";
+  document.getElementById("mm-national-id").disabled = false; document.getElementById("mm-national-id").style.background = "";
   document.getElementById("mm-name").value = m.name || "";
   document.getElementById("mm-position").value = m.position || "";
   document.getElementById("mm-position-level").value = m.position_level || "عضو";
@@ -5468,6 +5482,35 @@ function editMember(id){
   document.getElementById("mm-status").value = m.status || "نشط";
   document.getElementById("mm-national-id").value = m.national_id || "";
   openM("m-member");
+}
+
+async function toggleMemberSource(){
+  const source = document.getElementById("mm-source").value;
+  const wrap = document.getElementById("mm-shareholder-picker-wrap");
+  const nameField = document.getElementById("mm-name");
+  const nationalIdField = document.getElementById("mm-national-id");
+  if(source === "shareholder"){
+    wrap.style.display = "block";
+    nameField.disabled = true; nameField.style.background = "var(--gray1)";
+    nationalIdField.disabled = true; nationalIdField.style.background = "var(--gray1)";
+    const picker = document.getElementById("mm-shareholder-picker");
+    const { data, error } = await sb.from("shareholders").select("id,name,national_id").eq("company_id", currentCompanyId).order("name",{ascending:true});
+    if(error){ picker.innerHTML = '<option value="">تعذّر التحميل</option>'; return; }
+    picker.innerHTML = '<option value="">— اختر —</option>' + (data||[]).map(s => `<option value="${s.id}" data-name="${s.name||''}" data-national-id="${s.national_id||''}">${s.name||'—'}</option>`).join("");
+  } else {
+    wrap.style.display = "none";
+    nameField.disabled = false; nameField.style.background = "";
+    nationalIdField.disabled = false; nationalIdField.style.background = "";
+    nameField.value = ""; nationalIdField.value = "";
+  }
+}
+
+function fillMemberFromShareholder(){
+  const picker = document.getElementById("mm-shareholder-picker");
+  const opt = picker.selectedOptions[0];
+  if(!opt || !opt.value) return;
+  document.getElementById("mm-name").value = opt.dataset.name || "";
+  document.getElementById("mm-national-id").value = opt.dataset.nationalId || "";
 }
 
 async function saveMember(){
