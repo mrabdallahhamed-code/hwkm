@@ -1723,7 +1723,8 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
 <!-- ══ CONSULTANTS PAGE ═══════════════════ -->
 <div id="p-consultants" class="page content">
-  <!-- ══ SECTION 1: طلبات الاستشارات ══ -->
+  <!-- ══ SECTION 1: طلبات الاستشارات (client-facing, hidden entirely from platform owner) ══ -->
+  <div id="consultRequestsSection">
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
     <span>💼 طلبات الاستشارات</span>
     <button id="btn-new-consult-request" class="btn btn-gold" style="font-size:11px;padding:6px 14px;display:none" onclick="document.getElementById('mcr-id').value='';document.getElementById('mcr-title-h').textContent='💼 تقديم طلب استشارة';document.getElementById('mcr-category').value='إدارية';document.getElementById('mcr-details').value='';openM('m-consult-request')">+ تقديم طلب استشارة</button>
@@ -1731,21 +1732,22 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div id="consultRequestsList" style="margin-bottom:28px">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
   </div>
+  </div>
 
   <!-- ══ SECTION 2: وساطة ══ -->
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
-    <span>🤝 وساطة — مقدّمو الخدمات</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-provider-add')">+ إضافة</button>
+    <span id="providersSectionTitle">🤝 وساطة — مقدّمو الخدمات</span>
+    <button id="btn-add-provider" class="btn btn-gold" style="font-size:11px;padding:6px 14px;display:none" onclick="openM('m-provider-add')">+ إضافة</button>
   </div>
   <div id="providersGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;align-items:stretch;margin-bottom:20px">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
   </div>
 
-  <div class="sec-title" style="margin-top:10px">📋 الطلبات السابقة</div>
+  <div class="sec-title" style="margin-top:10px" id="requestsHistoryTitle">📋 الطلبات السابقة</div>
   <div class="card">
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>النوع</th><th>الجهة/الفئة</th><th>تاريخ الطلب</th><th>الحالة</th><th>إجراء</th></tr></thead>
+        <thead><tr><th id="requestsHistoryCol1">النوع</th><th>الجهة/الفئة</th><th>تاريخ الطلب</th><th>الحالة</th><th>إجراء</th></tr></thead>
         <tbody id="allRequestsHistoryTbody">
           <tr><td colspan="5" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
@@ -12642,12 +12644,34 @@ const CONSULT_STATUS_STYLE = {
 
 async function loadConsultantsPage(){
   const role = getCurrentRole();
+  const isPlatformOwner = currentUserProfile && currentUserProfile.is_platform_admin === true;
+  const consultSection = document.getElementById("consultRequestsSection");
   const newBtn = document.getElementById("btn-new-consult-request");
-  if(newBtn) newBtn.style.display = CONSULT_REQUEST_ROLES.includes(role) ? "inline-block" : "none";
+  const addProviderBtn = document.getElementById("btn-add-provider");
+  const providersTitle = document.getElementById("providersSectionTitle");
+  const historyTitle = document.getElementById("requestsHistoryTitle");
+  const historyCol1 = document.getElementById("requestsHistoryCol1");
 
-  await loadConsultRequests(role);
-  await loadServiceProviders();
-  await loadAllRequestsHistory();
+  if(isPlatformOwner){
+    // Platform owner manages the global provider catalog and coordinates every client's
+    // service requests — they don't request consultations from themselves.
+    if(consultSection) consultSection.style.display = "none";
+    if(addProviderBtn) addProviderBtn.style.display = "inline-block";
+    if(providersTitle) providersTitle.textContent = "🤝 إدارة الوسطاء (كتالوج عام لكل الشركات)";
+    if(historyTitle) historyTitle.textContent = "📋 طلبات الخدمة الواردة من كل الشركات";
+    if(historyCol1) historyCol1.textContent = "الشركة";
+  } else {
+    if(consultSection) consultSection.style.display = "block";
+    if(newBtn) newBtn.style.display = CONSULT_REQUEST_ROLES.includes(role) ? "inline-block" : "none";
+    if(addProviderBtn) addProviderBtn.style.display = "none";
+    if(providersTitle) providersTitle.textContent = "🤝 وساطة — مقدّمو الخدمات";
+    if(historyTitle) historyTitle.textContent = "📋 الطلبات السابقة";
+    if(historyCol1) historyCol1.textContent = "النوع";
+    await loadConsultRequests(role);
+  }
+
+  await loadServiceProviders(isPlatformOwner);
+  await loadAllRequestsHistory(isPlatformOwner);
 }
 
 async function loadConsultRequests(role){
@@ -12786,24 +12810,32 @@ async function decideConsultRequest(requestId, decision){
 const SERVICE_STAGES = ["قيد المراجعة", "قيد التنفيذ", "مكتمل"];
 let providersCache = [];
 
-async function loadServiceProviders(){
+async function loadServiceProviders(isPlatformOwner){
   const grid = document.getElementById("providersGrid");
   if(!grid) return;
-  const { data, error } = await sb.from("service_providers").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
+  // Providers are now a platform-wide catalog the owner curates — every company sees the
+  // same list, not just what their own company happened to add before.
+  const { data, error } = await sb.from("service_providers").select("*").order("id",{ascending:false});
   if(error){ grid.innerHTML = `<div style="color:var(--red);font-size:12px">تعذّر التحميل: ${error.message}</div>`; return; }
   providersCache = data || [];
-  if(providersCache.length===0){ grid.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">لا توجد جهات مضافة بعد. اضغط "+ إضافة" للبدء.</div>'; return; }
+  if(providersCache.length===0){ grid.innerHTML = `<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">${isPlatformOwner ? 'لا توجد جهات مضافة بعد. اضغط "+ إضافة" للبدء.' : 'لا توجد جهات وساطة متاحة حاليًا.'}</div>`; return; }
 
-  const canRequest = FULL_ACCESS_ROLES.includes(getCurrentRole());
+  const canRequest = !isPlatformOwner && FULL_ACCESS_ROLES.includes(getCurrentRole());
   grid.innerHTML = providersCache.map(p => `<div class="card" style="margin:0;display:flex;flex-direction:column">
     <div class="card-body" style="display:flex;flex-direction:column;flex:1">
       <div style="font-weight:800;font-size:13.5px;color:var(--dark)">${p.entity_name||""}</div>
       <div style="font-size:11.5px;color:var(--gray3);margin-top:4px">🛠️ ${p.service_provided||"—"}</div>
       <div style="font-size:11.5px;color:var(--gray3);margin-top:2px">🏷️ ${p.activity_type||"—"}</div>
       <div style="font-size:11px;color:var(--gray3);margin-top:2px">📄 س.ت: ${p.cr_number||"—"}</div>
-      ${canRequest ? `<button class="btn-xs gold" style="width:100%;margin-top:auto;padding-top:10px" onclick="requestService(${p.id})">🤝 اطلب الخدمة</button>` : ""}
+      ${canRequest ? `<button class="btn-xs gold" style="width:100%;margin-top:auto;padding-top:10px" onclick="requestService(${p.id})">🤝 اطلب الخدمة</button>` : (isPlatformOwner ? `<button class="btn-xs" style="width:100%;margin-top:auto;padding-top:10px;background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px;cursor:pointer" onclick="deleteServiceProvider(${p.id})">🗑️ حذف</button>` : "")}
     </div>
   </div>`).join("");
+}
+
+async function deleteServiceProvider(id){
+  if(!confirm("حذف هذه الجهة من كتالوج الوسطاء؟")) return;
+  await sb.from("service_providers").delete().eq("id", id);
+  loadServiceProviders(true);
 }
 
 async function saveServiceProvider(){
@@ -12812,11 +12844,13 @@ async function saveServiceProvider(){
   const service_provided = document.getElementById("mpv-service").value.trim();
   const activity_type = document.getElementById("mpv-activity").value.trim();
   const cr_number = document.getElementById("mpv-cr").value.trim();
-  const { error } = await sb.from("service_providers").insert([{ entity_name, service_provided, activity_type, cr_number, company_id: currentCompanyId }]);
+  // company_id intentionally omitted — providers are now a platform-wide catalog managed
+  // solely by the platform owner, not tied to any one company.
+  const { error } = await sb.from("service_providers").insert([{ entity_name, service_provided, activity_type, cr_number }]);
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
   document.getElementById("mpv-name").value=""; document.getElementById("mpv-service").value=""; document.getElementById("mpv-activity").value=""; document.getElementById("mpv-cr").value="";
   closeM("m-provider-add");
-  loadServiceProviders();
+  loadServiceProviders(true);
 }
 
 async function requestService(providerId){
@@ -12833,9 +12867,32 @@ async function requestService(providerId){
   openServiceTrackingModal(data.id);
 }
 
-async function loadAllRequestsHistory(){
+async function loadAllRequestsHistory(isPlatformOwner){
   const tbody = document.getElementById("allRequestsHistoryTbody");
   if(!tbody) return;
+
+  if(isPlatformOwner){
+    const [{ data: serviceData, error: serviceErr }, { data: companies }] = await Promise.all([
+      sb.from("service_requests").select("*").order("created_at",{ascending:false}),
+      sb.from("companies").select("id,name")
+    ]);
+    if(serviceErr){ tbody.innerHTML = errorRowHTML(5, serviceErr.message); return; }
+    const companyNameById = {}; (companies||[]).forEach(c=>{ companyNameById[c.id]=c.name; });
+    const rows = serviceData || [];
+    if(rows.length===0){ tbody.innerHTML = emptyRowHTML(5, "لا توجد طلبات واردة بعد."); return; }
+    tbody.innerHTML = rows.map(r => {
+      const provider = providersCache.find(p => p.id === r.provider_id);
+      return `<tr style="cursor:pointer" onclick="openServiceTrackingModal(${r.id})">
+        <td>${companyNameById[r.company_id]||"—"}</td>
+        <td>${provider ? provider.entity_name : "—"}</td>
+        <td>${r.created_at ? new Date(r.created_at).toLocaleDateString('ar-SA') : "—"}</td>
+        <td>${r.status||"—"}</td>
+        <td><button class="btn-xs primary" onclick="event.stopPropagation();openServiceTrackingModal(${r.id})">🔎 تتبع/توجيه</button></td>
+      </tr>`;
+    }).join("");
+    return;
+  }
+
   const [{ data: consultData, error: consultErr }, { data: serviceData, error: serviceErr }] = await Promise.all([
     sb.from("consultation_requests").select("*").eq("company_id", currentCompanyId),
     sb.from("service_requests").select("*").eq("company_id", currentCompanyId)
@@ -12859,10 +12916,10 @@ async function loadAllRequestsHistory(){
     const btnLabel = r.kind === "استشارة" ? "📄 التفاصيل" : "🔎 تتبع";
     return `<tr style="cursor:pointer" ${action}>
       <td>${r.kind}</td>
-      <td>${r.label||"—"}</td>
+      <td>${r.label}</td>
       <td>${r.date ? new Date(r.date).toLocaleDateString('ar-SA') : "—"}</td>
-      <td><span class="badge ${r.status==='مكتمل'||r.status==='معتمد'?'done':(r.status==='مرفوض'?'urgent':'pending')}">${r.status}</span></td>
-      <td><button class="btn-xs primary" ${action.replace('onclick=','onclick=event.stopPropagation();')}>${btnLabel}</button></td>
+      <td>${r.status||"—"}</td>
+      <td><button class="btn-xs primary" onclick="event.stopPropagation();${r.kind==='استشارة'?`openConsultDetailModal(${r.id})`:`openServiceTrackingModal(${r.id})`}">${btnLabel}</button></td>
     </tr>`;
   }).join("");
 }
