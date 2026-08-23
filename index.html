@@ -14815,15 +14815,24 @@ function toggleDisclosureNominator(){
 
 function renderDisclosureSurvey(){
   const box = document.getElementById("df-survey-list");
-  box.innerHTML = DISCLOSURE_SURVEY_QUESTIONS.map(q => {
-    const ans = disclosureDraft.survey_answers[q.key] || { answer:false, details:[] };
-    return `<div style="background:var(--offwhite);border-radius:8px;padding:10px;margin-bottom:8px">
-      <div style="font-size:11.5px;font-weight:600;margin-bottom:6px">${q.label}</div>
-      <select class="fs" style="width:120px;font-size:11px;padding:5px 8px" onchange="setDisclosureAnswer('${q.key}',this.value)">
-        <option value="لا" ${!ans.answer?'selected':''}>لا</option>
-        <option value="نعم" ${ans.answer?'selected':''}>نعم</option>
-      </select>
-      <div id="df-survey-details-${q.key}" style="margin-top:6px;display:${ans.answer&&q.cols.length?'block':'none'}">
+  box.innerHTML = DISCLOSURE_SURVEY_QUESTIONS.map((q, qi) => {
+    const ans = disclosureDraft.survey_answers[q.key]; // undefined = not yet answered, on purpose
+    const isAnswered = ans !== undefined;
+    const isYes = isAnswered && ans.answer === true;
+    const isNo = isAnswered && ans.answer === false;
+    return `<div style="background:#fff;border:1.5px solid ${isAnswered?'var(--gray1)':'var(--red)'};border-radius:10px;padding:12px;margin-bottom:10px">
+      <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:10px">
+        <span style="background:var(--primary);color:#fff;font-weight:800;font-size:10.5px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">${qi+1}</span>
+        <span style="font-size:12px;font-weight:700;line-height:1.6">${q.label}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding-right:30px">
+        <span style="font-size:11px;color:var(--gray3);font-weight:700">الإجابة:</span>
+        <button type="button" onclick="setDisclosureAnswer('${q.key}',true)" style="flex:0 0 auto;padding:6px 20px;border-radius:8px;border:2px solid ${isYes?'var(--green)':'var(--gray1)'};background:${isYes?'#E8F8EF':'#fff'};color:${isYes?'var(--green)':'var(--gray3)'};font-weight:800;font-size:12px;cursor:pointer">نعم</button>
+        <button type="button" onclick="setDisclosureAnswer('${q.key}',false)" style="flex:0 0 auto;padding:6px 20px;border-radius:8px;border:2px solid ${isNo?'var(--red)':'var(--gray1)'};background:${isNo?'#FDE8E8':'#fff'};color:${isNo?'var(--red)':'var(--gray3)'};font-weight:800;font-size:12px;cursor:pointer">لا</button>
+        ${!isAnswered ? '<span style="font-size:10.5px;color:var(--red);font-weight:700">⚠️ لم تتم الإجابة بعد</span>' : ''}
+      </div>
+      <div id="df-survey-details-${q.key}" style="margin-top:8px;padding-right:30px;display:${isYes&&q.cols.length?'block':'none'}">
+        <div style="font-size:10.5px;color:var(--gray3);font-weight:700;margin-bottom:4px">توضيح الإجابة:</div>
         ${q.cols.length ? renderSurveyDetailRows(q.key, q.cols) : ""}
       </div>
     </div>`;
@@ -14838,9 +14847,9 @@ function renderSurveyDetailRows(key, cols){
   </div>`).join("") + `<button class="btn-xs primary" style="margin-top:2px" onclick="addSurveyDetailRow('${key}',${cols.length})">+ إضافة سطر</button>`;
 }
 
-function setDisclosureAnswer(key, val){
-  if(!disclosureDraft.survey_answers[key]) disclosureDraft.survey_answers[key] = { answer:false, details:[] };
-  disclosureDraft.survey_answers[key].answer = (val === "نعم");
+function setDisclosureAnswer(key, isYes){
+  const existing = disclosureDraft.survey_answers[key];
+  disclosureDraft.survey_answers[key] = { answer: isYes, details: (existing && existing.details) || [] };
   renderDisclosureSurvey();
 }
 function addSurveyDetailRow(key, numCols){
@@ -14897,6 +14906,14 @@ async function submitDisclosureForm(){
     status: "مسودة"
   };
   if(!payload.full_name){ alert("الرجاء إدخال الاسم الرباعي على الأقل"); return; }
+
+  // Every question is mandatory per CMA form requirements — block submission (not just warn)
+  // until each one has an explicit answer, rather than silently defaulting unanswered ones.
+  const unanswered = DISCLOSURE_SURVEY_QUESTIONS.filter(q => disclosureDraft.survey_answers[q.key] === undefined);
+  if(unanswered.length){
+    alert(`الرجاء الإجابة على كل الأسئلة الاستقصائية قبل الإرسال — تبقّى ${unanswered.length} سؤال بدون إجابة (السؤال رقم ${DISCLOSURE_SURVEY_QUESTIONS.indexOf(unanswered[0])+1} وما بعده). مرّر لأسفل النموذج للوصول لها.`);
+    return;
+  }
 
   const { data: saved, error } = await sb.from("board_disclosure_forms").insert([payload]).select().single();
   if(error){ alert("تعذّر الحفظ: " + error.message); return; }
@@ -14975,10 +14992,11 @@ async function buildDisclosureFormCanvasPages(form, signaturesMap, orderedRoles)
   b.wrapAndDraw("٧. أسئلة استقصائية", { font:`bold ${12*b.scale}px Tajawal, Arial`, color:"#1A3A6B", lineHeight:20*b.scale });
   b.spacer(4);
   DISCLOSURE_SURVEY_QUESTIONS.forEach(q => {
-    const ans = (form.survey_answers||{})[q.key] || { answer:false, details:[] };
-    b.wrapAndDraw(`${q.label} — ${ans.answer?"نعم":"لا"}`, { font:`${9.5*b.scale}px Tajawal, Arial`, lineHeight:17*b.scale });
-    if(ans.answer && ans.details && ans.details.length){
-      ans.details.forEach(d => b.wrapAndDraw(`   • ${d.filter(Boolean).join(" — ")}`, { font:`${9*b.scale}px Tajawal, Arial`, color:"#8B95A5", lineHeight:16*b.scale }));
+    const rawAns = (form.survey_answers||{})[q.key];
+    const answerLabel = rawAns === undefined ? "لم تتم الإجابة" : (rawAns.answer ? "نعم" : "لا");
+    b.wrapAndDraw(`${q.label} — ${answerLabel}`, { font:`${9.5*b.scale}px Tajawal, Arial`, lineHeight:17*b.scale, color: rawAns===undefined?"#C0392B":"#0D2447" });
+    if(rawAns && rawAns.answer && rawAns.details && rawAns.details.length){
+      rawAns.details.forEach(d => b.wrapAndDraw(`   • ${d.filter(Boolean).join(" — ")}`, { font:`${9*b.scale}px Tajawal, Arial`, color:"#8B95A5", lineHeight:16*b.scale }));
     }
   });
 
