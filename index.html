@@ -537,6 +537,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <div class="lg-name">حوكم</div>
     </div>
     <div class="login-msg" id="loginMsg"></div>
+    <div id="listedCompanyBanner" style="display:none;background:#EAF0F8;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;font-weight:700;color:var(--primary);text-align:center"></div>
     <div class="login-field" id="signupTypeField" style="display:none">
       <label>نوع الحساب</label>
       <select class="fs" id="signupAccountType" style="width:100%;padding:11px 12px;border-radius:8px;border:1.5px solid var(--gray1);font-family:'Tajawal',sans-serif;font-size:13px" onchange="toggleShareholderFields()">
@@ -569,6 +570,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="login-field" id="signupSharesField" style="display:none">
       <label>عدد الأسهم</label>
       <input class="fi" id="signupShares" type="number" placeholder="مثال: 500" />
+    </div>
+    <div class="login-field" id="listedProofField" style="display:none">
+      <label>إثبات الملكية (لقطة شاشة أو PDF من محفظتك بتطبيق الوساطة)</label>
+      <input type="file" class="fi" id="listedProofFile" accept="image/*,.pdf" />
     </div>
     <div class="login-field" id="signupInviteField" style="display:none">
       <label>رمز الدعوة (اختياري — إن كنت مدعوًا للانضمام لشركة موجودة)</label>
@@ -1762,8 +1767,14 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <span>🛡️ إدارة الصلاحيات</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportUsersList()">📥 تصدير Excel</button>
+      <button id="btnListedShareholderLink" class="btn btn-ghost" style="font-size:11px;padding:6px 14px;display:none" onclick="showListedShareholderLink()">🔗 رابط تسجيل المساهمين</button>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openInviteModal()">🔗 دعوة عضو جديد</button>
     </div>
+  </div>
+
+  <div class="card" id="pendingShareholderVerificationsCard" style="margin-bottom:16px;display:none">
+    <div class="card-head"><span class="card-title">🔍 طلبات تحقق مساهمين معلّقة</span></div>
+    <div class="card-body" id="pendingShareholderVerificationsList"></div>
   </div>
 
   <div class="card" id="pendingInvitesCard" style="margin-bottom:16px;display:none">
@@ -2839,6 +2850,16 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
+<div class="modal-bg" id="m-listed-shareholder-link">
+  <div class="modal">
+    <div class="modal-title">🔗 رابط تسجيل المساهمين</div>
+    <p style="font-size:12px;color:var(--gray3);margin-bottom:10px">رابط ثابت دائم — أرسله لكل المساهمين (بريد جماعي، رسالة دعوة الجمعية...). أي عدد منهم يقدر يسجّل بنفس الرابط، ويصير حسابه "قيد المراجعة" لين تعتمده من القسم أدناه.</p>
+    <div style="background:var(--offwhite);border-radius:8px;padding:10px;font-size:11.5px;word-break:break-all;margin-bottom:10px" id="listedShareholderLinkText"></div>
+    <button class="btn btn-gold" style="width:100%" onclick="copyListedShareholderLink()">📋 نسخ الرابط</button>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-listed-shareholder-link')">إغلاق</button></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-invite">
   <div class="modal">
     <div class="modal-title" id="mi-title-h">🔗 دعوة عضو جديد</div>
@@ -3243,9 +3264,39 @@ function toggleAuthMode(){
     toggleShareholderFields();
     const urlInvite = new URLSearchParams(window.location.search).get("invite");
     if(urlInvite) document.getElementById("signupInviteCode").value = urlInvite;
+    applyListedCompanySignupMode();
   }
   else { document.getElementById("signupSharesField").style.display = "none"; }
   hideLoginMsg();
+}
+
+let listedCompanyContext = null; // { id, name } when signing up via a listed-company link
+
+async function applyListedCompanySignupMode(){
+  const listedId = new URLSearchParams(window.location.search).get("listed_company");
+  const banner = document.getElementById("listedCompanyBanner");
+  const proofField = document.getElementById("listedProofField");
+  if(!listedId){
+    if(banner) banner.style.display = "none";
+    if(proofField) proofField.style.display = "none";
+    listedCompanyContext = null;
+    return;
+  }
+  const { data: company } = await sb.from("companies").select("id,name").eq("id", listedId).eq("company_type", "مساهمة مدرجة").maybeSingle();
+  if(!company){
+    if(banner){ banner.style.display = "block"; banner.textContent = "⚠️ رابط تسجيل غير صالح"; banner.style.color = "var(--red)"; }
+    return;
+  }
+  listedCompanyContext = company;
+  if(banner){ banner.style.display = "block"; banner.textContent = `📋 تسجيل كمساهم بشركة "${company.name}"`; }
+  // No pre-existing shareholders registry to match against for a listed company — lock the
+  // account type to "مساهم" and require proof of ownership instead of automatic verification.
+  const typeField = document.getElementById("signupTypeField");
+  const typeSelect = document.getElementById("signupAccountType");
+  if(typeField) typeField.style.display = "none";
+  if(typeSelect) typeSelect.value = "مساهم";
+  toggleShareholderFields();
+  if(proofField) proofField.style.display = "block";
 }
 
 function toggleShareholderFields(){
@@ -3294,6 +3345,25 @@ async function handleAuth(){
 
     const { error } = await sb.auth.signUp({ email, password });
     if(error){ showLoginMsg("خطأ: " + error.message, false); return; }
+
+    // Listed-company shareholder signup: no pre-existing registry to auto-match against, so
+    // this becomes a proof-of-ownership request the company reviews manually — completely
+    // bypassing the invite/national-ID matching flow below.
+    if(listedCompanyContext){
+      const proofInput = document.getElementById("listedProofFile");
+      if(!proofInput.files || !proofInput.files[0]){
+        showLoginMsg("الرجاء رفع إثبات الملكية أولًا", false); return;
+      }
+      const proof_file_url = await uploadFile(proofInput, "shareholder-verification-proofs");
+      const { error: reqError } = await sb.from("shareholder_verification_requests").insert([{
+        company_id: listedCompanyContext.id, requester_email: email, requester_name: full_name,
+        national_id, claimed_shares: shares_count, proof_file_url, status: "قيد المراجعة"
+      }]);
+      if(reqError){ showLoginMsg("تعذّر إرسال طلبك: " + reqError.message, false); return; }
+      await sb.auth.signOut();
+      showLoginMsg(`✅ تم إرسال طلبك بنجاح — بانتظار مراجعة شركة "${listedCompanyContext.name}" للإثبات المرفوع. سيصلك إشعار فور الاعتماد.`, true);
+      return;
+    }
 
     // If an invite code was supplied, validate it and join that company directly
     // instead of landing in the company-less "request a company" state.
@@ -3850,8 +3920,76 @@ function renderActivityLogFiltered(){
   </tr>`).join("");
 }
 
+function showListedShareholderLink(){
+  const link = `${window.location.origin}${window.location.pathname}?listed_company=${currentCompanyId}`;
+  document.getElementById("listedShareholderLinkText").textContent = link;
+  openM("m-listed-shareholder-link");
+}
+
+function copyListedShareholderLink(){
+  const text = document.getElementById("listedShareholderLinkText").textContent;
+  navigator.clipboard.writeText(text).then(() => alert("تم نسخ الرابط ✅"));
+}
+
+async function loadPendingShareholderVerifications(){
+  const card = document.getElementById("pendingShareholderVerificationsCard");
+  const list = document.getElementById("pendingShareholderVerificationsList");
+  if(!card || !list) return;
+  const { data, error } = await sb.from("shareholder_verification_requests").select("*")
+    .eq("company_id", currentCompanyId).eq("status", "قيد المراجعة").order("created_at",{ascending:false});
+  if(error || !data || data.length === 0){ card.style.display = "none"; return; }
+  card.style.display = "block";
+  list.innerHTML = data.map(r => `<div style="background:var(--offwhite);border-radius:8px;padding:10px;margin-bottom:8px">
+    <div style="font-weight:700;font-size:12.5px">${r.requester_name||"—"}</div>
+    <div style="font-size:11px;color:var(--gray3)">${r.requester_email} · رقم الهوية: ${r.national_id||"—"} · عدد الأسهم المدّعى: ${r.claimed_shares||"—"}</div>
+    ${r.proof_file_url ? `<a href="${r.proof_file_url}" target="_blank" style="font-size:11.5px;color:var(--primary);font-weight:700">📎 عرض ملف الإثبات</a>` : '<div style="font-size:11px;color:var(--red)">لا يوجد ملف إثبات</div>'}
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="approveShareholderVerification(${r.id})">✅ اعتماد</button>
+      <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="rejectShareholderVerification(${r.id})">❌ رفض</button>
+    </div>
+  </div>`).join("");
+}
+
+async function approveShareholderVerification(id){
+  const { data: req } = await sb.from("shareholder_verification_requests").select("*").eq("id", id).single();
+  if(!req){ alert("تعذّر تحميل الطلب"); return; }
+  if(!confirm(`اعتماد "${req.requester_name}" كمساهم بـ${req.claimed_shares||0} سهم؟`)) return;
+
+  // Creates a real row in the same shareholders registry every other feature (voting, vote
+  // cards, AGM attendance, quorum) already reads from — nothing downstream needs to know this
+  // shareholder came through proof-of-ownership review instead of the usual pre-entered list.
+  const { error: shErr } = await sb.from("shareholders").insert([{
+    name: req.requester_name, national_id: req.national_id, shares_count: req.claimed_shares,
+    company_id: req.company_id, claimed_by_email: req.requester_email
+  }]);
+  if(shErr){ alert("تعذّر إنشاء سجل المساهم: " + shErr.message); return; }
+
+  await sb.from("user_company_memberships").insert([{ email: req.requester_email, company_id: req.company_id, role: "مساهم" }]);
+  await sb.from("shareholder_verification_requests").update({ status: "معتمد", reviewed_by: currentUserProfile?.email, reviewed_at: new Date().toISOString() }).eq("id", id);
+
+  await sendNotificationEmail(req.requester_email, "✅ تم اعتماد طلبك كمساهم",
+    `<div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px"><h2>✅ تم اعتماد طلبك</h2><p>تم التحقق من ملكيتك واعتمادك كمساهم بالمنصة. يمكنك الآن تسجيل الدخول والمشاركة بالتصويت.</p></div>`);
+  alert("تم الاعتماد ✅");
+  loadPendingShareholderVerifications();
+}
+
+async function rejectShareholderVerification(id){
+  const reason = prompt("سبب الرفض (اختياري):", "") || "";
+  const { data: req } = await sb.from("shareholder_verification_requests").select("*").eq("id", id).single();
+  await sb.from("shareholder_verification_requests").update({ status: "مرفوض", rejection_reason: reason, reviewed_by: currentUserProfile?.email, reviewed_at: new Date().toISOString() }).eq("id", id);
+  if(req){
+    await sendNotificationEmail(req.requester_email, "❌ تعذّر اعتماد طلبك كمساهم",
+      `<div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px"><h2>تعذّر الاعتماد</h2><p>${reason||"لم يتم التحقق من الإثبات المرفوع."}</p></div>`);
+  }
+  alert("تم الرفض");
+  loadPendingShareholderVerifications();
+}
+
 async function loadUsers(){
   loadPendingInvites();
+  const linkBtn = document.getElementById("btnListedShareholderLink");
+  if(linkBtn) linkBtn.style.display = (currentCompanyType === "مساهمة مدرجة") ? "inline-block" : "none";
+  if(currentCompanyType === "مساهمة مدرجة") loadPendingShareholderVerifications();
   const grid = document.getElementById("usersCardsGrid");
   if(!grid) return;
   if(getCurrentRole() !== 'مدير النظام'){
@@ -8615,12 +8753,35 @@ async function handleShareholdersExcelUpload(input){
       return obj;
     });
 
-    if(!confirm(`سيتم إضافة ${payload.length} مساهم جديد لسجل المساهمين. متابعة؟`)) { input.value = ""; return; }
+    if(!confirm(`سيتم استيراد ${payload.length} مساهم — أي مساهم موجود مسبقًا (بنفس رقم الهوية) يُحدَّث برقم أسهمه الجديد بدون ما يفقد ربطه بحسابه، وأي مساهم جديد يُضاف. متابعة؟`)) { input.value = ""; return; }
 
-    const { error } = await sb.from("shareholders").insert(payload);
-    if(error){ alert("تعذّر الاستيراد: " + error.message); return; }
-    logActivity("إنشاء", "استيراد مساهمين", `${payload.length} مساهم`, "استيراد من Excel");
-    alert(`تم استيراد ${payload.length} مساهم بنجاح ✅`);
+    // Existing shareholders (by national_id) get UPDATED in place — this is what makes a
+    // periodic re-import safe (e.g. refreshing the list before each new AGM): whoever already
+    // claimed their record via signup keeps that link, only their share count/name refreshes.
+    const { data: existing } = await sb.from("shareholders").select("id,national_id").eq("company_id", currentCompanyId).not("national_id","is",null);
+    const existingByNationalId = {};
+    (existing||[]).forEach(s => { if(s.national_id) existingByNationalId[s.national_id] = s.id; });
+
+    const toInsert = [], toUpdate = [];
+    payload.forEach(p => {
+      const existingId = p.national_id ? existingByNationalId[p.national_id] : null;
+      if(existingId) toUpdate.push({ id: existingId, ...p });
+      else toInsert.push(p);
+    });
+
+    let updatedCount = 0, insertErr = null, updateErr = null;
+    if(toInsert.length){
+      const { error } = await sb.from("shareholders").insert(toInsert);
+      insertErr = error;
+    }
+    for(const row of toUpdate){
+      const { id, ...fields } = row;
+      const { error } = await sb.from("shareholders").update(fields).eq("id", id);
+      if(error) updateErr = error; else updatedCount++;
+    }
+    if(insertErr || updateErr){ alert("تعذّر الاستيراد بالكامل: " + (insertErr||updateErr).message); return; }
+    logActivity("إنشاء", "استيراد مساهمين", `${toInsert.length} جديد + ${updatedCount} محدَّث`, "استيراد من Excel");
+    alert(`تم الاستيراد ✅ — ${toInsert.length} مساهم جديد، و${updatedCount} مساهم محدَّث.`);
     input.value = "";
     loadShareholders();
   }catch(e){
