@@ -6248,13 +6248,15 @@ let upcomingMeetingsCache = [];
 let allMeetingsCache = [];
 
 /* Spacious, single-column version used inside the detail modal (roomy, not cramped) */
-function fileRowWide(id, field, url, label){
+function fileRowWide(id, field, url, label, accept, reloadFn){
+  const acceptAttr = accept ? ` accept="${accept}"` : "";
+  const reload = reloadFn || "openMeetingDetailModal";
   return `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
     <div style="font-size:13px;font-weight:800;color:var(--dark)">${label}</div>
     <div style="display:flex;gap:8px">
       ${url ? `<a class="btn btn-outline" style="font-size:11px;padding:6px 14px" href="${url}" target="_blank" rel="noopener">📥 تحميل</a>` : ""}
-      <label class="btn ${url?'btn-ghost':'btn-gold'}" style="font-size:11px;padding:6px 14px;cursor:pointer">📎 ${url?'استبدال':'رفع ملف'}<input type="file" style="display:none" onchange="uploadMeetingFile(${id},'${field}',this);setTimeout(()=>openMeetingDetailModal(${id}),400)"></label>
-      ${url ? `<button class="btn btn-ghost" style="font-size:11px;padding:6px 14px;color:var(--red)" onclick="deleteMeetingFile(${id},'${field}');setTimeout(()=>openMeetingDetailModal(${id}),400)">🗑️ حذف</button>` : ""}
+      <label class="btn ${url?'btn-ghost':'btn-gold'}" style="font-size:11px;padding:6px 14px;cursor:pointer">📎 ${url?'استبدال':'رفع ملف'}<input type="file"${acceptAttr} style="display:none" onchange="uploadMeetingFile(${id},'${field}',this);setTimeout(()=>${reload}(${id}),400)"></label>
+      ${url ? `<button class="btn btn-ghost" style="font-size:11px;padding:6px 14px;color:var(--red)" onclick="deleteMeetingFile(${id},'${field}');setTimeout(()=>${reload}(${id}),400)">🗑️ حذف</button>` : ""}
     </div>
   </div>`;
 }
@@ -6270,7 +6272,7 @@ function openMeetingDetailModal(id){
   document.getElementById("mdView-files").innerHTML =
     fileRowWide(m.id,'agenda_file_url',m.agenda_file_url,'📄 جدول الأعمال') +
     fileRowWide(m.id,'invitation_file_url',m.invitation_file_url,'📨 الدعوة') +
-    fileRowWide(m.id,'minutes_file_url',m.minutes_file_url,'📋 المحضر (رفع يدوي)') +
+    fileRowWide(m.id,'minutes_file_url',m.minutes_file_url,'📋 المحضر (رفع يدوي — PDF فقط)','.pdf') +
     `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
       <div style="font-size:13px;font-weight:800;color:var(--dark)">📝 توليد المحضر تلقائيًا (Word)</div>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateMeetingMinutesDoc(${m.id})">📝 توليد Word</button>
@@ -6522,6 +6524,43 @@ async function renderPastAGMTable(past){
   }).join("");
 }
 
+// "Word to edit" option for the minutes specifically — the company can tweak wording, then
+// come back and upload the FINAL PDF (see the restricted-to-PDF upload row below) for signing.
+async function generateAGMMinutesWordDraft(meetingId){
+  await loadDocumentTemplates();
+  const template = docTemplatesCache["agm_minutes"];
+  if(!template || !template.file_url){
+    alert('لا يوجد قالب Word مرفوع لمحضر الجمعية العامة — ارفعه أولًا من قسم "قوالب المستندات (Word)" أسفل هذي الصفحة (المفتاح: محضر الجمعية العامة).');
+    return;
+  }
+  const config = OFFICIAL_DOC_TYPES["محضر جمعية عامة"];
+  const chairman_name = prompt("اسم رئيس الجمعية (للمسودة):", "") || "";
+  const secretary_name = prompt("اسم أمين سر الجمعية (للمسودة):", "") || "";
+  const data = await config.prepareData(meetingId);
+  const { m, company, topics, votes, attendees } = data;
+  const companyName = company?.name || "الشركة";
+  const companyTotalShares = Number(company?.total_shares)||0;
+  const attendee_count = attendees.length;
+  const attendee_shares = attendees.reduce((s,a)=>s+(Number(a.shares)||0),0);
+  const attendance_pct = companyTotalShares ? Math.round(attendee_shares/companyTotalShares*100) : 0;
+  const topicResults = topics.map(t => {
+    const topicText = t.topic_text || t.topic || "";
+    const relevant = votes.filter(v => v.topic === topicText);
+    const totalVotes = relevant.length || 1;
+    const yes = relevant.filter(v=>v.result==="موافق").length;
+    const no = relevant.filter(v=>v.result==="معارض").length;
+    const abs = relevant.filter(v=>v.result==="ممتنع").length;
+    const yes_pct = Math.round(yes/totalVotes*100), no_pct = Math.round(no/totalVotes*100), abs_pct = Math.round(abs/totalVotes*100);
+    return { topic_text: topicText, yes_pct, no_pct, abs_pct, decision: yes_pct>=50 ? "تمت الموافقة" : "لم تتم الموافقة" };
+  });
+
+  await fillDocxTemplate(template.file_url, {
+    company_name: companyName, meeting_title: m.title||"", meeting_date: m.meeting_date||"",
+    attendee_shares, attendee_count, attendance_pct, quorum_status: attendance_pct>=50?"مكتمل النصاب":"غير مكتمل النصاب",
+    quorum_threshold: 50, chairman_name, secretary_name, topics: topicResults
+  }, `محضر-الجمعية-مسودة-${m.title||''}.docx`);
+}
+
 async function openAGMDetailModal(id){
   const m = agmMeetingsCache.find(x => x.id === id);
   if(!m) return;
@@ -6537,16 +6576,34 @@ async function openAGMDetailModal(id){
   document.getElementById("agmView-call-number").value = String(m.call_number || 1);
   renderAGMQuorumWidget(id);
 
+  const { data: existingInvitationDocs } = await sb.from("signing_documents").select("id,file_url,signers_total")
+    .eq("related_meeting_id", m.id).eq("doc_type","دعوة جمعية عامة").order("id",{ascending:false}).limit(1);
+  const invitationDoc = (existingInvitationDocs||[])[0];
+  const { data: invSigs } = invitationDoc ? await sb.from("official_doc_signatures").select("id").eq("document_id", invitationDoc.id) : { data: [] };
+  const invitationFullySigned = invitationDoc && (invSigs||[]).length >= (invitationDoc.signers_total||1);
+
   document.getElementById("agmView-files").innerHTML =
-    fileRowWide(m.id,'invitation_file_url',m.invitation_file_url,'📨 دعوة الجمعية (رفع يدوي)') +
-    fileRowWide(m.id,'minutes_file_url',m.minutes_file_url,'📋 محضر الجمعية (رفع يدوي)') +
+    // Once the invitation has already been generated (and possibly signed), regenerating or
+    // re-uploading it doesn't make sense — a done, signed invitation is a fixed record, not
+    // something to casually redo. Show its status instead of the generate/upload controls.
+    (invitationDoc
+      ? `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
+          <div style="font-size:13px;font-weight:800;color:var(--dark)">📨 دعوة الجمعية ${invitationFullySigned?'— موقّعة بالكامل ✅':'— بانتظار اكتمال التوقيع 🟡'}</div>
+          <a class="btn btn-outline" style="font-size:11px;padding:6px 14px" href="${invitationDoc.file_url}" target="_blank" rel="noopener">📥 عرض/تحميل</a>
+        </div>`
+      : `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
+          <div style="font-size:13px;font-weight:800;color:var(--dark)">📨 توليد دعوة الجمعية</div>
+          <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateAGMInvitationDoc(${m.id})">📝 توليد</button>
+        </div>`
+    ) +
+    fileRowWide(m.id,'minutes_file_url',m.minutes_file_url,'📋 محضر الجمعية (رفع يدوي — بعد التعديل، PDF فقط)','.pdf','openAGMDetailModal') +
     `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
-      <div style="font-size:13px;font-weight:800;color:var(--dark)">📨 توليد دعوة الجمعية تلقائيًا</div>
-      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateAGMInvitationDoc(${m.id})">📝 توليد</button>
+      <div style="font-size:13px;font-weight:800;color:var(--dark)">📝 توليد محضر الجمعية تلقائيًا (PDF جاهز للتوقيع، بدون تعديل)</div>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateAGMMinutesDoc(${m.id})">📝 توليد PDF</button>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
-      <div style="font-size:13px;font-weight:800;color:var(--dark)">📝 توليد محضر الجمعية تلقائيًا</div>
-      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateAGMMinutesDoc(${m.id})">📝 توليد</button>
+      <div style="font-size:13px;font-weight:800;color:var(--dark)">📝 توليد محضر Word (مسودة قابلة للتعديل)</div>
+      <button class="btn" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);font-size:11px;padding:6px 14px" onclick="generateAGMMinutesWordDraft(${m.id})">📝 توليد Word</button>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
       <div style="font-size:13px;font-weight:800;color:var(--dark)">🧾 محضر كشف الحضور (تلقائي من التصويت)</div>
@@ -6555,6 +6612,10 @@ async function openAGMDetailModal(id){
     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
       <div style="font-size:13px;font-weight:800;color:var(--dark)">🗳️ محضر فرز الأصوات (تلقائي من التصويت)</div>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateVoteMinutesPDF(${m.id})">🖨️ توليد PDF</button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
+      <div style="font-size:13px;font-weight:800;color:var(--dark)">📨 إرسال الدعوة لكل المساهمين (سجل المساهمين)</div>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="sendInvitationToShareholders(${m.id})">📨 إرسال للمساهمين</button>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
       <div style="font-size:13px;font-weight:800;color:var(--dark)">📧 إرسال تذكير بريدي لفريق الشركة</div>
@@ -6874,7 +6935,13 @@ async function saveMeeting(){
   renderNewMeetingTopics();
   closeM("m-meeting");
   loadMeetingsAll();
-  alert("تم حفظ الاجتماع بنجاح ✅ — ستجده في صفحته المخصصة حسب النوع");
+
+  if(meeting_type === "الجمعية العامة"){
+    alert("تم حفظ الجمعية العامة ✅ — سنولّد دعوتها الرسمية الآن (سيُطلب منك اسم رئيس مجلس الإدارة للتوقيع).");
+    await generateOfficialDoc("دعوة جمعية عامة", newMeeting.id);
+  } else {
+    alert("تم حفظ الاجتماع بنجاح ✅ — ستجده في صفحته المخصصة حسب النوع");
+  }
 }
 
 /* ══════════ MEETING REQUESTS (board approves the proposed date) ══════════ */
@@ -9511,6 +9578,44 @@ async function sendBulkEmails(recipients, subject, html, confirmLabel){
   }
   alert(`تم الإرسال: ${sent} ناجح${failed?`، ${failed} فشل`:''}`);
   return { sent, failed };
+}
+
+// Sends the actual generated/signed invitation to every shareholder in the registry who has
+// an email on file — this is what "sendMeetingReminderEmails" (team-only) never covered.
+async function sendInvitationToShareholders(meetingId){
+  const m = allMeetingsCache.find(x => x.id === meetingId) || (await sb.from("meetings").select("*").eq("id", meetingId).single()).data;
+  if(!m){ alert("تعذّر تحديد الاجتماع"); return; }
+
+  const [{ data: shareholders }, { data: invitationDoc }, { data: company }] = await Promise.all([
+    sb.from("shareholders").select("name,email").eq("company_id", currentCompanyId),
+    sb.from("signing_documents").select("*").eq("related_meeting_id", meetingId).eq("doc_type","دعوة جمعية عامة").order("id",{ascending:false}).limit(1),
+    sb.from("companies").select("name").eq("id", currentCompanyId).single()
+  ]);
+  const recipients = (shareholders||[]).filter(s => s.email);
+  if(recipients.length === 0){ alert("لا يوجد مساهمين لديهم بريد إلكتروني مسجَّل بسجل المساهمين."); return; }
+
+  const invitation = (invitationDoc||[])[0];
+  const invitationLink = invitation ? invitation.file_url : null;
+  const listedLink = currentCompanyType === "مساهمة مدرجة" ? `${window.location.origin}${window.location.pathname}?listed_company=${currentCompanyId}` : null;
+
+  if(!confirm(`سيتم إرسال دعوة الجمعية لـ${recipients.length} مساهم لديهم بريد مسجَّل. متابعة؟`)) return;
+
+  const subject = `دعوة لحضور ${m.title||"الجمعية العامة"} — ${company?.name||""}`;
+  let sent = 0, failed = 0;
+  for(const s of recipients){
+    const html = `
+      <div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px">
+        <h2 style="color:#1A3A6B">📨 دعوة لحضور ${m.title||"الجمعية العامة"}</h2>
+        <p>عزيزي/عزيزتي ${s.name||""}،</p>
+        <p>يتشرف مجلس إدارة ${company?.name||"الشركة"} بدعوتكم لحضور ${m.title||"الجمعية العامة"} ${m.agm_type||""}، والمنعقدة ${m.method||""} بتاريخ ${m.meeting_date||""} الساعة ${m.meeting_time||""}.</p>
+        ${invitationLink ? `<p><a href="${invitationLink}" target="_blank">📄 عرض نص الدعوة الرسمية (PDF)</a></p>` : ""}
+        ${listedLink ? `<p>لم تسجّل حسابك بالمنصة بعد؟ <a href="${listedLink}" target="_blank">سجّل كمساهم من هنا</a> لتتمكن من التصويت إلكترونيًا.</p>` : ""}
+        <p style="color:#8B95A5;font-size:12px;margin-top:20px">هذه رسالة تلقائية من منصّة حوكم.</p>
+      </div>`;
+    const result = await sendNotificationEmail(s.email, subject, html);
+    if(result && result.success) sent++; else failed++;
+  }
+  alert(`تم الإرسال ✅ — ${sent} رسالة ناجحة${failed?`، ${failed} فشلت`:""}.`);
 }
 
 async function sendMeetingReminderEmails(meetingId){
