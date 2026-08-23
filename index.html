@@ -679,7 +679,6 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="nav-group">
     <div class="nav-group-label">الحوكمة المؤسسية</div>
     <div class="nav-item" onclick="go('governance',this)"><span class="ni-icon">🏛️</span><span class="ni-text">السياسات والحوكمة</span></div>
-    <div class="nav-item" onclick="policyActiveCategory='سياسات الموارد البشرية';go('governance',this)"><span class="ni-icon">📋</span><span class="ni-text">سياسات الموارد البشرية</span></div>
     <div class="nav-item" onclick="go('govassess',this)"><span class="ni-icon">📊</span><span class="ni-text">تقييم فعالية الحوكمة</span></div>
     <div class="nav-item" onclick="go('structure',this)"><span class="ni-icon">🌳</span><span class="ni-text">الهيكل التنظيمي</span><span class="ni-badge red" id="structureNavBadge" style="display:none"></span></div>
     <div class="nav-item" onclick="go('members',this)"><span class="ni-icon">👥</span><span class="ni-text">أعضاء المجلس</span></div>
@@ -7099,13 +7098,19 @@ function getPolicyStageSequence(policy){
 }
 
 const POLICY_CATEGORY_ICONS = {
-  "سياسات الجمعية": "📜",
-  "سياسات المجلس": "🏛️",
-  "سياسات اللجان": "👥",
-  "لوائح المجلس": "📋",
-  "لوائح اللجان": "📑",
+  "سياسات الجمعية العامة": "🤝",
+  "سياسات ولوائح المجلس": "🏛️",
+  "سياسات ولوائح اللجان": "👥",
+  "سياسات الموارد البشرية": "🧑‍💼",
+  "السياسات المالية": "💰",
+  "سياسة المشتريات": "🛒",
+  "سياسة المبيعات وخدمة العملاء": "🤝",
   "لوائح داخلية": "🗂️"
 };
+// The 4 operational categories are visually grouped under one "سياسات تشغيلية" section header
+// wherever policies are displayed — they remain individually selectable leaf categories on each
+// policy itself (so filtering/workflow-routing per category still works exactly as before).
+const OPERATIONAL_POLICY_CATEGORIES = ["سياسات الموارد البشرية", "السياسات المالية", "سياسة المشتريات", "سياسة المبيعات وخدمة العملاء"];
 
 function policyStageStepper(status, policy){
   const stages = policy ? getPolicyStageSequence(policy) : POLICY_STAGES;
@@ -7150,10 +7155,11 @@ async function loadPolicies(){
    specific categories (board/AGM/committee policies) only make sense — and only get added —
    for company types that actually have those bodies. */
 function getPolicyCategoriesForCompany(){
-  const base = ["سياسات الموارد البشرية", "سياسات مالية", "سياسة مشتريات", "سياسة المبيعات وخدمة العملاء", "لوائح داخلية"];
-  if(currentCompanyType === "ذات مسؤولية محدودة") return [...base, "سياسات مجلس المديرين"];
-  if(currentCompanyType === "مؤسسة فردية") return base;
-  return [...base, "سياسات الجمعية", "سياسات المجلس", "سياسات اللجان", "لوائح المجلس", "لوائح اللجان"];
+  const operational = ["سياسات الموارد البشرية", "السياسات المالية", "سياسة المشتريات", "سياسة المبيعات وخدمة العملاء"];
+  if(currentCompanyType === "مؤسسة فردية") return [...operational, "لوائح داخلية"];
+  // ذات مسؤولية محدودة uses "المجلس"/"اللجان" as generic labels via getGovernanceBodyLabel()
+  // display-swap elsewhere, so the underlying category values stay the same for all company types.
+  return ["سياسات الجمعية العامة", "سياسات ولوائح المجلس", "سياسات ولوائح اللجان", ...operational, "لوائح داخلية"];
 }
 
 function renderPolicyPills(){
@@ -7225,14 +7231,27 @@ function renderPoliciesFiltered(){
   });
 
   let html = "";
+  let operationalHeaderShown = false;
   allCats.forEach(cat => {
+    // Show one shared "سياسات تشغيلية" header right before the first operational sub-category
+    // encountered — only makes sense when browsing everything together, not while a single
+    // category pill is already selected (the category's own header covers that case).
+    if(policyActiveCategory === "الكل" && OPERATIONAL_POLICY_CATEGORIES.includes(cat) && !operationalHeaderShown){
+      operationalHeaderShown = true;
+      html += `<div style="display:flex;align-items:center;gap:8px;margin:30px 0 4px">
+        <span style="font-size:17px">🏭</span>
+        <span style="font-weight:900;font-size:15px;color:var(--dark)">سياسات تشغيلية</span>
+        <span style="flex:1;height:2px;background:var(--primary);opacity:0.15"></span>
+      </div>`;
+    }
     const icon = POLICY_CATEGORY_ICONS[cat] || "📁";
-    html += `<div style="display:flex;align-items:center;gap:8px;margin:22px 0 12px">
+    const indent = (policyActiveCategory === "الكل" && OPERATIONAL_POLICY_CATEGORIES.includes(cat)) ? "padding-right:16px" : "";
+    html += `<div style="display:flex;align-items:center;gap:8px;margin:22px 0 12px;${indent}">
       <span style="font-size:16px">${icon}</span>
       <span style="font-weight:900;font-size:14px;color:var(--primary)">${cat}</span>
       <span style="flex:1;height:1px;background:var(--gray1)"></span>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;align-items:stretch">`;
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;align-items:stretch;${indent}">`;
 
     groups[cat].forEach(p => {
       const stages = getPolicyStageSequence(p);
@@ -7487,6 +7506,8 @@ function openPolicyWorkflowPicker(){ openM("m-policy-workflow-picker"); }
 
 function getPolicyWorkflowType(policy){
   if(policy.category === "سياسات الموارد البشرية") return "policy_hr";
+  if(policy.category === "سياسات الجمعية العامة") return "policy_agm";
+  if(policy.category === "سياسات ولوائح المجلس" || policy.category === "سياسات ولوائح اللجان") return "policy_board";
   if(policy.approval_level === "جمعية عامة") return "policy_agm";
   if(policy.approval_level === "داخلية") return "policy_internal";
   return "policy_board";
