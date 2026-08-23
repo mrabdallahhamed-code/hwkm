@@ -4022,31 +4022,49 @@ let myPermissionOverrides = {}; // page_id -> 'view' | 'edit' | 'none', for the 
 
 async function loadMyPermissionOverrides(){
   myPermissionOverrides = {};
-  if(!currentUserProfile || !currentCompanyId) return;
-  const { data } = await sb.from("user_permission_overrides").select("page_id,access_level")
-    .ilike("user_email", currentUserProfile.email).eq("company_id", currentCompanyId);
-  (data||[]).forEach(r => { myPermissionOverrides[r.page_id] = r.access_level; });
+  if(!currentUserProfile) return;
+  // A person's full override set always applies, whether they're currently inside a specific
+  // company or on a platform-level page — load both scopes together rather than picking one.
+  const queries = [ sb.from("user_permission_overrides").select("page_id,access_level").ilike("user_email", currentUserProfile.email).is("company_id", null) ];
+  if(currentCompanyId){
+    queries.push(sb.from("user_permission_overrides").select("page_id,access_level").ilike("user_email", currentUserProfile.email).eq("company_id", currentCompanyId));
+  }
+  const results = await Promise.all(queries);
+  results.forEach(({ data }) => (data||[]).forEach(r => { myPermissionOverrides[r.page_id] = r.access_level; }));
 }
+
+const PLATFORM_LEVEL_PAGE_IDS = ['platformdashboard','platformusers','platformactivity','adminrequests','companyrequests','managecompanies','auditadmin'];
 
 /* ══════════ ADMIN UI: grant/revoke a specific person's access, page by page ══════════ */
 let permOverrideDraftEmail = null;
 let permOverrideDraft = {}; // page_id -> access_level, edited in the modal before saving
 
-async function openUserPermissionOverridesModal(email, displayName){
+let permOverrideDraftScope = null; // null (platform-level) or a company_id
+
+async function openUserPermissionOverridesModal(email, displayName, scopeCompanyId){
   permOverrideDraftEmail = email;
-  document.getElementById("upo-title").textContent = `🔧 صلاحيات مخصّصة — ${displayName||email}`;
-  const { data } = await sb.from("user_permission_overrides").select("page_id,access_level")
-    .ilike("user_email", email).eq("company_id", currentCompanyId);
+  permOverrideDraftScope = scopeCompanyId != null ? scopeCompanyId : null;
+  document.getElementById("upo-title").textContent = `🔧 صلاحيات مخصّصة — ${displayName||email}${permOverrideDraftScope===null?' (مستوى المنصة)':''}`;
+  let query = sb.from("user_permission_overrides").select("page_id,access_level").ilike("user_email", email);
+  query = permOverrideDraftScope === null ? query.is("company_id", null) : query.eq("company_id", permOverrideDraftScope);
+  const { data } = await query;
   permOverrideDraft = {};
   (data||[]).forEach(r => { permOverrideDraft[r.page_id] = r.access_level; });
   renderUserPermissionOverridesList();
   openM("m-user-permission-overrides");
 }
 
+const PLATFORM_LEVEL_PAGE_TITLES = {
+  platformdashboard: "لوحة تحكم المنصة", platformusers: "فريق المنصة والمستخدمين",
+  platformactivity: "سجل نشاط المنصة", adminrequests: "إدارة الطلبات",
+  companyrequests: "طلبات إدراج الشركات", managecompanies: "إدارة الشركات", auditadmin: "إدارة خدمات المراجعة/المخاطر"
+};
+
 function renderUserPermissionOverridesList(){
   const box = document.getElementById("upo-list");
-  box.innerHTML = ALL_PAGE_IDS_FOR_OVERRIDES.map(pageId => {
-    const label = (titles[pageId] && titles[pageId][0]) || pageId;
+  const pageIds = permOverrideDraftScope === null ? PLATFORM_LEVEL_PAGE_IDS : ALL_PAGE_IDS_FOR_OVERRIDES;
+  box.innerHTML = pageIds.map(pageId => {
+    const label = (titles[pageId] && titles[pageId][0]) || PLATFORM_LEVEL_PAGE_TITLES[pageId] || pageId;
     const current = permOverrideDraft[pageId] || "افتراضي";
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray1)">
       <span style="font-size:12.5px;font-weight:700">${label}</span>
@@ -4062,12 +4080,14 @@ function renderUserPermissionOverridesList(){
 
 async function saveUserPermissionOverrides(){
   // Simplest reliable approach for a small per-user list: clear this person's overrides for
-  // this company, then re-insert whatever is left in the draft — avoids tracking individual
+  // this scope, then re-insert whatever is left in the draft — avoids tracking individual
   // adds/removes/updates separately.
-  await sb.from("user_permission_overrides").delete().ilike("user_email", permOverrideDraftEmail).eq("company_id", currentCompanyId);
+  let delQuery = sb.from("user_permission_overrides").delete().ilike("user_email", permOverrideDraftEmail);
+  delQuery = permOverrideDraftScope === null ? delQuery.is("company_id", null) : delQuery.eq("company_id", permOverrideDraftScope);
+  await delQuery;
   const rows = Object.entries(permOverrideDraft)
     .filter(([,level]) => level)
-    .map(([page_id, access_level]) => ({ company_id: currentCompanyId, user_email: permOverrideDraftEmail, page_id, access_level }));
+    .map(([page_id, access_level]) => ({ company_id: permOverrideDraftScope, user_email: permOverrideDraftEmail, page_id, access_level }));
   if(rows.length){
     const { error } = await sb.from("user_permission_overrides").insert(rows);
     if(error){ alert("تعذّر الحفظ: " + error.message); return; }
@@ -4123,7 +4143,7 @@ async function loadUsers(){
           <div style="display:flex;justify-content:space-between"><span>رقم الجوال</span><span style="color:var(--dark);font-weight:600">${u.phone_number||"—"}</span></div>
         </div>
         ${u.id ? `<button style="width:100%;background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:8px;padding:6px;font-size:11px;font-weight:600;cursor:pointer;margin-bottom:8px" onclick="openEditProfileModal(${u.id})">✏️ تعديل البيانات (الجوال والهوية)</button>` : ""}
-        <button style="width:100%;background:#EAF0F8;color:var(--primary);border:none;border-radius:8px;padding:6px;font-size:11px;font-weight:700;cursor:pointer;margin-bottom:8px" onclick="openUserPermissionOverridesModal('${(m.email||'').replace(/'/g,"")}','${(u.full_name||m.email||'').replace(/'/g,"")}')">🔧 صلاحيات مخصّصة</button>
+        <button style="width:100%;background:#EAF0F8;color:var(--primary);border:none;border-radius:8px;padding:6px;font-size:11px;font-weight:700;cursor:pointer;margin-bottom:8px" onclick="openUserPermissionOverridesModal('${(m.email||'').replace(/'/g,"")}','${(u.full_name||m.email||'').replace(/'/g,"")}', currentCompanyId)">🔧 صلاحيات مخصّصة</button>
 
         <div style="margin-top:auto">
           <label style="font-size:10px;color:var(--gray3);display:block;margin-bottom:4px">الدور / الصلاحية بهذه الشركة</label>
@@ -4999,7 +5019,10 @@ async function loadPlatformTeam(){
   tbody.innerHTML = data.map(u => `<tr>
     <td>${u.full_name||"—"}</td><td style="font-size:11px">${u.email}</td>
     <td><span style="background:#EAF0F8;color:var(--primary);font-weight:700;font-size:11px;padding:2px 8px;border-radius:6px">${u.platform_team_module}</span></td>
-    <td><button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:3px 8px;font-size:10.5px;cursor:pointer" onclick="removePlatformTeamModule('${u.email}','${(u.full_name||u.email).replace(/'/g,"")}')">إزالة</button></td>
+    <td>
+      <button class="btn-xs" style="background:#EAF0F8;color:var(--primary);border:none;border-radius:6px;padding:3px 8px;font-size:10.5px;cursor:pointer;margin-left:4px" onclick="openUserPermissionOverridesModal('${u.email}','${(u.full_name||u.email).replace(/'/g,"")}', null)">🔧 صلاحيات</button>
+      <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:3px 8px;font-size:10.5px;cursor:pointer" onclick="removePlatformTeamModule('${u.email}','${(u.full_name||u.email).replace(/'/g,"")}')">إزالة</button>
+    </td>
   </tr>`).join("");
 }
 
