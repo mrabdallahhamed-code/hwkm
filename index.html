@@ -889,6 +889,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <span>👥 أعضاء مجلس الإدارة</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportMembers()">📥 تصدير Excel</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openDisclosureForm()">📋 نموذج الإفصاح</button>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mm-id').value='';document.getElementById('mm-title').textContent='👤 إضافة عضو مجلس إدارة';document.getElementById('mm-source').value='manual';toggleMemberSource();openM('m-member')">+ إضافة عضو</button>
     </div>
   </div>
@@ -2846,6 +2847,62 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     </div>
 
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-security')">إغلاق</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-disclosure-form">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-title">📋 نموذج الإفصاح — عضوية مجلس الإدارة</div>
+    <p style="font-size:11px;color:var(--gray3);margin-bottom:14px">يُملأ من قبل العضو المرشح/المعين، ويُرفع للنظام الإلكتروني الذي تحدده هيئة السوق المالية قبل ٣ أيام عمل على الأقل من انعقاد الجمعية العامة.</p>
+
+    <div class="sec-title" style="font-size:12.5px">٢. صفة العضوية وطريقة التعيين</div>
+    <div class="row2">
+      <div class="fg"><label>صفة العضوية</label><select class="fs" id="df-capacity"><option>عضو تنفيذي</option><option>عضو غير تنفيذي</option><option>عضو مستقل</option></select></div>
+      <div class="fg"><label>طبيعة العضوية</label><select class="fs" id="df-appointment-nature" onchange="toggleDisclosureNominator()"><option value="مرشح بصفته مساهماً">مرشح بصفته مساهماً</option><option value="معين من قبل مساهم">معين من قبل مساهم يتمتع بحق التعيين</option></select></div>
+    </div>
+    <div class="fg" id="df-nominator-field" style="display:none"><label>اسم المساهم المرشِّح</label><input class="fi" id="df-nominator-name"/></div>
+    <div class="row2">
+      <div class="fg"><label>تاريخ بداية دورة العضوية</label><input type="date" class="fi" id="df-term-start"/></div>
+      <div class="fg"><label>تاريخ نهاية دورة المجلس</label><input type="date" class="fi" id="df-term-end"/></div>
+    </div>
+
+    <div class="sec-title" style="font-size:12.5px;margin-top:16px">٣. البيانات الشخصية</div>
+    <div class="fg"><label>الاسم الرباعي</label><input class="fi" id="df-fullname"/></div>
+    <div class="row2">
+      <div class="fg"><label>رقم الهوية</label><input class="fi" id="df-nid"/></div>
+      <div class="fg"><label>تاريخ الميلاد</label><input type="date" class="fi" id="df-birthdate"/></div>
+    </div>
+    <div class="row2">
+      <div class="fg"><label>الجنسية</label><select class="fs" id="df-nationality"><option>سعودي</option><option>أخرى</option></select></div>
+      <div class="fg"><label>الجنس</label><select class="fs" id="df-gender"><option>ذكر</option><option>أنثى</option></select></div>
+    </div>
+    <div class="fg"><label>العنوان الوطني</label><input class="fi" id="df-address"/></div>
+    <div class="row2">
+      <div class="fg"><label>جهة العمل الحالية</label><input class="fi" id="df-employer"/></div>
+      <div class="fg"><label>المسمى الوظيفي</label><input class="fi" id="df-jobtitle"/></div>
+    </div>
+    <div class="row2">
+      <div class="fg"><label>البريد الإلكتروني</label><input class="fi" id="df-email"/></div>
+      <div class="fg"><label>رقم الجوال</label><input class="fi" id="df-mobile"/></div>
+    </div>
+    <div class="fg"><label>هل أنت مساهم في الشركة؟</label><select class="fs" id="df-is-shareholder"><option value="لا">لا</option><option value="نعم">نعم</option></select></div>
+
+    <div class="sec-title" style="font-size:12.5px;margin-top:16px">٤. المؤهلات العلمية</div>
+    <div id="df-qualifications-list"></div>
+    <button class="btn-xs primary" onclick="addDisclosureRow('qualifications')">+ إضافة مؤهل</button>
+
+    <div class="sec-title" style="font-size:12.5px;margin-top:16px">٥. الخبرات العملية</div>
+    <div id="df-experience-list"></div>
+    <button class="btn-xs primary" onclick="addDisclosureRow('experience')">+ إضافة خبرة</button>
+
+    <div class="sec-title" style="font-size:12.5px;margin-top:16px">٦. العضوية الحالية في مجالس إدارات أخرى</div>
+    <div id="df-memberships-list"></div>
+    <button class="btn-xs primary" onclick="addDisclosureRow('other_memberships')">+ إضافة عضوية</button>
+
+    <div class="sec-title" style="font-size:12.5px;margin-top:16px">٧. أسئلة استقصائية</div>
+    <div id="df-survey-list"></div>
+
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-disclosure-form')">إلغاء</button><button class="btn btn-gold" onclick="submitDisclosureForm()">✅ حفظ وإرسال للتوقيع</button></div>
   </div>
 </div>
 
@@ -14688,6 +14745,255 @@ const OFFICIAL_DOC_TYPES = {
   }
 };
 
+/* ══════════ CMA BOARD MEMBER DISCLOSURE FORM ══════════
+   The 22 compliance survey questions are near-identical in structure (yes/no + a conditional
+   details table when "yes") — defined as data and rendered/parsed in a loop instead of writing
+   22 nearly-duplicate blocks by hand, which is what makes a form this size manageable. */
+const DISCLOSURE_SURVEY_QUESTIONS = [
+  { key:"a", label:"أ- هل تملك أو يملك أحد أقاربك ما نسبته خمسة في المئة أو أكثر من أسهم الشركة أو أي شركة من مجموعتها؟", cols:["اسم الشركة","نسبة الملكية"] },
+  { key:"b", label:"ب- هل أنت من كبار التنفيذيين خلال العامين الماضيين في الشركة أو في أي شركة من مجموعتها؟", cols:["اسم الشركة","المنصب التنفيذي"] },
+  { key:"c", label:"ج- هل توجد لك صلة قرابة بأي من أعضاء مجلس الإدارة أو كبار التنفيذيين في الشركة أو في أي شركة من مجموعتها؟", cols:["اسم القريب ومنصبه","اسم الشركة"] },
+  { key:"d", label:"د- هل أنت عضو في مجلس إدارة أو مجلس مديري أي شركة من ضمن مجموعة الشركة؟", cols:["اسم الشركة والتفاصيل"] },
+  { key:"e", label:"هـ- هل كنت موظفًا خلال العامين الماضيين لدى الشركة أو شركة أخرى من مجموعتها أو مالكًا لحصص سيطرة أو طرفًا متعاملًا معها؟", cols:["اسم الشركة","اسم الطرف المرتبط","نوع الوظيفة","نسبة الملكية"] },
+  { key:"f", label:"و- هل تتقاضى مبالغ مالية من الشركة علاوة على مكافأة العضوية تزيد عن (200,000) ريال أو 50% من مكافأة العام السابق؟", cols:[] },
+  { key:"g", label:"ز- هل يوجد لك أي مصلحة مباشرة أو غير مباشرة في الأعمال والعقود التي تتم لحساب الشركة؟", cols:["طبيعة الأعمال والعقود","تاريخ البداية والمدة","القيمة"] },
+  { key:"h", label:"ح- هل أنت أو أي من أقاربك عضو في مجلس إدارة أو من كبار تنفيذيي شركة لديها أعمال أو عقود مع الشركة؟", cols:["اسم الشركة","طبيعة الأعمال والعقود","المدة","القيمة"] },
+  { key:"i", label:"ط- هل تملك أو تدير أو تشارك في ملكية أو إدارة منشأة لديها أعمال أو عقود مع الشركة؟", cols:["اسم المنشأة","طبيعة الأعمال والعقود","المدة","القيمة"] },
+  { key:"j", label:"ي- هل تشارك في أي عمل من شأنه منافسة الشركة أو أي شركة من مجموعتها؟", cols:["اسم الشركة","طبيعة النشاط المنافس"] },
+  { key:"k", label:"ك- هل أنت عضو في مجلس إدارة أو من كبار تنفيذيي شركة تشارك في عمل ينافس الشركة؟", cols:["اسم الشركة/المنشأة","طبيعة النشاط المنافس"] },
+  { key:"l", label:"ل- هل تملك أو تشارك في ملكية منشأة تشارك في عمل ينافس الشركة؟", cols:["اسم المنشأة","طبيعة النشاط المنافس"] },
+  { key:"m", label:"م- هل يوجد أي دعاوى مسؤولية في مواجهتك مرفوعة من قبل الشركة أو أي شركة من مجموعتها؟", cols:["التفاصيل"] },
+  { key:"n", label:"ن- هل يوجد أي دعاوى أو شكاوى مرفوعة من قبلك على الشركة أو أي شركة من مجموعتها؟", cols:["التفاصيل"] },
+  { key:"o", label:"س- هل هناك أي أحكام غير منفذة صادرة بحقك تكون الشركة طرفًا فيها؟", cols:["التفاصيل"] },
+  { key:"p", label:"ع- هل أنت على علم بأي دعاوى أو تحقيق أو إجراء رسمي موجه ضدك؟", cols:["التفاصيل"] },
+  { key:"q", label:"ف- هل سبق أن أُشهر إفلاسك في أي وقت داخل أو خارج المملكة؟", cols:["التفاصيل"] },
+  { key:"r", label:"ص- هل سبق أن تمت التصفية الإجبارية لأي شركة كنت في مجلس إدارتها؟", cols:["التفاصيل"] },
+  { key:"s", label:"ق- هل سبق أن تم منعك من العمل في أي شركة مساهمة بقرار من جهة قضائية؟", cols:["التفاصيل"] },
+  { key:"t", label:"ر- هل سبق أن تم عزلك من عضوية مجلس إدارة أو لجنة أي شركة؟", cols:["التفاصيل"] },
+  { key:"u", label:"ش- هل سبق وأن تمت إدانتك بسبب الاحتيال أو خيانة الأمانة أو غسل الأموال؟", cols:["التفاصيل"] },
+  { key:"v", label:"ت- هل سبق لأي جهة قضائية إصدار حكم بعدم أهليتك لعضوية مجلس إدارة شركة؟", cols:["التفاصيل"] },
+];
+
+let disclosureDraft = { qualifications:[], experience:[], other_memberships:[], survey_answers:{} };
+
+function addDisclosureRow(section){
+  const templates = {
+    qualifications: { degree:"", major:"", date:"", institution:"" },
+    experience: { period:"", field:"" },
+    other_memberships: { company_name:"", activity:"", capacity:"", appointment_method:"", committee:"", legal_form:"" }
+  };
+  disclosureDraft[section].push({ ...templates[section] });
+  renderDisclosureTable(section);
+}
+
+function removeDisclosureRow(section, idx){
+  disclosureDraft[section].splice(idx,1);
+  renderDisclosureTable(section);
+}
+
+const DISCLOSURE_TABLE_FIELDS = {
+  qualifications: [["degree","المؤهل"],["major","التخصص"],["date","تاريخ الحصول",'date'],["institution","الجهة المانحة"]],
+  experience: [["period","الفترة"],["field","مجالات الخبرة"]],
+  other_memberships: [["company_name","اسم الشركة"],["activity","النشاط الرئيس"],["capacity","صفة العضوية"],["appointment_method","طريقة التعيين"],["committee","اللجنة"],["legal_form","الشكل القانوني"]]
+};
+
+function renderDisclosureTable(section){
+  const box = document.getElementById(`df-${section === 'other_memberships' ? 'memberships' : section}-list`);
+  const fields = DISCLOSURE_TABLE_FIELDS[section];
+  box.innerHTML = disclosureDraft[section].map((row, i) => `<div style="background:var(--offwhite);border-radius:8px;padding:8px;margin-bottom:6px">
+    <div style="display:grid;grid-template-columns:repeat(${fields.length},1fr);gap:6px">
+      ${fields.map(([key,label,type]) => `<input class="fi" style="margin:0;font-size:11px" type="${type||'text'}" placeholder="${label}" value="${row[key]||''}" onchange="disclosureDraft['${section}'][${i}]['${key}']=this.value"/>`).join("")}
+    </div>
+    <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;margin-top:6px" onclick="removeDisclosureRow('${section}',${i})">حذف</button>
+  </div>`).join("");
+}
+
+function toggleDisclosureNominator(){
+  const isNominated = document.getElementById("df-appointment-nature").value === "معين من قبل مساهم";
+  document.getElementById("df-nominator-field").style.display = isNominated ? "block" : "none";
+}
+
+function renderDisclosureSurvey(){
+  const box = document.getElementById("df-survey-list");
+  box.innerHTML = DISCLOSURE_SURVEY_QUESTIONS.map(q => {
+    const ans = disclosureDraft.survey_answers[q.key] || { answer:false, details:[] };
+    return `<div style="background:var(--offwhite);border-radius:8px;padding:10px;margin-bottom:8px">
+      <div style="font-size:11.5px;font-weight:600;margin-bottom:6px">${q.label}</div>
+      <select class="fs" style="width:120px;font-size:11px;padding:5px 8px" onchange="setDisclosureAnswer('${q.key}',this.value)">
+        <option value="لا" ${!ans.answer?'selected':''}>لا</option>
+        <option value="نعم" ${ans.answer?'selected':''}>نعم</option>
+      </select>
+      <div id="df-survey-details-${q.key}" style="margin-top:6px;display:${ans.answer&&q.cols.length?'block':'none'}">
+        ${q.cols.length ? renderSurveyDetailRows(q.key, q.cols) : ""}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function renderSurveyDetailRows(key, cols){
+  const ans = disclosureDraft.survey_answers[key] || { answer:false, details:[] };
+  const rows = ans.details && ans.details.length ? ans.details : [cols.map(()=>"")];
+  return rows.map((row,i) => `<div style="display:grid;grid-template-columns:repeat(${cols.length},1fr);gap:6px;margin-bottom:4px">
+    ${cols.map((c,ci) => `<input class="fi" style="margin:0;font-size:10.5px" placeholder="${c}" value="${row[ci]||''}" onchange="updateSurveyDetail('${key}',${i},${ci},this.value)"/>`).join("")}
+  </div>`).join("") + `<button class="btn-xs primary" style="margin-top:2px" onclick="addSurveyDetailRow('${key}',${cols.length})">+ إضافة سطر</button>`;
+}
+
+function setDisclosureAnswer(key, val){
+  if(!disclosureDraft.survey_answers[key]) disclosureDraft.survey_answers[key] = { answer:false, details:[] };
+  disclosureDraft.survey_answers[key].answer = (val === "نعم");
+  renderDisclosureSurvey();
+}
+function addSurveyDetailRow(key, numCols){
+  disclosureDraft.survey_answers[key].details.push(new Array(numCols).fill(""));
+  renderDisclosureSurvey();
+}
+function updateSurveyDetail(key, rowIdx, colIdx, val){
+  disclosureDraft.survey_answers[key].details[rowIdx][colIdx] = val;
+}
+
+async function openDisclosureForm(){
+  disclosureDraft = { qualifications:[], experience:[], other_memberships:[], survey_answers:{} };
+  document.getElementById("df-nominator-field").style.display = "none";
+  ['df-fullname','df-nid','df-address','df-employer','df-jobtitle','df-email','df-mobile','df-nominator-name'].forEach(id => document.getElementById(id).value = "");
+  ['df-birthdate','df-term-start','df-term-end'].forEach(id => document.getElementById(id).value = "");
+  if(currentUserProfile){
+    document.getElementById("df-fullname").value = currentUserProfile.full_name || "";
+    document.getElementById("df-nid").value = currentUserProfile.national_id || "";
+    document.getElementById("df-email").value = currentUserProfile.email || "";
+    document.getElementById("df-mobile").value = currentUserProfile.phone_number || "";
+  }
+  renderDisclosureTable('qualifications');
+  renderDisclosureTable('experience');
+  renderDisclosureTable('other_memberships');
+  renderDisclosureSurvey();
+  openM("m-disclosure-form");
+}
+
+async function submitDisclosureForm(){
+  const { data: userData } = await sb.auth.getUser();
+  const member_email = userData?.user?.email;
+  const payload = {
+    company_id: currentCompanyId, member_email,
+    membership_capacity: document.getElementById("df-capacity").value,
+    appointment_nature: document.getElementById("df-appointment-nature").value,
+    nominating_shareholder_name: document.getElementById("df-nominator-name").value,
+    term_start: document.getElementById("df-term-start").value || null,
+    term_end: document.getElementById("df-term-end").value || null,
+    full_name: document.getElementById("df-fullname").value,
+    national_id: document.getElementById("df-nid").value,
+    nationality: document.getElementById("df-nationality").value,
+    birth_date: document.getElementById("df-birthdate").value || null,
+    national_address: document.getElementById("df-address").value,
+    current_employer: document.getElementById("df-employer").value,
+    job_title: document.getElementById("df-jobtitle").value,
+    gender: document.getElementById("df-gender").value,
+    personal_email: document.getElementById("df-email").value,
+    mobile: document.getElementById("df-mobile").value,
+    is_shareholder: document.getElementById("df-is-shareholder").value === "نعم",
+    qualifications: disclosureDraft.qualifications,
+    experience: disclosureDraft.experience,
+    other_memberships: disclosureDraft.other_memberships,
+    survey_answers: disclosureDraft.survey_answers,
+    status: "مسودة"
+  };
+  if(!payload.full_name){ alert("الرجاء إدخال الاسم الرباعي على الأقل"); return; }
+
+  const { data: saved, error } = await sb.from("board_disclosure_forms").insert([payload]).select().single();
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+
+  const b = await buildDisclosureFormCanvasPages(saved, {}, ["العضو المرشح/المعين"]);
+  const bytes = await b.toPDFBytes();
+  const blob = new Blob([bytes], { type: "application/pdf" });
+  const file_url = await uploadBlobToStorage(blob, "official-documents", `نموذج-إفصاح-${payload.full_name}-${Date.now()}.pdf`);
+  if(!file_url) return;
+
+  await sb.from("signing_documents").insert([{
+    company_id: currentCompanyId, document_name: `نموذج الإفصاح — ${payload.full_name}`, doc_type: "نموذج إفصاح عضوية مجلس",
+    file_url, signers_total: 1, related_disclosure_form_id: saved.id,
+    signer_roles: [{ role: "العضو المرشح/المعين", name: payload.full_name }]
+  }]);
+
+  await sb.from("board_disclosure_forms").update({ status: "بانتظار التوقيع" }).eq("id", saved.id);
+  alert("تم حفظ النموذج ✅ — أكمل التوقيع من صفحة \"التوقيع الإلكتروني\".");
+  closeM("m-disclosure-form");
+}
+
+async function buildDisclosureFormCanvasPages(form, signaturesMap, orderedRoles){
+  const b = new CanvasPDFBuilder();
+  const { data: company } = await sb.from("companies").select("name").eq("id", form.company_id).single();
+
+  b.wrapAndDraw("نموذج الإفصاح — عضوية مجلس الإدارة", { align:"center", font:`bold ${16*b.scale}px Tajawal, Arial`, color:"#1A3A6B" });
+  b.spacer(20);
+  b.wrapAndDraw(`اسم الشركة: ${company?.name||""}`, { font:`${11*b.scale}px Tajawal, Arial`, lineHeight:20*b.scale });
+  b.spacer(10);
+
+  b.wrapAndDraw("٢. صفة العضوية وطريقة التعيين", { font:`bold ${12*b.scale}px Tajawal, Arial`, color:"#1A3A6B", lineHeight:20*b.scale });
+  b.wrapAndDraw(`صفة العضوية: ${form.membership_capacity||"—"}  |  طبيعة العضوية: ${form.appointment_nature||"—"}${form.nominating_shareholder_name?' ('+form.nominating_shareholder_name+')':''}`, { font:`${10.5*b.scale}px Tajawal, Arial`, lineHeight:19*b.scale });
+  b.wrapAndDraw(`فترة العضوية: من ${form.term_start||"—"} إلى ${form.term_end||"—"}`, { font:`${10.5*b.scale}px Tajawal, Arial`, lineHeight:19*b.scale });
+  b.spacer(10);
+
+  b.wrapAndDraw("٣. البيانات الشخصية", { font:`bold ${12*b.scale}px Tajawal, Arial`, color:"#1A3A6B", lineHeight:20*b.scale });
+  [
+    `الاسم الرباعي: ${form.full_name||"—"}  |  رقم الهوية: ${form.national_id||"—"}`,
+    `الجنسية: ${form.nationality||"—"}  |  تاريخ الميلاد: ${form.birth_date||"—"}  |  الجنس: ${form.gender||"—"}`,
+    `العنوان الوطني: ${form.national_address||"—"}`,
+    `جهة العمل: ${form.current_employer||"—"}  |  المسمى الوظيفي: ${form.job_title||"—"}`,
+    `البريد: ${form.personal_email||"—"}  |  الجوال: ${form.mobile||"—"}`,
+    `هل هو مساهم بالشركة؟ ${form.is_shareholder?"نعم":"لا"}`
+  ].forEach(line => b.wrapAndDraw(line, { font:`${10.5*b.scale}px Tajawal, Arial`, lineHeight:19*b.scale }));
+  b.spacer(10);
+
+  const drawSimpleTable = (title, rows, cols) => {
+    if(!rows || rows.length === 0) return;
+    b.wrapAndDraw(title, { font:`bold ${12*b.scale}px Tajawal, Arial`, color:"#1A3A6B", lineHeight:20*b.scale });
+    b.spacer(4);
+    const tableW = b.W - b.margin*2, colW = tableW/cols.length, RM = b.W - b.margin;
+    b.ensureSpace(24*b.scale);
+    const headerH = 22*b.scale;
+    b.ctx.strokeStyle="#333"; b.ctx.lineWidth=0.6*b.scale; b.ctx.font=`bold ${9*b.scale}px Tajawal, Arial`; b.ctx.textAlign="center";
+    cols.forEach((c,i) => { const x = RM - colW*(i+1); b.ctx.strokeRect(x, b.y, colW, headerH); b.ctx.fillText(c, x+colW/2, b.y+15*b.scale); });
+    b.y += headerH;
+    b.ctx.font=`${9*b.scale}px Tajawal, Arial`;
+    rows.forEach(row => {
+      b.ensureSpace(22*b.scale);
+      const rowH = 22*b.scale;
+      cols.forEach((c,i) => {
+        const x = RM - colW*(i+1);
+        b.ctx.strokeRect(x, b.y, colW, rowH);
+        const val = String(row[i]||"");
+        b.ctx.fillText(val.length>20?val.slice(0,20)+"…":val, x+colW/2, b.y+rowH/2+3*b.scale);
+      });
+      b.y += rowH;
+    });
+    b.spacer(10);
+  };
+
+  drawSimpleTable("٤. المؤهلات العلمية", (form.qualifications||[]).map(q=>[q.degree,q.major,q.date,q.institution]), ["المؤهل","التخصص","التاريخ","الجهة المانحة"]);
+  drawSimpleTable("٥. الخبرات العملية", (form.experience||[]).map(e=>[e.period,e.field]), ["الفترة","مجالات الخبرة"]);
+  drawSimpleTable("٦. العضوية في مجالس أخرى", (form.other_memberships||[]).map(m=>[m.company_name,m.activity,m.capacity,m.legal_form]), ["اسم الشركة","النشاط","الصفة","الشكل القانوني"]);
+
+  b.wrapAndDraw("٧. أسئلة استقصائية", { font:`bold ${12*b.scale}px Tajawal, Arial`, color:"#1A3A6B", lineHeight:20*b.scale });
+  b.spacer(4);
+  DISCLOSURE_SURVEY_QUESTIONS.forEach(q => {
+    const ans = (form.survey_answers||{})[q.key] || { answer:false, details:[] };
+    b.wrapAndDraw(`${q.label} — ${ans.answer?"نعم":"لا"}`, { font:`${9.5*b.scale}px Tajawal, Arial`, lineHeight:17*b.scale });
+    if(ans.answer && ans.details && ans.details.length){
+      ans.details.forEach(d => b.wrapAndDraw(`   • ${d.filter(Boolean).join(" — ")}`, { font:`${9*b.scale}px Tajawal, Arial`, color:"#8B95A5", lineHeight:16*b.scale }));
+    }
+  });
+
+  if(orderedRoles && orderedRoles.length){
+    b.spacer(30);
+    await b.preloadSignatures(signaturesMap);
+    orderedRoles.forEach(role => {
+      b.ensureSpace(65*b.scale);
+      b.drawSigSlot(role, form.full_name||"", b.W/2, b.y, signaturesMap);
+      b.spacer(70);
+    });
+  }
+  return b;
+}
+
 async function generateOfficialDoc(docTypeKey, meetingId){
   const config = OFFICIAL_DOC_TYPES[docTypeKey];
   if(!config){ alert("نوع مستند غير معروف"); return; }
@@ -14745,7 +15051,30 @@ async function generateOfficialDoc(docTypeKey, meetingId){
 // its correct slot, then replaces the stored file — called after every single new signature.
 async function regenerateOfficialDoc(signingDocId){
   const { data: doc } = await sb.from("signing_documents").select("*").eq("id", signingDocId).single();
-  if(!doc || !doc.doc_type || !OFFICIAL_DOC_TYPES[doc.doc_type] || !doc.related_meeting_id) return null;
+  if(!doc || !doc.doc_type) return null;
+
+  if(doc.doc_type === "نموذج إفصاح عضوية مجلس"){
+    if(!doc.related_disclosure_form_id) return null;
+    const [{ data: form }, { data: sigs }] = await Promise.all([
+      sb.from("board_disclosure_forms").select("*").eq("id", doc.related_disclosure_form_id).single(),
+      sb.from("official_doc_signatures").select("*").eq("document_id", signingDocId)
+    ]);
+    if(!form) return null;
+    const signaturesMap = {};
+    (sigs||[]).forEach(s => { signaturesMap[s.role] = { name: s.signer_name, image: s.signature_image }; });
+    const roles = (doc.signer_roles||[]).map(r => r.role);
+    const b = await buildDisclosureFormCanvasPages(form, signaturesMap, roles);
+    const bytes = await b.toPDFBytes();
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    const file_url = await uploadBlobToStorage(blob, "official-documents", `نموذج-إفصاح-${Date.now()}.pdf`);
+    if(!file_url) return null;
+    const allSigned = roles.every(r => signaturesMap[r]);
+    await sb.from("signing_documents").update({ file_url }).eq("id", signingDocId);
+    if(allSigned) await sb.from("board_disclosure_forms").update({ status: "موقّع" }).eq("id", doc.related_disclosure_form_id);
+    return file_url;
+  }
+
+  if(!OFFICIAL_DOC_TYPES[doc.doc_type] || !doc.related_meeting_id) return null;
   const config = OFFICIAL_DOC_TYPES[doc.doc_type];
   const roleNames = {};
   (doc.signer_roles||[]).forEach(r => { roleNames[r.role] = r.name; });
