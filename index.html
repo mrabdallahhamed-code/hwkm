@@ -2078,19 +2078,6 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 </div>
 
 <!-- Add member modal -->
-<div class="modal-bg" id="m-disclosure">
-  <div class="modal">
-    <div class="modal-title" id="mdis-title-h">📋 إفصاح عضو مجلس الإدارة</div>
-    <input type="hidden" id="mdis-member-id" value="" />
-    <div class="fg"><label>عضويات ومناصب بمجالس إدارة أخرى</label><textarea class="fta" id="mdis-directorships" rows="2" placeholder="اذكر أي شركات أخرى العضو عضو أو رئيس مجلس إدارة فيها، أو اكتب: لا يوجد"></textarea></div>
-    <div class="fg"><label>علاقات مع أطراف ذات صلة</label><textarea class="fta" id="mdis-related" rows="2" placeholder="أي علاقة عمل أو تعاقد بين العضو (أو أقاربه) والشركة، أو اكتب: لا يوجد"></textarea></div>
-    <div class="fg"><label>مصالح مالية قد تتعارض مع عمل الشركة</label><textarea class="fta" id="mdis-financial" rows="2" placeholder="ملكية أسهم بشركات منافسة أو موردة، أو اكتب: لا يوجد"></textarea></div>
-    <div class="fg"><label>علاقات قرابة مع أعضاء مجلس أو تنفيذيين آخرين</label><textarea class="fta" id="mdis-family" rows="2" placeholder="أو اكتب: لا يوجد"></textarea></div>
-    <div class="fg"><label>ملاحظات عامة إضافية</label><textarea class="fta" id="mdis-notes" rows="2"></textarea></div>
-    <div class="fg"><label>تاريخ الإفصاح</label><input type="date" class="fi" id="mdis-date"/></div>
-    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-disclosure')">إلغاء</button><button class="btn btn-gold" onclick="saveDisclosure()">✅ حفظ الإفصاح</button></div>
-  </div>
-</div>
 
 <div class="modal-bg" id="m-member">
   <div class="modal">
@@ -3733,7 +3720,6 @@ function isMutatingOnclick(val){
     || /^openNewCommitteeModal\(/.test(val)
     || /^openNewGovEvalModal\(/.test(val)
     || /^generateBaseStructure\(/.test(val)
-    || /^saveDisclosure\(/.test(val)
     || /^openNewShareholderModal\(/.test(val)
     || /^openTransferModal\(/.test(val)
     || /^saveShareholder\(/.test(val)
@@ -5771,9 +5757,9 @@ const memberColors = [
 
 async function loadMembers(){
   const grid = document.getElementById("membersGrid");
-  const [{ data, error }, { data: disclosures }] = await Promise.all([
+  const [{ data, error }, { data: disclosureForms }] = await Promise.all([
     sb.from("board_members").select("*").eq("company_id", currentCompanyId).order("id", { ascending: true }),
-    sb.from("board_member_disclosures").select("*").eq("company_id", currentCompanyId)
+    sb.from("board_disclosure_forms").select("member_email,status").eq("company_id", currentCompanyId)
   ]);
   if(error){
     grid.innerHTML = '<div style="font-size:12px;color:var(--red);padding:12px">تعذّر تحميل الأعضاء: '+error.message+'</div>';
@@ -5784,15 +5770,15 @@ async function loadMembers(){
     return;
   }
   membersCache = data;
-  disclosuresCache = disclosures || [];
+  disclosuresCache = disclosureForms || [];
   grid.innerHTML = data.map((m, i) => {
     const initial = (m.name || "?").trim().charAt(0);
     const bg = memberColors[i % memberColors.length];
     const status = m.status || "—";
     const execBadge = m.is_executive === "تنفيذي" ? '<span class="badge pending">تنفيذي</span>' : '<span class="badge info">غير تنفيذي</span>';
     const committeeBadge = m.committee_member === "نعم" ? '<span class="badge done">عضو لجنة</span>' : "";
-    const hasDisclosure = disclosuresCache.some(d => d.member_id === m.id);
-    const disclosureBadge = hasDisclosure ? '<span class="badge done">✅ أُفصح</span>' : '<span class="badge urgent">⚠️ لم يُفصح</span>';
+    const memberDisclosure = m.claimed_by_email ? disclosuresCache.find(d => d.member_email === m.claimed_by_email) : null;
+    const disclosureBadge = memberDisclosure && memberDisclosure.status === "موقّع" ? '<span class="badge done">✅ أُفصح</span>' : '<span class="badge urgent">⚠️ لم يُفصح</span>';
     return `<div class="memcard">
       <div class="mem-av" style="background:${bg}">${initial}</div>
       <div class="mem-name">${m.name || ""}</div><div class="mem-role">${m.position_level || "عضو"} — ${m.position || ""}</div>
@@ -5803,48 +5789,9 @@ async function loadMembers(){
       <div class="mem-stats"><div><div class="ms-v">${m.join_date || "—"}</div><div class="ms-l">الانضمام</div></div></div>
       <div style="display:flex;gap:6px;margin-top:8px;width:100%">
         <button class="btn-xs primary" style="flex:1" onclick="editMember(${m.id})">✏️ تعديل</button>
-        <button class="btn-xs" style="flex:1;background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer" onclick="openDisclosureModal(${m.id})">📋 إفصاح</button>
       </div>
     </div>`;
   }).join("");
-}
-
-function openDisclosureModal(memberId){
-  const m = membersCache.find(x => x.id === memberId);
-  if(!m) return;
-  const existing = disclosuresCache.find(d => d.member_id === memberId);
-  document.getElementById("mdis-member-id").value = memberId;
-  document.getElementById("mdis-title-h").textContent = "📋 إفصاح — " + (m.name||"");
-  document.getElementById("mdis-directorships").value = existing ? (existing.other_directorships||"") : "";
-  document.getElementById("mdis-related").value = existing ? (existing.related_party_relationships||"") : "";
-  document.getElementById("mdis-financial").value = existing ? (existing.financial_interests||"") : "";
-  document.getElementById("mdis-family").value = existing ? (existing.family_relationships||"") : "";
-  document.getElementById("mdis-notes").value = existing ? (existing.general_notes||"") : "";
-  document.getElementById("mdis-date").value = existing ? (existing.disclosed_at||"") : new Date().toISOString().slice(0,10);
-  openM("m-disclosure");
-}
-
-async function saveDisclosure(){
-  const member_id = Number(document.getElementById("mdis-member-id").value);
-  const existing = disclosuresCache.find(d => d.member_id === member_id);
-  const payload = {
-    member_id, company_id: currentCompanyId,
-    other_directorships: document.getElementById("mdis-directorships").value.trim(),
-    related_party_relationships: document.getElementById("mdis-related").value.trim(),
-    financial_interests: document.getElementById("mdis-financial").value.trim(),
-    family_relationships: document.getElementById("mdis-family").value.trim(),
-    general_notes: document.getElementById("mdis-notes").value.trim(),
-    disclosed_at: document.getElementById("mdis-date").value || null,
-    updated_at: new Date().toISOString()
-  };
-  const { error } = existing
-    ? await sb.from("board_member_disclosures").update(payload).eq("id", existing.id)
-    : await sb.from("board_member_disclosures").insert([payload]);
-  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
-  const m = membersCache.find(x => x.id === member_id);
-  logActivity("تعديل", "إفصاح عضو", m?m.name:"", "تحديث الإفصاح الشامل");
-  closeM("m-disclosure");
-  loadMembers();
 }
 
 function editMember(id){
@@ -14865,12 +14812,53 @@ async function openDisclosureForm(){
   document.getElementById("df-nominator-field").style.display = "none";
   ['df-fullname','df-nid','df-address','df-employer','df-jobtitle','df-email','df-mobile','df-nominator-name'].forEach(id => document.getElementById(id).value = "");
   ['df-birthdate','df-term-start','df-term-end'].forEach(id => document.getElementById(id).value = "");
-  if(currentUserProfile){
-    document.getElementById("df-fullname").value = currentUserProfile.full_name || "";
-    document.getElementById("df-nid").value = currentUserProfile.national_id || "";
-    document.getElementById("df-email").value = currentUserProfile.email || "";
-    document.getElementById("df-mobile").value = currentUserProfile.phone_number || "";
+
+  // If this person already has a disclosure on file, load it as the starting point — editing
+  // and resubmitting always creates a NEW version rather than mutating a signed record, so the
+  // old signed disclosure stays intact as a historical entry while a fresh cycle begins.
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData?.user?.email;
+  let previous = null;
+  if(myEmail && currentCompanyId){
+    const { data } = await sb.from("board_disclosure_forms").select("*")
+      .eq("company_id", currentCompanyId).eq("member_email", myEmail).order("created_at",{ascending:false}).limit(1);
+    previous = (data||[])[0] || null;
   }
+
+  const banner = document.querySelector("#m-disclosure-form p");
+  if(previous){
+    banner.innerHTML = `📝 لديك إفصاح سابق بتاريخ ${new Date(previous.created_at).toLocaleDateString('ar-SA')} — الحالة: <b>${previous.status}</b>. عدّل ما يلزم أدناه ثم أرسل — سيُنشأ إفصاح جديد يحل محله للتوقيع، والسابق يبقى بالسجل.`;
+    document.getElementById("df-capacity").value = previous.membership_capacity || "عضو تنفيذي";
+    document.getElementById("df-appointment-nature").value = previous.appointment_nature || "مرشح بصفته مساهماً";
+    document.getElementById("df-nominator-name").value = previous.nominating_shareholder_name || "";
+    document.getElementById("df-term-start").value = previous.term_start || "";
+    document.getElementById("df-term-end").value = previous.term_end || "";
+    document.getElementById("df-fullname").value = previous.full_name || "";
+    document.getElementById("df-nid").value = previous.national_id || "";
+    document.getElementById("df-nationality").value = previous.nationality || "سعودي";
+    document.getElementById("df-birthdate").value = previous.birth_date || "";
+    document.getElementById("df-gender").value = previous.gender || "ذكر";
+    document.getElementById("df-address").value = previous.national_address || "";
+    document.getElementById("df-employer").value = previous.current_employer || "";
+    document.getElementById("df-jobtitle").value = previous.job_title || "";
+    document.getElementById("df-email").value = previous.personal_email || "";
+    document.getElementById("df-mobile").value = previous.mobile || "";
+    document.getElementById("df-is-shareholder").value = previous.is_shareholder ? "نعم" : "لا";
+    disclosureDraft.qualifications = previous.qualifications || [];
+    disclosureDraft.experience = previous.experience || [];
+    disclosureDraft.other_memberships = previous.other_memberships || [];
+    disclosureDraft.survey_answers = previous.survey_answers || {};
+    toggleDisclosureNominator();
+  } else {
+    banner.textContent = 'يُملأ من قبل العضو المرشح/المعين، ويُرفع للنظام الإلكتروني الذي تحدده هيئة السوق المالية قبل ٣ أيام عمل على الأقل من انعقاد الجمعية العامة.';
+    if(currentUserProfile){
+      document.getElementById("df-fullname").value = currentUserProfile.full_name || "";
+      document.getElementById("df-nid").value = currentUserProfile.national_id || "";
+      document.getElementById("df-email").value = currentUserProfile.email || "";
+      document.getElementById("df-mobile").value = currentUserProfile.phone_number || "";
+    }
+  }
+
   renderDisclosureTable('qualifications');
   renderDisclosureTable('experience');
   renderDisclosureTable('other_memberships');
