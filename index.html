@@ -551,7 +551,11 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     </div>
     <div class="login-field" id="signupNationalIdField" style="display:none">
       <label>رقم الهوية</label>
-      <input class="fi" id="signupNationalId" placeholder="مثال: 1XXXXXXXXX" />
+      <div style="display:flex;gap:6px">
+        <input class="fi" id="signupNationalId" placeholder="مثال: 1XXXXXXXXX" style="flex:1;margin:0"/>
+        <button type="button" class="btn-xs primary" style="white-space:nowrap" onclick="startNafathVerification()">🔐 تحقق عبر نفاذ</button>
+      </div>
+      <div id="nafathStatus" style="font-size:11px;margin-top:6px"></div>
     </div>
     <div class="login-field" id="signupPhoneField" style="display:none">
       <label>رقم الجوال</label>
@@ -2489,6 +2493,17 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <button class="btn-xs gold" style="margin-top:8px" onclick="saveTadawulResults()">💾 حفظ نتائج تداول</button>
     </div>
 
+    <div id="agmView-announcementsSection" style="display:none;margin-top:16px;background:#EAF0F8;border:1.5px solid var(--primary);border-radius:10px;padding:12px">
+      <div style="font-weight:800;font-size:12.5px;color:var(--primary);margin-bottom:8px">📢 إعلانات هيئة السوق المالية (متوافقة مع تعليمات الإعلانات)</div>
+      <p style="font-size:10.5px;color:var(--gray3);margin-bottom:10px">تولّد مسودة PDF جاهزة بالصياغة الرسمية المطلوبة — ترسلها لموظف تداول المختص لاعتمادها ونشرها؛ منصتنا لا تنشر مباشرة على تداول.</p>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button class="btn-xs primary" onclick="openTadawulAnnouncementForm('دعوة')">📨 توليد إعلان الدعوة للجمعية</button>
+        <button class="btn-xs primary" onclick="openTadawulAnnouncementForm('نتائج')">📊 توليد إعلان نتائج الجمعية</button>
+        <button class="btn-xs primary" onclick="openTadawulAnnouncementForm('عدم انعقاد')">🚫 توليد إعلان عدم انعقاد الجمعية</button>
+      </div>
+      <div id="agmView-announcementsList" style="margin-top:10px"></div>
+    </div>
+
     <div style="margin-top:16px;background:var(--offwhite);border-radius:10px;padding:10px" id="agmView-votingDatesSection">
       <div style="font-weight:800;font-size:12.5px;color:var(--primary);margin-bottom:8px">🗳️ مواعيد فتح/إغلاق التصويت</div>
       <div class="row2">
@@ -2866,6 +2881,45 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     </div>
 
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-security')">إغلاق</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-tadawul-announcement">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-title" id="tdwAnn-title">📢 توليد إعلان</div>
+    <input type="hidden" id="tdwAnn-type"/>
+
+    <!-- Fields for دعوة -->
+    <div id="tdwAnn-inviteFields" style="display:none">
+      <div class="fg"><label>رابط موقع الاجتماع على خرائط قوقل</label><input class="fi" id="tdwAnn-mapsLink" placeholder="https://maps.google.com/..."/></div>
+      <div class="fg"><label>طريقة الحضور</label><select class="fs" id="tdwAnn-attendMethod"><option>حضورياً وعبر وسائل التقنية الحديثة</option><option>عبر وسائل التقنية الحديثة فقط</option></select></div>
+      <div class="fg"><label>هل الدعوة بطلب من جهة معينة؟</label><select class="fs" id="tdwAnn-requestedBy"><option value="">لا — دعوة عادية من مجلس الإدارة</option><option value="مراجع الحسابات">نعم — بطلب من مراجع الحسابات</option><option value="لجنة المراجعة">نعم — بطلب من لجنة المراجعة</option><option value="مساهمين يمثلون 10%">نعم — بطلب من مساهمين يمثلون 10% فأكثر</option></select></div>
+      <div class="fg"><label>هل يتضمن الجدول شراء الشركة أسهمها؟ (اتركه فارغًا لو لا)</label><textarea class="fta" id="tdwAnn-buyback" rows="2" placeholder="الحد الأعلى لعدد الأسهم، الأغراض، طريقة التمويل، المدة القصوى للاحتفاظ بها"></textarea></div>
+      <div class="fg"><label>هل يتضمن الجدول تغيير رأس المال؟ (اتركه فارغًا لو لا)</label><textarea class="fta" id="tdwAnn-capitalChange" rows="2" placeholder="رأس المال قبل/بعد، نسبة التغيير، السبب والطريقة، تاريخ الأحقية/النفاذ"></textarea></div>
+      <div class="row2">
+        <div class="fg"><label>هاتف علاقات المساهمين</label><input class="fi" id="tdwAnn-irPhone"/></div>
+        <div class="fg"><label>بريد علاقات المساهمين</label><input class="fi" id="tdwAnn-irEmail"/></div>
+      </div>
+    </div>
+
+    <!-- Fields for نتائج -->
+    <div id="tdwAnn-resultsFields" style="display:none">
+      <div class="fg"><label>أسماء أعضاء المجلس الحاضرين (كل اسم بسطر)</label><textarea class="fta" id="tdwAnn-boardPresent" rows="2"></textarea></div>
+      <div class="fg"><label>أسماء أعضاء المجلس المتغيبين (كل اسم بسطر)</label><textarea class="fta" id="tdwAnn-boardAbsent" rows="2"></textarea></div>
+      <div class="fg"><label>أسماء رؤساء اللجان الحاضرين (كل اسم بسطر)</label><textarea class="fta" id="tdwAnn-committeeChairs" rows="2"></textarea></div>
+      <div class="fg"><label>تفاصيل توزيع أرباح (اتركه فارغًا لو ما فيه)</label><textarea class="fta" id="tdwAnn-dividends" rows="2" placeholder="المبلغ الإجمالي، حصة السهم، تاريخ الأحقية والتوزيع"></textarea></div>
+      <div class="fg"><label>أعضاء مجلس تم انتخابهم/تعيينهم (اتركه فارغًا لو ما فيه)</label><textarea class="fta" id="tdwAnn-elected" rows="2" placeholder="الأسماء وتاريخ بداية ونهاية الدورة"></textarea></div>
+      <div class="fg"><label>تعيين مراجع حسابات (اتركه فارغًا لو ما فيه)</label><textarea class="fta" id="tdwAnn-auditor" rows="2" placeholder="الاسم، الفترات المالية، الأتعاب المتفق عليها"></textarea></div>
+    </div>
+
+    <!-- Fields for عدم انعقاد -->
+    <div id="tdwAnn-nonOccurFields" style="display:none">
+      <div class="fg"><label>سبب عدم الانعقاد</label><textarea class="fta" id="tdwAnn-nonOccurReason" rows="2"></textarea></div>
+      <div class="fg"><label>نسبة الحضور الفعلية (أقل من النصاب)</label><input type="number" class="fi" id="tdwAnn-nonOccurPct"/></div>
+      <div class="fg"><label>أثر عدم الانعقاد (على توصيات الأرباح/رأس المال/مراجع الحسابات إن وجد)</label><textarea class="fta" id="tdwAnn-nonOccurImpact" rows="2"></textarea></div>
+    </div>
+
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-tadawul-announcement')">إلغاء</button><button class="btn btn-gold" onclick="generateTadawulAnnouncement()">📝 توليد PDF</button></div>
   </div>
 </div>
 
@@ -3381,6 +3435,57 @@ async function applyListedCompanySignupMode(){
   if(typeSelect) typeSelect.value = "مساهم";
   toggleShareholderFields();
   if(proofField) proofField.style.display = "block";
+}
+
+// Real identity verification via Nafath — replaces manually typing a national ID (which anyone
+// could fake or borrow from someone else) with an actual government-app confirmation from the
+// real person. Falls back gracefully to manual entry until a Nafath provider is connected.
+let nafathPollInterval = null;
+async function startNafathVerification(){
+  const nidInput = document.getElementById("signupNationalId");
+  const statusBox = document.getElementById("nafathStatus");
+  const nationalId = nidInput.value.trim();
+  if(!nationalId){ statusBox.innerHTML = '<span style="color:var(--red)">اكتب رقم هويتك أولًا بالخانة، ثم اضغط تحقق</span>'; return; }
+
+  statusBox.innerHTML = '<span style="color:var(--gray3)">جارِ الاتصال بنفاذ...</span>';
+  try{
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/verify-nafath-identity`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "start", nationalId })
+    });
+    const data = await res.json();
+    if(!res.ok || !data.transId){
+      statusBox.innerHTML = '<span style="color:var(--orange)">⚠️ التحقق عبر نفاذ غير مفعّل بعد — تقدر تكمل بكتابة رقم هويتك يدويًا مؤقتًا.</span>';
+      return;
+    }
+
+    statusBox.innerHTML = `<div style="background:#EAF0F8;border-radius:8px;padding:10px;text-align:center">
+      <div style="font-size:11px;color:var(--gray3)">افتح تطبيق نفاذ واختر الرقم:</div>
+      <div style="font-size:26px;font-weight:900;color:var(--primary)">${data.randomNumber}</div>
+    </div>`;
+
+    if(nafathPollInterval) clearInterval(nafathPollInterval);
+    nafathPollInterval = setInterval(async () => {
+      const pollRes = await fetch(`${SUPABASE_URL}/functions/v1/verify-nafath-identity`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "status", transId: data.transId })
+      });
+      const pollData = await pollRes.json();
+      if(pollData.status === "COMPLETED"){
+        clearInterval(nafathPollInterval);
+        nidInput.value = pollData.verifiedNationalId || nationalId;
+        nidInput.readOnly = true;
+        statusBox.innerHTML = '<span style="color:var(--green)">✅ تم التحقق من هويتك عبر نفاذ</span>';
+      } else if(pollData.status === "REJECTED" || pollData.status === "EXPIRED"){
+        clearInterval(nafathPollInterval);
+        statusBox.innerHTML = '<span style="color:var(--red)">تعذّر التحقق (رُفض الطلب أو انتهت مهلته) — حاول مجددًا.</span>';
+      }
+    }, 3000);
+  }catch(e){
+    statusBox.innerHTML = '<span style="color:var(--orange)">⚠️ التحقق عبر نفاذ غير مفعّل بعد — تقدر تكمل بكتابة رقم هويتك يدويًا مؤقتًا.</span>';
+  }
 }
 
 function toggleShareholderFields(){
@@ -6876,6 +6981,171 @@ async function saveTadawulResults(){
   alert("تم حفظ نتائج تداول ✅ — جاهزة الآن لتوليد محضر الجمعية.");
 }
 
+/* ══════════ CMA/TADAWUL ANNOUNCEMENT GENERATOR ══════════
+   Drafts announcements matching the exact title wording and required elements from the
+   official "التعليمات الخاصة بإعلانات الشركات" — the company still submits through their own
+   Tadawul channel (no direct technical integration exists), this just prepares a compliant
+   draft so they aren't starting from a blank page each time. */
+function openTadawulAnnouncementForm(type){
+  document.getElementById("tdwAnn-type").value = type;
+  document.getElementById("tdwAnn-title").textContent =
+    type === "دعوة" ? "📨 توليد إعلان الدعوة للجمعية" :
+    type === "نتائج" ? "📊 توليد إعلان نتائج الجمعية" :
+    "🚫 توليد إعلان عدم انعقاد الجمعية";
+
+  document.getElementById("tdwAnn-inviteFields").style.display = type === "دعوة" ? "block" : "none";
+  document.getElementById("tdwAnn-resultsFields").style.display = type === "نتائج" ? "block" : "none";
+  document.getElementById("tdwAnn-nonOccurFields").style.display = type === "عدم انعقاد" ? "block" : "none";
+  openM("m-tadawul-announcement");
+}
+
+async function generateTadawulAnnouncement(){
+  const type = document.getElementById("tdwAnn-type").value;
+  const meetingId = currentAGMModalMeetingId;
+  const m = agmMeetingsCache.find(x => x.id === meetingId);
+  const { data: company } = await sb.from("companies").select("*").eq("id", currentCompanyId).single();
+  const companyName = company?.name || "الشركة";
+
+  let extra_data = {};
+  if(type === "دعوة"){
+    extra_data = {
+      mapsLink: document.getElementById("tdwAnn-mapsLink").value.trim(),
+      attendMethod: document.getElementById("tdwAnn-attendMethod").value,
+      requestedBy: document.getElementById("tdwAnn-requestedBy").value,
+      buyback: document.getElementById("tdwAnn-buyback").value.trim(),
+      capitalChange: document.getElementById("tdwAnn-capitalChange").value.trim(),
+      irPhone: document.getElementById("tdwAnn-irPhone").value.trim(),
+      irEmail: document.getElementById("tdwAnn-irEmail").value.trim()
+    };
+  } else if(type === "نتائج"){
+    extra_data = {
+      boardPresent: document.getElementById("tdwAnn-boardPresent").value.trim(),
+      boardAbsent: document.getElementById("tdwAnn-boardAbsent").value.trim(),
+      committeeChairs: document.getElementById("tdwAnn-committeeChairs").value.trim(),
+      dividends: document.getElementById("tdwAnn-dividends").value.trim(),
+      elected: document.getElementById("tdwAnn-elected").value.trim(),
+      auditor: document.getElementById("tdwAnn-auditor").value.trim()
+    };
+  } else {
+    extra_data = {
+      reason: document.getElementById("tdwAnn-nonOccurReason").value.trim(),
+      attendancePct: document.getElementById("tdwAnn-nonOccurPct").value,
+      impact: document.getElementById("tdwAnn-nonOccurImpact").value.trim()
+    };
+  }
+
+  const b = await buildTadawulAnnouncementPDF(type, m, company, extra_data);
+  const bytes = await b.toPDFBytes();
+  const blob = new Blob([bytes], { type: "application/pdf" });
+  const file_url = await uploadBlobToStorage(blob, "tadawul-announcements", `اعلان-${type}-${companyName}-${Date.now()}.pdf`);
+  if(!file_url) return;
+
+  await sb.from("tadawul_announcements").insert([{
+    company_id: currentCompanyId, meeting_id: meetingId, announcement_type: type, extra_data, file_url
+  }]);
+  alert("تم توليد مسودة الإعلان ✅ — حمّلها وأرسلها لموظف تداول المختص لاعتمادها ونشرها.");
+  closeM("m-tadawul-announcement");
+  loadTadawulAnnouncementsList(meetingId);
+}
+
+async function buildTadawulAnnouncementPDF(type, m, company, extra){
+  const b = new CanvasPDFBuilder();
+  const companyName = company?.name || "الشركة";
+  const agmTypeLabel = m?.agm_type === "غير عادية" ? "غير العادية" : "العادية";
+  const callLabels = {1:"الأول", 2:"الثاني", 3:"الثالث"};
+  const callLabel = callLabels[m?.call_number] || "الأول";
+
+  if(type === "دعوة"){
+    const { data: topics } = await sb.from("vote_topics").select("*").eq("meeting_id", m.id).order("id",{ascending:true});
+    const agendaText = (topics && topics.length) ? topics.map((t,i)=>`(${i+1}) ${t.topic_text||t.topic}`).join(" — ") : "مرفق أدناه";
+    b.wrapAndDraw(`يدعو مجلس إدارة شركة ${companyName} مساهميها إلى حضور اجتماع الجمعية العامة (${agmTypeLabel}) (الاجتماع ${callLabel})`,
+      { align:"center", font:`bold ${13*b.scale}px Tajawal, Arial`, color:"#1A3A6B", lineHeight:22*b.scale });
+    b.spacer(20);
+    const lines = [
+      `١. جدول أعمال الجمعية: ${agendaText}`,
+      `٢. يوم وتاريخ الانعقاد: ${arabicDayName(m?.meeting_date)} الموافق ${m?.meeting_date||"—"} — الساعة ${m?.meeting_time||"—"}`,
+      `٣. مكان الانعقاد: ${m?.method||"—"}${extra.mapsLink?` — رابط الموقع: ${extra.mapsLink}`:""}`,
+      `٤. طريقة الانعقاد: ${extra.attendMethod||"—"}`,
+      `٥. المستندات المؤيدة لكل بند مرفقة وفق الجدول النظامي المعتمد.`,
+      `٦. يحق حضور الجمعية للمساهمين المقيدين بسجل مساهمي الشركة لدى مركز الإيداع بنهاية جلسة التداول التي تسبق الاجتماع، ولهم حق إنابة من يختارونه من غير أعضاء مجلس الإدارة.`,
+      `٧. للمساهم الحق في مناقشة بنود الجدول وتوجيه الأسئلة والتصويت عليها.`,
+      `٨. النصاب اللازم للانعقاد وفق النظام الأساس للشركة ونظام الشركات.`,
+      extra.requestedBy ? `٩. هذه الدعوة مقدَّمة بطلب من: ${extra.requestedBy}.` : null,
+      `١٠. يتوفر التصويت الإلكتروني على بنود الجمعية${m?.voting_start?` — يبدأ بتاريخ ${new Date(m.voting_start).toLocaleString('ar-SA')}`:" — سيُعلَن عن موعده لاحقًا"}.`,
+      `١١. تنتهي أحقية تسجيل الحضور وقت انعقاد الجمعية، وتنتهي أحقية التصويت عند انتهاء لجنة الفرز من فرز الأصوات.`,
+      extra.buyback ? `١٢. بخصوص شراء الشركة أسهمها: ${extra.buyback}` : null,
+      extra.capitalChange ? `١٣. بخصوص تغيير رأس المال: ${extra.capitalChange}` : null,
+      (extra.irPhone||extra.irEmail) ? `١٤. للاستفسارات، التواصل مع إدارة علاقات المساهمين — هاتف: ${extra.irPhone||"—"} — بريد: ${extra.irEmail||"—"}` : null,
+    ].filter(Boolean);
+    lines.forEach(line => b.wrapAndDraw(line, { font:`${10.5*b.scale}px Tajawal, Arial`, lineHeight:20*b.scale }));
+
+  } else if(type === "نتائج"){
+    b.wrapAndDraw(`تعلن شركة ${companyName} عن نتائج اجتماع الجمعية العامة (${agmTypeLabel}) (الاجتماع ${callLabel})`,
+      { align:"center", font:`bold ${13*b.scale}px Tajawal, Arial`, color:"#1A3A6B", lineHeight:22*b.scale });
+    b.spacer(20);
+    const lines = [
+      `١. مكان وتاريخ ووقت الانعقاد: ${m?.method||"—"} — ${m?.meeting_date||"—"} — الساعة ${m?.meeting_time||"—"}`,
+      `٢. نسبة الحضور: ${m?.manual_attendee_count!=null ? "حسب سجل تداول" : "—"}`,
+      extra.boardPresent ? `٣. أعضاء المجلس الحاضرون: ${extra.boardPresent.replace(/\n/g,", ")}` : null,
+      extra.boardAbsent ? `٤. أعضاء المجلس المتغيبون: ${extra.boardAbsent.replace(/\n/g,", ")}` : null,
+      extra.committeeChairs ? `٥. رؤساء اللجان الحاضرون: ${extra.committeeChairs.replace(/\n/g,", ")}` : null,
+      `٦. نتائج التصويت على بنود الجدول: مرفقة أدناه.`,
+      extra.dividends ? `٧. توزيع الأرباح: ${extra.dividends}` : null,
+      extra.elected ? `٨. الأعضاء المنتخبون/المعينون: ${extra.elected}` : null,
+      extra.auditor ? `٩. تعيين مراجع الحسابات: ${extra.auditor}` : null,
+    ].filter(Boolean);
+    lines.forEach(line => b.wrapAndDraw(line, { font:`${10.5*b.scale}px Tajawal, Arial`, lineHeight:20*b.scale }));
+
+    b.spacer(16);
+    const { data: topics } = await sb.from("vote_topics").select("*").eq("meeting_id", m.id).order("id",{ascending:true});
+    (topics||[]).forEach((t,i) => {
+      const yes = t.manual_yes_pct ?? 0, no = t.manual_no_pct ?? 0, abs = t.manual_abs_pct ?? 0;
+      b.wrapAndDraw(`${i+1}. ${t.topic_text||t.topic} — موافق ${yes}% / معارض ${no}% / ممتنع ${abs}%`, { font:`${10*b.scale}px Tajawal, Arial`, lineHeight:18*b.scale });
+    });
+
+  } else {
+    b.wrapAndDraw(`تعلن شركة ${companyName} عن عدم انعقاد الجمعية العامة (${agmTypeLabel}) للشركة (الاجتماع ${callLabel})`,
+      { align:"center", font:`bold ${13*b.scale}px Tajawal, Arial`, color:"#1A3A6B", lineHeight:22*b.scale });
+    b.spacer(20);
+    [
+      `١. تاريخ الجمعية التي لم تنعقد: ${m?.meeting_date||"—"}`,
+      `٢. سبب عدم الانعقاد: ${extra.reason||"—"}`,
+      `٣. نسبة الحضور: ${extra.attendancePct||"—"}%`,
+      `٤. الأثر: ${extra.impact||"لا يوجد أثر إضافي يُذكر."}`
+    ].forEach(line => b.wrapAndDraw(line, { font:`${10.5*b.scale}px Tajawal, Arial`, lineHeight:20*b.scale }));
+  }
+
+  return b;
+}
+
+async function loadTadawulAnnouncementsList(meetingId){
+  const box = document.getElementById("agmView-announcementsList");
+  if(!box) return;
+  const { data } = await sb.from("tadawul_announcements").select("*").eq("meeting_id", meetingId).order("created_at",{ascending:false});
+  if(!data || data.length===0){ box.innerHTML = ""; return; }
+  box.innerHTML = data.map(a => `<div style="display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:8px;padding:8px;margin-top:6px">
+    <div style="font-size:11px">
+      <b>${a.announcement_type}</b> — ${new Date(a.created_at).toLocaleDateString('ar-SA')}
+      ${a.confirmed_on_tadawul ? '<span style="color:var(--green)">✅ مؤكَّد بتداول</span>' : '<span style="color:var(--gray3)">⏳ بانتظار التأكيد</span>'}
+    </div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <a href="${a.file_url}" target="_blank" class="btn-xs primary">📥 عرض</a>
+      ${!a.confirmed_on_tadawul ? `<button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer" onclick="confirmTadawulAnnouncement(${a.id})">✅ تأكيد النشر بتداول</button>` : ""}
+      ${a.confirmed_on_tadawul ? `<label style="font-size:10px;display:flex;align-items:center;gap:4px"><input type="checkbox" ${a.show_on_public_site?'checked':''} onchange="toggleAnnouncementPublicSite(${a.id},this.checked)"/> 🌐 موقعنا العام</label>` : ""}
+    </div>
+  </div>`).join("");
+}
+
+async function confirmTadawulAnnouncement(id){
+  if(!confirm("تأكيد إن هذا الإعلان نُشر فعليًا على تداول؟")) return;
+  await sb.from("tadawul_announcements").update({ confirmed_on_tadawul: true }).eq("id", id);
+  loadTadawulAnnouncementsList(currentAGMModalMeetingId);
+}
+
+async function toggleAnnouncementPublicSite(id, checked){
+  await sb.from("tadawul_announcements").update({ show_on_public_site: checked }).eq("id", id);
+}
+
 async function openAGMDetailModal(id){
   const m = agmMeetingsCache.find(x => x.id === id);
   if(!m) return;
@@ -6897,10 +7167,14 @@ async function openAGMDetailModal(id){
 
   const votingDatesSection = document.getElementById("agmView-votingDatesSection");
   const tadawulSection = document.getElementById("agmView-tadawulSection");
+  const announcementsSection = document.getElementById("agmView-announcementsSection");
   if(m.is_listed_agm){
     if(votingDatesSection) votingDatesSection.style.display = "none";
     if(tadawulSection){ tadawulSection.style.display = "block"; await loadTadawulResultsForm(id); }
+    if(announcementsSection) announcementsSection.style.display = "block";
+    loadTadawulAnnouncementsList(id);
   } else {
+    if(announcementsSection) announcementsSection.style.display = "none";
     if(votingDatesSection) votingDatesSection.style.display = "block";
     if(tadawulSection) tadawulSection.style.display = "none";
   }
