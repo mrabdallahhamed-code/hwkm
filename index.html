@@ -1425,9 +1425,9 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="card">
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>الخدمة</th><th>تاريخ الطلب</th><th>الحالة</th><th></th></tr></thead>
+        <thead><tr><th>الخدمة</th><th>تاريخ الطلب</th><th>الحالة</th><th>النتيجة</th><th></th></tr></thead>
         <tbody id="auditRequestsTbody">
-          <tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+          <tr><td colspan="5" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
       </table>
     </div>
@@ -12887,15 +12887,21 @@ async function loadAudit(){
     </div>`).join("");
   }
 
-  if(reqErr){ tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red);font-size:12px">${reqErr.message}</td></tr>`; return; }
-  if(!requests || requests.length===0){ tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد طلبات بعد.</td></tr>'; return; }
+  if(reqErr){ tbody.innerHTML = `<tr><td colspan="5" style="color:var(--red);font-size:12px">${reqErr.message}</td></tr>`; return; }
+  if(!requests || requests.length===0){ tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد طلبات بعد.</td></tr>'; return; }
   const svcNameById = {}; (services||[]).forEach(s=>{ svcNameById[s.id]=s.name; });
-  tbody.innerHTML = requests.map(r => `<tr style="cursor:pointer" onclick="openAuditRequestDetail(${r.id})">
+  tbody.innerHTML = requests.map(r => {
+    const resultBadge = r.inspection_result
+      ? `<span style="color:${r.inspection_result==='مقبول'?'var(--green)':r.inspection_result==='غير مقبول'?'var(--red)':'var(--orange)'};font-weight:800;font-size:11px">${r.inspection_result==='مقبول'?'✅':r.inspection_result==='غير مقبول'?'❌':'⚠️'} ${r.inspection_result}</span>`
+      : '<span style="color:var(--gray3);font-size:11px">—</span>';
+    return `<tr style="cursor:pointer" onclick="openAuditRequestDetail(${r.id})">
     <td>${svcNameById[r.service_type_id]||"—"}</td>
     <td>${new Date(r.created_at).toLocaleDateString('ar-SA')}</td>
     <td><span style="color:${AUDIT_STATUS_COLOR[r.status]||'var(--gray3)'};font-weight:700;font-size:11.5px">${r.status}</span></td>
+    <td>${resultBadge}</td>
     <td><button class="btn-xs primary" onclick="event.stopPropagation();openAuditRequestDetail(${r.id})">عرض</button></td>
-  </tr>`).join("");
+  </tr>`;
+  }).join("");
 }
 
 function openNewAuditRequest(serviceId, serviceName){
@@ -12996,8 +13002,24 @@ async function openAuditRequestDetail(requestId){
            <button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="submitAuditRating(${requestId})">إرسال التقييم</button>`}
     </div></div>` : "";
 
+  const resultBadgeColor = r.inspection_result === 'مقبول' ? 'var(--green)' : r.inspection_result === 'غير مقبول' ? 'var(--red)' : 'var(--orange)';
+  const resultIcon = r.inspection_result === 'مقبول' ? '✅' : r.inspection_result === 'غير مقبول' ? '❌' : '⚠️';
+  const summaryHtml = r.inspection_result ? `
+    <div class="sec-title" style="font-size:13px">📊 نتيجة المراجعة</div>
+    <div class="card" style="border:2px solid ${resultBadgeColor}">
+      <div class="card-body">
+        <div style="text-align:center;font-size:16px;font-weight:900;color:${resultBadgeColor};margin-bottom:10px">${resultIcon} ${r.inspection_result}</div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;text-align:center">
+          ${r.key_findings_count!=null ? `<div><div style="font-size:20px;font-weight:900;color:var(--dark)">${r.key_findings_count}</div><div style="font-size:10.5px;color:var(--gray3)">عدد الملاحظات</div></div>` : ""}
+          ${r.compliance_pct!=null ? `<div><div style="font-size:20px;font-weight:900;color:var(--dark)">${r.compliance_pct}%</div><div style="font-size:10.5px;color:var(--gray3)">نسبة الامتثال</div></div>` : ""}
+        </div>
+        ${r.result_summary ? `<div style="font-size:11.5px;color:var(--dark);margin-top:10px;padding-top:10px;border-top:1px solid var(--gray1)">${r.result_summary}</div>` : ""}
+      </div>
+    </div>` : "";
+
   box.innerHTML = `
     ${timeline}
+    ${summaryHtml}
     <div class="sec-title" style="font-size:13px">📌 الملاحظات والإجراءات التصحيحية</div>
     ${findingsHtml}
     <div class="sec-title" style="font-size:13px;margin-top:14px">📎 الملفات</div>
@@ -13172,8 +13194,24 @@ async function openAuditAdminDetail(requestId){
     <div class="sec-title" style="font-size:13px;margin-top:14px">📄 التقرير النهائي</div>
     <div class="card"><div class="card-body">
       ${r.final_report_url ? `<a href="${r.final_report_url}" target="_blank" style="font-size:12px;color:var(--green);font-weight:700">📄 عرض التقرير المرفوع</a>` : '<div style="font-size:11px;color:var(--gray3);margin-bottom:8px">لم يُرفع تقرير نهائي بعد.</div>'}
+      <div style="background:var(--offwhite);border-radius:8px;padding:10px;margin-top:8px">
+        <div style="font-size:11px;font-weight:800;color:var(--dark);margin-bottom:6px">ملخّص النتيجة (يظهر للعميل مباشرة بدون فتح التقرير)</div>
+        <div class="fg" style="margin:0 0 6px"><label style="font-size:10.5px">نتيجة التفتيش</label>
+          <select class="fs" id="aad-inspection-result" style="margin:0">
+            <option value="">— اختر —</option>
+            <option value="مقبول" ${r.inspection_result==='مقبول'?'selected':''}>✅ مقبول</option>
+            <option value="مقبول مع ملاحظات" ${r.inspection_result==='مقبول مع ملاحظات'?'selected':''}>⚠️ مقبول مع ملاحظات</option>
+            <option value="غير مقبول" ${r.inspection_result==='غير مقبول'?'selected':''}>❌ غير مقبول</option>
+          </select>
+        </div>
+        <div class="row2" style="margin:0 0 6px">
+          <div class="fg" style="margin:0"><label style="font-size:10.5px">عدد الملاحظات</label><input type="number" class="fi" id="aad-findings-count" style="margin:0" value="${r.key_findings_count??''}"/></div>
+          <div class="fg" style="margin:0"><label style="font-size:10.5px">نسبة الامتثال %</label><input type="number" min="0" max="100" class="fi" id="aad-compliance-pct" style="margin:0" value="${r.compliance_pct??''}"/></div>
+        </div>
+        <div class="fg" style="margin:0"><label style="font-size:10.5px">ملخّص نصّي مختصر (سطر أو سطرين)</label><textarea class="fta" id="aad-result-summary" rows="2" style="margin:0">${r.result_summary||''}</textarea></div>
+      </div>
       <input type="file" class="fi" id="aad-report-file" style="margin-top:8px"/>
-      <button class="btn-xs primary" style="margin-top:6px" onclick="uploadFinalAuditReport(${requestId})">رفع التقرير النهائي</button>
+      <button class="btn-xs primary" style="margin-top:6px" onclick="uploadFinalAuditReport(${requestId})">رفع التقرير النهائي وحفظ الملخّص</button>
     </div></div>
 
     <div class="sec-title" style="font-size:13px;margin-top:14px">📌 إضافة ملاحظة/إجراء مطلوب</div>
@@ -13244,19 +13282,25 @@ async function uploadFinalAuditReport(requestId){
   const input = document.getElementById("aad-report-file");
   const url = await uploadFile(input, "audit-reports");
   if(!url) return;
+  const summaryFields = {
+    inspection_result: document.getElementById("aad-inspection-result").value || null,
+    key_findings_count: document.getElementById("aad-findings-count").value || null,
+    compliance_pct: document.getElementById("aad-compliance-pct").value || null,
+    result_summary: document.getElementById("aad-result-summary").value.trim() || null
+  };
   const isFullOwner = currentUserProfile && currentUserProfile.is_platform_admin === true;
   if(!isFullOwner){
     const { data: userData } = await sb.auth.getUser();
     const myEmail = userData && userData.user ? userData.user.email : null;
-    const { error } = await sb.from("audit_requests").update({ final_report_url: url, pending_final_approval: true, staff_closed_by: myEmail }).eq("id", requestId);
+    const { error } = await sb.from("audit_requests").update({ final_report_url: url, ...summaryFields, pending_final_approval: true, staff_closed_by: myEmail }).eq("id", requestId);
     if(error){ alert("تعذّر الحفظ: " + error.message); return; }
-    alert("تم رفع التقرير ✅ — بانتظار اعتماد مالك المنصة قبل ما يظهر للعميل.");
+    alert("تم رفع التقرير والملخّص ✅ — بانتظار اعتماد مالك المنصة قبل ما يظهر للعميل.");
     openAuditAdminDetail(requestId);
     return;
   }
-  const { error } = await sb.from("audit_requests").update({ final_report_url: url, status: "تقرير نهائي جاهز", pending_final_approval: false }).eq("id", requestId);
+  const { error } = await sb.from("audit_requests").update({ final_report_url: url, ...summaryFields, status: "تقرير نهائي جاهز", pending_final_approval: false }).eq("id", requestId);
   if(error){ alert("تعذّر الحفظ: " + error.message); return; }
-  alert("تم رفع التقرير النهائي وتحديث الحالة ✅");
+  alert("تم رفع التقرير النهائي والملخّص وتحديث الحالة ✅");
   openAuditAdminDetail(requestId);
 }
 
