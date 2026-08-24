@@ -3561,7 +3561,7 @@ async function verifyOtpLoginCode(){
     body: JSON.stringify({ method: "otp", phone, otpCode })
   });
   const data = await res.json();
-  if(!res.ok){ statusBox.innerHTML = `<span style="color:var(--red)">${data.error||"تعذّر الدخول"}</span>`; return; }
+  if(!res.ok){ statusBox.innerHTML = `<span style="color:var(--red)">${data.error||"تعذّر الدخول"}</span>${data.authenticaResponse?`<div style="font-size:9px;color:var(--gray3);margin-top:4px">${JSON.stringify(data.authenticaResponse)}</div>`:""}`; return; }
   await completePasswordlessLogin(data.email, data.hashed_token);
 }
 
