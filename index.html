@@ -3655,6 +3655,7 @@ async function handleAuth(){
     if(!national_id){ showLoginMsg("الرجاء إدخال رقم الهوية", false); return; }
     if(!phone_number){ showLoginMsg("الرجاء إدخال رقم الجوال", false); return; }
     if(account_type === "مساهم" && !shares_count){ showLoginMsg("الرجاء إدخال عدد الأسهم", false); return; }
+    if(!signupOtpVerifiedFlag){ showLoginMsg("الرجاء التحقق من رقم جوالك عبر رمز OTP أولًا قبل إنشاء الحساب", false); return; }
 
     const { error } = await sb.auth.signUp({ email, password });
     if(error){ showLoginMsg("خطأ: " + error.message, false); return; }
@@ -10305,16 +10306,16 @@ async function exportUsersList(){
 // newer "sb_publishable_..." key used for regular database calls — kept separate on purpose.
 const LEGACY_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9tZGRua29mc2R0d2Zqa3hka3R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1MzE5OTcsImV4cCI6MjA5OTEwNzk5N30.mZFiuj3C8PcQ0ShSYkYQWpJDA6gNr5mjFbNVaGhkhlQ";
 
-/* ══════════ SMS OTP (phone verification during signup) & WhatsApp Business API ══════════ */
+/* ══════════ SMS OTP (phone verification during signup) via Authentica & WhatsApp Business API ══════════ */
 let signupOtpVerifiedFlag = false;
 
 async function requestSignupOtp(){
   const phone = document.getElementById("signupPhone").value.trim();
   if(!phone){ alert("الرجاء إدخال رقم الجوال أولًا"); return; }
   try{
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/send-otp-sms`, {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/passwordless-login`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone: normalizeSaudiPhone(phone) })
+      body: JSON.stringify({ action: "send_otp_signup", phone })
     });
     const data = await res.json();
     if(!res.ok){ throw new Error(data.error || "فشل إرسال الرمز"); }
@@ -10326,17 +10327,22 @@ async function requestSignupOtp(){
 }
 
 async function verifySignupOtp(){
-  const phone = normalizeSaudiPhone(document.getElementById("signupPhone").value.trim());
+  const phone = document.getElementById("signupPhone").value.trim();
   const code = document.getElementById("signupOtpCode").value.trim();
   if(!code){ alert("الرجاء إدخال الرمز"); return; }
-  const { data, error } = await sb.from("otp_codes").select("*")
-    .eq("phone_number", phone).eq("code", code).eq("verified", false)
-    .gt("expires_at", new Date().toISOString()).order("created_at",{ascending:false}).limit(1);
-  if(error || !data || data.length === 0){ alert("الرمز غير صحيح أو منتهي الصلاحية — اضغط \"إرسال رمز التحقق\" للحصول على رمز جديد."); return; }
-  await sb.from("otp_codes").update({ verified: true }).eq("id", data[0].id);
-  signupOtpVerifiedFlag = true;
-  document.getElementById("signupOtpVerified").style.display = "block";
-  document.getElementById("signupOtpRow").style.display = "none";
+  try{
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/passwordless-login`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "verify_otp_signup", phone, otpCode: code })
+    });
+    const data = await res.json();
+    if(!res.ok || !data.verified){ alert("الرمز غير صحيح أو منتهي الصلاحية — اضغط \"إرسال رمز التحقق\" للحصول على رمز جديد."); return; }
+    signupOtpVerifiedFlag = true;
+    document.getElementById("signupOtpVerified").style.display = "block";
+    document.getElementById("signupOtpRow").style.display = "none";
+  }catch(e){
+    alert("تعذّر التحقق: " + e.message);
+  }
 }
 
 // Generic WhatsApp Business API sender — requires an APPROVED message template on Meta's side
