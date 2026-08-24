@@ -3154,6 +3154,25 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <div class="fg"><label>عدد الأسهم</label><input type="number" class="fi" id="mco-shares" placeholder="مثال: 100000" /></div>
     </div>
     <div class="fg" id="mco-nominal-field"><label>السعر الاسمي للسهم (ريال)</label><input type="number" step="0.01" class="fi" id="mco-nominal" placeholder="مثال: 10" /></div>
+    <div style="background:var(--offwhite);border-radius:10px;padding:12px;margin-top:6px">
+      <div style="font-size:11.5px;font-weight:800;color:var(--dark);margin-bottom:8px">🖼️ الترويسة الرسمية والختم</div>
+      <div class="fg"><label>الورق الرسمي (ترويسة فارغة — PNG/JPG)</label>
+        <input type="file" class="fi" id="mco-letterhead" accept="image/*"/>
+        <div id="mco-letterhead-current" style="font-size:10.5px;color:var(--gray3);margin-top:4px"></div>
+      </div>
+      <div class="fg"><label>صورة الختم</label>
+        <input type="file" class="fi" id="mco-seal" accept="image/*"/>
+        <div id="mco-seal-current" style="font-size:10.5px;color:var(--gray3);margin-top:4px"></div>
+      </div>
+      <div class="fg" style="margin:0"><label>موقع الختم بالمستند</label>
+        <select class="fs" id="mco-seal-position">
+          <option value="أسفل يمين الصفحة">أسفل يمين الصفحة</option>
+          <option value="أسفل يسار الصفحة">أسفل يسار الصفحة</option>
+          <option value="أسفل وسط الصفحة">أسفل وسط الصفحة</option>
+          <option value="بجانب أول توقيع">بجانب أول توقيع</option>
+        </select>
+      </div>
+    </div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-company')">إلغاء</button><button class="btn btn-gold" onclick="saveCompany()">✅ حفظ الشركة</button></div>
   </div>
 </div>
@@ -5203,6 +5222,9 @@ async function openEditCompanyModal(){
   document.getElementById("mco-capital").value = c.total_capital ?? "";
   document.getElementById("mco-shares").value = c.total_shares ?? "";
   document.getElementById("mco-nominal").value = c.share_nominal_value ?? "";
+  document.getElementById("mco-seal-position").value = c.seal_position || "أسفل يمين الصفحة";
+  document.getElementById("mco-letterhead-current").innerHTML = c.letterhead_url ? `✅ مرفوعة حاليًا — <a href="${c.letterhead_url}" target="_blank">عرض</a> (ارفع ملف جديد لاستبدالها)` : "لم تُرفع بعد";
+  document.getElementById("mco-seal-current").innerHTML = c.seal_url ? `✅ مرفوع حاليًا — <a href="${c.seal_url}" target="_blank">عرض</a> (ارفع ملف جديد لاستبداله)` : "لم يُرفع بعد";
   toggleShareNominalField();
   openM("m-company");
 }
@@ -5674,8 +5696,16 @@ async function saveCompany(){
   const total_capital = document.getElementById("mco-capital").value ? Number(document.getElementById("mco-capital").value) : null;
   const total_shares = document.getElementById("mco-shares").value ? Number(document.getElementById("mco-shares").value) : null;
   const share_nominal_value = document.getElementById("mco-nominal").value ? Number(document.getElementById("mco-nominal").value) : null;
+  const seal_position = document.getElementById("mco-seal-position").value;
 
-  const payload = { name, company_type, cr_number, cr_date, responsible_person, responsible_phone, responsible_email, total_capital, total_shares, share_nominal_value };
+  const letterheadInput = document.getElementById("mco-letterhead");
+  const sealInput = document.getElementById("mco-seal");
+  const letterhead_url = (letterheadInput.files && letterheadInput.files[0]) ? await uploadFile(letterheadInput, "company-branding") : undefined;
+  const seal_url = (sealInput.files && sealInput.files[0]) ? await uploadFile(sealInput, "company-branding") : undefined;
+
+  const payload = { name, company_type, cr_number, cr_date, responsible_person, responsible_phone, responsible_email, total_capital, total_shares, share_nominal_value, seal_position };
+  if(letterhead_url !== undefined) payload.letterhead_url = letterhead_url;
+  if(seal_url !== undefined) payload.seal_url = seal_url;
 
   if(id){
     const { error } = await sb.from("companies").update(payload).eq("id", id);
@@ -7253,7 +7283,7 @@ async function generateBoardChangeAnnouncement(){
     appointedBio: document.getElementById("bca-appointed-bio").value.trim()
   };
 
-  const b = new CanvasPDFBuilder();
+  const b = await CanvasPDFBuilder.create(currentCompanyId);
   let title;
   if(changeType === "استقالة") title = `تعلن شركة ${companyName} عن استقالة عضو من مجلس إدارتها`;
   else if(changeType === "تعيين") title = `تعلن شركة ${companyName} عن تعيين عضو في المقعد الشاغر بمجلس إدارتها`;
@@ -7351,7 +7381,7 @@ async function generateTadawulAnnouncement(){
 }
 
 async function buildTadawulAnnouncementPDF(type, m, company, extra){
-  const b = new CanvasPDFBuilder();
+  const b = await CanvasPDFBuilder.create(currentCompanyId);
   const companyName = company?.name || "الشركة";
   const agmTypeLabel = m?.agm_type === "غير عادية" ? "غير العادية" : "العادية";
   const callLabels = {1:"الأول", 2:"الثاني", 3:"الثالث"};
@@ -8481,7 +8511,7 @@ const POLICY_WORKFLOW_LABELS = {
 };
 
 async function buildPolicyCanvasPages(policy, signaturesMap, orderedRoles){
-  const b = new CanvasPDFBuilder();
+  const b = await CanvasPDFBuilder.create(currentCompanyId);
   b.wrapAndDraw(policy.policy_name || "سياسة", { align:"center", font:`bold ${16*b.scale}px Tajawal, Arial`, color:"#1A3A6B" });
   b.spacer(6);
   b.wrapAndDraw(getMatrixCompanyName(), { align:"center", font:`bold ${12*b.scale}px Tajawal, Arial` });
@@ -9115,7 +9145,7 @@ async function loadSigning(){
       const statusBadge = isComplete ? '<span class="badge done">مكتمل ✍️</span>' : '<span class="badge pending">قيد التوقيع</span>';
       const isOfficialDoc = !!s.signer_roles;
       const actionCell = isOfficialDoc
-        ? `${s.file_url ? `<a class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:4px 10px;font-size:11px;text-decoration:none" href="${s.file_url}" target="_blank" rel="noopener">📄 عرض المستند</a>` : ""} ${isComplete ? "" : `<button class="btn-xs gold" onclick="openOfficialSignModal(${s.id})">✍️ توقيع</button>`}`
+        ? `${s.file_url ? `<a class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:4px 10px;font-size:11px;text-decoration:none" href="${s.file_url}" target="_blank" rel="noopener">📄 عرض المستند</a>` : ""} ${isComplete ? "" : `<button class="btn-xs gold" onclick="openOfficialSignModal(${s.id})">✍️ توقيع</button>`} <button class="btn-xs" style="background:#FEF3E2;color:var(--gold);border:1px solid var(--gold);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="applyCompanySealToDoc(${s.id})">🔖 إضافة الختم</button>`
         : `${s.file_url ? `<a class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:4px 10px;font-size:11px;text-decoration:none" href="${s.file_url}" target="_blank" rel="noopener">📄 الملف الأصلي (غير موقّع)</a>` : ""} <button class="btn-xs gold" onclick="generateSignedDocumentPDF(${s.id},this)">${isComplete ? "📥 تحميل الوثيقة الموقّعة (PDF)" : "🖨️ حالة التوقيع"}</button>`;
       return `<tr>
         <td>${s.document_name||""}</td><td>${s.doc_type||"—"}</td>
@@ -9254,6 +9284,52 @@ async function deleteSigningDoc(id){
 
 /* ══════════ OFFICIAL DOCUMENT SIGNING (signatures embedded in-place, not a certificate page) ══════════ */
 let officialSigPadCtx = null, officialSigPadDrawing = false, currentOfficialSignDocId = null;
+
+// Stamps the company's seal onto an EXISTING signed/generated PDF — works on any document
+// already in signing_documents regardless of how it was originally produced (our own
+// generator or a manually uploaded file), since it operates on the final PDF bytes directly.
+async function applyCompanySealToDoc(signingDocId){
+  const { data: doc } = await sb.from("signing_documents").select("file_url").eq("id", signingDocId).single();
+  const { data: company } = await sb.from("companies").select("seal_url,seal_position").eq("id", currentCompanyId).single();
+  if(!doc || !doc.file_url){ alert("تعذّر تحميل المستند"); return; }
+  if(!company || !company.seal_url){ alert('لا يوجد ختم مرفوع بعد — ارفعه أولًا من "تعديل بيانات الشركة".'); return; }
+  if(!confirm("إضافة ختم الشركة على هذا المستند؟")) return;
+
+  try{
+    const { PDFDocument } = PDFLib;
+    const [existingBytes, sealBytes] = await Promise.all([
+      fetch(doc.file_url).then(r => r.arrayBuffer()),
+      fetch(company.seal_url).then(r => r.arrayBuffer())
+    ]);
+    const pdfDoc = await PDFDocument.load(existingBytes);
+    const sealImg = company.seal_url.toLowerCase().includes(".png") ? await pdfDoc.embedPng(sealBytes) : await pdfDoc.embedJpg(sealBytes);
+    const sealSize = 70;
+    const pages = pdfDoc.getPages();
+    const lastPage = pages[pages.length - 1];
+    const { width, height } = lastPage.getSize();
+    const margin = 45;
+    // PDF coordinates are bottom-left-origin, opposite of the canvas builder's top-left —
+    // recalculated here rather than reusing CanvasPDFBuilder.drawSeal()'s positions directly.
+    const positions = {
+      "أسفل يمين الصفحة": [width - margin - sealSize, margin],
+      "أسفل يسار الصفحة": [margin, margin],
+      "أسفل وسط الصفحة": [(width - sealSize)/2, margin],
+      "بجانب أول توقيع": [width/2 - sealSize - 20, margin + 25]
+    };
+    const [x, y] = positions[company.seal_position] || positions["أسفل يمين الصفحة"];
+    lastPage.drawImage(sealImg, { x, y, width: sealSize, height: sealSize, opacity: 0.85 });
+
+    const finalBytes = await pdfDoc.save();
+    const blob = new Blob([finalBytes], { type: "application/pdf" });
+    const file_url = await uploadBlobToStorage(blob, "official-documents", `مختوم-${signingDocId}-${Date.now()}.pdf`);
+    if(!file_url) return;
+    await sb.from("signing_documents").update({ file_url }).eq("id", signingDocId);
+    alert("تم إضافة الختم ✅");
+    loadSigning();
+  }catch(e){
+    alert("تعذّر إضافة الختم: " + e.message);
+  }
+}
 
 async function openOfficialSignModal(docId){
   const { data: doc } = await sb.from("signing_documents").select("*").eq("id", docId).single();
@@ -10896,7 +10972,7 @@ async function buildMatrixCanvasPages(signaturesMap, orderedRoles){
   const cellMap = {};
   (cells||[]).forEach(c => { cellMap[c.item_id+'-'+c.holder_id] = c.code; });
 
-  const b = new CanvasPDFBuilder();
+  const b = await CanvasPDFBuilder.create(currentCompanyId);
   b.wrapAndDraw("مصفوفة الصلاحيات والمسؤوليات", { align:"center", font:`bold ${16*b.scale}px Tajawal, Arial`, color:"#1A3A6B" });
   b.spacer(6);
   b.wrapAndDraw(getMatrixCompanyName(), { align:"center", font:`bold ${12*b.scale}px Tajawal, Arial` });
@@ -15220,7 +15296,31 @@ class CanvasPDFBuilder {
     this.sigImageCache = {};
     this.margin = 50*this.scale;
     this.pages = [];
-    this.newPage();
+    this.letterheadImg = null;
+    this.headerHeight = 0;
+  }
+  // Loads the company's letterhead once (if they've uploaded one) so every page of every
+  // document — announcements, minutes, disclosure forms, all of it — gets it automatically,
+  // instead of each document generator needing its own letterhead logic.
+  static async create(companyId){
+    const b = new CanvasPDFBuilder();
+    if(companyId){
+      try{
+        const { data: company } = await sb.from("companies").select("letterhead_url").eq("id", companyId).single();
+        if(company && company.letterhead_url){
+          const img = await new Promise((resolve) => {
+            const im = new Image();
+            im.crossOrigin = "anonymous";
+            im.onload = () => resolve(im);
+            im.onerror = () => resolve(null);
+            im.src = company.letterhead_url;
+          });
+          if(img){ b.letterheadImg = img; b.headerHeight = 110*b.scale; }
+        }
+      }catch(e){ /* no letterhead configured or failed to load — proceed without one */ }
+    }
+    b.newPage();
+    return b;
   }
   newPage(){
     const canvas = document.createElement("canvas");
@@ -15229,7 +15329,12 @@ class CanvasPDFBuilder {
     ctx.fillStyle = "#ffffff"; ctx.fillRect(0,0,this.W,this.H);
     ctx.direction = "rtl";
     this.ctx = ctx; this.canvas = canvas;
-    this.y = this.margin;
+    if(this.letterheadImg){
+      const headerDrawH = this.headerHeight - 10*this.scale;
+      const headerDrawW = headerDrawH * (this.letterheadImg.width/this.letterheadImg.height);
+      ctx.drawImage(this.letterheadImg, (this.W-headerDrawW)/2, 8*this.scale, headerDrawW, headerDrawH);
+    }
+    this.y = this.margin + this.headerHeight;
     this.pages.push(canvas);
   }
   ensureSpace(neededH){
@@ -15285,6 +15390,24 @@ class CanvasPDFBuilder {
       this.ctx.font = `${11*this.scale}px Tajawal, Arial`; this.ctx.fillStyle = "#8B95A5";
       this.ctx.fillText(expectedName || "..........................", x, y + 20*this.scale);
     }
+  }
+  // Stamps the company seal onto a specific page at its configured fixed position — called
+  // from the signing UI's "🔖 إضافة الختم" button, separate from the signature-slot drawing
+  // since a seal isn't tied to any one signer's role.
+  drawSeal(sealImg, position, pageIndex){
+    const canvas = this.pages[pageIndex] || this.pages[this.pages.length-1];
+    const ctx = canvas.getContext("2d");
+    const sealSize = 90*this.scale;
+    const positions = {
+      "أسفل يمين الصفحة": [this.W - this.margin - sealSize, this.H - this.margin - sealSize],
+      "أسفل يسار الصفحة": [this.margin, this.H - this.margin - sealSize],
+      "أسفل وسط الصفحة": [(this.W - sealSize)/2, this.H - this.margin - sealSize],
+      "بجانب أول توقيع": [this.W/2 - sealSize - 20*this.scale, this.H - this.margin - sealSize*1.6]
+    };
+    const [x, y] = positions[position] || positions["أسفل يمين الصفحة"];
+    ctx.globalAlpha = 0.85;
+    ctx.drawImage(sealImg, x, y, sealSize, sealSize);
+    ctx.globalAlpha = 1;
   }
   async toPDFBytes(){
     const { PDFDocument } = PDFLib;
@@ -15832,7 +15955,7 @@ async function submitDisclosureForm(){
 }
 
 async function buildDisclosureFormCanvasPages(form, signaturesMap, orderedRoles){
-  const b = new CanvasPDFBuilder();
+  const b = await CanvasPDFBuilder.create(currentCompanyId);
   const { data: company } = await sb.from("companies").select("name").eq("id", form.company_id).single();
 
   b.wrapAndDraw("نموذج الإفصاح — عضوية مجلس الإدارة", { align:"center", font:`bold ${16*b.scale}px Tajawal, Arial`, color:"#1A3A6B" });
@@ -15943,7 +16066,7 @@ async function generateOfficialDoc(docTypeKey, meetingId){
   }
 
   const data = await config.prepareData(meetingId);
-  const b = new CanvasPDFBuilder();
+  const b = await CanvasPDFBuilder.create(currentCompanyId);
   await config.draw(b, data, {}, roleNames, extra);
   const bytes = await b.toPDFBytes();
   const blob = new Blob([bytes], { type: "application/pdf" });
@@ -16000,7 +16123,7 @@ async function regenerateOfficialDoc(signingDocId){
   const signaturesMap = {};
   (sigs||[]).forEach(s => { signaturesMap[s.role] = { name: s.signer_name, image: s.signature_image }; });
 
-  const b = new CanvasPDFBuilder();
+  const b = await CanvasPDFBuilder.create(currentCompanyId);
   await config.draw(b, data, signaturesMap, roleNames, doc.signature_slots||{});
   const bytes = await b.toPDFBytes();
   const blob = new Blob([bytes], { type: "application/pdf" });
