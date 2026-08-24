@@ -2932,15 +2932,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 </div>
 
 <div class="modal-bg" id="m-announcement-type-picker">
-  <div class="modal">
+  <div class="modal" style="max-width:520px">
     <div class="modal-title">📢 اختر نوع الإعلان</div>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <button class="btn-xs primary" style="padding:10px" onclick="pickAgmAnnouncementType('دعوة')">📨 دعوة لجمعية عامة</button>
-      <button class="btn-xs primary" style="padding:10px" onclick="pickAgmAnnouncementType('نتائج')">📊 نتائج جمعية عامة</button>
-      <button class="btn-xs primary" style="padding:10px" onclick="pickAgmAnnouncementType('عدم انعقاد')">🚫 عدم انعقاد جمعية</button>
-      <div style="height:1px;background:var(--gray1);margin:4px 0"></div>
-      <button class="btn-xs primary" style="padding:10px" onclick="closeM('m-announcement-type-picker');openM('m-board-change-announcement');toggleBoardChangeFields()">👤 تغيير عضوية مجلس إدارة (استقالة/تعيين)</button>
-    </div>
+    <input class="fi" id="annTypeSearch" placeholder="ابحث عن نوع الإعلان..." oninput="renderAnnouncementTypeList()" style="margin-bottom:10px"/>
+    <div id="annTypeList" style="max-height:55vh;overflow-y:auto"></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-announcement-type-picker')">إلغاء</button></div>
   </div>
 </div>
@@ -2953,25 +2948,11 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
-<div class="modal-bg" id="m-board-change-announcement">
-  <div class="modal">
-    <div class="modal-title">👤 إعلان تغيير عضوية مجلس إدارة</div>
-    <div class="fg"><label>نوع التغيير</label><select class="fs" id="bca-type" onchange="toggleBoardChangeFields()">
-      <option value="استقالة">استقالة عضو</option>
-      <option value="تعيين">تعيين عضو جديد بمقعد شاغر</option>
-      <option value="استقالة وتعيين">استقالة عضو وتعيين عضو جديد</option>
-    </select></div>
-    <div id="bca-resign-fields">
-      <div class="fg"><label>اسم العضو المستقيل</label><input class="fi" id="bca-resigning"/></div>
-      <div class="fg"><label>تاريخ تقديم الاستقالة</label><input type="date" class="fi" id="bca-resign-date"/></div>
-      <div class="fg"><label>أسباب الاستقالة</label><textarea class="fta" id="bca-resign-reason" rows="2"></textarea></div>
-    </div>
-    <div id="bca-appoint-fields">
-      <div class="fg"><label>اسم العضو المعيَّن</label><input class="fi" id="bca-appointed"/></div>
-      <div class="fg"><label>تاريخ اجتماع المجلس الذي تم فيه التعيين</label><input type="date" class="fi" id="bca-appoint-date"/></div>
-      <div class="fg"><label>نبذة مختصرة عن السيرة الذاتية للعضو المعيَّن</label><textarea class="fta" id="bca-appointed-bio" rows="2"></textarea></div>
-    </div>
-    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-board-change-announcement')">إلغاء</button><button class="btn btn-gold" onclick="generateBoardChangeAnnouncement()">📝 توليد PDF</button></div>
+<div class="modal-bg" id="m-generic-announcement">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title" id="genAnnTitle">📢 إعلان</div>
+    <div id="genAnnFields"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-generic-announcement')">إلغاء</button><button class="btn btn-gold" onclick="generateGenericAnnouncement()">📝 توليد PDF</button></div>
   </div>
 </div>
 
@@ -7203,7 +7184,506 @@ async function saveTadawulResults(){
 /* ══════════ STANDALONE ANNOUNCEMENTS PAGE (not tied to any one meeting) ══════════ */
 let pendingAnnouncementType = null;
 
+/* ══════════ CMA ANNOUNCEMENT TYPE REGISTRY (data-driven engine) ══════════
+   Each entry defines: category (for grouping in the picker), a title-template function
+   (matching the CMA's exact required wording), and a fields list the generic modal renders
+   automatically and the generic PDF generator prints line by line. Adding a new type from the
+   remaining ~18 (financial results, capital-increase sequences, acquisitions) is just adding
+   one more entry here — no new modal or PDF code needed. */
+const ANNOUNCEMENT_TYPES = {
+  "فتح باب الترشّح لعضوية مجلس الإدارة": {
+    category: "التغييرات الإدارية",
+    title: (co) => `تعلن شركة ${co} عن فتح باب الترشّح لعضوية مجلس إدارة الشركة للدورة القادمة`,
+    fields: [
+      {key:"term_start", label:"تاريخ بداية الدورة", type:"date"},
+      {key:"term_end", label:"تاريخ انتهاء الدورة", type:"date"},
+      {key:"nom_open", label:"موعد فتح باب الترشيح", type:"date"},
+      {key:"nom_close", label:"موعد انتهاء الترشيح", type:"date"},
+      {key:"submit_method", label:"طريقة تسلّم طلبات الترشّح", type:"textarea"},
+      {key:"criteria", label:"سياسة ومعايير الترشّح المعتمدة من الجمعية العامة", type:"textarea"},
+    ]
+  },
+  "استقالة عضو مجلس إدارة": {
+    category: "التغييرات الإدارية",
+    title: (co) => `تعلن شركة ${co} عن استقالة عضو من مجلس إدارتها`,
+    fields: [
+      {key:"member_name", label:"اسم العضو المستقيل", type:"text"},
+      {key:"capacity", label:"صفة عضويته (تنفيذي/غير تنفيذي/مستقل)", type:"text"},
+      {key:"submit_date", label:"تاريخ تقديم الاستقالة", type:"date"},
+      {key:"effective_date", label:"تاريخ سريانها", type:"date"},
+      {key:"reason", label:"أسباب الاستقالة", type:"textarea"},
+      {key:"start_date", label:"تاريخ بداية عضويته الأصلية", type:"date"},
+    ]
+  },
+  "تعيين عضو مجلس إدارة جديد": {
+    category: "التغييرات الإدارية",
+    title: (co) => `تعلن شركة ${co} عن تعيين عضو في المقعد الشاغر بمجلس إدارتها`,
+    fields: [
+      {key:"member_name", label:"اسم العضو المعيَّن", type:"text"},
+      {key:"capacity", label:"صفة عضويته", type:"text"},
+      {key:"meeting_date", label:"تاريخ اجتماع المجلس الذي تم فيه التعيين", type:"date"},
+      {key:"noc_date", label:"تاريخ عدم ممانعة الجهات الرسمية (إن وجدت)", type:"date"},
+      {key:"start_date", label:"تاريخ بداية العضوية", type:"date"},
+      {key:"bio", label:"نبذة مختصرة عن السيرة الذاتية", type:"textarea"},
+    ],
+    fixedNote: "موافقة مجلس الإدارة لا تُعدّ نهائية، وسوف يُعرض هذا التعيين على أول اجتماع للجمعية العامة لإقراره."
+  },
+  "استقالة عضو مجلس إدارة وتعيين عضو جديد": {
+    category: "التغييرات الإدارية",
+    title: (co) => `تعلن شركة ${co} عن استقالة عضو من مجلس إدارتها وتعيين عضو جديد`,
+    fields: [
+      {key:"resigning_name", label:"اسم العضو المستقيل", type:"text"},
+      {key:"resign_submit_date", label:"تاريخ تقديم الاستقالة", type:"date"},
+      {key:"resign_effective_date", label:"تاريخ سريانها", type:"date"},
+      {key:"resign_reason", label:"أسباب الاستقالة", type:"textarea"},
+      {key:"resign_start_date", label:"تاريخ بداية عضوية المستقيل", type:"date"},
+      {key:"appointed_name", label:"اسم العضو المعيَّن", type:"text"},
+      {key:"meeting_date", label:"تاريخ اجتماع المجلس", type:"date"},
+      {key:"appoint_start_date", label:"تاريخ بداية عضوية المعيَّن", type:"date"},
+      {key:"bio", label:"نبذة عن السيرة الذاتية للمعيَّن", type:"textarea"},
+    ],
+    fixedNote: "موافقة مجلس الإدارة لا تُعدّ نهائية، وسوف يُعرض هذا التعيين على أول اجتماع للجمعية العامة لإقراره."
+  },
+  "استقالة الرئيس التنفيذي": {
+    category: "التغييرات الإدارية",
+    title: (co) => `تعلن شركة ${co} عن استقالة الرئيس التنفيذي للشركة`,
+    fields: [
+      {key:"name", label:"اسم الشخص المستقيل", type:"text"},
+      {key:"accept_date", label:"تاريخ قبول الاستقالة", type:"date"},
+      {key:"effective_date", label:"تاريخ سريانها", type:"date"},
+      {key:"reason", label:"أسباب الاستقالة", type:"textarea"},
+    ]
+  },
+  "تعيين رئيس تنفيذي": {
+    category: "التغييرات الإدارية",
+    title: (co) => `تعلن شركة ${co} عن تعيين رئيس تنفيذي للشركة`,
+    fields: [
+      {key:"name", label:"اسم الشخص المعيَّن", type:"text"},
+      {key:"decision_date", label:"تاريخ قرار مجلس الإدارة", type:"date"},
+      {key:"start_date", label:"تاريخ مباشرته العمل", type:"date"},
+      {key:"bio", label:"نبذة مختصرة عن السيرة الذاتية", type:"textarea"},
+    ]
+  },
+  "استقالة وتعيين رئيس تنفيذي": {
+    category: "التغييرات الإدارية",
+    title: (co) => `تعلن شركة ${co} عن استقالة الرئيس التنفيذي وتعيين/تكليف رئيس تنفيذي جديد`,
+    fields: [
+      {key:"resigning_name", label:"اسم الشخص المستقيل", type:"text"},
+      {key:"accept_date", label:"تاريخ قبول الاستقالة", type:"date"},
+      {key:"effective_date", label:"تاريخ سريانها", type:"date"},
+      {key:"reason", label:"أسباب الاستقالة", type:"textarea"},
+      {key:"acting_name", label:"اسم المكلَّف مؤقتًا (إن وجد)", type:"text"},
+      {key:"appointed_name", label:"اسم المعيَّن (إن وجد)", type:"text"},
+      {key:"start_date", label:"تاريخ بداية التكليف/التعيين", type:"date"},
+      {key:"decision_date", label:"تاريخ قرار مجلس الإدارة", type:"date"},
+      {key:"bio", label:"نبذة عن السيرة الذاتية", type:"textarea"},
+    ]
+  },
+  "استقالة عضو لجنة المراجعة": {
+    category: "التغييرات الإدارية",
+    title: (co) => `تعلن شركة ${co} عن استقالة عضو من لجنة المراجعة`,
+    fields: [
+      {key:"member_name", label:"اسم العضو المستقيل", type:"text"},
+      {key:"submit_date", label:"تاريخ تقديم الاستقالة", type:"date"},
+      {key:"effective_date", label:"تاريخ سريانها", type:"date"},
+      {key:"reason", label:"أسباب الاستقالة", type:"textarea"},
+      {key:"start_date", label:"تاريخ بداية عضويته", type:"date"},
+    ]
+  },
+  "تعيين عضو لجنة المراجعة": {
+    category: "التغييرات الإدارية",
+    title: (co) => `تعلن شركة ${co} عن تعيين عضو في لجنة المراجعة`,
+    fields: [
+      {key:"member_name", label:"اسم العضو المعيَّن", type:"text"},
+      {key:"meeting_date", label:"تاريخ اجتماع المجلس الذي تم فيه التعيين", type:"date"},
+      {key:"noc_date", label:"تاريخ عدم ممانعة الجهات الرسمية (إن وجدت)", type:"date"},
+      {key:"start_date", label:"تاريخ بداية العضوية", type:"date"},
+      {key:"bio", label:"نبذة عن السيرة الذاتية", type:"textarea"},
+    ]
+  },
+
+  "توصية بتوزيع أرباح نقدية": {
+    category: "الأرباح النقدية",
+    title: (co) => `تعلن شركة ${co} عن توصية/قرار مجلس إدارة الشركة بتوزيع أرباح نقدية على المساهمين`,
+    fields: [
+      {key:"decision_date", label:"تاريخ التوصية أو القرار", type:"date"},
+      {key:"period", label:"فترة التوزيع", type:"text"},
+      {key:"total_amount", label:"إجمالي المبلغ الموزَّع (ريال)", type:"text"},
+      {key:"eligible_shares", label:"عدد الأسهم المستحقة للأرباح", type:"text"},
+      {key:"per_share", label:"حصة السهم من التوزيع", type:"text"},
+      {key:"pct_of_nominal", label:"نسبة التوزيع لقيمة السهم الاسمية", type:"text"},
+      {key:"entitlement_date", label:"تاريخ الأحقية", type:"date"},
+      {key:"distribution_date", label:"تاريخ التوزيع (أو اكتب: سيُعلَن لاحقًا)", type:"text"},
+    ]
+  },
+  "عدم توزيع أرباح نقدية": {
+    category: "الأرباح النقدية",
+    title: (co) => `تعلن شركة ${co} عن قرار مجلس إدارة الشركة بعدم توزيع أرباح نقدية على المساهمين`,
+    fields: [
+      {key:"decision_date", label:"تاريخ قرار مجلس الإدارة", type:"date"},
+      {key:"period", label:"فترة التوزيع ذات العلاقة", type:"text"},
+      {key:"reason", label:"سبب التوصية بعدم التوزيع", type:"textarea"},
+    ]
+  },
+
+  "ترسية عقد أو مشروع": {
+    category: "العقود",
+    title: (co, extra) => `تعلن شركة ${co} عن ترسية (عقد/مشروع) مع ${extra.other_party||"...."}`,
+    fields: [
+      {key:"other_party", label:"الطرف الآخر", type:"text"},
+      {key:"award_date", label:"تاريخ الترسية", type:"date"},
+      {key:"value", label:"قيمة العقد أو المشروع", type:"text"},
+      {key:"expected_sign_date", label:"التاريخ المتوقَّع لتوقيع العقد (إن وجد)", type:"date"},
+      {key:"details", label:"تفاصيل العقد أو المشروع", type:"textarea"},
+      {key:"related_party", label:"أطراف ذات علاقة (إن وجدت)", type:"textarea"},
+    ]
+  },
+  "توقيع عقد أو مشروع": {
+    category: "العقود",
+    title: (co, extra) => `تعلن شركة ${co} عن توقيع (عقد/مشروع) مع ${extra.other_party||"...."} لغرض ${extra.purpose||"...."}`,
+    fields: [
+      {key:"other_party", label:"الجهة الموقَّع معها", type:"text"},
+      {key:"purpose", label:"الغرض من العقد/المشروع", type:"text"},
+      {key:"sign_date", label:"تاريخ التوقيع", type:"date"},
+      {key:"value", label:"قيمة العقد أو المشروع", type:"text"},
+      {key:"duration", label:"تفاصيل العقد ومدته", type:"textarea"},
+      {key:"related_party", label:"أطراف ذات علاقة (إن وجدت)", type:"textarea"},
+      {key:"financial_impact", label:"الأثر المالي والفترة التي ينعكس عليها", type:"textarea"},
+    ]
+  },
+
+  "إعلان إلحاقي": {
+    category: "الإلحاقية والتصحيحية",
+    title: (co, extra) => `إعلان إلحاقي من شركة ${co} بخصوص ${extra.subject||"...."}`,
+    fields: [
+      {key:"subject", label:"موضوع الإعلان", type:"text"},
+      {key:"previous_date", label:"تاريخ الإعلان السابق للتطور", type:"date"},
+      {key:"change", label:"التغيّر الحاصل على التطور (المعلومة الإضافية)", type:"textarea"},
+      {key:"financial_impact", label:"الأثر المالي للتغيّر (إن وجد)", type:"textarea"},
+    ]
+  },
+  "إعلان تصحيحي": {
+    category: "الإلحاقية والتصحيحية",
+    title: (co, extra) => `إعلان تصحيحي من شركة ${co} بخصوص ${extra.subject||"...."}`,
+    fields: [
+      {key:"subject", label:"موضوع الإعلان", type:"text"},
+      {key:"previous_date", label:"تاريخ الإعلان السابق للتطور", type:"date"},
+      {key:"wrong_statement", label:"البيان الخاطئ بالإعلان السابق", type:"textarea"},
+      {key:"correction", label:"التصحيح", type:"textarea"},
+    ]
+  },
+
+  "توقيع مذكرة تفاهم": {
+    category: "مذكرات التفاهم",
+    title: (co, extra) => `تعلن شركة ${co} عن توقيع مذكرة تفاهم مع ${extra.other_party||"...."}`,
+    fields: [
+      {key:"other_party", label:"الجهة الموقَّع معها", type:"text"},
+      {key:"sign_date", label:"تاريخ التوقيع", type:"date"},
+      {key:"subject", label:"موضوع المذكرة", type:"text"},
+      {key:"duration", label:"مدة المذكرة", type:"text"},
+      {key:"related_party", label:"أطراف ذات علاقة (إن وجدت)", type:"textarea"},
+      {key:"financial_impact", label:"الأثر المالي (إن وجد)", type:"textarea"},
+    ]
+  },
+
+  "إعلان عن مشروع": {
+    category: "المشاريع",
+    title: (co, extra) => `تعلن شركة ${co} عن ${extra.project_name||"...."}`,
+    fields: [
+      {key:"project_name", label:"اسم المشروع", type:"text"},
+      {key:"decision_date", label:"تاريخ قرار المجلس بخصوص المشروع (إن وجد)", type:"date"},
+      {key:"start_date", label:"تاريخ البدء بالإنشاء", type:"date"},
+      {key:"cost", label:"تكلفة المشروع", type:"text"},
+      {key:"funding_method", label:"طريقة التمويل", type:"text"},
+      {key:"expected_completion", label:"التاريخ المتوقَّع للانتهاء من الإنشاء", type:"date"},
+      {key:"financial_impact", label:"الأثر المالي المتوقَّع بالقوائم المالية", type:"textarea"},
+      {key:"expected_production", label:"التاريخ المتوقَّع للإنتاج التجاري", type:"date"},
+      {key:"executing_party", label:"الجهة المنفِّذة أو الطرف الآخر بالعقد", type:"text"},
+    ]
+  },
+
+  "صفقة أصل (شراء/بيع/رهن/تأجير)": {
+    category: "الصفقات",
+    title: (co, extra) => `تعلن شركة ${co} عن (${extra.deal_type||"شراء/بيع/رهن/تأجير"}) ${extra.asset||"...."} بقيمة ${extra.value||"...."}`,
+    fields: [
+      {key:"deal_type", label:"نوع الصفقة (شراء/بيع/رهن/تأجير)", type:"text"},
+      {key:"asset", label:"وصف الأصل موضوع الصفقة", type:"text"},
+      {key:"value", label:"قيمة الصفقة وشروطها وأطرافها وطريقة تمويلها", type:"textarea"},
+      {key:"deal_date", label:"تاريخ إبرام الصفقة", type:"date"},
+      {key:"book_value", label:"القيمة الدفترية للأصل (في حال البيع)", type:"text"},
+      {key:"reasons", label:"أسباب الصفقة وآثارها المتوقَّعة", type:"textarea"},
+      {key:"proceeds_use", label:"بيان استخدام المتحصلات (في حال البيع)", type:"textarea"},
+      {key:"related_party", label:"أطراف ذات علاقة (إن وجدت)", type:"textarea"},
+    ]
+  },
+
+  "الحصول على تمويل": {
+    category: "التمويل",
+    title: (co, extra) => `تعلن شركة ${co} عن حصولها على ${extra.financing_type||"...."}`,
+    fields: [
+      {key:"financing_type", label:"نوع التمويل", type:"text"},
+      {key:"date", label:"تاريخ الحصول على التمويل", type:"date"},
+      {key:"funder", label:"الجهة المموِّلة", type:"text"},
+      {key:"value", label:"قيمة التمويل", type:"text"},
+      {key:"duration", label:"مدة التمويل", type:"text"},
+      {key:"guarantees", label:"أي ضمانات مقدَّمة", type:"textarea"},
+      {key:"purpose", label:"الهدف من التمويل", type:"text"},
+      {key:"related_party", label:"أطراف ذات علاقة (إن وجدت)", type:"textarea"},
+    ]
+  },
+  "تعذّر سداد التمويل": {
+    category: "التمويل",
+    title: (co, extra) => `تعلن شركة ${co} عن تعذّر سداد التمويل المقدَّم من ${extra.funder||"...."}`,
+    fields: [
+      {key:"funder", label:"الجهة المموِّلة", type:"text"},
+      {key:"financing_date", label:"تاريخ الحصول على التمويل", type:"date"},
+      {key:"due_date", label:"تاريخ السداد المستحق", type:"date"},
+      {key:"value", label:"قيمة التمويل", type:"text"},
+      {key:"reasons", label:"أسباب عدم القدرة على السداد", type:"textarea"},
+      {key:"plan", label:"خطة الشركة لمواجهة تعذّر السداد", type:"textarea"},
+      {key:"risks", label:"الآثار والتكاليف والمخاطر المحتملة", type:"textarea"},
+    ]
+  },
+  "إعادة جدولة التمويل": {
+    category: "التمويل",
+    title: (co, extra) => `تعلن شركة ${co} عن إعادة جدولة ${extra.financing_type||"التمويل"} المقدَّم من ${extra.funder||"...."}`,
+    fields: [
+      {key:"financing_type", label:"نوع التمويل", type:"text"},
+      {key:"funder", label:"الجهة المموِّلة", type:"text"},
+      {key:"reschedule_date", label:"تاريخ توقيع إعادة الجدولة", type:"date"},
+      {key:"reasons", label:"أسباب إعادة الجدولة", type:"textarea"},
+      {key:"value_and_rescheduled_part", label:"قيمة التمويل والجزء المعاد جدولته", type:"text"},
+      {key:"duration_before_after", label:"مدة التمويل قبل الجدولة وبعدها", type:"text"},
+      {key:"guarantees", label:"الضمانات المقدَّمة", type:"textarea"},
+    ]
+  },
+
+  "العزم على إصدار أدوات دين": {
+    category: "أدوات الدين",
+    title: (co, extra) => `تعلن شركة ${co} عن عزمها إصدار (${extra.instrument_type||"صكوك/سندات"})`,
+    fields: [
+      {key:"instrument_type", label:"نوع الأداة (صكوك/سندات)", type:"text"},
+      {key:"decision_date", label:"تاريخ قرار مجلس الإدارة", type:"date"},
+      {key:"value", label:"قيمة الطرح", type:"text"},
+      {key:"purpose", label:"الهدف من الطرح", type:"textarea"},
+    ]
+  },
+  "بدء طرح أدوات دين": {
+    category: "أدوات الدين",
+    title: (co, extra) => `تعلن شركة ${co} عن بدء طرح إصدار (${extra.instrument_type||"صكوك/سندات"})`,
+    fields: [
+      {key:"instrument_type", label:"نوع الأداة", type:"text"},
+      {key:"value", label:"قيمة الطرح", type:"text"},
+      {key:"start_date", label:"تاريخ بداية الطرح", type:"date"},
+      {key:"end_date", label:"تاريخ نهاية الطرح", type:"date"},
+      {key:"target", label:"الفئة المستهدفة من الإصدار", type:"text"},
+      {key:"manager", label:"الجهة المسؤولة عن إدارة الإصدار", type:"text"},
+      {key:"min_subscription", label:"الحد الأدنى للاكتتاب (إن وجد)", type:"text"},
+      {key:"price", label:"سعر الطرح والقيمة الاسمية", type:"text"},
+      {key:"yield", label:"العائد", type:"text"},
+      {key:"maturity", label:"مدة الاستحقاق", type:"text"},
+    ]
+  },
+  "انتهاء طرح أدوات دين": {
+    category: "أدوات الدين",
+    title: (co, extra) => `تعلن شركة ${co} عن انتهاء طرح إصدار (${extra.instrument_type||"صكوك/سندات"})`,
+    fields: [
+      {key:"instrument_type", label:"نوع الأداة", type:"text"},
+      {key:"value", label:"قيمة الطرح", type:"text"},
+      {key:"total_count", label:"العدد الإجمالي", type:"text"},
+      {key:"nominal_value", label:"القيمة الاسمية", type:"text"},
+      {key:"yield", label:"العائد", type:"text"},
+      {key:"maturity", label:"مدة الاستحقاق", type:"text"},
+    ]
+  },
+  "استرداد أدوات دين مصدرة": {
+    category: "أدوات الدين",
+    title: (co, extra) => `تعلن شركة ${co} عن عزمها استرداد (${extra.instrument_type||"الصكوك/السندات"}) المصدرة`,
+    fields: [
+      {key:"instrument_type", label:"نوع الأداة", type:"text"},
+      {key:"redeemed_value", label:"قيمة المسترَد ونسبته من الإصدار الكلي", type:"text"},
+      {key:"redeemed_count", label:"العدد الإجمالي المسترَد", type:"text"},
+      {key:"issue_date", label:"تاريخ الإصدار", type:"date"},
+      {key:"trading_stop_date", label:"تاريخ توقف التداول", type:"date"},
+      {key:"nominal_at_redemption", label:"القيمة الاسمية عند الاسترداد", type:"text"},
+      {key:"remaining_issue_value", label:"قيمة الإصدار الإجمالية بعد الاسترداد", type:"text"},
+      {key:"deposit_date", label:"تاريخ إيداع المبالغ لحاملي الأداة", type:"date"},
+    ]
+  },
+
+  "توصية بشراء الشركة أسهمها": {
+    category: "شراء وبيع الشركة لأسهمها",
+    title: (co) => `تعلن شركة ${co} عن توصية مجلس إدارة الشركة بشراء أسهمها`,
+    fields: [
+      {key:"decision_date", label:"تاريخ توصية المجلس", type:"date"},
+      {key:"purpose", label:"الهدف من الشراء", type:"textarea"},
+      {key:"treasury_purpose", label:"الغرض (إن كان الهدف الاحتفاظ بها كأسهم خزينة)", type:"text"},
+      {key:"shares_count", label:"عدد الأسهم المقرَّر شراؤها ونوعها وفئتها", type:"text"},
+      {key:"funding_method", label:"طريقة تمويل عملية الشراء", type:"text"},
+      {key:"current_treasury_pct", label:"نسبة أسهم الخزينة الحالية (إن وجدت)", type:"text"},
+    ]
+  },
+  "عزم بيع أسهم الشركة": {
+    category: "شراء وبيع الشركة لأسهمها",
+    title: (co) => `تعلن شركة ${co} عن عزمها بيع أسهمها`,
+    fields: [
+      {key:"approval_date", label:"تاريخ موافقة مجلس الإدارة", type:"date"},
+      {key:"shares_count", label:"عدد الأسهم المقرَّر بيعها ونسبتها من أسهم الخزينة", type:"text"},
+      {key:"purpose", label:"الهدف من البيع", type:"textarea"},
+    ]
+  },
+
+  "توصية برهن أسهم الشركة": {
+    category: "رهن الشركة لأسهمها",
+    title: (co) => `تعلن شركة ${co} عن توصية مجلس إدارة الشركة برهن أسهمها`,
+    fields: [
+      {key:"decision_date", label:"تاريخ توصية المجلس", type:"date"},
+      {key:"reasons", label:"أسباب الرهن والمقابل المالي أو التجاري", type:"textarea"},
+      {key:"shares_count", label:"عدد الأسهم المراد رهنها", type:"text"},
+      {key:"pledge_date_duration", label:"تاريخ الرهن ومدته", type:"text"},
+      {key:"pledgee", label:"الجهة المرتهنة", type:"text"},
+    ]
+  },
+  "فك رهن أسهم الشركة": {
+    category: "رهن الشركة لأسهمها",
+    title: (co) => `تعلن شركة ${co} عن فك رهن أسهمها`,
+    fields: [
+      {key:"release_date", label:"تاريخ فك الرهن", type:"date"},
+      {key:"shares_count", label:"عدد الأسهم المرهونة", type:"text"},
+      {key:"funding_source", label:"مصدر التمويل المستخدَم بفك الرهن", type:"text"},
+      {key:"reasons", label:"أسباب انقضاء الرهن", type:"textarea"},
+    ]
+  },
+
+  "دعوى قضائية": {
+    category: "الدعاوى القضائية",
+    title: (co, extra) => `تعلن شركة ${co} عن ${extra.case_type||"...."} مع ${extra.other_party||"...."}`,
+    fields: [
+      {key:"case_type", label:"نوع الدعوى", type:"text"},
+      {key:"other_party", label:"الطرف الآخر (ومن رفع الدعوى)", type:"text"},
+      {key:"court", label:"الجهة القضائية ذات الاختصاص", type:"text"},
+      {key:"date", label:"تاريخ الدعوى", type:"date"},
+      {key:"summary", label:"نبذة عن القضية وأسباب رفعها", type:"textarea"},
+      {key:"financial_impact", label:"الأثر المالي المتوقَّع (المبلغ المطالَب به)", type:"text"},
+      {key:"risks", label:"التبعات أو المخاطر الجوهرية المحتملة", type:"textarea"},
+      {key:"actions_taken", label:"الإجراءات المتخذة من الشركة", type:"textarea"},
+    ]
+  },
+
+  "تطورات معلَنة سابقًا": {
+    category: "تطورات معلَنة سابقًا",
+    title: (co, extra) => `تعلن شركة ${co} عن آخر التطورات لـ${extra.event||"...."}`,
+    fields: [
+      {key:"event", label:"الحدث الذي سبق إعلانه", type:"text"},
+      {key:"previous_date", label:"تاريخ الإعلان السابق", type:"date"},
+      {key:"latest_developments", label:"آخر تطورات الحدث", type:"textarea"},
+      {key:"delay_reasons", label:"أسباب التأخر عن التاريخ المعلَن سابقًا (إن وجد)", type:"textarea"},
+      {key:"costs", label:"التكاليف المرتبطة بالحدث (إن وجدت)", type:"text"},
+    ]
+  },
+
+  "بلوغ خسائر متراكمة 20% فأكثر وأقل من 35%": {
+    category: "الخسائر المتراكمة",
+    title: (co, extra) => `تعلن شركة ${co} عن بلوغ خسائرها المتراكمة ${extra.pct||"..."}% من رأس المال`,
+    fields: [
+      {key:"pct", label:"نسبة الخسائر المتراكمة من رأس المال", type:"text"},
+      {key:"date", label:"تاريخ بلوغ الخسائر", type:"date"},
+      {key:"amount", label:"مقدار الخسائر المتراكمة", type:"text"},
+      {key:"reasons", label:"الأسباب الرئيسة لبلوغ هذه الخسائر", type:"textarea"},
+    ]
+  },
+  "انخفاض الخسائر المتراكمة عن 20%": {
+    category: "الخسائر المتراكمة",
+    title: (co, extra) => `تعلن شركة ${co} عن انخفاض خسائرها المتراكمة إلى ${extra.pct||"..."}% من رأس المال`,
+    fields: [
+      {key:"pct", label:"النسبة الجديدة", type:"text"},
+      {key:"date", label:"تاريخ الانخفاض", type:"date"},
+      {key:"amount", label:"مقدار الخسائر المتراكمة", type:"text"},
+      {key:"actions_taken", label:"الإجراءات المتخذة لتخفيض الخسائر", type:"textarea"},
+    ]
+  },
+  "بلوغ خسائر متراكمة 35% فأكثر وأقل من 50%": {
+    category: "الخسائر المتراكمة",
+    title: (co, extra) => `تعلن شركة ${co} عن بلوغ خسائرها المتراكمة ${extra.pct||"..."}% من رأس المال`,
+    fields: [
+      {key:"pct", label:"نسبة الخسائر المتراكمة من رأس المال", type:"text"},
+      {key:"date", label:"تاريخ بلوغ الخسائر", type:"date"},
+      {key:"amount", label:"مقدار الخسائر المتراكمة", type:"text"},
+      {key:"reasons", label:"الأسباب الرئيسة", type:"textarea"},
+      {key:"actions", label:"الإجراءات التي ستتخذها الشركة", type:"textarea"},
+    ]
+  },
+  "انخفاض الخسائر المتراكمة عن 35%": {
+    category: "الخسائر المتراكمة",
+    title: (co, extra) => `تعلن شركة ${co} عن انخفاض خسائرها المتراكمة إلى ${extra.pct||"..."}% من رأس المال`,
+    fields: [
+      {key:"pct", label:"النسبة الجديدة", type:"text"},
+      {key:"date", label:"تاريخ الانخفاض", type:"date"},
+      {key:"amount", label:"مقدار الخسائر المتراكمة", type:"text"},
+      {key:"actions_taken", label:"الإجراءات المتخذة لتخفيض الخسائر", type:"textarea"},
+    ]
+  },
+  "بلوغ خسائر متراكمة 50% فأكثر": {
+    category: "الخسائر المتراكمة",
+    title: (co, extra) => `تعلن شركة ${co} عن بلوغ خسائرها المتراكمة ${extra.pct||"..."}% من رأس المال`,
+    fields: [
+      {key:"pct", label:"نسبة الخسائر المتراكمة من رأس المال", type:"text"},
+      {key:"date", label:"تاريخ بلوغ الخسائر", type:"date"},
+      {key:"board_notice_date", label:"تاريخ تبلّغ المجلس بذلك", type:"date"},
+      {key:"amount", label:"مقدار الخسائر المتراكمة", type:"text"},
+      {key:"reasons", label:"الأسباب الرئيسة", type:"textarea"},
+      {key:"disclosure_deadline", label:"آخر يوم للإفصاح عن توصيات المجلس بشأن الخسائر", type:"date"},
+      {key:"egm_deadline", label:"آخر يوم لدعوة الجمعية العامة غير العادية", type:"date"},
+    ]
+  },
+  "انخفاض الخسائر المتراكمة عن 50%": {
+    category: "الخسائر المتراكمة",
+    title: (co, extra) => `تعلن شركة ${co} عن انخفاض خسائرها المتراكمة إلى ${extra.pct||"..."}% من رأس المال`,
+    fields: [
+      {key:"pct", label:"النسبة الجديدة", type:"text"},
+      {key:"date", label:"تاريخ الانخفاض", type:"date"},
+      {key:"amount", label:"مقدار الخسائر المتراكمة", type:"text"},
+      {key:"actions_taken", label:"الإجراءات المتخذة لتخفيض الخسائر", type:"textarea"},
+    ]
+  },
+  "توصية الجمعية غير العادية حيال خسائر 50%+": {
+    category: "الخسائر المتراكمة",
+    title: (co, extra) => `تعلن شركة ${co} عن توصية مجلس إدارة الشركة للجمعية العامة غير العادية بـ${extra.recommendation||"...."} بسبب الخسائر المتراكمة`,
+    fields: [
+      {key:"recommendation", label:"نص التوصية (مثل: حل الشركة / الاستمرار مع معالجة الخسائر)", type:"text"},
+      {key:"meeting_date", label:"تاريخ اجتماع مجلس الإدارة", type:"date"},
+      {key:"details", label:"تفاصيل التوصية", type:"textarea"},
+    ]
+  },
+
+  "تأثير أحداث طارئة في أعمال الشركة": {
+    category: "الأحداث الطارئة",
+    title: (co, extra) => `تعلن شركة ${co} عن أثر ${extra.event||"...."} في أعمالها`,
+    fields: [
+      {key:"event", label:"تحديد الحدث (حريق/زلزال/مرض وبائي/إلخ)", type:"text"},
+      {key:"reasons", label:"الأسباب التي أدت إلى تأثر الشركة", type:"textarea"},
+      {key:"affected_operations", label:"الأعمال المتأثرة (إن وجدت)", type:"textarea"},
+      {key:"financial_impact", label:"الأثر المالي المتوقَّع والفترة المتأثرة", type:"textarea"},
+      {key:"actions", label:"الإجراءات المتخذة أو المزمعة لمعالجة الأثر", type:"textarea"},
+      {key:"expected_duration", label:"المدة المتوقَّعة للحدث (إن أمكن)", type:"text"},
+    ]
+  },
+
+  "الانتقال من السوق الموازية إلى الرئيسية": {
+    category: "الانتقال بين الأسواق",
+    title: (co) => `تعلن شركة ${co} عن قرار مجلس إدارة الشركة بالانتقال من السوق الموازية إلى السوق الرئيسية`,
+    fields: [
+      {key:"decision_date", label:"تاريخ قرار مجلس الإدارة", type:"date"},
+    ],
+    fixedNote: "الانتقال خاضع لموافقة السوق، ومشروط باستيفاء جميع المتطلبات المفروضة من قِبل السوق، وسيتم الإعلان عن أي تطورات جوهرية فور وقوعها."
+  },
+};
+
+const ANNOUNCEMENT_CATEGORIES = [...new Set(Object.values(ANNOUNCEMENT_TYPES).map(t => t.category))];
+
 function openStandaloneAnnouncementForm(){
+  document.getElementById("annTypeSearch").value = "";
+  renderAnnouncementTypeList();
   openM("m-announcement-type-picker");
 }
 
@@ -7264,57 +7744,75 @@ async function loadAnnouncementsPageList(){
   }).join("");
 }
 
-function toggleBoardChangeFields(){
-  const type = document.getElementById("bca-type").value;
-  document.getElementById("bca-resign-fields").style.display = (type === "استقالة" || type === "استقالة وتعيين") ? "block" : "none";
-  document.getElementById("bca-appoint-fields").style.display = (type === "تعيين" || type === "استقالة وتعيين") ? "block" : "none";
+/* ══════════ GENERIC ANNOUNCEMENT ENGINE — renders any ANNOUNCEMENT_TYPES entry ══════════ */
+let currentAnnouncementTypeKey = null;
+
+function renderAnnouncementTypeList(){
+  const search = document.getElementById("annTypeSearch").value.trim();
+  const box = document.getElementById("annTypeList");
+  const agmTypes = [
+    { key:"__agm_دعوة", label:"📨 دعوة لجمعية عامة", category:"الجمعيات العامة" },
+    { key:"__agm_نتائج", label:"📊 نتائج جمعية عامة", category:"الجمعيات العامة" },
+    { key:"__agm_عدم انعقاد", label:"🚫 عدم انعقاد جمعية", category:"الجمعيات العامة" },
+  ];
+  const registryTypes = Object.entries(ANNOUNCEMENT_TYPES).map(([key, def]) => ({ key, label: key, category: def.category }));
+  const all = [...agmTypes, ...registryTypes].filter(t => !search || t.label.includes(search) || t.category.includes(search));
+
+  const byCategory = {};
+  all.forEach(t => { (byCategory[t.category] = byCategory[t.category]||[]).push(t); });
+
+  box.innerHTML = Object.entries(byCategory).map(([cat, items]) => `
+    <div style="font-size:10.5px;font-weight:800;color:var(--gray3);margin:10px 0 4px">${cat}</div>
+    ${items.map(t => `<button class="btn-xs" style="width:100%;text-align:right;padding:9px 10px;background:var(--offwhite);border:none;border-radius:6px;margin-bottom:4px;cursor:pointer;font-size:12px" onclick="selectAnnouncementType('${t.key}')">${t.label}</button>`).join("")}
+  `).join("") || '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا نتائج مطابقة</div>';
 }
 
-async function generateBoardChangeAnnouncement(){
+function selectAnnouncementType(key){
+  closeM("m-announcement-type-picker");
+  if(key.startsWith("__agm_")){
+    pickAgmAnnouncementType(key.replace("__agm_",""));
+    return;
+  }
+  currentAnnouncementTypeKey = key;
+  const def = ANNOUNCEMENT_TYPES[key];
+  document.getElementById("genAnnTitle").textContent = `📢 ${key}`;
+  document.getElementById("genAnnFields").innerHTML = def.fields.map(f => {
+    if(f.type === "textarea") return `<div class="fg"><label>${f.label}</label><textarea class="fta" id="genf-${f.key}" rows="2"></textarea></div>`;
+    if(f.type === "date") return `<div class="fg"><label>${f.label}</label><input type="date" class="fi" id="genf-${f.key}"/></div>`;
+    return `<div class="fg"><label>${f.label}</label><input class="fi" id="genf-${f.key}"/></div>`;
+  }).join("") + (def.fixedNote ? `<div style="background:#FEF3E2;border-radius:8px;padding:10px;font-size:11px;color:#8A6D1F;margin-top:6px">ℹ️ ${def.fixedNote}</div>` : "");
+  openM("m-generic-announcement");
+}
+
+async function generateGenericAnnouncement(){
+  const def = ANNOUNCEMENT_TYPES[currentAnnouncementTypeKey];
   const { data: company } = await sb.from("companies").select("*").eq("id", currentCompanyId).single();
   const companyName = company?.name || "الشركة";
-  const changeType = document.getElementById("bca-type").value;
-  const extra = {
-    resigning: document.getElementById("bca-resigning").value.trim(),
-    resignDate: document.getElementById("bca-resign-date").value,
-    resignReason: document.getElementById("bca-resign-reason").value.trim(),
-    appointed: document.getElementById("bca-appointed").value.trim(),
-    appointDate: document.getElementById("bca-appoint-date").value,
-    appointedBio: document.getElementById("bca-appointed-bio").value.trim()
-  };
+
+  const extra = {};
+  def.fields.forEach(f => { extra[f.key] = document.getElementById(`genf-${f.key}`).value.trim(); });
 
   const b = await CanvasPDFBuilder.create(currentCompanyId);
-  let title;
-  if(changeType === "استقالة") title = `تعلن شركة ${companyName} عن استقالة عضو من مجلس إدارتها`;
-  else if(changeType === "تعيين") title = `تعلن شركة ${companyName} عن تعيين عضو في المقعد الشاغر بمجلس إدارتها`;
-  else title = `تعلن شركة ${companyName} عن استقالة عضو من مجلس إدارتها وتعيين عضو جديد`;
-
-  b.wrapAndDraw(title, { align:"center", font:`bold ${13*b.scale}px Tajawal, Arial`, color:"#1A3A6B", lineHeight:22*b.scale });
+  b.wrapAndDraw(def.title(companyName, extra), { align:"center", font:`bold ${13*b.scale}px Tajawal, Arial`, color:"#1A3A6B", lineHeight:22*b.scale });
   b.spacer(20);
-  const lines = [];
-  if(changeType !== "تعيين"){
-    lines.push(`اسم العضو المستقيل: ${extra.resigning||"—"}`);
-    lines.push(`تاريخ تقديم الاستقالة: ${extra.resignDate||"—"}`);
-    lines.push(`أسباب الاستقالة: ${extra.resignReason||"—"}`);
+  def.fields.forEach(f => {
+    b.wrapAndDraw(`${f.label}: ${extra[f.key]||"—"}`, { font:`${11*b.scale}px Tajawal, Arial`, lineHeight:20*b.scale });
+  });
+  if(def.fixedNote){
+    b.spacer(10);
+    b.wrapAndDraw(def.fixedNote, { font:`${10*b.scale}px Tajawal, Arial`, color:"#8A6D1F", lineHeight:18*b.scale });
   }
-  if(changeType !== "استقالة"){
-    lines.push(`اسم العضو المعيَّن: ${extra.appointed||"—"}`);
-    lines.push(`تاريخ اجتماع مجلس الإدارة: ${extra.appointDate||"—"}`);
-    lines.push(`نبذة عن السيرة الذاتية: ${extra.appointedBio||"—"}`);
-    lines.push(`ملاحظة: موافقة مجلس الإدارة لا تُعدّ نهائية، وسوف يُعرض هذا التعيين على أول اجتماع للجمعية العامة لإقراره.`);
-  }
-  lines.forEach(line => b.wrapAndDraw(line, { font:`${11*b.scale}px Tajawal, Arial`, lineHeight:20*b.scale }));
 
   const bytes = await b.toPDFBytes();
   const blob = new Blob([bytes], { type: "application/pdf" });
-  const file_url = await uploadBlobToStorage(blob, "tadawul-announcements", `اعلان-تغيير-عضوية-${companyName}-${Date.now()}.pdf`);
+  const file_url = await uploadBlobToStorage(blob, "tadawul-announcements", `اعلان-${currentAnnouncementTypeKey}-${companyName}-${Date.now()}.pdf`);
   if(!file_url) return;
 
   await sb.from("tadawul_announcements").insert([{
-    company_id: currentCompanyId, meeting_id: null, announcement_type: `تغيير عضوية مجلس (${changeType})`, extra_data: extra, file_url
+    company_id: currentCompanyId, meeting_id: null, announcement_type: currentAnnouncementTypeKey, extra_data: extra, file_url
   }]);
   alert("تم توليد مسودة الإعلان ✅");
-  closeM("m-board-change-announcement");
+  closeM("m-generic-announcement");
   loadAnnouncementsPageList();
 }
 
