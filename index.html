@@ -2050,7 +2050,12 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="fg"><label>عنوان الاجتماع</label><input class="fi" id="mt-title" placeholder="مثال: اجتماع مجلس الإدارة — Q2 2026" /></div>
     <div class="row2"><div class="fg"><label>التاريخ</label><input type="date" class="fi" id="mt-date"/></div><div class="fg"><label>الوقت</label><input type="time" class="fi" id="mt-time"/></div></div>
     <div class="fg"><label>طريقة الانعقاد</label><select class="fs" id="mt-method"><option>عن بُعد (Zoom)</option><option>عن بُعد (Teams)</option><option>حضوري</option><option>هجين</option></select></div>
-    <div class="fg"><label>رابط الانضمام للاجتماع (زوم/تيمز/بث مباشر)</label><input class="fi" id="mt-link" placeholder="https://zoom.us/j/..."/></div>
+    <div class="fg"><label>رابط الانضمام للاجتماع (زوم/تيمز/بث مباشر)</label>
+      <div style="display:flex;gap:6px">
+        <input class="fi" id="mt-link" placeholder="https://..." style="flex:1;margin:0"/>
+        <button type="button" class="btn-xs primary" style="white-space:nowrap" onclick="generateTeamsMeetingLink()">✨ توليد تلقائي</button>
+      </div>
+    </div>
     <div class="fg"><label>ملاحظات</label><textarea class="fta" id="mt-notes" rows="2" placeholder="أجندة مختصرة أو ملاحظات إضافية..."></textarea></div>
     <div id="mt-voting-dates" style="display:none;background:var(--offwhite);border-radius:10px;padding:10px;margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:8px;background:#fff;padding:8px 10px;border-radius:8px;margin-bottom:10px">
@@ -7135,6 +7140,36 @@ function goToAGMVoting(){
   currentVotingMeetingId = currentAGMModalMeetingId;
   closeM("m-agm-view");
   go('voting');
+}
+
+// Calls the "create-teams-meeting" Edge Function to auto-generate a real Teams join link —
+// works the moment that function is deployed with valid Teams credentials, no platform code
+// changes needed later. Until then, it fails gracefully with a clear status message.
+async function generateTeamsMeetingLink(){
+  const title = document.getElementById("mt-title").value.trim() || "اجتماع";
+  const dateVal = document.getElementById("mt-date").value;
+  const timeVal = document.getElementById("mt-time").value || "12:00";
+  if(!dateVal){ alert("حدد تاريخ الاجتماع أولًا قبل توليد الرابط"); return; }
+
+  const start = new Date(`${dateVal}T${timeVal}`);
+  const end = new Date(start.getTime() + 60*60*1000); // default 1-hour duration
+
+  try{
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/create-teams-meeting`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subject: title, startTime: start.toISOString(), endTime: end.toISOString() })
+    });
+    const data = await res.json();
+    if(!res.ok || !data.joinUrl){
+      alert("⚠️ توليد الرابط التلقائي غير مفعّل بعد — يحتاج ربط حساب Teams أولًا (اضغط 'رابط الانضمام' واكتبه يدويًا مؤقتًا).");
+      return;
+    }
+    document.getElementById("mt-link").value = data.joinUrl;
+    alert("تم توليد رابط الاجتماع تلقائيًا ✅");
+  }catch(e){
+    alert("⚠️ توليد الرابط التلقائي غير مفعّل بعد — يحتاج ربط حساب Teams أولًا (اضغط 'رابط الانضمام' واكتبه يدويًا مؤقتًا).");
+  }
 }
 
 async function toggleVotingDatesFields(){
