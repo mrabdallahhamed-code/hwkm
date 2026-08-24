@@ -593,6 +593,17 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     </div>
     <button class="login-btn" id="loginBtn" onclick="handleAuth()">تسجيل الدخول</button>
     <div id="forgotPasswordLink" style="text-align:center;margin-top:10px;font-size:12px;color:var(--gray3);cursor:pointer" onclick="openForgotPasswordModal()">نسيت كلمة المرور؟</div>
+
+    <div id="passwordlessLoginOptions">
+      <div style="display:flex;align-items:center;gap:10px;margin:16px 0">
+        <div style="flex:1;height:1px;background:var(--gray1)"></div>
+        <span style="font-size:11px;color:var(--gray3)">أو</span>
+        <div style="flex:1;height:1px;background:var(--gray1)"></div>
+      </div>
+      <button type="button" class="login-btn" style="background:#fff;color:var(--primary);border:1.5px solid var(--primary);margin-bottom:8px" onclick="openM('m-nafath-login')">🔐 دخول عبر نفاذ</button>
+      <button type="button" class="login-btn" style="background:#fff;color:var(--dark);border:1.5px solid var(--gray1)" onclick="openM('m-otp-login')">📱 دخول برمز OTP</button>
+    </div>
+
     <div class="login-switch" id="authSwitch" onclick="toggleAuthMode()">ليس لديك حساب؟ <b>إنشاء حساب جديد</b></div>
     <div style="text-align:center;margin-top:12px;font-size:10.5px;color:var(--gray3);cursor:pointer;text-decoration:underline" onclick="openM('m-privacy-policy')">سياسة الخصوصية</div>
   </div>
@@ -2988,6 +2999,30 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
+<div class="modal-bg" id="m-nafath-login">
+  <div class="modal">
+    <div class="modal-title">🔐 دخول عبر نفاذ</div>
+    <div class="fg"><label>رقم الهوية</label><input class="fi" id="nafathLoginNid" placeholder="مثال: 1XXXXXXXXX"/></div>
+    <button class="btn btn-gold" style="width:100%" onclick="startNafathLoginFlow()">تحقق وادخل</button>
+    <div id="nafathLoginStatus" style="font-size:12px;margin-top:10px;text-align:center"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-nafath-login')">إلغاء</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-otp-login">
+  <div class="modal">
+    <div class="modal-title">📱 دخول برمز OTP</div>
+    <div class="fg"><label>رقم الجوال</label><input class="fi" id="otpLoginPhone" placeholder="05XXXXXXXX"/></div>
+    <button class="btn btn-gold" style="width:100%" onclick="sendOtpLoginCode()">إرسال الرمز</button>
+    <div id="otpLoginCodeField" style="display:none;margin-top:12px">
+      <div class="fg"><label>رمز التحقق</label><input class="fi" id="otpLoginCode" placeholder="123456"/></div>
+      <button class="btn btn-gold" style="width:100%" onclick="verifyOtpLoginCode()">تأكيد الدخول</button>
+    </div>
+    <div id="otpLoginStatus" style="font-size:12px;margin-top:10px;text-align:center"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-otp-login')">إلغاء</button></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-listed-shareholder-link">
   <div class="modal">
     <div class="modal-title">🔗 رابط تسجيل المساهمين</div>
@@ -3398,6 +3433,7 @@ function toggleAuthMode(){
   document.getElementById("signupNationalIdField").style.display = authMode === "signup" ? "block" : "none";
   document.getElementById("signupPhoneField").style.display = authMode === "signup" ? "block" : "none";
   document.getElementById("signupInviteField").style.display = authMode === "signup" ? "block" : "none";
+  document.getElementById("passwordlessLoginOptions").style.display = authMode === "login" ? "block" : "none";
   if(authMode === "signup"){
     toggleShareholderFields();
     const urlInvite = new URLSearchParams(window.location.search).get("invite");
@@ -3441,6 +3477,94 @@ async function applyListedCompanySignupMode(){
 // could fake or borrow from someone else) with an actual government-app confirmation from the
 // real person. Falls back gracefully to manual entry until a Nafath provider is connected.
 let nafathPollInterval = null;
+// Passwordless login: after Nafath or OTP verification succeeds server-side, the edge function
+// hands back a magic-link token for the matching account — verifyOtp() below is what actually
+// turns that into a real, working Supabase session client-side (no password ever touched).
+async function completePasswordlessLogin(email, hashed_token){
+  const { error } = await sb.auth.verifyOtp({ email, token: hashed_token, type: "magiclink" });
+  if(error){ alert("تعذّر إتمام الدخول: " + error.message); return; }
+  closeM("m-nafath-login"); closeM("m-otp-login");
+  location.reload();
+}
+
+let nafathLoginPollInterval = null;
+async function startNafathLoginFlow(){
+  const nationalId = document.getElementById("nafathLoginNid").value.trim();
+  const statusBox = document.getElementById("nafathLoginStatus");
+  if(!nationalId){ statusBox.innerHTML = '<span style="color:var(--red)">اكتب رقم هويتك</span>'; return; }
+
+  statusBox.innerHTML = '<span style="color:var(--gray3)">جارِ الاتصال بنفاذ...</span>';
+  const startRes = await fetch(`${SUPABASE_URL}/functions/v1/verify-nafath-identity`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "start", nationalId })
+  });
+  const startData = await startRes.json();
+  if(!startRes.ok || !startData.transId){
+    statusBox.innerHTML = '<span style="color:var(--orange)">⚠️ الدخول عبر نفاذ غير مفعّل بعد</span>';
+    return;
+  }
+  statusBox.innerHTML = `<div style="background:#EAF0F8;border-radius:8px;padding:10px">
+    <div style="font-size:11px;color:var(--gray3)">افتح تطبيق نفاذ واختر الرقم:</div>
+    <div style="font-size:26px;font-weight:900;color:var(--primary)">${startData.randomNumber}</div>
+  </div>`;
+
+  if(nafathLoginPollInterval) clearInterval(nafathLoginPollInterval);
+  nafathLoginPollInterval = setInterval(async () => {
+    const pollRes = await fetch(`${SUPABASE_URL}/functions/v1/verify-nafath-identity`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "status", transId: startData.transId })
+    });
+    const pollData = await pollRes.json();
+    if(pollData.status === "COMPLETED"){
+      clearInterval(nafathLoginPollInterval);
+      statusBox.innerHTML = '<span style="color:var(--gray3)">جارِ تسجيل الدخول...</span>';
+      const loginRes = await fetch(`${SUPABASE_URL}/functions/v1/passwordless-login`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ method: "nafath", nafathTransId: startData.transId })
+      });
+      const loginData = await loginRes.json();
+      if(!loginRes.ok){ statusBox.innerHTML = `<span style="color:var(--red)">${loginData.error||"تعذّر الدخول"}</span>`; return; }
+      await completePasswordlessLogin(loginData.email, loginData.hashed_token);
+    } else if(pollData.status === "REJECTED" || pollData.status === "EXPIRED"){
+      clearInterval(nafathLoginPollInterval);
+      statusBox.innerHTML = '<span style="color:var(--red)">تعذّر التحقق — حاول مجددًا</span>';
+    }
+  }, 3000);
+}
+
+async function sendOtpLoginCode(){
+  const phone = document.getElementById("otpLoginPhone").value.trim();
+  const statusBox = document.getElementById("otpLoginStatus");
+  if(!phone){ statusBox.innerHTML = '<span style="color:var(--red)">اكتب رقم جوالك</span>'; return; }
+  statusBox.innerHTML = '<span style="color:var(--gray3)">جارِ الإرسال...</span>';
+  try{
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/passwordless-login`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "send_otp", phone })
+    });
+    const data = await res.json();
+    if(!res.ok){ statusBox.innerHTML = `<span style="color:var(--orange)">⚠️ ${data.error||"الدخول برمز OTP غير مفعّل بعد"}</span>`; return; }
+    document.getElementById("otpLoginCodeField").style.display = "block";
+    statusBox.innerHTML = '<span style="color:var(--green)">تم إرسال الرمز ✅</span>';
+  }catch(e){
+    statusBox.innerHTML = '<span style="color:var(--orange)">⚠️ الدخول برمز OTP غير مفعّل بعد</span>';
+  }
+}
+
+async function verifyOtpLoginCode(){
+  const phone = document.getElementById("otpLoginPhone").value.trim();
+  const otpCode = document.getElementById("otpLoginCode").value.trim();
+  const statusBox = document.getElementById("otpLoginStatus");
+  statusBox.innerHTML = '<span style="color:var(--gray3)">جارِ التحقق...</span>';
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/passwordless-login`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ method: "otp", phone, otpCode })
+  });
+  const data = await res.json();
+  if(!res.ok){ statusBox.innerHTML = `<span style="color:var(--red)">${data.error||"تعذّر الدخول"}</span>`; return; }
+  await completePasswordlessLogin(data.email, data.hashed_token);
+}
+
 async function startNafathVerification(){
   const nidInput = document.getElementById("signupNationalId");
   const statusBox = document.getElementById("nafathStatus");
