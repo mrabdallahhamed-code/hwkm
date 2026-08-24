@@ -2939,7 +2939,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <button class="btn-xs primary" style="padding:10px" onclick="pickAgmAnnouncementType('نتائج')">📊 نتائج جمعية عامة</button>
       <button class="btn-xs primary" style="padding:10px" onclick="pickAgmAnnouncementType('عدم انعقاد')">🚫 عدم انعقاد جمعية</button>
       <div style="height:1px;background:var(--gray1);margin:4px 0"></div>
-      <button class="btn-xs primary" style="padding:10px" onclick="closeM('m-announcement-type-picker');openM('m-board-change-announcement')">👤 تغيير عضوية مجلس إدارة (استقالة/تعيين)</button>
+      <button class="btn-xs primary" style="padding:10px" onclick="closeM('m-announcement-type-picker');openM('m-board-change-announcement');toggleBoardChangeFields()">👤 تغيير عضوية مجلس إدارة (استقالة/تعيين)</button>
     </div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-announcement-type-picker')">إلغاء</button></div>
   </div>
@@ -2956,17 +2956,21 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <div class="modal-bg" id="m-board-change-announcement">
   <div class="modal">
     <div class="modal-title">👤 إعلان تغيير عضوية مجلس إدارة</div>
-    <div class="fg"><label>نوع التغيير</label><select class="fs" id="bca-type">
+    <div class="fg"><label>نوع التغيير</label><select class="fs" id="bca-type" onchange="toggleBoardChangeFields()">
       <option value="استقالة">استقالة عضو</option>
       <option value="تعيين">تعيين عضو جديد بمقعد شاغر</option>
       <option value="استقالة وتعيين">استقالة عضو وتعيين عضو جديد</option>
     </select></div>
-    <div class="fg"><label>اسم العضو المستقيل (إن وجد)</label><input class="fi" id="bca-resigning"/></div>
-    <div class="fg"><label>تاريخ تقديم الاستقالة</label><input type="date" class="fi" id="bca-resign-date"/></div>
-    <div class="fg"><label>أسباب الاستقالة</label><textarea class="fta" id="bca-resign-reason" rows="2"></textarea></div>
-    <div class="fg"><label>اسم العضو المعيَّن (إن وجد)</label><input class="fi" id="bca-appointed"/></div>
-    <div class="fg"><label>تاريخ اجتماع المجلس الذي تم فيه التعيين</label><input type="date" class="fi" id="bca-appoint-date"/></div>
-    <div class="fg"><label>نبذة مختصرة عن السيرة الذاتية للعضو المعيَّن</label><textarea class="fta" id="bca-appointed-bio" rows="2"></textarea></div>
+    <div id="bca-resign-fields">
+      <div class="fg"><label>اسم العضو المستقيل</label><input class="fi" id="bca-resigning"/></div>
+      <div class="fg"><label>تاريخ تقديم الاستقالة</label><input type="date" class="fi" id="bca-resign-date"/></div>
+      <div class="fg"><label>أسباب الاستقالة</label><textarea class="fta" id="bca-resign-reason" rows="2"></textarea></div>
+    </div>
+    <div id="bca-appoint-fields">
+      <div class="fg"><label>اسم العضو المعيَّن</label><input class="fi" id="bca-appointed"/></div>
+      <div class="fg"><label>تاريخ اجتماع المجلس الذي تم فيه التعيين</label><input type="date" class="fi" id="bca-appoint-date"/></div>
+      <div class="fg"><label>نبذة مختصرة عن السيرة الذاتية للعضو المعيَّن</label><textarea class="fta" id="bca-appointed-bio" rows="2"></textarea></div>
+    </div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-board-change-announcement')">إلغاء</button><button class="btn btn-gold" onclick="generateBoardChangeAnnouncement()">📝 توليد PDF</button></div>
   </div>
 </div>
@@ -7228,6 +7232,12 @@ async function loadAnnouncementsPageList(){
     </div>
   </div>`;
   }).join("");
+}
+
+function toggleBoardChangeFields(){
+  const type = document.getElementById("bca-type").value;
+  document.getElementById("bca-resign-fields").style.display = (type === "استقالة" || type === "استقالة وتعيين") ? "block" : "none";
+  document.getElementById("bca-appoint-fields").style.display = (type === "تعيين" || type === "استقالة وتعيين") ? "block" : "none";
 }
 
 async function generateBoardChangeAnnouncement(){
