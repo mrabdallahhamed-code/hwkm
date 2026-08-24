@@ -1217,10 +1217,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <!-- ══ GOVERNANCE ═════════════════════════ -->
 <div id="p-announcements" class="page content">
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
-    <span>📢 الإعلانات (متوافقة مع تعليمات هيئة السوق المالية)</span>
+    <span>📢 الإعلانات الرسمية</span>
     <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openStandaloneAnnouncementForm()">+ إعلان جديد</button>
   </div>
-  <p style="font-size:11.5px;color:var(--gray3);margin-bottom:16px">تولّد مسودة PDF بالصياغة الرسمية المطلوبة — ترسلها لموظف تداول المختص لاعتمادها ونشرها؛ منصتنا لا تنشر مباشرة على تداول.</p>
+  <p style="font-size:11.5px;color:var(--gray3);margin-bottom:16px" id="announcementsPageIntro">جارِ التحميل...</p>
   <div id="announcementsPageList">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
   </div>
@@ -5736,7 +5736,7 @@ async function applyCompanyTypeVisibility(){
   const isSoleProp = currentCompanyType === "مؤسسة فردية";
   const isLLCType = currentCompanyType === "ذات مسؤولية محدودة";
   const navAnnouncements = document.getElementById("navAnnouncements");
-  if(navAnnouncements) navAnnouncements.style.display = (currentCompanyType === "مساهمة مدرجة") ? "flex" : "none";
+  if(navAnnouncements) navAnnouncements.style.display = (currentCompanyType !== "مؤسسة فردية") ? "flex" : "none";
   setText("shareholdersNavLabel", isLLCType ? "سجل الشركاء" : "سجل المساهمين");
   setText("shareholdersPageTitle", isLLCType ? "📇 سجل الشركاء" : "📇 سجل المساهمين");
   const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
@@ -7200,24 +7200,34 @@ function confirmAgmPickerForAnnouncement(){
 
 async function loadAnnouncementsPageList(){
   const box = document.getElementById("announcementsPageList");
+  const intro = document.getElementById("announcementsPageIntro");
+  if(intro){
+    intro.textContent = currentCompanyType === "مساهمة مدرجة"
+      ? 'تولّد مسودة PDF بالصياغة الرسمية المطلوبة — ترسلها لموظف تداول المختص لاعتمادها ونشرها؛ منصتنا لا تنشر مباشرة على تداول.'
+      : 'مستندات رسمية احترافية بصياغة معتمدة — تُستخدم للتواصل مع مساهميك ومستثمريك، أو كأرشيف رسمي داخلي، حتى لو شركتك غير مدرجة حاليًا.';
+  }
   const { data, error } = await sb.from("tadawul_announcements").select("*, meetings(title,meeting_date)")
     .eq("company_id", currentCompanyId).order("created_at",{ascending:false});
   if(error){ box.innerHTML = `<div style="color:var(--red);font-size:12px">${error.message}</div>`; return; }
   if(!data || data.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">لا توجد إعلانات مولَّدة بعد.</div>'; return; }
-  box.innerHTML = data.map(a => `<div class="card" style="margin-bottom:10px">
+  box.innerHTML = data.map(a => {
+    const isListedCo = currentCompanyType === "مساهمة مدرجة";
+    const needsTadawulConfirm = isListedCo && !a.confirmed_on_tadawul;
+    return `<div class="card" style="margin-bottom:10px">
     <div class="card-body" style="display:flex;align-items:center;justify-content:space-between">
       <div>
         <div style="font-weight:800;font-size:12.5px">${a.announcement_type}${a.meetings?` — ${a.meetings.title||''}`:''}</div>
         <div style="font-size:11px;color:var(--gray3)">${new Date(a.created_at).toLocaleDateString('ar-SA')}
-          ${a.confirmed_on_tadawul ? '<span style="color:var(--green)"> · ✅ مؤكَّد بتداول</span>' : '<span style="color:var(--gray3)"> · ⏳ بانتظار التأكيد</span>'}
+          ${isListedCo ? (a.confirmed_on_tadawul ? '<span style="color:var(--green)"> · ✅ مؤكَّد بتداول</span>' : '<span style="color:var(--gray3)"> · ⏳ بانتظار التأكيد</span>') : ''}
         </div>
       </div>
       <div style="display:flex;gap:6px;align-items:center">
         <a href="${a.file_url}" target="_blank" class="btn-xs primary">📥 عرض</a>
-        ${!a.confirmed_on_tadawul ? `<button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:5px 10px;font-size:10.5px;cursor:pointer" onclick="confirmTadawulAnnouncement(${a.id});setTimeout(loadAnnouncementsPageList,400)">✅ تأكيد النشر</button>` : `<label style="font-size:10.5px;display:flex;align-items:center;gap:4px"><input type="checkbox" ${a.show_on_public_site?'checked':''} onchange="toggleAnnouncementPublicSite(${a.id},this.checked)"/> 🌐 عام</label>`}
+        ${needsTadawulConfirm ? `<button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:5px 10px;font-size:10.5px;cursor:pointer" onclick="confirmTadawulAnnouncement(${a.id});setTimeout(loadAnnouncementsPageList,400)">✅ تأكيد النشر</button>` : `<label style="font-size:10.5px;display:flex;align-items:center;gap:4px"><input type="checkbox" ${a.show_on_public_site?'checked':''} onchange="toggleAnnouncementPublicSite(${a.id},this.checked)"/> 🌐 عام</label>`}
       </div>
     </div>
-  </div>`).join("");
+  </div>`;
+  }).join("");
 }
 
 async function generateBoardChangeAnnouncement(){
