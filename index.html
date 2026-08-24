@@ -2050,8 +2050,13 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="fg"><label>عنوان الاجتماع</label><input class="fi" id="mt-title" placeholder="مثال: اجتماع مجلس الإدارة — Q2 2026" /></div>
     <div class="row2"><div class="fg"><label>التاريخ</label><input type="date" class="fi" id="mt-date"/></div><div class="fg"><label>الوقت</label><input type="time" class="fi" id="mt-time"/></div></div>
     <div class="fg"><label>طريقة الانعقاد</label><select class="fs" id="mt-method"><option>عن بُعد (Zoom)</option><option>عن بُعد (Teams)</option><option>حضوري</option><option>هجين</option></select></div>
+    <div class="fg"><label>رابط الانضمام للاجتماع (زوم/تيمز/بث مباشر)</label><input class="fi" id="mt-link" placeholder="https://zoom.us/j/..."/></div>
     <div class="fg"><label>ملاحظات</label><textarea class="fta" id="mt-notes" rows="2" placeholder="أجندة مختصرة أو ملاحظات إضافية..."></textarea></div>
     <div id="mt-voting-dates" style="display:none;background:var(--offwhite);border-radius:10px;padding:10px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px;background:#fff;padding:8px 10px;border-radius:8px;margin-bottom:10px">
+        <input type="checkbox" id="mt-is-listed-agm" style="width:16px;height:16px" onchange="toggleListedAgmMode()"/>
+        <label for="mt-is-listed-agm" style="margin:0;font-size:11.5px;cursor:pointer">جمعية شركة مدرجة — التصويت يصير عبر تداول (بدون تصويت داخل منصتنا، نتائج تُدخَل يدويًا بعد الجمعية)</label>
+      </div>
       <div style="font-size:11.5px;font-weight:800;color:var(--primary);margin-bottom:8px">🗳️ مواعيد فتح/إغلاق التصويت الإلكتروني</div>
       <div class="row2">
         <div class="fg"><label style="font-size:11px">بداية التصويت</label><input type="datetime-local" class="fi" id="mt-voting-start"/></div>
@@ -2440,6 +2445,8 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="modal" style="max-width:480px">
     <div class="modal-title" id="mdView-title">تفاصيل الاجتماع</div>
     <div style="font-size:12px;color:var(--gray3);margin-bottom:16px" id="mdView-meta"></div>
+    <div id="mdView-countdown" style="display:none;background:linear-gradient(135deg,var(--primary),var(--primary2));border-radius:10px;padding:14px;margin-bottom:12px;text-align:center"></div>
+    <div id="mdView-linkBtn" style="display:none;margin-bottom:12px"></div>
     <div id="mdView-files"></div>
     <div style="margin-top:16px">
       <div style="font-weight:800;font-size:12.5px;color:var(--dark);margin-bottom:8px">👥 تسجيل الحضور</div>
@@ -2455,9 +2462,21 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="modal" style="max-width:560px">
     <div class="modal-title" id="agmView-title">تفاصيل الجمعية</div>
     <div style="font-size:12px;color:var(--gray3);margin-bottom:14px" id="agmView-meta"></div>
+    <div id="agmView-countdown" style="display:none;background:linear-gradient(135deg,var(--primary),var(--primary2));border-radius:10px;padding:14px;margin-bottom:12px;text-align:center"></div>
+    <div id="agmView-linkBtn" style="display:none;margin-bottom:12px"></div>
     <div id="agmView-files"></div>
 
-    <div style="margin-top:16px;background:var(--offwhite);border-radius:10px;padding:10px">
+    <div id="agmView-tadawulSection" style="display:none;margin-top:16px;background:#FEF3E2;border:1.5px solid var(--gold);border-radius:10px;padding:12px">
+      <div style="font-weight:800;font-size:12.5px;color:var(--gold);margin-bottom:8px">📊 نتائج تداول (تُدخَل يدويًا بعد انعقاد الجمعية)</div>
+      <div class="row2">
+        <div class="fg" style="margin:0"><label style="font-size:11px">عدد الحضور</label><input type="number" class="fi" id="agmView-tadawul-count" style="margin:0"/></div>
+        <div class="fg" style="margin:0"><label style="font-size:11px">إجمالي الأسهم الممثَّلة</label><input type="number" class="fi" id="agmView-tadawul-shares" style="margin:0"/></div>
+      </div>
+      <div id="agmView-tadawulTopics" style="margin-top:10px"></div>
+      <button class="btn-xs gold" style="margin-top:8px" onclick="saveTadawulResults()">💾 حفظ نتائج تداول</button>
+    </div>
+
+    <div style="margin-top:16px;background:var(--offwhite);border-radius:10px;padding:10px" id="agmView-votingDatesSection">
       <div style="font-weight:800;font-size:12.5px;color:var(--primary);margin-bottom:8px">🗳️ مواعيد فتح/إغلاق التصويت</div>
       <div class="row2">
         <div class="fg"><label style="font-size:11px">بداية التصويت</label><input type="datetime-local" class="fi" id="agmView-voting-start"/></div>
@@ -6390,6 +6409,16 @@ function openMeetingDetailModal(id){
   document.getElementById("mdView-meta").innerHTML =
     `📅 ${m.meeting_date||"—"}${m.meeting_time?(" — الساعة "+m.meeting_time):""} &nbsp;·&nbsp; 📍 ${m.method||"—"}` +
     (m.notes ? `<br>📝 ${m.notes}` : "");
+
+  startMeetingCountdown(m, "mdView-countdown");
+  const linkBox = document.getElementById("mdView-linkBtn");
+  if(m.meeting_link){
+    linkBox.style.display = "block";
+    linkBox.innerHTML = `<a href="${m.meeting_link}" target="_blank" rel="noopener" class="btn btn-gold" style="width:100%;text-align:center;display:block;text-decoration:none">🔗 انضم للاجتماع الآن</a>`;
+  } else {
+    linkBox.style.display = "none";
+  }
+
   document.getElementById("mdView-files").innerHTML =
     fileRowWide(m.id,'agenda_file_url',m.agenda_file_url,'📄 جدول الأعمال') +
     fileRowWide(m.id,'invitation_file_url',m.invitation_file_url,'📨 الدعوة') +
@@ -6682,6 +6711,70 @@ async function generateAGMMinutesWordDraft(meetingId){
   }, `محضر-الجمعية-مسودة-${m.title||''}.docx`);
 }
 
+let meetingCountdownInterval = null;
+function startMeetingCountdown(m, elId){
+  const box = document.getElementById(elId);
+  if(meetingCountdownInterval) clearInterval(meetingCountdownInterval);
+  if(!box || !m.meeting_date){ if(box) box.style.display = "none"; return; }
+  const target = new Date(`${m.meeting_date}T${m.meeting_time || "00:00:00"}`);
+  const tick = () => {
+    const diff = target - new Date();
+    if(diff <= 0){
+      box.innerHTML = `<div style="color:#fff;font-weight:800;font-size:13px">🔴 الاجتماع جارٍ الآن أو انتهى</div>`;
+      clearInterval(meetingCountdownInterval);
+      return;
+    }
+    const days = Math.floor(diff/86400000), hours = Math.floor(diff%86400000/3600000), mins = Math.floor(diff%3600000/60000), secs = Math.floor(diff%60000/1000);
+    box.style.display = "block";
+    box.innerHTML = `
+      <div style="color:rgba(255,255,255,0.85);font-size:11px;font-weight:700;margin-bottom:6px">⏳ الوقت المتبقي للاجتماع</div>
+      <div style="display:flex;justify-content:center;gap:14px">
+        ${[[days,'يوم'],[hours,'ساعة'],[mins,'دقيقة'],[secs,'ثانية']].map(([v,l]) =>
+          `<div><div style="color:#fff;font-weight:900;font-size:20px">${v}</div><div style="color:rgba(255,255,255,0.75);font-size:10px">${l}</div></div>`
+        ).join("")}
+      </div>`;
+  };
+  tick();
+  meetingCountdownInterval = setInterval(tick, 1000);
+}
+
+async function loadTadawulResultsForm(meetingId){
+  const [{ data: m }, { data: topics }] = await Promise.all([
+    sb.from("meetings").select("manual_attendee_count,manual_attendee_shares").eq("id", meetingId).single(),
+    sb.from("vote_topics").select("*").eq("meeting_id", meetingId).order("id",{ascending:true})
+  ]);
+  document.getElementById("agmView-tadawul-count").value = m?.manual_attendee_count ?? "";
+  document.getElementById("agmView-tadawul-shares").value = m?.manual_attendee_shares ?? "";
+  const box = document.getElementById("agmView-tadawulTopics");
+  box.innerHTML = (topics||[]).map(t => `<div style="background:#fff;border-radius:8px;padding:8px;margin-bottom:6px">
+    <div style="font-size:11.5px;font-weight:700;margin-bottom:6px">${t.topic_text||t.topic||""}</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+      <div><label style="font-size:10px;color:var(--green)">% موافق</label><input type="number" min="0" max="100" class="fi" style="margin:0" id="tdw-yes-${t.id}" value="${t.manual_yes_pct ?? ''}"/></div>
+      <div><label style="font-size:10px;color:var(--red)">% معارض</label><input type="number" min="0" max="100" class="fi" style="margin:0" id="tdw-no-${t.id}" value="${t.manual_no_pct ?? ''}"/></div>
+      <div><label style="font-size:10px;color:var(--orange)">% ممتنع</label><input type="number" min="0" max="100" class="fi" style="margin:0" id="tdw-abs-${t.id}" value="${t.manual_abs_pct ?? ''}"/></div>
+    </div>
+  </div>`).join("") || '<div style="font-size:11px;color:var(--gray3)">أضف بنود جدول الأعمال أولًا من الأسفل.</div>';
+}
+
+async function saveTadawulResults(){
+  const meetingId = currentAGMModalMeetingId;
+  const manual_attendee_count = document.getElementById("agmView-tadawul-count").value || null;
+  const manual_attendee_shares = document.getElementById("agmView-tadawul-shares").value || null;
+  await sb.from("meetings").update({ manual_attendee_count, manual_attendee_shares }).eq("id", meetingId);
+
+  const { data: topics } = await sb.from("vote_topics").select("id").eq("meeting_id", meetingId);
+  for(const t of (topics||[])){
+    const yesEl = document.getElementById(`tdw-yes-${t.id}`);
+    if(!yesEl) continue;
+    await sb.from("vote_topics").update({
+      manual_yes_pct: document.getElementById(`tdw-yes-${t.id}`).value || null,
+      manual_no_pct: document.getElementById(`tdw-no-${t.id}`).value || null,
+      manual_abs_pct: document.getElementById(`tdw-abs-${t.id}`).value || null
+    }).eq("id", t.id);
+  }
+  alert("تم حفظ نتائج تداول ✅ — جاهزة الآن لتوليد محضر الجمعية.");
+}
+
 async function openAGMDetailModal(id){
   const m = agmMeetingsCache.find(x => x.id === id);
   if(!m) return;
@@ -6690,6 +6783,26 @@ async function openAGMDetailModal(id){
   document.getElementById("agmView-meta").innerHTML =
     `📅 ${m.meeting_date||"—"}${m.meeting_time?(" — الساعة "+m.meeting_time):""} &nbsp;·&nbsp; 📍 ${m.method||"—"}` +
     (m.notes ? `<br>📝 ${m.notes}` : "");
+
+  startMeetingCountdown(m, "agmView-countdown");
+
+  const linkBox = document.getElementById("agmView-linkBtn");
+  if(m.meeting_link){
+    linkBox.style.display = "block";
+    linkBox.innerHTML = `<a href="${m.meeting_link}" target="_blank" rel="noopener" class="btn btn-gold" style="width:100%;text-align:center;display:block;text-decoration:none">🔗 انضم للاجتماع الآن</a>`;
+  } else {
+    linkBox.style.display = "none";
+  }
+
+  const votingDatesSection = document.getElementById("agmView-votingDatesSection");
+  const tadawulSection = document.getElementById("agmView-tadawulSection");
+  if(m.is_listed_agm){
+    if(votingDatesSection) votingDatesSection.style.display = "none";
+    if(tadawulSection){ tadawulSection.style.display = "block"; await loadTadawulResultsForm(id); }
+  } else {
+    if(votingDatesSection) votingDatesSection.style.display = "block";
+    if(tadawulSection) tadawulSection.style.display = "none";
+  }
 
   document.getElementById("agmView-voting-start").value = isoToDatetimeLocal(m.voting_start);
   document.getElementById("agmView-voting-end").value = isoToDatetimeLocal(m.voting_end);
@@ -6932,6 +7045,10 @@ async function toggleVotingDatesFields(){
   const type = document.getElementById("mt-type").value;
   const box = document.getElementById("mt-voting-dates");
   if(box) box.style.display = (type === "الجمعية العامة") ? "block" : "none";
+  if(type !== "الجمعية العامة"){
+    document.getElementById("mt-is-listed-agm").checked = false;
+  }
+  toggleListedAgmMode();
 
   const committeeField = document.getElementById("mt-committee-field");
   if(committeeField){
@@ -6942,6 +7059,17 @@ async function toggleVotingDatesFields(){
       sel.innerHTML = '<option value="">— اختر اللجنة —</option>' + (data||[]).map(c => `<option value="${c.id}">${c.committee_name}</option>`).join("");
     }
   }
+}
+
+// A listed company's AGM votes through Tadawul, not our own voting system — hide the internal
+// voting-window fields entirely in that case, since opening/closing an internal vote here would
+// be meaningless (and potentially confusing) for a meeting whose real vote happens elsewhere.
+function toggleListedAgmMode(){
+  const isListed = document.getElementById("mt-is-listed-agm").checked;
+  const votingStartField = document.getElementById("mt-voting-start").closest(".fg");
+  const votingEndField = document.getElementById("mt-voting-end").closest(".fg");
+  if(votingStartField) votingStartField.style.display = isListed ? "none" : "block";
+  if(votingEndField) votingEndField.style.display = isListed ? "none" : "block";
 }
 
 /* ══════════ COMMITTEE MEETINGS (same card + detail pattern as board meetings) ══════════ */
@@ -7025,6 +7153,7 @@ async function saveMeeting(){
   const meeting_date = document.getElementById("mt-date").value || null;
   const meeting_time = document.getElementById("mt-time").value || null;
   const method = document.getElementById("mt-method").value;
+  const meeting_link = document.getElementById("mt-link").value.trim();
   const notes = document.getElementById("mt-notes").value.trim();
   if(!title){ alert("الرجاء إدخال عنوان الاجتماع"); return; }
 
@@ -7035,11 +7164,12 @@ async function saveMeeting(){
   const agm_type = document.getElementById("mt-agm-type").value;
   const call_number = Number(document.getElementById("mt-call-number").value);
   const committee_id = document.getElementById("mt-committee-id").value ? Number(document.getElementById("mt-committee-id").value) : null;
+  const is_listed_agm = document.getElementById("mt-is-listed-agm").checked;
 
   const fileInput = document.getElementById("mt-file");
   const file_url = await uploadFile(fileInput, "meetings");
 
-  const { data: newMeeting, error } = await sb.from("meetings").insert([{ title, meeting_type, meeting_date, meeting_time, method, notes, file_url, voting_start, voting_end, agm_type, call_number, committee_id, company_id: currentCompanyId }]).select().single();
+  const { data: newMeeting, error } = await sb.from("meetings").insert([{ title, meeting_type, meeting_date, meeting_time, method, meeting_link, notes, file_url, voting_start: is_listed_agm?null:voting_start, voting_end: is_listed_agm?null:voting_end, agm_type, call_number, committee_id, is_listed_agm, company_id: currentCompanyId }]).select().single();
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
 
   if(newMeetingTopics.length){
@@ -7048,6 +7178,7 @@ async function saveMeeting(){
   }
 
   document.getElementById("mt-title").value = "";
+  document.getElementById("mt-link").value = "";
   document.getElementById("mt-notes").value = "";
   document.getElementById("mt-voting-start").value = "";
   document.getElementById("mt-voting-end").value = "";
@@ -14483,22 +14614,33 @@ const OFFICIAL_DOC_TYPES = {
       const { m, company, topics, votes, attendees } = data;
       const companyName = company?.name || "الشركة";
       const companyTotalShares = Number(company?.total_shares)||0;
-      const attendee_count = attendees.length;
-      const attendee_shares = attendees.reduce((s,a)=>s+(Number(a.shares)||0),0);
+      // A listed company's real attendance/quorum figures come from Tadawul (entered manually
+      // after the meeting), not our own check-in system — use them when present, otherwise fall
+      // back to the platform's own attendee list exactly as before for private companies.
+      const attendee_count = m.manual_attendee_count != null ? Number(m.manual_attendee_count) : attendees.length;
+      const attendee_shares = m.manual_attendee_shares != null ? Number(m.manual_attendee_shares) : attendees.reduce((s,a)=>s+(Number(a.shares)||0),0);
       const attendance_pct = companyTotalShares ? Math.round(attendee_shares/companyTotalShares*100) : 0;
       const quorum_threshold = extra?.quorum_threshold || 50;
       const quorum_status = attendance_pct >= quorum_threshold ? "مكتمل النصاب" : "غير مكتمل النصاب";
       const committee1 = extra?.committee1 || "....................", committee2 = extra?.committee2 || "....................";
       const chairman_name = roleNames["رئيس الجمعية"], secretary_name = roleNames["سكرتير الجمعية"];
+      const isListed = !!m.is_listed_agm;
 
       const topicResults = topics.map(t => {
         const topicText = t.topic_text || t.topic || "";
-        const relevant = votes.filter(v => v.topic === topicText);
-        const totalVotes = relevant.length || 1;
-        const yes = relevant.filter(v=>v.result==="موافق").length;
-        const no = relevant.filter(v=>v.result==="معارض").length;
-        const abs = relevant.filter(v=>v.result==="ممتنع").length;
-        const yes_pct = Math.round(yes/totalVotes*100), no_pct = Math.round(no/totalVotes*100), abs_pct = Math.round(abs/totalVotes*100);
+        let yes_pct, no_pct, abs_pct;
+        if(t.manual_yes_pct != null || t.manual_no_pct != null || t.manual_abs_pct != null){
+          yes_pct = Math.round(Number(t.manual_yes_pct)||0);
+          no_pct = Math.round(Number(t.manual_no_pct)||0);
+          abs_pct = Math.round(Number(t.manual_abs_pct)||0);
+        } else {
+          const relevant = votes.filter(v => v.topic === topicText);
+          const totalVotes = relevant.length || 1;
+          const yes = relevant.filter(v=>v.result==="موافق").length;
+          const no = relevant.filter(v=>v.result==="معارض").length;
+          const abs = relevant.filter(v=>v.result==="ممتنع").length;
+          yes_pct = Math.round(yes/totalVotes*100); no_pct = Math.round(no/totalVotes*100); abs_pct = Math.round(abs/totalVotes*100);
+        }
         return { topic_text: topicText, yes_pct, no_pct, abs_pct, decision: yes_pct>=50 ? "تمت الموافقة" : "لم تتم الموافقة" };
       });
 
@@ -14518,11 +14660,19 @@ const OFFICIAL_DOC_TYPES = {
       b.spacer(14);
       b.wrapAndDraw(`وبعد التأكد من الحضور أعلن رئيس الاجتماع بأن النصاب مكتمل والجلسة نظامية وفقًا للمادة الرابعة والتسعين من نظام الشركات، حيث بلغت الأسهم الحاضرة والممثلة بالاجتماع عدد (${attendee_shares}) سهمًا بحضور (${attendee_count}) مساهمًا، وبنسبة (${attendance_pct}%) من إجمالي أسهم رأس مال الشركة — ${quorum_status} (الحد الأدنى النظامي: ${quorum_threshold}%)، ومن ثم بدأت مناقشة جدول الأعمال.`, { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
       b.spacer(14);
-      b.wrapAndDraw("عقب ذلك طلب رئيس الجمعية من المساهمين أن يتفضلوا بالاستفسار عن أي نقاط أو أسئلة عن بنود الجمعية، وقد أجاب رئيس مجلس الإدارة عن كافة الأسئلة والاستفسارات.", { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
-      b.spacer(14);
-      b.wrapAndDraw("بعد ذلك طلب سكرتير الجمعية من المساهمين الإدلاء بأصواتهم على البنود في بطاقة التصويت التي وُزّعت عليهم. وبعد انتهاء عملية التصويت قام عضوا لجنة جمع وفرز الأصوات بجمع بطاقات التصويت وفرزها.", { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
-      b.spacer(14);
-      b.wrapAndDraw("وعليه تم فرز نتائج التصويت وإعداد المحضر المرفق بنتائج التصويت، حيث كانت نتائج التصويت على البنود المدرجة في جدول أعمال الجمعية كما يلي:", { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
+      if(isListed){
+        b.wrapAndDraw("عقب ذلك طلب رئيس الجمعية من المساهمين أن يتفضلوا بالاستفسار عن أي نقاط أو أسئلة عن بنود الجمعية، وقد أجاب رئيس مجلس الإدارة عن كافة الأسئلة والاستفسارات.", { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
+        b.spacer(14);
+        b.wrapAndDraw("بعد ذلك تم التصويت على بنود جدول الأعمال إلكترونيًا عبر منظومة التصويت الآلي المقدَّمة من شركة السوق المالية السعودية (تداول)، والمتاحة لجميع المساهمين عن بُعد وفي مقر انعقاد الجمعية.", { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
+        b.spacer(14);
+        b.wrapAndDraw("وعليه، وردت نتائج التصويت رسميًا من شركة تداول، وكانت نتائج التصويت على البنود المدرجة في جدول أعمال الجمعية كما يلي:", { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
+      } else {
+        b.wrapAndDraw("عقب ذلك طلب رئيس الجمعية من المساهمين أن يتفضلوا بالاستفسار عن أي نقاط أو أسئلة عن بنود الجمعية، وقد أجاب رئيس مجلس الإدارة عن كافة الأسئلة والاستفسارات.", { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
+        b.spacer(14);
+        b.wrapAndDraw("بعد ذلك طلب سكرتير الجمعية من المساهمين الإدلاء بأصواتهم على البنود في بطاقة التصويت التي وُزّعت عليهم. وبعد انتهاء عملية التصويت قام عضوا لجنة جمع وفرز الأصوات بجمع بطاقات التصويت وفرزها.", { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
+        b.spacer(14);
+        b.wrapAndDraw("وعليه تم فرز نتائج التصويت وإعداد المحضر المرفق بنتائج التصويت، حيث كانت نتائج التصويت على البنود المدرجة في جدول أعمال الجمعية كما يلي:", { font:`${11*b.scale}px Tajawal, Arial`, lineHeight: 20*b.scale });
+      }
       b.spacer(16);
       topicResults.forEach(r => {
         b.wrapAndDraw(`القرار — ${r.topic_text}:`, { font:`bold ${11.5*b.scale}px Tajawal, Arial`, color:"#1A3A6B", lineHeight: 20*b.scale });
