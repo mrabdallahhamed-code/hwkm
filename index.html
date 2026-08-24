@@ -718,6 +718,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="nav-group">
     <div class="nav-group-label">الحوكمة المؤسسية</div>
     <div class="nav-item" onclick="go('governance',this)"><span class="ni-icon">🏛️</span><span class="ni-text">السياسات والحوكمة</span></div>
+    <div class="nav-item" id="navAnnouncements" style="display:none" onclick="go('announcements',this)"><span class="ni-icon">📢</span><span class="ni-text">الإعلانات (تداول)</span></div>
     <div class="nav-item" onclick="go('govassess',this)"><span class="ni-icon">📊</span><span class="ni-text">تقييم فعالية الحوكمة</span></div>
     <div class="nav-item" onclick="go('structure',this)"><span class="ni-icon">🌳</span><span class="ni-text">الهيكل التنظيمي</span><span class="ni-badge red" id="structureNavBadge" style="display:none"></span></div>
     <div class="nav-item" onclick="go('members',this)"><span class="ni-icon">👥</span><span class="ni-text">أعضاء المجلس</span></div>
@@ -1214,6 +1215,17 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 </div>
 
 <!-- ══ GOVERNANCE ═════════════════════════ -->
+<div id="p-announcements" class="page content">
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span>📢 الإعلانات (متوافقة مع تعليمات هيئة السوق المالية)</span>
+    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openStandaloneAnnouncementForm()">+ إعلان جديد</button>
+  </div>
+  <p style="font-size:11.5px;color:var(--gray3);margin-bottom:16px">تولّد مسودة PDF بالصياغة الرسمية المطلوبة — ترسلها لموظف تداول المختص لاعتمادها ونشرها؛ منصتنا لا تنشر مباشرة على تداول.</p>
+  <div id="announcementsPageList">
+    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
+  </div>
+</div>
+
 <div id="p-governance" class="page content">
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
     <span>🏛️ السياسات والحوكمة</span>
@@ -2919,6 +2931,46 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
+<div class="modal-bg" id="m-announcement-type-picker">
+  <div class="modal">
+    <div class="modal-title">📢 اختر نوع الإعلان</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn-xs primary" style="padding:10px" onclick="pickAgmAnnouncementType('دعوة')">📨 دعوة لجمعية عامة</button>
+      <button class="btn-xs primary" style="padding:10px" onclick="pickAgmAnnouncementType('نتائج')">📊 نتائج جمعية عامة</button>
+      <button class="btn-xs primary" style="padding:10px" onclick="pickAgmAnnouncementType('عدم انعقاد')">🚫 عدم انعقاد جمعية</button>
+      <div style="height:1px;background:var(--gray1);margin:4px 0"></div>
+      <button class="btn-xs primary" style="padding:10px" onclick="closeM('m-announcement-type-picker');openM('m-board-change-announcement')">👤 تغيير عضوية مجلس إدارة (استقالة/تعيين)</button>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-announcement-type-picker')">إلغاء</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-agm-picker-for-announcement">
+  <div class="modal">
+    <div class="modal-title" id="agmPickerTitle">اختر الجمعية العامة</div>
+    <div class="fg"><select class="fs" id="agmPickerSelect"></select></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-agm-picker-for-announcement')">إلغاء</button><button class="btn btn-gold" onclick="confirmAgmPickerForAnnouncement()">متابعة</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-board-change-announcement">
+  <div class="modal">
+    <div class="modal-title">👤 إعلان تغيير عضوية مجلس إدارة</div>
+    <div class="fg"><label>نوع التغيير</label><select class="fs" id="bca-type">
+      <option value="استقالة">استقالة عضو</option>
+      <option value="تعيين">تعيين عضو جديد بمقعد شاغر</option>
+      <option value="استقالة وتعيين">استقالة عضو وتعيين عضو جديد</option>
+    </select></div>
+    <div class="fg"><label>اسم العضو المستقيل (إن وجد)</label><input class="fi" id="bca-resigning"/></div>
+    <div class="fg"><label>تاريخ تقديم الاستقالة</label><input type="date" class="fi" id="bca-resign-date"/></div>
+    <div class="fg"><label>أسباب الاستقالة</label><textarea class="fta" id="bca-resign-reason" rows="2"></textarea></div>
+    <div class="fg"><label>اسم العضو المعيَّن (إن وجد)</label><input class="fi" id="bca-appointed"/></div>
+    <div class="fg"><label>تاريخ اجتماع المجلس الذي تم فيه التعيين</label><input type="date" class="fi" id="bca-appoint-date"/></div>
+    <div class="fg"><label>نبذة مختصرة عن السيرة الذاتية للعضو المعيَّن</label><textarea class="fta" id="bca-appointed-bio" rows="2"></textarea></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-board-change-announcement')">إلغاء</button><button class="btn btn-gold" onclick="generateBoardChangeAnnouncement()">📝 توليد PDF</button></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-tadawul-announcement">
   <div class="modal" style="max-width:600px">
     <div class="modal-title" id="tdwAnn-title">📢 توليد إعلان</div>
@@ -4322,7 +4374,7 @@ async function rejectShareholderVerification(id){
 const ALL_PAGE_IDS_FOR_OVERRIDES = [
   'dashboard','users','meetings','members','risks','compliance','signing','committees','agm',
   'governance','govassess','archive','structure','permissions','perf','voting','audit',
-  'reports','appoint','consultants'
+  'reports','appoint','consultants','announcements'
 ];
 let myPermissionOverrides = {}; // page_id -> 'view' | 'edit' | 'none', for the CURRENTLY LOGGED-IN person
 
@@ -4581,6 +4633,7 @@ function reloadCurrentPageData(){
   const id = activePage.id.replace('p-','');
   loadMembers(); loadMeetingsAll();
   if(id==='governance') loadPolicies();
+  if(id==='announcements') loadAnnouncementsPageList();
   if(id==='risks') loadRisks();
   if(id==='compliance') loadCompliance();
   if(id==='signing') loadSigning();
@@ -5682,6 +5735,8 @@ async function applyCompanyTypeVisibility(){
   renderTrialBanner();
   const isSoleProp = currentCompanyType === "مؤسسة فردية";
   const isLLCType = currentCompanyType === "ذات مسؤولية محدودة";
+  const navAnnouncements = document.getElementById("navAnnouncements");
+  if(navAnnouncements) navAnnouncements.style.display = (currentCompanyType === "مساهمة مدرجة") ? "flex" : "none";
   setText("shareholdersNavLabel", isLLCType ? "سجل الشركاء" : "سجل المساهمين");
   setText("shareholdersPageTitle", isLLCType ? "📇 سجل الشركاء" : "📇 سجل المساهمين");
   const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
@@ -7111,6 +7166,108 @@ async function saveTadawulResults(){
    official "التعليمات الخاصة بإعلانات الشركات" — the company still submits through their own
    Tadawul channel (no direct technical integration exists), this just prepares a compliant
    draft so they aren't starting from a blank page each time. */
+/* ══════════ STANDALONE ANNOUNCEMENTS PAGE (not tied to any one meeting) ══════════ */
+let pendingAnnouncementType = null;
+
+function openStandaloneAnnouncementForm(){
+  openM("m-announcement-type-picker");
+}
+
+async function pickAgmAnnouncementType(type){
+  pendingAnnouncementType = type;
+  closeM("m-announcement-type-picker");
+  const { data: meetings } = await sb.from("meetings").select("id,title,meeting_date")
+    .eq("company_id", currentCompanyId).eq("meeting_type","الجمعية العامة").eq("is_listed_agm", true)
+    .order("meeting_date",{ascending:false});
+  const sel = document.getElementById("agmPickerSelect");
+  if(!meetings || meetings.length===0){
+    sel.innerHTML = '<option value="">لا توجد جمعيات مدرجة بعد — أنشئ جمعية أولًا من صفحة "الجمعية العامة"</option>';
+  } else {
+    sel.innerHTML = meetings.map(m => `<option value="${m.id}">${m.title||"جمعية"} — ${m.meeting_date||""}</option>`).join("");
+  }
+  document.getElementById("agmPickerTitle").textContent =
+    `اختر الجمعية العامة — إعلان ${type}`;
+  openM("m-agm-picker-for-announcement");
+}
+
+function confirmAgmPickerForAnnouncement(){
+  const meetingId = Number(document.getElementById("agmPickerSelect").value);
+  if(!meetingId){ alert("اختر جمعية أولًا"); return; }
+  currentAGMModalMeetingId = meetingId;
+  closeM("m-agm-picker-for-announcement");
+  openTadawulAnnouncementForm(pendingAnnouncementType);
+}
+
+async function loadAnnouncementsPageList(){
+  const box = document.getElementById("announcementsPageList");
+  const { data, error } = await sb.from("tadawul_announcements").select("*, meetings(title,meeting_date)")
+    .eq("company_id", currentCompanyId).order("created_at",{ascending:false});
+  if(error){ box.innerHTML = `<div style="color:var(--red);font-size:12px">${error.message}</div>`; return; }
+  if(!data || data.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">لا توجد إعلانات مولَّدة بعد.</div>'; return; }
+  box.innerHTML = data.map(a => `<div class="card" style="margin-bottom:10px">
+    <div class="card-body" style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-weight:800;font-size:12.5px">${a.announcement_type}${a.meetings?` — ${a.meetings.title||''}`:''}</div>
+        <div style="font-size:11px;color:var(--gray3)">${new Date(a.created_at).toLocaleDateString('ar-SA')}
+          ${a.confirmed_on_tadawul ? '<span style="color:var(--green)"> · ✅ مؤكَّد بتداول</span>' : '<span style="color:var(--gray3)"> · ⏳ بانتظار التأكيد</span>'}
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <a href="${a.file_url}" target="_blank" class="btn-xs primary">📥 عرض</a>
+        ${!a.confirmed_on_tadawul ? `<button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:5px 10px;font-size:10.5px;cursor:pointer" onclick="confirmTadawulAnnouncement(${a.id});setTimeout(loadAnnouncementsPageList,400)">✅ تأكيد النشر</button>` : `<label style="font-size:10.5px;display:flex;align-items:center;gap:4px"><input type="checkbox" ${a.show_on_public_site?'checked':''} onchange="toggleAnnouncementPublicSite(${a.id},this.checked)"/> 🌐 عام</label>`}
+      </div>
+    </div>
+  </div>`).join("");
+}
+
+async function generateBoardChangeAnnouncement(){
+  const { data: company } = await sb.from("companies").select("*").eq("id", currentCompanyId).single();
+  const companyName = company?.name || "الشركة";
+  const changeType = document.getElementById("bca-type").value;
+  const extra = {
+    resigning: document.getElementById("bca-resigning").value.trim(),
+    resignDate: document.getElementById("bca-resign-date").value,
+    resignReason: document.getElementById("bca-resign-reason").value.trim(),
+    appointed: document.getElementById("bca-appointed").value.trim(),
+    appointDate: document.getElementById("bca-appoint-date").value,
+    appointedBio: document.getElementById("bca-appointed-bio").value.trim()
+  };
+
+  const b = new CanvasPDFBuilder();
+  let title;
+  if(changeType === "استقالة") title = `تعلن شركة ${companyName} عن استقالة عضو من مجلس إدارتها`;
+  else if(changeType === "تعيين") title = `تعلن شركة ${companyName} عن تعيين عضو في المقعد الشاغر بمجلس إدارتها`;
+  else title = `تعلن شركة ${companyName} عن استقالة عضو من مجلس إدارتها وتعيين عضو جديد`;
+
+  b.wrapAndDraw(title, { align:"center", font:`bold ${13*b.scale}px Tajawal, Arial`, color:"#1A3A6B", lineHeight:22*b.scale });
+  b.spacer(20);
+  const lines = [];
+  if(changeType !== "تعيين"){
+    lines.push(`اسم العضو المستقيل: ${extra.resigning||"—"}`);
+    lines.push(`تاريخ تقديم الاستقالة: ${extra.resignDate||"—"}`);
+    lines.push(`أسباب الاستقالة: ${extra.resignReason||"—"}`);
+  }
+  if(changeType !== "استقالة"){
+    lines.push(`اسم العضو المعيَّن: ${extra.appointed||"—"}`);
+    lines.push(`تاريخ اجتماع مجلس الإدارة: ${extra.appointDate||"—"}`);
+    lines.push(`نبذة عن السيرة الذاتية: ${extra.appointedBio||"—"}`);
+    lines.push(`ملاحظة: موافقة مجلس الإدارة لا تُعدّ نهائية، وسوف يُعرض هذا التعيين على أول اجتماع للجمعية العامة لإقراره.`);
+  }
+  lines.forEach(line => b.wrapAndDraw(line, { font:`${11*b.scale}px Tajawal, Arial`, lineHeight:20*b.scale }));
+
+  const bytes = await b.toPDFBytes();
+  const blob = new Blob([bytes], { type: "application/pdf" });
+  const file_url = await uploadBlobToStorage(blob, "tadawul-announcements", `اعلان-تغيير-عضوية-${companyName}-${Date.now()}.pdf`);
+  if(!file_url) return;
+
+  await sb.from("tadawul_announcements").insert([{
+    company_id: currentCompanyId, meeting_id: null, announcement_type: `تغيير عضوية مجلس (${changeType})`, extra_data: extra, file_url
+  }]);
+  alert("تم توليد مسودة الإعلان ✅");
+  closeM("m-board-change-announcement");
+  loadAnnouncementsPageList();
+}
+
 function openTadawulAnnouncementForm(type){
   document.getElementById("tdwAnn-type").value = type;
   document.getElementById("tdwAnn-title").textContent =
@@ -14342,6 +14499,7 @@ const titles={
   committees:['اللجان المتخصصة','لجان المجلس والمهام والاجتماعات'],
   agm:['الجمعيات العامة','إدارة الجمعيات العامة العادية والغير عادية'],
   governance:['السياسات والحوكمة','إدارة سياسات الشركة وأدلة الحوكمة'],
+  announcements:['الإعلانات','إعلانات هيئة السوق المالية للشركات المدرجة'],
   archive:['الأرشيف والوثائق','حفظ واسترجاع الوثائق الحوكمية'],
   structure:['الهيكل التنظيمي','الهيكل الإداري وتسلسل الصلاحيات'],
   permissions:['مصفوفة الصلاحيات','تحديد الصلاحيات والأدوار'],
@@ -14394,6 +14552,7 @@ async function go(id, el){
   if(id==='platformactivity') loadPlatformActivity();
   if(id==='members') loadMembers();
   if(id==='governance') loadPolicies();
+  if(id==='announcements') loadAnnouncementsPageList();
   if(id==='meetings' || id==='committees' || id==='agm') loadMeetingsAll();
   if(id==='risks') loadRisks();
   if(id==='compliance') loadCompliance();
