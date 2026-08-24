@@ -3481,7 +3481,7 @@ let nafathPollInterval = null;
 // hands back a magic-link token for the matching account — verifyOtp() below is what actually
 // turns that into a real, working Supabase session client-side (no password ever touched).
 async function completePasswordlessLogin(email, hashed_token){
-  const { error } = await sb.auth.verifyOtp({ email, token: hashed_token, type: "magiclink" });
+  const { error } = await sb.auth.verifyOtp({ token_hash: hashed_token, type: "email" });
   if(error){ alert("تعذّر إتمام الدخول: " + error.message); return; }
   closeM("m-nafath-login"); closeM("m-otp-login");
   location.reload();
