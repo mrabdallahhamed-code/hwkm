@@ -2454,6 +2454,14 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <button class="btn-xs primary" style="margin-top:8px;width:100%" onclick="saveMeetingAttendance()">💾 حفظ الحضور</button>
       <div id="mdView-quorum" style="margin-top:10px"></div>
     </div>
+    <div style="margin-top:16px">
+      <div style="font-weight:800;font-size:12.5px;color:var(--dark);margin-bottom:8px">🗳️ قرارات للتصويت</div>
+      <div id="mdView-decisions" style="margin-bottom:8px"></div>
+      <div style="display:flex;gap:6px">
+        <input class="fi" id="mdView-newdecision" placeholder="نص قرار جديد..." style="flex:1">
+        <button class="btn btn-gold" style="font-size:11px;padding:8px 14px;white-space:nowrap" onclick="addBoardDecision()">+ إضافة قرار</button>
+      </div>
+    </div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-meeting-view')">إغلاق</button></div>
   </div>
 </div>
@@ -3734,6 +3742,7 @@ function isMutatingOnclick(val){
     || /^openPermItemEditModal\(/.test(val)
     || /^linkMeetingToSigningDoc\(/.test(val)
     || /^addAGMTopic\(/.test(val)
+    || /^addBoardDecision\(/.test(val)
     || /^saveAGMVotingDates\(/.test(val)
     || /^saveMeetingAttendance\(/.test(val)
     || /^openNewCommitteeModal\(/.test(val)
@@ -6444,7 +6453,94 @@ function openMeetingDetailModal(id){
     </div>`;
   currentAttendanceMeetingId = id;
   loadMeetingAttendanceSection(id);
+  loadBoardDecisionsSection(id);
   openM("m-meeting-view");
+}
+
+/* ══════════ BOARD/COMMITTEE DECISION VOTING ══════════
+   Board members vote on board-meeting decisions; committee meetings restrict voters to that
+   committee's own members — the same eligible-voter logic already used for attendance/quorum,
+   reused here so a board member can't accidentally vote on a committee decision they're not on. */
+async function getEligibleDecisionVoters(meetingId){
+  const { data: meetingRow } = await sb.from("meetings").select("committee_id").eq("id", meetingId).single();
+  const committeeId = meetingRow ? meetingRow.committee_id : null;
+  if(committeeId){
+    const { data: links } = await sb.from("committee_members").select("member_id").eq("committee_id", committeeId);
+    const memberIds = (links||[]).map(l => l.member_id);
+    const { data } = memberIds.length ? await sb.from("board_members").select("*").in("id", memberIds) : { data: [] };
+    return data || [];
+  }
+  const { data } = await sb.from("board_members").select("*").eq("company_id", currentCompanyId);
+  return data || [];
+}
+
+async function loadBoardDecisionsSection(meetingId){
+  const box = document.getElementById("mdView-decisions");
+  if(!box) return;
+  box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:11px;padding:8px">جارِ التحميل...</div>';
+
+  const [{ data: decisions }, eligibleVoters, { data: userData }] = await Promise.all([
+    sb.from("board_decisions").select("*").eq("meeting_id", meetingId).order("id",{ascending:true}),
+    getEligibleDecisionVoters(meetingId),
+    sb.auth.getUser()
+  ]);
+  const myEmail = userData?.user?.email;
+  const iAmEligible = eligibleVoters.some(v => v.claimed_by_email === myEmail);
+
+  if(!decisions || decisions.length === 0){
+    box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:11px;padding:8px">لا توجد قرارات مطروحة بعد.</div>';
+    return;
+  }
+
+  const decisionIds = decisions.map(d => d.id);
+  const { data: allVotes } = await sb.from("board_decision_votes").select("*").in("decision_id", decisionIds);
+
+  box.innerHTML = decisions.map(d => {
+    const votes = (allVotes||[]).filter(v => v.decision_id === d.id);
+    const yes = votes.filter(v=>v.vote==="موافق").length, no = votes.filter(v=>v.vote==="معارض").length, abs = votes.filter(v=>v.vote==="ممتنع").length;
+    const total = eligibleVoters.length;
+    const myVote = votes.find(v => v.voter_email === myEmail);
+    const canVote = iAmEligible && !myVote;
+    return `<div style="background:var(--offwhite);border-radius:8px;padding:10px;margin-bottom:8px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:6px">${d.decision_text}</div>
+      <div style="display:flex;gap:10px;font-size:11px;margin-bottom:6px">
+        <span style="color:var(--green)">✅ ${yes}</span>
+        <span style="color:var(--red)">❌ ${no}</span>
+        <span style="color:var(--orange)">➖ ${abs}</span>
+        <span style="color:var(--gray3)">(${votes.length}/${total} صوّتوا)</span>
+      </div>
+      ${myVote
+        ? `<div style="font-size:10.5px;color:var(--primary);font-weight:700">صوّتك: ${myVote.vote}</div>`
+        : canVote
+          ? `<div style="display:flex;gap:6px">
+              <button class="btn-xs" style="flex:1;background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px;cursor:pointer" onclick="castBoardDecisionVote(${d.id},'موافق')">موافق</button>
+              <button class="btn-xs" style="flex:1;background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px;cursor:pointer" onclick="castBoardDecisionVote(${d.id},'معارض')">معارض</button>
+              <button class="btn-xs" style="flex:1;background:#FEF3E2;color:var(--orange);border:none;border-radius:6px;padding:6px;cursor:pointer" onclick="castBoardDecisionVote(${d.id},'ممتنع')">ممتنع</button>
+            </div>`
+          : (iAmEligible ? "" : '<div style="font-size:10px;color:var(--gray3)">التصويت مقصور على أعضاء المجلس/اللجنة المعنية.</div>')
+      }
+    </div>`;
+  }).join("");
+}
+
+async function addBoardDecision(){
+  const input = document.getElementById("mdView-newdecision");
+  const decision_text = input.value.trim();
+  if(!decision_text || !currentAttendanceMeetingId) return;
+  const { error } = await sb.from("board_decisions").insert([{ meeting_id: currentAttendanceMeetingId, decision_text, company_id: currentCompanyId }]);
+  if(error){ alert("تعذّر إضافة القرار: " + error.message); return; }
+  input.value = "";
+  loadBoardDecisionsSection(currentAttendanceMeetingId);
+}
+
+async function castBoardDecisionVote(decisionId, vote){
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData?.user?.email;
+  const { error } = await sb.from("board_decision_votes").insert([{
+    decision_id: decisionId, voter_email: myEmail, voter_name: currentUserProfile?currentUserProfile.full_name:myEmail, vote
+  }]);
+  if(error){ alert("تعذّر تسجيل صوتك: " + error.message); return; }
+  loadBoardDecisionsSection(currentAttendanceMeetingId);
 }
 
 const ATTEND_STATUSES = ["حاضر","غائب","اعتذر"];
@@ -15263,6 +15359,9 @@ async function generateMeetingMinutesDoc(meetingId){
   if(mErr || !m){ alert("تعذّر تحميل بيانات الاجتماع"); return; }
 
   const { data: topics } = await sb.from("vote_topics").select("*").eq("meeting_id", meetingId).order("sort_order",{ascending:true}).order("id",{ascending:true});
+  const { data: decisions } = await sb.from("board_decisions").select("*").eq("meeting_id", meetingId).order("id",{ascending:true});
+  const decisionIds = (decisions||[]).map(d=>d.id);
+  const { data: decisionVotes } = decisionIds.length ? await sb.from("board_decision_votes").select("*").in("decision_id", decisionIds) : { data: [] };
 
   const { data: company } = await sb.from("companies").select("*").eq("id", currentCompanyId).single();
   let members, scopeLabel = "مجلس الإدارة";
@@ -15325,7 +15424,18 @@ async function generateMeetingMinutesDoc(meetingId){
       <h2>ثانياً: جدول الأعمال والمناقشات</h2>
       ${(topics && topics.length) ? `<ol>${topics.map(t=>`<li>${t.topic_text}</li>`).join("")}</ol>` : `<p>${m.notes ? m.notes : "لم تُسجَّل ملاحظات أو بنود جدول أعمال لهذا الاجتماع."}</p>`}
 
-      <h2>ثالثاً: خاتمة</h2>
+      <h2>ثالثاً: القرارات الصادرة ونتائج التصويت</h2>
+      ${(decisions && decisions.length) ? `<table>
+        <thead><tr><th>#</th><th>القرار</th><th>موافق</th><th>معارض</th><th>ممتنع</th><th>النتيجة</th></tr></thead>
+        <tbody>${decisions.map((d,i) => {
+          const votes = (decisionVotes||[]).filter(v => v.decision_id === d.id);
+          const yes = votes.filter(v=>v.vote==="موافق").length, no = votes.filter(v=>v.vote==="معارض").length, abs = votes.filter(v=>v.vote==="ممتنع").length;
+          const outcome = yes > no ? "معتمد ✅" : "غير معتمد ❌";
+          return `<tr><td>${i+1}</td><td>${d.decision_text}</td><td>${yes}</td><td>${no}</td><td>${abs}</td><td>${outcome}</td></tr>`;
+        }).join("")}</tbody>
+      </table>` : `<p>لم تُطرح قرارات للتصويت بهذا الاجتماع.</p>`}
+
+      <h2>رابعاً: خاتمة</h2>
       <p>وبعد استكمال بنود جدول الأعمال، اختُتم الاجتماع بتاريخ ${dateNow}.</p>
 
       <div class="sig">
