@@ -7040,11 +7040,19 @@ function renderUpcomingAGMCards(upcoming){
       <div class="mc-detail">📅 ${m.meeting_date||"—"}${m.meeting_time ? (" — الساعة "+m.meeting_time) : ""}</div>
       <div class="mc-detail">📍 ${m.method||"—"}</div>
       ${m.notes ? `<div class="mc-detail">📝 ${m.notes}</div>` : ""}
-      <div class="mc-actions">
+      <div class="mc-actions" style="display:flex;flex-direction:column;gap:6px">
         <button class="btn-xs primary" style="width:100%" onclick="event.stopPropagation();openAGMDetailModal(${m.id})">📂 عرض التفاصيل والملفات ${fileCount ? `(${fileCount})` : ''}</button>
+        <label style="font-size:10.5px;display:flex;align-items:center;gap:4px;cursor:pointer" onclick="event.stopPropagation()">
+          <input type="checkbox" ${m.show_on_public_site?'checked':''} onchange="toggleMeetingPublicSite(${m.id},this.checked)"/> 🌐 عرض على الموقع العام لحوكم
+        </label>
       </div>
     </div>`;
   }).join("");
+}
+
+async function toggleMeetingPublicSite(id, checked){
+  const { error } = await sb.from("meetings").update({ show_on_public_site: checked }).eq("id", id);
+  if(error){ alert("تعذّر تحديث حالة العرض العام: " + error.message); }
 }
 
 async function renderPastAGMTable(past){
