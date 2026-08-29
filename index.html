@@ -426,6 +426,33 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .modal-foot{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:14px;border-top:1px solid var(--gray1);}
 
+/* ── FULL-PAGE TAKEOVER (used for AGM detail — a real page, not a small popup) ── */
+.modal-bg.fullpage{align-items:stretch;justify-content:stretch;background:var(--offwhite);backdrop-filter:none}
+.modal-bg.fullpage .modal{width:100%;max-width:100%;height:100%;max-height:100%;border-radius:0;
+  padding:0;display:flex;flex-direction:column;box-shadow:none;animation:none}
+.fp-header{position:sticky;top:0;z-index:5;background:var(--white);border-bottom:1px solid var(--gray1);
+  padding:16px 24px;display:flex;align-items:center;gap:14px;flex-shrink:0}
+.fp-back{width:38px;height:38px;border-radius:10px;border:1.5px solid var(--gray1);background:var(--white);
+  font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.fp-back:hover{background:var(--offwhite);border-color:var(--primary);color:var(--primary)}
+.fp-header-titles{flex:1;min-width:0}
+.fp-header-titles .fp-title{font-size:16px;font-weight:800;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp-header-titles .fp-meta{font-size:11.5px;color:var(--gray3);margin-top:2px}
+.fp-tabs{display:flex;gap:6px;padding:0 24px;background:var(--white);border-bottom:1px solid var(--gray1);
+  flex-shrink:0;overflow-x:auto}
+.fp-tab{padding:12px 4px;margin-bottom:-1px;font-size:12.5px;font-weight:700;color:var(--gray3);
+  cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all .15s}
+.fp-tab:hover{color:var(--dark)}
+.fp-tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+.fp-body{flex:1;overflow-y:auto;padding:22px 24px 90px}
+.fp-pane{display:none;max-width:760px;margin:0 auto}
+.fp-pane.active{display:block}
+.fp-foot{position:sticky;bottom:0;background:var(--white);border-top:1px solid var(--gray1);
+  padding:14px 24px;display:flex;gap:10px;justify-content:flex-end;flex-shrink:0}
+@media(max-width:640px){
+  .fp-header{padding:12px 16px}.fp-tabs{padding:0 16px}.fp-body{padding:16px 16px 80px}.fp-foot{padding:12px 16px}
+}
+
 /* ── EMPTY STATE ── */
 .empty{text-align:center;padding:60px 20px;}
 .empty-ic{font-size:52px;margin-bottom:16px;opacity:0.35;}
@@ -2549,87 +2576,110 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
-<div class="modal-bg" id="m-agm-view">
-  <div class="modal" style="max-width:560px">
-    <div class="modal-title" id="agmView-title">تفاصيل الجمعية</div>
-    <div style="font-size:12px;color:var(--gray3);margin-bottom:14px" id="agmView-meta"></div>
-    <div id="agmView-countdown" style="display:none;background:linear-gradient(135deg,var(--primary),var(--primary2));border-radius:10px;padding:14px;margin-bottom:12px;text-align:center"></div>
-    <div id="agmView-linkBtn" style="display:none;margin-bottom:12px"></div>
-    <div id="agmView-files"></div>
-
-    <div id="agmView-tadawulSection" class="modal-section accent-gold" style="display:none">
-      <div class="modal-section-head">📊 نتائج تداول (تُدخَل يدويًا بعد انعقاد الجمعية)</div>
-      <div class="modal-section-body">
-        <div class="row2">
-          <div class="fg" style="margin:0"><label style="font-size:11px">عدد الحضور</label><input type="number" class="fi" id="agmView-tadawul-count" style="margin:0"/></div>
-          <div class="fg" style="margin:0"><label style="font-size:11px">إجمالي الأسهم الممثَّلة</label><input type="number" class="fi" id="agmView-tadawul-shares" style="margin:0"/></div>
-        </div>
-        <div id="agmView-tadawulTopics" style="margin-top:10px"></div>
-        <button class="btn-xs gold" style="margin-top:8px" onclick="saveTadawulResults()">💾 حفظ نتائج تداول</button>
+<div class="modal-bg fullpage" id="m-agm-view">
+  <div class="modal">
+    <div class="fp-header">
+      <button class="fp-back" onclick="closeM('m-agm-view')" aria-label="رجوع">→</button>
+      <div class="fp-header-titles">
+        <div class="fp-title" id="agmView-title">تفاصيل الجمعية</div>
+        <div class="fp-meta" id="agmView-meta"></div>
       </div>
+      <button class="btn btn-gold" id="agmView-gotovote-btn" onclick="goToAGMVoting()" style="flex-shrink:0">🗳️ صفحة التصويت</button>
     </div>
 
-    <div id="agmView-announcementsSection" class="modal-section accent-primary" style="display:none">
-      <div class="modal-section-head">📢 إعلانات هيئة السوق المالية</div>
-      <div class="modal-section-body">
-        <p class="modal-section-hint">تولّد مسودة PDF جاهزة بالصياغة الرسمية المطلوبة — ترسلها لموظف تداول المختص لاعتمادها ونشرها؛ منصتنا لا تنشر مباشرة على تداول.</p>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <button class="btn-xs primary" onclick="openTadawulAnnouncementForm('دعوة')">📨 توليد إعلان الدعوة للجمعية</button>
-          <button class="btn-xs primary" onclick="openTadawulAnnouncementForm('نتائج')">📊 توليد إعلان نتائج الجمعية</button>
-          <button class="btn-xs primary" onclick="openTadawulAnnouncementForm('عدم انعقاد')">🚫 توليد إعلان عدم انعقاد الجمعية</button>
-        </div>
-        <div id="agmView-announcementsList" style="margin-top:10px"></div>
-      </div>
+    <div class="fp-tabs">
+      <div class="fp-tab active" data-agmtab="overview" onclick="switchAGMTab('overview')">📋 نظرة عامة وجدول الأعمال</div>
+      <div class="fp-tab" data-agmtab="tadawul" onclick="switchAGMTab('tadawul')">📊 تداول والإعلانات</div>
+      <div class="fp-tab" data-agmtab="attendance" onclick="switchAGMTab('attendance')">✅ الحضور</div>
     </div>
 
-    <div id="agmView-votingDatesSection" class="modal-section accent-plain">
-      <div class="modal-section-head">🗳️ مواعيد فتح/إغلاق التصويت</div>
-      <div class="modal-section-body">
-        <div class="row2">
-          <div class="fg"><label style="font-size:11px">بداية التصويت</label><input type="datetime-local" class="fi" id="agmView-voting-start"/></div>
-          <div class="fg"><label style="font-size:11px">نهاية التصويت</label><input type="datetime-local" class="fi" id="agmView-voting-end"/></div>
-        </div>
-        <div class="row2">
-          <div class="fg"><label style="font-size:11px">نوع الجمعية</label><select class="fs" id="agmView-agm-type"><option>عادية</option><option>غير عادية</option></select></div>
-          <div class="fg"><label style="font-size:11px">رقم الدعوة</label><select class="fs" id="agmView-call-number"><option value="1">الاجتماع الأول</option><option value="2">الاجتماع الثاني</option><option value="3">الاجتماع الثالث</option></select></div>
-        </div>
-        <button class="btn-xs primary" style="margin-top:6px" onclick="saveAGMVotingDates()">💾 حفظ المواعيد والنوع</button>
-        <div id="agmView-quorum" style="margin-top:10px"></div>
-      </div>
-    </div>
+    <div class="fp-body">
 
-    <div class="modal-section accent-plain">
-      <div class="modal-section-head">📋 بنود جدول الأعمال / التصويت</div>
-      <div class="modal-section-body">
-        <div id="agmView-topics" style="margin-bottom:8px"></div>
-        <div style="display:flex;gap:6px">
-          <input class="fi" id="agmView-newtopic" placeholder="نص بند جديد..." style="flex:1">
-          <button class="btn btn-gold" style="font-size:11px;padding:8px 14px;white-space:nowrap" onclick="addAGMTopic()">+ إضافة بند</button>
-        </div>
-        <p class="modal-section-hint" style="margin-top:6px;margin-bottom:0">هذه البنود تظهر تلقائيًا بصفحة التصويت فقط أثناء الفترة المحددة أعلاه، وتختفي تلقائيًا بعد موعد نهاية التصويت.</p>
-      </div>
-    </div>
+      <div class="fp-pane active" data-agmpane="overview">
+        <div id="agmView-countdown" style="display:none;background:linear-gradient(135deg,var(--primary),var(--primary2));border-radius:10px;padding:14px;margin-bottom:12px;text-align:center"></div>
+        <div id="agmView-linkBtn" style="display:none;margin-bottom:12px"></div>
+        <div id="agmView-files"></div>
 
-    <div class="modal-section accent-plain">
-      <div class="modal-section-head">✅ تسجيل حضور مساهم (بغض النظر عن التصويت)</div>
-      <div class="modal-section-body">
-        <div class="fg"><label style="font-size:11px">اختر من سجل المساهمين (أو اترك فارغًا واكتب اسمًا يدويًا تحت)</label>
-          <select class="fs" id="agmCheckin-shareholder" onchange="onCheckinShareholderPick()"><option value="">— اختر —</option></select>
+        <div id="agmView-votingDatesSection" class="modal-section accent-plain">
+          <div class="modal-section-head">🗳️ مواعيد فتح/إغلاق التصويت</div>
+          <div class="modal-section-body">
+            <div class="row2">
+              <div class="fg"><label style="font-size:11px">بداية التصويت</label><input type="datetime-local" class="fi" id="agmView-voting-start"/></div>
+              <div class="fg"><label style="font-size:11px">نهاية التصويت</label><input type="datetime-local" class="fi" id="agmView-voting-end"/></div>
+            </div>
+            <div class="row2">
+              <div class="fg"><label style="font-size:11px">نوع الجمعية</label><select class="fs" id="agmView-agm-type"><option>عادية</option><option>غير عادية</option></select></div>
+              <div class="fg"><label style="font-size:11px">رقم الدعوة</label><select class="fs" id="agmView-call-number"><option value="1">الاجتماع الأول</option><option value="2">الاجتماع الثاني</option><option value="3">الاجتماع الثالث</option></select></div>
+            </div>
+            <button class="btn-xs primary" style="margin-top:6px" onclick="saveAGMVotingDates()">💾 حفظ المواعيد والنوع</button>
+            <div id="agmView-quorum" style="margin-top:10px"></div>
+          </div>
         </div>
-        <div class="fg"><label style="font-size:11px">اسم المساهم (لو ما اخترته من القائمة)</label><input class="fi" id="agmCheckin-name" placeholder="اسم المساهم"/></div>
-        <div class="row2">
-          <div class="fg"><label style="font-size:11px">عدد الأسهم — أصالة (حضور شخصي)</label><input type="number" class="fi" id="agmCheckin-asalah" value="0"/></div>
-          <div class="fg"><label style="font-size:11px">عدد الأسهم — وكالة (توكيل)</label><input type="number" class="fi" id="agmCheckin-wakala" value="0"/></div>
-        </div>
-        <div class="fg"><label style="font-size:11px">رقم بطاقة التصويت</label><input class="fi" id="agmCheckin-card"/></div>
-        <button class="btn-xs primary" style="width:100%" onclick="checkInAttendee()">✅ تسجيل الحضور</button>
-        <div id="agmCheckin-list" style="margin-top:10px"></div>
-      </div>
-    </div>
 
-    <div class="modal-foot" style="justify-content:space-between">
-      <button class="btn btn-ghost" onclick="closeM('m-agm-view')">إغلاق</button>
-      <button class="btn btn-gold" id="agmView-gotovote-btn" onclick="goToAGMVoting()">🗳️ الذهاب لصفحة التصويت</button>
+        <div class="modal-section accent-plain">
+          <div class="modal-section-head">📋 بنود جدول الأعمال / التصويت</div>
+          <div class="modal-section-body">
+            <div id="agmView-topics" style="margin-bottom:8px"></div>
+            <div style="display:flex;gap:6px">
+              <input class="fi" id="agmView-newtopic" placeholder="نص بند جديد..." style="flex:1">
+              <button class="btn btn-gold" style="font-size:11px;padding:8px 14px;white-space:nowrap" onclick="addAGMTopic()">+ إضافة بند</button>
+            </div>
+            <p class="modal-section-hint" style="margin-top:6px;margin-bottom:0">هذه البنود تظهر تلقائيًا بصفحة التصويت فقط أثناء الفترة المحددة أعلاه، وتختفي تلقائيًا بعد موعد نهاية التصويت.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="fp-pane" data-agmpane="tadawul">
+        <div id="agmView-tadawulSection" class="modal-section accent-gold" style="display:none">
+          <div class="modal-section-head">📊 نتائج تداول (تُدخَل يدويًا بعد انعقاد الجمعية)</div>
+          <div class="modal-section-body">
+            <div class="row2">
+              <div class="fg" style="margin:0"><label style="font-size:11px">عدد الحضور</label><input type="number" class="fi" id="agmView-tadawul-count" style="margin:0"/></div>
+              <div class="fg" style="margin:0"><label style="font-size:11px">إجمالي الأسهم الممثَّلة</label><input type="number" class="fi" id="agmView-tadawul-shares" style="margin:0"/></div>
+            </div>
+            <div id="agmView-tadawulTopics" style="margin-top:10px"></div>
+            <button class="btn-xs gold" style="margin-top:8px" onclick="saveTadawulResults()">💾 حفظ نتائج تداول</button>
+          </div>
+        </div>
+
+        <div id="agmView-announcementsSection" class="modal-section accent-primary" style="display:none">
+          <div class="modal-section-head">📢 إعلانات هيئة السوق المالية</div>
+          <div class="modal-section-body">
+            <p class="modal-section-hint">تولّد مسودة PDF جاهزة بالصياغة الرسمية المطلوبة — ترسلها لموظف تداول المختص لاعتمادها ونشرها؛ منصتنا لا تنشر مباشرة على تداول.</p>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <button class="btn-xs primary" onclick="openTadawulAnnouncementForm('دعوة')">📨 توليد إعلان الدعوة للجمعية</button>
+              <button class="btn-xs primary" onclick="openTadawulAnnouncementForm('نتائج')">📊 توليد إعلان نتائج الجمعية</button>
+              <button class="btn-xs primary" onclick="openTadawulAnnouncementForm('عدم انعقاد')">🚫 توليد إعلان عدم انعقاد الجمعية</button>
+            </div>
+            <div id="agmView-announcementsList" style="margin-top:10px"></div>
+          </div>
+        </div>
+
+        <div class="empty" id="agmView-tadawulEmpty" style="display:none;padding:40px 20px">
+          <div style="font-size:2rem;margin-bottom:8px">📊</div>
+          <p style="font-size:12.5px;color:var(--gray3)">قسم تداول والإعلانات متاح فقط للشركات المدرجة.</p>
+        </div>
+      </div>
+
+      <div class="fp-pane" data-agmpane="attendance">
+        <div class="modal-section accent-plain">
+          <div class="modal-section-head">✅ تسجيل حضور مساهم (بغض النظر عن التصويت)</div>
+          <div class="modal-section-body">
+            <div class="fg"><label style="font-size:11px">اختر من سجل المساهمين (أو اترك فارغًا واكتب اسمًا يدويًا تحت)</label>
+              <select class="fs" id="agmCheckin-shareholder" onchange="onCheckinShareholderPick()"><option value="">— اختر —</option></select>
+            </div>
+            <div class="fg"><label style="font-size:11px">اسم المساهم (لو ما اخترته من القائمة)</label><input class="fi" id="agmCheckin-name" placeholder="اسم المساهم"/></div>
+            <div class="row2">
+              <div class="fg"><label style="font-size:11px">عدد الأسهم — أصالة (حضور شخصي)</label><input type="number" class="fi" id="agmCheckin-asalah" value="0"/></div>
+              <div class="fg"><label style="font-size:11px">عدد الأسهم — وكالة (توكيل)</label><input type="number" class="fi" id="agmCheckin-wakala" value="0"/></div>
+            </div>
+            <div class="fg"><label style="font-size:11px">رقم بطاقة التصويت</label><input class="fi" id="agmCheckin-card"/></div>
+            <button class="btn-xs primary" style="width:100%" onclick="checkInAttendee()">✅ تسجيل الحضور</button>
+            <div id="agmCheckin-list" style="margin-top:10px"></div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -8631,16 +8681,20 @@ async function openAGMDetailModal(id){
   const votingDatesSection = document.getElementById("agmView-votingDatesSection");
   const tadawulSection = document.getElementById("agmView-tadawulSection");
   const announcementsSection = document.getElementById("agmView-announcementsSection");
+  const tadawulEmpty = document.getElementById("agmView-tadawulEmpty");
   if(m.is_listed_agm){
     if(votingDatesSection) votingDatesSection.style.display = "none";
     if(tadawulSection){ tadawulSection.style.display = "block"; await loadTadawulResultsForm(id); }
     if(announcementsSection) announcementsSection.style.display = "block";
+    if(tadawulEmpty) tadawulEmpty.style.display = "none";
     loadTadawulAnnouncementsList(id);
   } else {
     if(announcementsSection) announcementsSection.style.display = "none";
     if(votingDatesSection) votingDatesSection.style.display = "block";
     if(tadawulSection) tadawulSection.style.display = "none";
+    if(tadawulEmpty) tadawulEmpty.style.display = "block";
   }
+  switchAGMTab('overview');
 
   document.getElementById("agmView-voting-start").value = isoToDatetimeLocal(m.voting_start);
   document.getElementById("agmView-voting-end").value = isoToDatetimeLocal(m.voting_end);
@@ -15830,6 +15884,12 @@ async function go(id, el){
 }
 function openM(id){document.getElementById(id).classList.add('open');}
 function closeM(id){document.getElementById(id).classList.remove('open');}
+function switchAGMTab(name){
+  document.querySelectorAll('#m-agm-view [data-agmtab]').forEach(t=>t.classList.toggle('active', t.dataset.agmtab===name));
+  document.querySelectorAll('#m-agm-view [data-agmpane]').forEach(p=>p.classList.toggle('active', p.dataset.agmpane===name));
+  const body = document.querySelector('#m-agm-view .fp-body');
+  if(body) body.scrollTop = 0;
+}
 document.querySelectorAll('.modal-bg').forEach(m=>{
   m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});
 });
