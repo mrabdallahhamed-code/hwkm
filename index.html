@@ -300,16 +300,6 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   border-bottom:2px solid var(--gray1);
 }
 
-/* ── MODAL GROUPED SECTIONS (used in AGM detail view) ── */
-.modal-section{border:1px solid var(--gray1);border-radius:12px;margin-top:14px;overflow:hidden}
-.modal-section-head{padding:10px 14px;font-weight:800;font-size:12.5px;display:flex;align-items:center;gap:6px}
-.modal-section-body{padding:14px}
-.modal-section.accent-gold{border-color:#F0D8A0}
-.modal-section.accent-gold .modal-section-head{background:#FDF5DC;color:var(--gold);border-bottom:1px solid #F0D8A0}
-.modal-section.accent-primary{border-color:#C0D4F0}
-.modal-section.accent-primary .modal-section-head{background:#EAF0F8;color:var(--primary);border-bottom:1px solid #C0D4F0}
-.modal-section.accent-plain .modal-section-head{background:var(--offwhite);color:var(--primary);border-bottom:1px solid var(--gray1)}
-.modal-section-hint{font-size:10.5px;color:var(--gray3);margin-bottom:10px;line-height:1.6}
 .rep-field-textarea{
   width:100%;border:1px solid var(--gray1);border-radius:8px;padding:10px;
   font-family:'Tajawal',sans-serif;font-size:12px;resize:vertical;margin-bottom:6px;color:var(--dark);
@@ -480,6 +470,42 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 .modal-section.accent-primary .modal-section-head{background:linear-gradient(120deg,#E4EDFB,#D9E6F8);color:var(--primary)}
 .modal-section.accent-plain .modal-section-head{background:linear-gradient(120deg,var(--offwhite),#EEF3FB);color:var(--primary)}
 .modal-section-hint{font-size:10.5px;color:var(--gray3);margin-bottom:10px;line-height:1.6}
+
+/* ── FILE CARDS (AGM "الملفات" tab) ── */
+.file-card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.file-card{background:var(--white);border-radius:16px;padding:16px;box-shadow:0 6px 20px rgba(13,36,71,.07);
+  display:flex;flex-direction:column;gap:10px;border:1px solid var(--gray1);transition:box-shadow .2s,transform .2s}
+.file-card:hover{box-shadow:0 10px 28px rgba(13,36,71,.12);transform:translateY(-2px)}
+.file-card-icon{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--offwhite),var(--gray1));
+  display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0}
+.file-card-title{font-size:12.5px;font-weight:800;color:var(--dark);line-height:1.5}
+.file-card-status{font-size:10.5px;font-weight:700}
+.file-card-status.ok{color:var(--green)}
+.file-card-status.pending{color:var(--orange)}
+.file-card-status.muted{color:var(--gray3)}
+.file-card-actions{margin-top:auto;padding-top:4px;display:flex;gap:6px;flex-wrap:wrap}
+@media(max-width:640px){.file-card-grid{grid-template-columns:1fr}}
+
+/* ── LIVE STAT PANELS (voting rate / quorum) ── */
+.stat-mini-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.stat-mini{background:var(--offwhite);border-radius:12px;padding:12px 10px;text-align:center}
+.stat-mini-num{font-size:1.5rem;font-weight:900;color:var(--primary);font-family:'Amiri',serif;line-height:1}
+.stat-mini-label{font-size:10px;color:var(--gray3);font-weight:700;margin-top:4px}
+.quorum-banner{padding:12px 14px;border-radius:12px;font-size:12.5px;font-weight:800;display:flex;align-items:center;gap:8px}
+.quorum-banner.ok{background:linear-gradient(120deg,#E4F7EC,#D7F3E3);color:var(--green)}
+.quorum-banner.pending{background:linear-gradient(120deg,#FDEEEC,#FCE3DF);color:var(--red)}
+.attendee-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;
+  border-radius:9px;font-size:11.5px;background:var(--offwhite);margin-bottom:6px}
+.attendee-row .attendee-shares{color:var(--gray3);white-space:nowrap}
+.attendee-del{background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:3px 8px;font-size:10.5px;cursor:pointer;flex-shrink:0}
+
+/* ── AGENDA TOPICS (nicer rows) ── */
+.topic-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--offwhite);border-radius:10px;margin-bottom:8px}
+.topic-num{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));
+  color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.topic-text{flex:1;font-size:12.5px;color:var(--dark);font-weight:600}
+.topic-del{background:none;border:none;color:var(--gray3);cursor:pointer;font-size:12px;flex-shrink:0}
+.topic-del:hover{color:var(--red)}
 
 
 /* ── EMPTY STATE ── */
@@ -2618,18 +2644,21 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     </div>
 
     <div class="fp-tabs">
-      <div class="fp-tab active" data-agmtab="overview" onclick="switchAGMTab('overview')">📋 نظرة عامة وجدول الأعمال</div>
+      <div class="fp-tab active" data-agmtab="files" onclick="switchAGMTab('files')">📁 الملفات</div>
+      <div class="fp-tab" data-agmtab="voting" onclick="switchAGMTab('voting')">🗳️ التصويت والنصاب</div>
       <div class="fp-tab" data-agmtab="tadawul" onclick="switchAGMTab('tadawul')">📊 تداول والإعلانات</div>
-      <div class="fp-tab" data-agmtab="attendance" onclick="switchAGMTab('attendance')">✅ الحضور</div>
     </div>
+
+    <div id="agmView-countdown" style="display:none;background:linear-gradient(135deg,var(--primary),var(--primary2));padding:14px 24px;text-align:center;flex-shrink:0"></div>
+    <div id="agmView-linkBtn" style="display:none;padding:12px 24px 0;flex-shrink:0"></div>
 
     <div class="fp-body">
 
-      <div class="fp-pane active" data-agmpane="overview">
-        <div id="agmView-countdown" style="display:none;background:linear-gradient(135deg,var(--primary),var(--primary2));border-radius:10px;padding:14px;margin-bottom:12px;text-align:center"></div>
-        <div id="agmView-linkBtn" style="display:none;margin-bottom:12px"></div>
+      <div class="fp-pane active" data-agmpane="files">
         <div id="agmView-files"></div>
+      </div>
 
+      <div class="fp-pane" data-agmpane="voting">
         <div id="agmView-votingDatesSection" class="modal-section accent-plain">
           <div class="modal-section-head">🗳️ مواعيد فتح/إغلاق التصويت</div>
           <div class="modal-section-body">
@@ -2642,7 +2671,36 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
               <div class="fg"><label style="font-size:11px">رقم الدعوة</label><select class="fs" id="agmView-call-number"><option value="1">الاجتماع الأول</option><option value="2">الاجتماع الثاني</option><option value="3">الاجتماع الثالث</option></select></div>
             </div>
             <button class="btn-xs primary" style="margin-top:6px" onclick="saveAGMVotingDates()">💾 حفظ المواعيد والنوع</button>
-            <div id="agmView-quorum" style="margin-top:10px"></div>
+          </div>
+        </div>
+
+        <div class="modal-section accent-primary">
+          <div class="modal-section-head">📈 معدل التصويت حتى الآن</div>
+          <div class="modal-section-body">
+            <div id="agmView-votingRate"><div style="text-align:center;color:var(--gray3);font-size:11px;padding:10px">جارِ التحميل...</div></div>
+          </div>
+        </div>
+
+        <div class="modal-section accent-gold">
+          <div class="modal-section-head">🏛️ النصاب — من حضر حتى الآن</div>
+          <div class="modal-section-body">
+            <div id="agmView-quorum"><div style="text-align:center;color:var(--gray3);font-size:11px;padding:10px">جارِ التحميل...</div></div>
+            <details style="margin-top:12px">
+              <summary style="cursor:pointer;font-size:11.5px;font-weight:700;color:var(--primary)">➕ تسجيل حضور مساهم يدويًا</summary>
+              <div style="margin-top:10px">
+                <div class="fg"><label style="font-size:11px">اختر من سجل المساهمين (أو اترك فارغًا واكتب اسمًا يدويًا تحت)</label>
+                  <select class="fs" id="agmCheckin-shareholder" onchange="onCheckinShareholderPick()"><option value="">— اختر —</option></select>
+                </div>
+                <div class="fg"><label style="font-size:11px">اسم المساهم (لو ما اخترته من القائمة)</label><input class="fi" id="agmCheckin-name" placeholder="اسم المساهم"/></div>
+                <div class="row2">
+                  <div class="fg"><label style="font-size:11px">عدد الأسهم — أصالة (حضور شخصي)</label><input type="number" class="fi" id="agmCheckin-asalah" value="0"/></div>
+                  <div class="fg"><label style="font-size:11px">عدد الأسهم — وكالة (توكيل)</label><input type="number" class="fi" id="agmCheckin-wakala" value="0"/></div>
+                </div>
+                <div class="fg"><label style="font-size:11px">رقم بطاقة التصويت</label><input class="fi" id="agmCheckin-card"/></div>
+                <button class="btn-xs primary" style="width:100%" onclick="checkInAttendee()">✅ تسجيل الحضور</button>
+              </div>
+            </details>
+            <div id="agmCheckin-list" style="margin-top:10px"></div>
           </div>
         </div>
 
@@ -2688,25 +2746,6 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
         <div class="empty" id="agmView-tadawulEmpty" style="display:none;padding:40px 20px">
           <div style="font-size:2rem;margin-bottom:8px">📊</div>
           <p style="font-size:12.5px;color:var(--gray3)">قسم تداول والإعلانات متاح فقط للشركات المدرجة.</p>
-        </div>
-      </div>
-
-      <div class="fp-pane" data-agmpane="attendance">
-        <div class="modal-section accent-plain">
-          <div class="modal-section-head">✅ تسجيل حضور مساهم (بغض النظر عن التصويت)</div>
-          <div class="modal-section-body">
-            <div class="fg"><label style="font-size:11px">اختر من سجل المساهمين (أو اترك فارغًا واكتب اسمًا يدويًا تحت)</label>
-              <select class="fs" id="agmCheckin-shareholder" onchange="onCheckinShareholderPick()"><option value="">— اختر —</option></select>
-            </div>
-            <div class="fg"><label style="font-size:11px">اسم المساهم (لو ما اخترته من القائمة)</label><input class="fi" id="agmCheckin-name" placeholder="اسم المساهم"/></div>
-            <div class="row2">
-              <div class="fg"><label style="font-size:11px">عدد الأسهم — أصالة (حضور شخصي)</label><input type="number" class="fi" id="agmCheckin-asalah" value="0"/></div>
-              <div class="fg"><label style="font-size:11px">عدد الأسهم — وكالة (توكيل)</label><input type="number" class="fi" id="agmCheckin-wakala" value="0"/></div>
-            </div>
-            <div class="fg"><label style="font-size:11px">رقم بطاقة التصويت</label><input class="fi" id="agmCheckin-card"/></div>
-            <button class="btn-xs primary" style="width:100%" onclick="checkInAttendee()">✅ تسجيل الحضور</button>
-            <div id="agmCheckin-list" style="margin-top:10px"></div>
-          </div>
         </div>
       </div>
 
@@ -8724,7 +8763,7 @@ async function openAGMDetailModal(id){
     if(tadawulSection) tadawulSection.style.display = "none";
     if(tadawulEmpty) tadawulEmpty.style.display = "block";
   }
-  switchAGMTab('overview');
+  switchAGMTab('files');
 
   document.getElementById("agmView-voting-start").value = isoToDatetimeLocal(m.voting_start);
   document.getElementById("agmView-voting-end").value = isoToDatetimeLocal(m.voting_end);
@@ -8738,61 +8777,62 @@ async function openAGMDetailModal(id){
   const { data: invSigs } = invitationDoc ? await sb.from("official_doc_signatures").select("id").eq("document_id", invitationDoc.id) : { data: [] };
   const invitationFullySigned = invitationDoc && (invSigs||[]).length >= (invitationDoc.signers_total||1);
 
-  document.getElementById("agmView-files").innerHTML =
-    // Once the invitation has already been generated (and possibly signed), regenerating or
-    // re-uploading it doesn't make sense — a done, signed invitation is a fixed record, not
-    // something to casually redo. Show its status instead of the generate/upload controls.
-    (invitationDoc
-      ? `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
-          <div style="font-size:13px;font-weight:800;color:var(--dark)">📨 دعوة الجمعية ${invitationFullySigned?'— موقّعة بالكامل ✅':'— بانتظار اكتمال التوقيع 🟡'}</div>
-          <a class="btn btn-outline" style="font-size:11px;padding:6px 14px" href="${invitationDoc.file_url}" target="_blank" rel="noopener">📥 عرض/تحميل</a>
-        </div>`
-      : `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
-          <div style="font-size:13px;font-weight:800;color:var(--dark)">📨 توليد دعوة الجمعية</div>
-          <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateAGMInvitationDoc(${m.id})">📝 توليد</button>
-        </div>`
-    ) +
-    fileRowWide(m.id,'minutes_file_url',m.minutes_file_url,'📋 محضر الجمعية (رفع يدوي — بعد التعديل، PDF فقط)','.pdf','openAGMDetailModal') +
-    `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
-      <div style="font-size:13px;font-weight:800;color:var(--dark)">📝 توليد محضر الجمعية تلقائيًا (PDF جاهز للتوقيع، بدون تعديل)</div>
-      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateAGMMinutesDoc(${m.id})">📝 توليد PDF</button>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
-      <div style="font-size:13px;font-weight:800;color:var(--dark)">📝 توليد محضر Word (مسودة قابلة للتعديل)</div>
-      <button class="btn" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);font-size:11px;padding:6px 14px" onclick="generateAGMMinutesWordDraft(${m.id})">📝 توليد Word</button>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
-      <div style="font-size:13px;font-weight:800;color:var(--dark)">🧾 محضر كشف الحضور (تلقائي من التصويت)</div>
-      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateAttendanceSheet(${m.id})">🖨️ توليد</button>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
-      <div style="font-size:13px;font-weight:800;color:var(--dark)">🗳️ محضر فرز الأصوات (تلقائي من التصويت)</div>
-      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateVoteMinutesPDF(${m.id})">🖨️ توليد PDF</button>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
-      <div style="font-size:13px;font-weight:800;color:var(--dark)">📨 إرسال الدعوة لكل المساهمين (سجل المساهمين)</div>
-      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="sendInvitationToShareholders(${m.id})">📨 إرسال للمساهمين</button>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
-      <div style="font-size:13px;font-weight:800;color:var(--dark)">📧 إرسال تذكير بريدي لفريق الشركة</div>
-      <button class="btn" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);font-size:11px;padding:6px 14px" onclick="sendMeetingReminderEmails(${m.id})">📧 إرسال</button>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
-      <div style="font-size:13px;font-weight:800;color:var(--dark)">📆 إضافة للتقويم الشخصي</div>
-      <div style="display:flex;gap:6px">
-        <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer" onclick="addToCalendar(${m.id},'google',true)">Google</button>
-        <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer" onclick="addToCalendar(${m.id},'outlook',true)">Outlook</button>
+  const agmFileCards = [
+    {
+      icon:"📨", title:"دعوة الجمعية",
+      status: invitationDoc
+        ? (invitationFullySigned ? '<span class="file-card-status ok">✅ موقّعة بالكامل</span>' : '<span class="file-card-status pending">🟡 بانتظار اكتمال التوقيع</span>')
+        : '<span class="file-card-status muted">لم تُولَّد بعد</span>',
+      actions: invitationDoc
+        ? `<a class="btn btn-outline" style="font-size:11px;padding:6px 14px" href="${invitationDoc.file_url}" target="_blank" rel="noopener">📥 عرض/تحميل</a>`
+        : `<button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateAGMInvitationDoc(${m.id})">📝 توليد</button>`
+    },
+    {
+      icon:"📋", title:"محضر الجمعية (رفع يدوي، PDF فقط)",
+      status: m.minutes_file_url ? '<span class="file-card-status ok">✅ مرفوع</span>' : '<span class="file-card-status muted">لم يُرفع بعد</span>',
+      actions: (m.minutes_file_url ? `<a class="btn btn-outline" style="font-size:11px;padding:6px 14px" href="${m.minutes_file_url}" target="_blank" rel="noopener">📥 تحميل</a>` : "")
+        + `<label class="btn ${m.minutes_file_url?'btn-ghost':'btn-gold'}" style="font-size:11px;padding:6px 14px;cursor:pointer">📎 ${m.minutes_file_url?'استبدال':'رفع ملف'}<input type="file" accept=".pdf" style="display:none" onchange="uploadMeetingFile(${m.id},'minutes_file_url',this);setTimeout(()=>openAGMDetailModal(${m.id}),400)"></label>`
+        + (m.minutes_file_url ? `<button class="btn btn-ghost" style="font-size:11px;padding:6px 14px;color:var(--red)" onclick="deleteMeetingFile(${m.id},'minutes_file_url');setTimeout(()=>openAGMDetailModal(${m.id}),400)">🗑️</button>` : "")
+    },
+    { icon:"📝", title:"توليد محضر تلقائي (PDF جاهز للتوقيع، بدون تعديل)", status:"",
+      actions:`<button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateAGMMinutesDoc(${m.id})">🖨️ توليد PDF</button>` },
+    { icon:"📝", title:"توليد محضر Word (مسودة قابلة للتعديل)", status:"",
+      actions:`<button class="btn" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);font-size:11px;padding:6px 14px" onclick="generateAGMMinutesWordDraft(${m.id})">📝 توليد Word</button>` },
+    { icon:"🧾", title:"محضر كشف الحضور (تلقائي من التصويت)", status:"",
+      actions:`<button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateAttendanceSheet(${m.id})">🖨️ توليد</button>` },
+    { icon:"🗳️", title:"محضر فرز الأصوات (تلقائي من التصويت)", status:"",
+      actions:`<button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateVoteMinutesPDF(${m.id})">🖨️ توليد PDF</button>` },
+    { icon:"📨", title:"إرسال الدعوة لكل المساهمين (سجل المساهمين)", status:"",
+      actions:`<button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="sendInvitationToShareholders(${m.id})">📨 إرسال</button>` },
+    { icon:"📧", title:"إرسال تذكير بريدي لفريق الشركة", status:"",
+      actions:`<button class="btn" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);font-size:11px;padding:6px 14px" onclick="sendMeetingReminderEmails(${m.id})">📧 إرسال</button>` },
+    { icon:"📆", title:"إضافة للتقويم الشخصي", status:"",
+      actions:`<button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer" onclick="addToCalendar(${m.id},'google',true)">Google</button>`
+        + `<button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer" onclick="addToCalendar(${m.id},'outlook',true)">Outlook</button>` },
+    { icon:"📱", title:"مشاركة عبر واتساب", status:"",
+      actions:`<button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer" onclick="shareMeetingViaWhatsApp(${m.id},true)">📱 مشاركة</button>` },
+  ];
+
+  const agmFileCardsHTML = agmFileCards.map(c => `<div class="file-card">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="file-card-icon">${c.icon}</div>
+        <div class="file-card-title">${c.title}</div>
       </div>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
-      <div style="font-size:13px;font-weight:800;color:var(--dark)">📱 مشاركة عبر واتساب</div>
-      <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer" onclick="shareMeetingViaWhatsApp(${m.id},true)">📱 مشاركة</button>
-    </div>
-    <div style="padding:12px 0">
-      <div style="font-size:13px;font-weight:800;color:var(--dark);margin-bottom:8px">📎 الوثائق الداعمة</div>
-      <div id="agmView-supdocs"></div>
-      <label class="btn btn-ghost" style="font-size:11px;padding:6px 14px;cursor:pointer;margin-top:6px;display:inline-block">+ إضافة وثيقة<input type="file" style="display:none" onchange="uploadAGMSupportingDoc(${m.id},this)"></label>
+      ${c.status ? `<div>${c.status}</div>` : ""}
+      <div class="file-card-actions">${c.actions}</div>
+    </div>`).join("");
+
+  document.getElementById("agmView-files").innerHTML =
+    `<div class="file-card-grid">${agmFileCardsHTML}</div>
+    <div class="modal-section accent-plain" style="margin-top:16px">
+      <div class="modal-section-head">📎 الوثائق الداعمة</div>
+      <div class="modal-section-body">
+        <div id="agmView-supdocs"></div>
+        <label class="btn btn-ghost" style="font-size:11px;padding:6px 14px;cursor:pointer;margin-top:6px;display:inline-block">+ إضافة وثيقة<input type="file" style="display:none" onchange="uploadAGMSupportingDoc(${m.id},this)"></label>
+      </div>
     </div>`;
+
+  renderAGMVotingRateWidget(m.id);
 
   await loadAGMSupportingDocs(m.id);
   await loadAGMTopicsForModal(m.id);
@@ -8857,16 +8897,17 @@ async function loadAGMTopicsForModal(meetingId){
   const locked = daysLeft < 10;
   const addRow = document.getElementById("agmView-newtopic")?.closest("div");
   if(locked){
-    box.innerHTML = (data && data.length ? data.map((t,i) => `<div style="padding:6px 0;font-size:12.5px;border-bottom:1px solid var(--gray1)">${i+1}. ${t.topic_text}</div>`).join("") : '<div style="font-size:11px;color:var(--gray3)">لا توجد بنود.</div>')
+    box.innerHTML = (data && data.length ? data.map((t,i) => `<div class="topic-row"><div class="topic-num">${i+1}</div><div class="topic-text">${t.topic_text}</div></div>`).join("") : '<div style="font-size:11px;color:var(--gray3)">لا توجد بنود.</div>')
       + `<div style="font-size:10.5px;color:var(--red);margin-top:6px">🔒 لا يمكن تعديل البنود — تبقّى أقل من ١٠ أيام على الجمعية (${daysLeft>=0?daysLeft:0} يوم).</div>`;
     if(addRow) addRow.style.display = "none";
     return;
   }
   if(addRow) addRow.style.display = "flex";
   if(!data || data.length===0){ box.innerHTML = '<div style="font-size:11px;color:var(--gray3);padding:6px 0">لا توجد بنود بعد — أضف أول بند بالأسفل.</div>'; return; }
-  box.innerHTML = data.map((t,i) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:12.5px;border-bottom:1px solid var(--gray1)">
-    <span>${i+1}. ${t.topic_text}</span>
-    <button style="background:none;border:none;color:var(--gray3);cursor:pointer;font-size:11px" onclick="deleteAGMTopic(${t.id},${meetingId})" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--gray3)'">🗑️</button>
+  box.innerHTML = data.map((t,i) => `<div class="topic-row">
+    <div class="topic-num">${i+1}</div>
+    <div class="topic-text">${t.topic_text}</div>
+    <button class="topic-del" onclick="deleteAGMTopic(${t.id},${meetingId})">🗑️</button>
   </div>`).join("");
 }
 
@@ -8929,31 +8970,62 @@ function getAGMQuorumThreshold(company, agmType, callNumber){
   return Number(company.agm_ordinary_quorum_2 ?? 0);
 }
 
+/* Quorum panel — now driven by real check-in records (agm_attendance), not by who has
+   cast a vote, since attendance and voting are two different facts: someone can attend
+   and abstain from every topic, and still count toward quorum. */
 async function renderAGMQuorumWidget(meetingId){
   const box = document.getElementById("agmView-quorum");
   if(!box) return;
-  const [{ data: m }, { data: votes }, { data: company }] = await Promise.all([
+  const [{ data: m }, { data: attendance }, { data: company }] = await Promise.all([
     sb.from("meetings").select("*").eq("id", meetingId).single(),
-    sb.from("votes").select("*").eq("meeting_id", meetingId).not("shareholder_name","is",null),
+    sb.from("agm_attendance").select("*").eq("meeting_id", meetingId).order("checked_in_at",{ascending:true}),
     sb.from("companies").select("*").eq("id", currentCompanyId).single()
   ]);
   if(!m || !company){ box.innerHTML = ""; return; }
 
+  const rows = attendance || [];
   const totalShares = Number(company.total_shares) || 0;
-  const byShareholder = {};
-  (votes||[]).forEach(v => {
-    const key = v.shareholder_name;
-    if(!byShareholder[key]) byShareholder[key] = { shares:0, lastId:v.id };
-    if(v.id >= byShareholder[key].lastId){ byShareholder[key].shares = Number(v.shares_count)||0; byShareholder[key].lastId = v.id; }
-  });
-  const attendingShares = Object.values(byShareholder).reduce((s,x)=>s+x.shares,0);
+  const attendingShares = rows.reduce((s,r) => s + (Number(r.shares_asalah)||0) + (Number(r.shares_wakala)||0), 0);
   const attendancePct = totalShares ? (attendingShares/totalShares)*100 : 0;
   const threshold = getAGMQuorumThreshold(company, m.agm_type||"عادية", m.call_number||1);
   const met = attendancePct >= threshold;
 
-  box.innerHTML = `<div style="padding:10px;border-radius:8px;background:${met?'#E8F8EF':'#FDE8E8'};font-size:12px;font-weight:700;color:${met?'var(--green)':'var(--red)'}">
-    ${met ? '✅' : '❌'} النصاب المطلوب: ${threshold}% — الحضور الحالي: ${attendancePct.toFixed(1)}% ${met ? '(تحقق النصاب)' : '(لم يتحقق بعد)'}
-  </div>`;
+  box.innerHTML = `
+    <div class="quorum-banner ${met?'ok':'pending'}">
+      ${met?'✅':'⏳'} النصاب المطلوب ${threshold}% — الحضور الحالي ${attendancePct.toFixed(1)}% ${met?'(تحقق النصاب)':'(لم يتحقق بعد)'}
+    </div>
+    <div class="stat-mini-grid" style="margin-top:10px">
+      <div class="stat-mini"><div class="stat-mini-num">${rows.length}</div><div class="stat-mini-label">مساهم حاضر</div></div>
+      <div class="stat-mini"><div class="stat-mini-num">${attendingShares.toLocaleString('ar-SA')}</div><div class="stat-mini-label">سهم ممثَّل</div></div>
+    </div>`;
+}
+
+/* "معدل التصويت حتى الآن" — a live snapshot of how much of the capital has actually cast
+   a vote so far, pulled fresh from the votes table every time this page opens (same data
+   the voting page itself works from). Distinct from quorum/attendance above on purpose. */
+async function renderAGMVotingRateWidget(meetingId){
+  const box = document.getElementById("agmView-votingRate");
+  if(!box) return;
+  const [{ data: votes }, { data: company }] = await Promise.all([
+    sb.from("votes").select("shareholder_name,shares_count,id").eq("meeting_id", meetingId).not("shareholder_name","is",null),
+    sb.from("companies").select("total_shares").eq("id", currentCompanyId).single()
+  ]);
+  const totalShares = Number(company?.total_shares) || 0;
+  const byShareholder = {};
+  (votes||[]).forEach(v => {
+    const key = v.shareholder_name;
+    if(!byShareholder[key] || v.id >= byShareholder[key].lastId){
+      byShareholder[key] = { shares: Number(v.shares_count)||0, lastId: v.id };
+    }
+  });
+  const voterCount = Object.keys(byShareholder).length;
+  const votedShares = Object.values(byShareholder).reduce((s,x)=>s+x.shares,0);
+  const votedPct = totalShares ? (votedShares/totalShares*100) : 0;
+
+  box.innerHTML = `<div class="stat-mini-grid">
+      <div class="stat-mini"><div class="stat-mini-num">${voterCount}</div><div class="stat-mini-label">مساهم صوّت حتى الآن</div></div>
+      <div class="stat-mini"><div class="stat-mini-num">${votedPct.toFixed(1)}%</div><div class="stat-mini-label">من رأس المال صوّت</div></div>
+    </div>`;
 }
 
 function goToAGMVoting(){
@@ -16478,6 +16550,7 @@ async function checkInAttendee(){
   document.getElementById("agmCheckin-wakala").value = "0";
   document.getElementById("agmCheckin-card").value = "";
   loadCheckinList(meetingId);
+  renderAGMQuorumWidget(meetingId);
 }
 
 async function loadCheckinList(meetingId){
@@ -16486,10 +16559,11 @@ async function loadCheckinList(meetingId){
   const { data } = await sb.from("agm_attendance").select("*").eq("meeting_id", meetingId).order("checked_in_at",{ascending:true});
   const rows = data || [];
   if(rows.length === 0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:11px;padding:8px">لا يوجد حضور مسجّل بعد.</div>'; return; }
-  box.innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--gray3);margin-bottom:4px">المسجَّلون (${rows.length})</div>` +
-    rows.map(r => `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--gray1);font-size:11.5px">
-      <span>${r.shareholder_name} — ${((Number(r.shares_asalah)||0)+(Number(r.shares_wakala)||0)).toLocaleString('ar-SA')} سهم</span>
-      <button onclick="deleteCheckin(${r.id},${meetingId})" style="background:#FDE8E8;color:var(--red);border:none;border-radius:5px;padding:2px 8px;font-size:10.5px;cursor:pointer">✕</button>
+  box.innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--gray3);margin-bottom:6px">قائمة الحاضرين (${rows.length})</div>` +
+    rows.map(r => `<div class="attendee-row">
+      <span>${r.shareholder_name}</span>
+      <span class="attendee-shares">${((Number(r.shares_asalah)||0)+(Number(r.shares_wakala)||0)).toLocaleString('ar-SA')} سهم</span>
+      <button class="attendee-del" onclick="deleteCheckin(${r.id},${meetingId})">✕</button>
     </div>`).join("");
 }
 
@@ -16497,6 +16571,7 @@ async function deleteCheckin(id, meetingId){
   if(!confirm("حذف تسجيل الحضور هذا؟")) return;
   await sb.from("agm_attendance").delete().eq("id", id);
   loadCheckinList(meetingId);
+  renderAGMQuorumWidget(meetingId);
 }
 
 /* Attendee list for documents now comes from the real check-in log, not from who happened to
