@@ -7270,7 +7270,7 @@ async function loadShareholderAGMView(agmMeetings){
       ? '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:16px;grid-column:1/-1">لا توجد جمعيات عامة أخرى قادمة حاليًا.</div>'
       : others.map(m => `<div class="mc q1" style="cursor:pointer" onclick="openShareholderAGMPopup(${m.id})">
           <div class="mc-bar"></div>
-          <div class="mc-type">${m.meeting_type||''}</div>
+          <div class="mc-type">جمعية عامة ${m.agm_type||"عادية"}</div>
           <div class="mc-title">${m.title||""}</div>
           <div class="mc-detail">📅 ${m.meeting_date||"—"}${m.meeting_time?(" — الساعة "+m.meeting_time):""}</div>
           <div class="mc-detail">📍 ${m.method||"—"}</div>
@@ -7282,7 +7282,7 @@ async function loadShareholderAGMView(agmMeetings){
     pastBox.innerHTML = past.length === 0
       ? '<tr><td colspan="3" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا يوجد سجل جمعيات سابقة بعد</td></tr>'
       : past.map(m => `<tr style="cursor:pointer" onclick="openShareholderAGMPopup(${m.id})">
-          <td>${m.title||""}</td><td>${m.meeting_date||"—"}</td><td>${m.meeting_type||"—"}</td>
+          <td>${m.title||""}</td><td>${m.meeting_date||"—"}</td><td>${m.agm_type||"عادية"}</td>
         </tr>`).join("");
   }
 }
@@ -7339,7 +7339,7 @@ function renderUpcomingAGMCards(upcoming){
     const fileCount = [m.agenda_file_url,m.invitation_file_url,m.minutes_file_url].filter(Boolean).length;
     return `<div class="mc q1" style="cursor:pointer" onclick="openAGMDetailModal(${m.id})">
       <div class="mc-bar"></div>
-      <div class="mc-type">${m.meeting_type||''}</div>
+      <div class="mc-type">جمعية عامة ${m.agm_type||"عادية"}</div>
       <div class="mc-title">${m.title||""}</div>
       <div class="mc-detail">📅 ${m.meeting_date||"—"}${m.meeting_time ? (" — الساعة "+m.meeting_time) : ""}</div>
       <div class="mc-detail">📍 ${m.method||"—"}</div>
@@ -7380,7 +7380,7 @@ async function renderPastAGMTable(past){
     const votedShares = Object.values(shareholders).reduce((a,b)=>a+b,0);
     const participation = totalShares ? pct(votedShares, totalShares) : "—";
     return `<tr style="cursor:pointer" onclick="openAGMDetailModal(${m.id})">
-      <td>${m.title||""}</td><td>${m.meeting_date||"—"}</td><td>${m.meeting_type||"—"}</td>
+      <td>${m.title||""}</td><td>${m.meeting_date||"—"}</td><td>${m.agm_type||"عادية"}</td>
       <td>${participation}</td>
       <td><span class="badge done">مكتملة</span></td>
       <td><button class="btn-xs primary" onclick="event.stopPropagation();openAGMDetailModal(${m.id})">📂 التفاصيل</button></td>
