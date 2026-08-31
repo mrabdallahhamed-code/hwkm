@@ -3318,23 +3318,29 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     </div>
     <div id="mi-form">
       <div class="fg"><label>الدور المقترح له</label>
-        <select class="fs" id="mi-role">
+        <select class="fs" id="mi-role" onchange="toggleCustomRoleInput('mi-role','mi-role-custom')">
           <option>رئيس مجلس</option><option>سكرتير المجلس</option>
           <option>رئيس لجنة الترشيحات</option><option>عضو لجنة الترشيحات</option>
+          <option>رئيس لجنة مراجعة</option><option>عضو لجنة مراجعة</option>
           <option selected>عضو مجلس</option><option>عضو مجلس وعضو مساهم</option><option>مساهم</option>
+          <option value="__custom__">🏷️ مسمى مخصّص (لجنة أخرى)...</option>
         </select>
+        <input class="fi" id="mi-role-custom" placeholder="اكتب اسم اللجنة/الدور، مثال: رئيس لجنة المخاطر" style="display:none;margin-top:6px"/>
       </div>
-      <p style="font-size:11px;color:var(--gray3)">بعد التوليد، شارك الرابط أو الرمز مع الشخص — لما يسجّل حساب جديد ويدخله، ينضم مباشرة لشركتك بالدور المحدد.</p>
+      <p style="font-size:11px;color:var(--gray3)">بعد التوليد، شارك الرابط أو الرمز مع الشخص — لما يسجّل حساب جديد ويدخله، ينضم مباشرة لشركتك بالدور المحدد. لو اخترت مسمى مخصّص، افتح "🔧 صلاحيات مخصّصة" على بطاقته بعد انضمامه لتحديد أي صفحات يشوفها بالضبط.</p>
       <button class="btn btn-gold" style="width:100%" onclick="generateInvite()">✅ توليد رابط الدعوة</button>
     </div>
     <div id="mi-existing-form" style="display:none">
       <div class="fg"><label>البريد الإلكتروني للحساب المسجَّل مسبقًا</label><input class="fi" id="mi-existing-email" type="email" placeholder="example@email.com"/></div>
       <div class="fg"><label>الدور بشركتك</label>
-        <select class="fs" id="mi-existing-role">
+        <select class="fs" id="mi-existing-role" onchange="toggleCustomRoleInput('mi-existing-role','mi-existing-role-custom')">
           <option>رئيس مجلس</option><option>سكرتير المجلس</option>
           <option>رئيس لجنة الترشيحات</option><option>عضو لجنة الترشيحات</option>
+          <option>رئيس لجنة مراجعة</option><option>عضو لجنة مراجعة</option>
           <option selected>عضو مجلس</option><option>عضو مجلس وعضو مساهم</option><option>مساهم</option>
+          <option value="__custom__">🏷️ مسمى مخصّص (لجنة أخرى)...</option>
         </select>
+        <input class="fi" id="mi-existing-role-custom" placeholder="اكتب اسم اللجنة/الدور، مثال: عضو لجنة الحوكمة" style="display:none;margin-top:6px"/>
       </div>
       <p style="font-size:11px;color:var(--gray3)">استخدم هذا لو الشخص عنده حساب مسجّل مسبقًا بالمنصة (بشركة ثانية أو بدون شركة)، وتبي تربطه بشركتك مباشرة بدون ما يسجّل من جديد.</p>
       <button class="btn btn-gold" style="width:100%" onclick="linkExistingAccount()">✅ ربط الحساب بشركتي</button>
@@ -3475,6 +3481,7 @@ const TRANSLATIONS = {
   // Login/signup screen
   "مرحبًا بك في حوكم":"Welcome to Hawkim","منصة الحوكمة المؤسسية":"Corporate Governance Platform",
   "عضو مجلس":"Board Member","عضو مجلس وعضو مساهم":"Board Member & Shareholder","مساهم":"Shareholder","مدير النظام":"System Admin","رئيس مجلس":"Board Chairman",
+  "رئيس لجنة مراجعة":"Audit Committee Chairman","عضو لجنة مراجعة":"Audit Committee Member",
   "سكرتير المجلس":"Board Secretary","نوع الحساب":"Account Type","رقم الأسهم":"Shares Count",
 
   // Meetings
@@ -4395,10 +4402,25 @@ function switchInviteTab(tab){
   document.getElementById("mi-tab-existing").style.color = isNew ? "var(--dark)" : "";
 }
 
+function toggleCustomRoleInput(selectId, inputId){
+  const sel = document.getElementById(selectId);
+  const inp = document.getElementById(inputId);
+  if(!sel || !inp) return;
+  inp.style.display = sel.value === '__custom__' ? 'block' : 'none';
+}
+function resolveRoleValue(selectId, inputId){
+  const sel = document.getElementById(selectId);
+  if(sel && sel.value === '__custom__'){
+    const inp = document.getElementById(inputId);
+    return inp ? inp.value.trim() : '';
+  }
+  return sel ? sel.value : '';
+}
 async function linkExistingAccount(){
   const email = document.getElementById("mi-existing-email").value.trim();
   if(!email){ alert("الرجاء إدخال البريد الإلكتروني"); return; }
-  const role = document.getElementById("mi-existing-role").value;
+  const role = resolveRoleValue("mi-existing-role", "mi-existing-role-custom");
+  if(!role){ alert("الرجاء كتابة المسمى المخصّص للدور"); return; }
   if(!currentCompanyId){ alert("لا توجد شركة محددة حاليًا"); return; }
 
   const { data: existing, error: findErr } = await sb.from("user_profiles").select("*").ilike("email", email).maybeSingle();
@@ -4426,7 +4448,8 @@ function randomInviteCode(){
 
 async function generateInvite(){
   if(!currentCompanyId){ alert("لا توجد شركة محددة حاليًا"); return; }
-  const suggested_role = document.getElementById("mi-role").value;
+  const suggested_role = resolveRoleValue("mi-role", "mi-role-custom");
+  if(!suggested_role){ alert("الرجاء كتابة المسمى المخصّص للدور"); return; }
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
   const invite_code = randomInviteCode();
@@ -4482,10 +4505,15 @@ const ROLE_STYLE = {
   "سكرتير المجلس": { color: "#8B2FC9", bg: "#F3E8FB", icon: "🗂️" },
   "رئيس لجنة الترشيحات": { color: "var(--teal)", bg: "#E5F6F4", icon: "🎖️" },
   "عضو لجنة الترشيحات": { color: "var(--teal)", bg: "#E5F6F4", icon: "🎗️" },
+  "رئيس لجنة مراجعة": { color: "#0E76BC", bg: "#E4F1FB", icon: "🧾" },
+  "عضو لجنة مراجعة": { color: "#0E76BC", bg: "#E4F1FB", icon: "📑" },
   "عضو مجلس": { color: "var(--green)", bg: "#E8F8EF", icon: "👤" },
   "عضو مجلس وعضو مساهم": { color: "var(--orange)", bg: "#FCEFE3", icon: "🤝" },
   "مساهم": { color: "var(--gray3)", bg: "var(--offwhite)", icon: "💰" }
 };
+// Fallback style for a custom, owner-typed role name that isn't in the map above.
+const CUSTOM_ROLE_STYLE = { color: "#6B4FA0", bg: "#EFEAFA", icon: "🏷️" };
+function roleStyleOf(role){ return ROLE_STYLE[role] || CUSTOM_ROLE_STYLE; }
 
 /* ══════════ ACTIVITY LOG (universal, non-blocking) ══════════ */
 async function logActivity(action_type, entity_type, entity_label, details){
@@ -4719,16 +4747,17 @@ async function loadUsers(){
   (profiles||[]).forEach(p => { profileByEmail[p.email] = p; });
 
   const isSoleProp = currentCompanyType === "مؤسسة فردية";
-  const roles = isSoleProp ? ['مدير النظام','عضو مجلس'] : ['مدير النظام','رئيس مجلس','سكرتير المجلس','رئيس لجنة الترشيحات','عضو لجنة الترشيحات','عضو مجلس','عضو مجلس وعضو مساهم','مساهم'];
+  const roles = isSoleProp ? ['مدير النظام','عضو مجلس'] : ['مدير النظام','رئيس مجلس','سكرتير المجلس','رئيس لجنة الترشيحات','عضو لجنة الترشيحات','رئيس لجنة مراجعة','عضو لجنة مراجعة','عضو مجلس','عضو مجلس وعضو مساهم','مساهم'];
   const roleDisplayLabel = (r) => isSoleProp && r === 'عضو مجلس' ? 'عضو فريق' : r;
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
 
   grid.innerHTML = memberships.map(m => {
     const u = profileByEmail[m.email] || {};
-    const st = ROLE_STYLE[m.role] || ROLE_STYLE["عضو مجلس"];
+    const st = roleStyleOf(m.role);
     const initial = (u.full_name || m.email || "؟").trim().charAt(0);
     const isMe = m.email === myEmail;
+    const isCustomRole = !roles.includes(m.role);
     return `<div class="card" style="margin:0;border-top:4px solid ${st.color};display:flex;flex-direction:column">
       <div class="card-body" style="display:flex;flex-direction:column;flex:1">
         <div style="display:flex;align-items:flex-start;gap:12px">
@@ -4745,13 +4774,16 @@ async function loadUsers(){
           <div style="display:flex;justify-content:space-between"><span>رقم الجوال</span><span style="color:var(--dark);font-weight:600">${u.phone_number||"—"}</span></div>
         </div>
         ${u.id ? `<button style="width:100%;background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:8px;padding:6px;font-size:11px;font-weight:600;cursor:pointer;margin-bottom:8px" onclick="openEditProfileModal(${u.id})">✏️ تعديل البيانات (الجوال والهوية)</button>` : ""}
-        <button style="width:100%;background:#EAF0F8;color:var(--primary);border:none;border-radius:8px;padding:6px;font-size:11px;font-weight:700;cursor:pointer;margin-bottom:8px" onclick="openUserPermissionOverridesModal('${(m.email||'').replace(/'/g,"")}','${(u.full_name||m.email||'').replace(/'/g,"")}', currentCompanyId)">🔧 صلاحيات مخصّصة</button>
+        <button style="width:100%;background:#EAF0F8;color:var(--primary);border:none;border-radius:8px;padding:6px;font-size:11px;font-weight:700;cursor:pointer;margin-bottom:8px" onclick="openUserPermissionOverridesModal('${(m.email||'').replace(/'/g,"")}','${(u.full_name||m.email||'').replace(/'/g,"")}', currentCompanyId)">🔧 صلاحيات مخصّصة${isCustomRole?' (مطلوبة لهذا المسمى)':''}</button>
 
         <div style="margin-top:auto">
           <label style="font-size:10px;color:var(--gray3);display:block;margin-bottom:4px">الدور / الصلاحية بهذه الشركة</label>
-          <select onchange="updateUserRole(${m.id}, this.value)" style="width:100%;font-size:12px;font-weight:700;padding:8px 10px;border-radius:8px;cursor:pointer;background:${st.bg};color:${st.color};border:1.5px solid ${st.color}55;margin-bottom:8px">
+          <select onchange="this.value==='__custom__' ? promptCustomRole(${m.id}) : updateUserRole(${m.id}, this.value)" style="width:100%;font-size:12px;font-weight:700;padding:8px 10px;border-radius:8px;cursor:pointer;background:${st.bg};color:${st.color};border:1.5px solid ${st.color}55;margin-bottom:8px">
+            ${isCustomRole ? `<option value="${m.role}" selected>${st.icon} ${m.role}</option>` : ""}
             ${roles.map(r=>`<option value="${r}" ${m.role===r?"selected":""}>${ROLE_STYLE[r].icon} ${roleDisplayLabel(r)}</option>`).join("")}
+            <option value="__custom__">🏷️ مسمى مخصّص (لجنة أخرى)...</option>
           </select>
+          ${isCustomRole ? `<p style="font-size:9.5px;color:var(--gray3);margin:-2px 0 8px">مسمى مخصّص — استخدم "🔧 صلاحيات مخصّصة" فوق لتحديد أي صفحات يشوفها بالضبط.</p>` : ""}
           ${isMe ? "" : `<button style="width:100%;background:#FDE8E8;color:var(--red);border:none;border-radius:8px;padding:8px;font-size:11.5px;font-weight:600;cursor:pointer" onclick="deleteUserProfile(${m.id},'${(u.full_name||m.email||"").replace(/'/g,"")}')">🗑️ إزالة من هذه الشركة</button>`}
         </div>
       </div>
@@ -4810,6 +4842,19 @@ async function updateUserRole(membershipId, role){
   if(error){ alert("تعذّر التحديث: " + error.message); return; }
   logActivity("صلاحيات", "مستخدم", target && target.data ? (target.data.full_name||target.data.email) : (membership?membership.email:""), `تغيير الدور إلى "${role}"`);
   loadUsers();
+}
+
+// Lets مدير النظام give a person a role name that isn't on the standard list — e.g. a
+// committee that's specific to this company ("رئيس لجنة المخاطر", "عضو لجنة الحوكمة"...).
+// The role string itself carries no special access beyond the safe "broad view, no edit"
+// default every non-standard role gets — real per-page control still comes from the
+// existing "🔧 صلاحيات مخصّصة" override system, which is exactly what makes this safe:
+// no new permission logic needed, just a free-text label plus the tool that already exists.
+async function promptCustomRole(membershipId){
+  const name = prompt('اكتب المسمى المخصص للدور (مثال: "رئيس لجنة المخاطر" أو "عضو لجنة الحوكمة"):');
+  if(!name || !name.trim()){ loadUsers(); return; }
+  await updateUserRole(membershipId, name.trim());
+  alert(`تم تعيين المسمى "${name.trim()}" ✅ — افتح "🔧 صلاحيات مخصّصة" على بطاقة هذا الشخص الآن لتحديد بالضبط أي صفحات يشوفها ويقدر يعدّل فيها.`);
 }
 async function loadCompanies(preferredCompanyId){
   const sel = document.getElementById("companySwitcher");
