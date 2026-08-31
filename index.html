@@ -1302,7 +1302,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div id="agmShareholderBlock" style="display:none">
 
     <div class="sec-title">🤝 الجمعية الحالية</div>
-    <div id="shCurrentAGM" style="margin-bottom:22px">
+    <div id="shCurrentAGM" class="meet-cards" style="margin-bottom:22px">
       <div class="sh-empty"><div class="sh-empty-icon">⏳</div><div class="sh-empty-text">جارِ التحميل...</div></div>
     </div>
 
@@ -7342,8 +7342,17 @@ async function loadShareholderAGMView(agmMeetings){
   const curBox = document.getElementById("shCurrentAGM");
   if(curBox){
     curBox.innerHTML = current
-      ? await shareholderAGMHeroHTML(current)
-      : '<div class="sh-empty"><div class="sh-empty-icon">🤝</div><div class="sh-empty-text">لا توجد جمعية عامة قادمة حاليًا.</div></div>';
+      ? `<div class="mc q1" style="cursor:pointer" onclick="openShareholderAGMPopup(${current.id})">
+          <div class="mc-bar"></div>
+          <div class="mc-type">جمعية عامة ${current.agm_type||"عادية"} · الحالية</div>
+          <div class="mc-title">${current.title||"الجمعية العامة"}</div>
+          <div class="mc-detail">📅 ${current.meeting_date||"—"}${current.meeting_time?(" — الساعة "+current.meeting_time):""}</div>
+          <div class="mc-detail">📍 ${current.method||"—"}</div>
+          <div class="mc-actions">
+            <button class="btn-xs primary" style="width:100%" onclick="event.stopPropagation();openShareholderAGMPopup(${current.id})">📂 عرض التفاصيل</button>
+          </div>
+        </div>`
+      : '<div class="sh-empty" style="grid-column:1/-1"><div class="sh-empty-icon">🤝</div><div class="sh-empty-text">لا توجد جمعية عامة قادمة حاليًا.</div></div>';
   }
 
   const upBox = document.getElementById("shUpcomingAGMCards");
@@ -7356,6 +7365,9 @@ async function loadShareholderAGMView(agmMeetings){
           <div class="mc-title">${m.title||""}</div>
           <div class="mc-detail">📅 ${m.meeting_date||"—"}${m.meeting_time?(" — الساعة "+m.meeting_time):""}</div>
           <div class="mc-detail">📍 ${m.method||"—"}</div>
+          <div class="mc-actions">
+            <button class="btn-xs primary" style="width:100%" onclick="event.stopPropagation();openShareholderAGMPopup(${m.id})">📂 عرض التفاصيل</button>
+          </div>
         </div>`).join("");
   }
 
@@ -7376,72 +7388,60 @@ async function loadShareholderAGMView(agmMeetings){
   }
 }
 
-/* Builds the shareholder's restricted view of the CURRENT AGM as a polished hero card:
-   gradient header + a clear invitation call-to-action + supporting documents as file cards.
-   Only ever shows the invitation once it's actually fully signed — a draft or partially-
-   signed invitation is never exposed to a shareholder. */
-async function shareholderAGMHeroHTML(m){
-  const { invitationDoc, invitationFullySigned, supDocs } = await fetchShareholderAGMDocs(m.id);
-
-  const inviteCTA = (invitationDoc && invitationFullySigned)
-    ? `<div class="sh-invite-cta ready">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div class="sh-invite-cta-icon">📨</div>
-          <div><div class="sh-invite-cta-text">دعوة الجمعية جاهزة وموقّعة</div><div class="sh-invite-cta-sub">يمكنك تحميلها الآن</div></div>
-        </div>
-        <a class="btn btn-gold" style="font-size:11.5px;padding:9px 18px" href="${invitationDoc.file_url}" target="_blank" rel="noopener">📥 تحميل الدعوة</a>
-      </div>`
-    : `<div class="sh-invite-cta pending">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div class="sh-invite-cta-icon">⏳</div>
-          <div><div class="sh-invite-cta-text">دعوة الجمعية قيد الاعتماد</div><div class="sh-invite-cta-sub">ستظهر هنا فور اكتمال توقيعها من مجلس الإدارة</div></div>
-        </div>
-      </div>`;
-
-  const docsHTML = (supDocs && supDocs.length)
-    ? supDocs.map(d => `<div class="sh-doc-row">
-        <div class="sh-doc-name">📎 ${d.document_name||"وثيقة"}</div>
-        <a class="btn-xs primary" href="${d.file_url}" target="_blank" rel="noopener">📥 تحميل</a>
-      </div>`).join("")
-    : '<div style="font-size:11.5px;color:var(--gray3);padding:4px 0">لا توجد مرفقات داعمة حتى الآن.</div>';
-
-  return `
-    <div class="sh-agm-hero">
-      <div class="sh-agm-hero-top">
-        <div class="sh-agm-hero-icon">🤝</div>
-        <div>
-          <div class="sh-agm-hero-title">${m.title||"الجمعية العامة"}</div>
-          <div class="sh-agm-hero-meta">📅 ${m.meeting_date||"—"}${m.meeting_time?(" — الساعة "+m.meeting_time):""} &nbsp; 📍 ${m.method||"—"} &nbsp; · &nbsp; جمعية ${m.agm_type||"عادية"}</div>
-        </div>
-      </div>
-    </div>
-    <div class="sh-agm-body">
-      ${inviteCTA}
-      <div class="sh-docs-label">📎 المرفقات الداعمة</div>
-      ${docsHTML}
-    </div>
-  `;
-}
-
-/* Same restricted content, but as a plain block for the small popup used for "other
-   upcoming" and "past" meetings — no need to repeat the big hero header there. */
+/* Full detail view for one AGM, opened in the "m-sh-agm-view" popup — used for the current,
+   other-upcoming, and past meetings alike, so a shareholder always gets the exact same
+   complete picture: type, date/time, status, meeting link (if live), calendar buttons, the
+   signed invitation, and every supporting document — each offered as either VIEW (opens in
+   a new tab, no forced download) or DOWNLOAD (saves the file), never just one or the other. */
 async function shareholderAGMDetailHTML(m){
   const { invitationDoc, invitationFullySigned, supDocs } = await fetchShareholderAGMDocs(m.id);
 
+  const todayStr = new Date().toISOString().slice(0,10);
+  let statusBadge;
+  if(!m.meeting_date || m.meeting_date < todayStr) statusBadge = '<span class="badge done">منتهية</span>';
+  else if(m.meeting_date === todayStr) statusBadge = '<span class="badge info">جارية اليوم</span>';
+  else statusBadge = '<span class="badge pending">قادمة</span>';
+
+  const linkHTML = (m.meeting_link && m.meeting_date >= todayStr)
+    ? `<a href="${m.meeting_link}" target="_blank" rel="noopener" class="btn btn-gold" style="width:100%;text-align:center;display:block;text-decoration:none;margin-bottom:14px">🔗 انضم للاجتماع الآن</a>`
+    : "";
+
+  const calendarHTML = m.meeting_date ? `<div style="display:flex;gap:6px;margin-bottom:16px">
+      <button class="btn-xs" style="flex:1;background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:7px;font-size:11px;cursor:pointer" onclick="addToCalendar(${m.id},'google',true)">📅 Google Calendar</button>
+      <button class="btn-xs" style="flex:1;background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:7px;font-size:11px;cursor:pointer" onclick="addToCalendar(${m.id},'outlook',true)">📅 Outlook</button>
+    </div>` : "";
+
   const invitationHTML = (invitationDoc && invitationFullySigned)
-    ? `<a class="btn btn-gold" style="font-size:12px;padding:9px 18px;display:inline-flex;align-items:center;gap:6px" href="${invitationDoc.file_url}" target="_blank" rel="noopener">📨 عرض/تحميل دعوة الجمعية الموقّعة</a>`
+    ? `<div class="sh-doc-row">
+        <div class="sh-doc-name">📨 دعوة الجمعية (موقّعة)</div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <a class="btn-xs" style="background:var(--gray1);color:var(--primary);border:none;border-radius:6px;padding:5px 12px;font-size:10.5px;cursor:pointer" href="${invitationDoc.file_url}" target="_blank" rel="noopener">👁️ عرض</a>
+          <a class="btn-xs primary" href="${invitationDoc.file_url}" download style="border-radius:6px;padding:5px 12px;font-size:10.5px">📥 تحميل</a>
+        </div>
+      </div>`
     : `<div style="font-size:12px;color:var(--gray3);background:var(--offwhite);border-radius:8px;padding:10px 12px">📨 دعوة الجمعية الموقّعة لم تُنشر بعد — تابعونا قريبًا.</div>`;
 
   const supHTML = (supDocs && supDocs.length)
     ? supDocs.map(d => `<div class="sh-doc-row">
         <div class="sh-doc-name">📎 ${d.document_name||"وثيقة"}</div>
-        <a class="btn-xs primary" href="${d.file_url}" target="_blank" rel="noopener">📥 تحميل</a>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <a class="btn-xs" style="background:var(--gray1);color:var(--primary);border:none;border-radius:6px;padding:5px 12px;font-size:10.5px;cursor:pointer" href="${d.file_url}" target="_blank" rel="noopener">👁️ عرض</a>
+          <a class="btn-xs primary" href="${d.file_url}" download style="border-radius:6px;padding:5px 12px;font-size:10.5px">📥 تحميل</a>
+        </div>
       </div>`).join("")
     : '<div style="font-size:11.5px;color:var(--gray3);padding:6px 0">لا توجد مرفقات داعمة حتى الآن.</div>';
 
   return `
-    <div style="font-size:14.5px;font-weight:800;color:var(--dark);margin-bottom:4px">${m.title||"الجمعية العامة"}</div>
-    <div style="font-size:11.5px;color:var(--gray3);margin-bottom:16px">📅 ${m.meeting_date||"—"}${m.meeting_time?(" — الساعة "+m.meeting_time):""} &nbsp; 📍 ${m.method||"—"}</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+      <div style="font-size:14.5px;font-weight:800;color:var(--dark)">${m.title||"الجمعية العامة"}</div>
+      ${statusBadge}
+    </div>
+    <div style="font-size:11.5px;color:var(--gray3);margin-bottom:16px">
+      🏷️ جمعية ${m.agm_type||"عادية"} &nbsp; · &nbsp; 📅 ${m.meeting_date||"—"}${m.meeting_time?(" — الساعة "+m.meeting_time):""} &nbsp; · &nbsp; 📍 ${m.method||"—"}
+    </div>
+    ${linkHTML}
+    ${calendarHTML}
+    <div class="sh-docs-label">📨 الدعوة</div>
     <div style="margin-bottom:16px">${invitationHTML}</div>
     <div class="sh-docs-label">📎 المرفقات الداعمة</div>
     ${supHTML}
@@ -7464,8 +7464,9 @@ async function fetchShareholderAGMDocs(meetingId){
 async function openShareholderAGMPopup(meetingId){
   const m = (agmMeetingsCache||[]).find(x => x.id === meetingId);
   if(!m) return;
-  document.getElementById("shAGMModalBody").innerHTML = await shareholderAGMDetailHTML(m);
+  document.getElementById("shAGMModalBody").innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>';
   openM("m-sh-agm-view");
+  document.getElementById("shAGMModalBody").innerHTML = await shareholderAGMDetailHTML(m);
 }
 
 function renderUpcomingAGMCards(upcoming){
