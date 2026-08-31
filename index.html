@@ -1312,7 +1312,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     </div>
 
     <div class="sec-title" style="margin-top:22px">📚 الجمعيات السابقة</div>
-    <div id="shPastAGMList">
+    <div id="shPastAGMList" class="meet-cards">
       <div class="sh-empty"><div class="sh-empty-icon">⏳</div><div class="sh-empty-text">جارِ التحميل...</div></div>
     </div>
 
@@ -1320,13 +1320,21 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
 </div>
 
-<!-- Simple read-only popup for a shareholder to view a specific (upcoming-other or past)
-     AGM's signed invitation + supporting attachments, without leaving this page. -->
-<div class="modal-bg" id="m-sh-agm-view">
-  <div class="modal" style="max-width:460px">
-    <div id="shAGMModalBody"></div>
-    <div class="modal-foot">
-      <button class="btn btn-ghost" onclick="closeM('m-sh-agm-view')">إغلاق</button>
+<!-- Full-page detail view for a shareholder's AGM (current / other-upcoming / past) —
+     reuses the same "fullpage" takeover pattern built for the admin AGM view, so it reads
+     comfortably on mobile instead of being a small centered popup. -->
+<div class="modal-bg fullpage" id="m-sh-agm-view">
+  <div class="modal">
+    <div class="fp-header">
+      <button class="fp-back" onclick="closeM('m-sh-agm-view')" aria-label="رجوع">→</button>
+      <div class="fp-header-icon">🤝</div>
+      <div class="fp-header-titles">
+        <div class="fp-title">تفاصيل الجمعية العامة</div>
+        <div class="fp-meta">دعوتك، مرفقاتك، وكل ما يخص هذا الاجتماع</div>
+      </div>
+    </div>
+    <div class="fp-body">
+      <div style="max-width:640px;margin:0 auto" id="shAGMModalBody"></div>
     </div>
   </div>
 </div>
@@ -7374,16 +7382,16 @@ async function loadShareholderAGMView(agmMeetings){
   const pastBox = document.getElementById("shPastAGMList");
   if(pastBox){
     pastBox.innerHTML = past.length === 0
-      ? '<div class="sh-empty"><div class="sh-empty-icon">📚</div><div class="sh-empty-text">لا يوجد سجل جمعيات سابقة بعد.</div></div>'
-      : past.map(m => `<div class="sh-past-row" onclick="openShareholderAGMPopup(${m.id})">
-          <div class="sh-past-left">
-            <div class="sh-past-badge">🤝</div>
-            <div>
-              <div class="sh-past-title">${m.title||"الجمعية العامة"}</div>
-              <div class="sh-past-meta">📅 ${m.meeting_date||"—"}</div>
-            </div>
+      ? '<div class="sh-empty" style="grid-column:1/-1"><div class="sh-empty-icon">📚</div><div class="sh-empty-text">لا يوجد سجل جمعيات سابقة بعد.</div></div>'
+      : past.map(m => `<div class="mc" style="cursor:pointer" onclick="openShareholderAGMPopup(${m.id})">
+          <div class="mc-bar" style="background:linear-gradient(90deg,var(--gray2),var(--gray3))"></div>
+          <div class="mc-type">جمعية عامة ${m.agm_type||"عادية"} · منتهية</div>
+          <div class="mc-title">${m.title||"الجمعية العامة"}</div>
+          <div class="mc-detail">📅 ${m.meeting_date||"—"}</div>
+          <div class="mc-detail">📍 ${m.method||"—"}</div>
+          <div class="mc-actions">
+            <button class="btn-xs" style="width:100%;background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1)" onclick="event.stopPropagation();openShareholderAGMPopup(${m.id})">📂 عرض التفاصيل</button>
           </div>
-          <div class="sh-past-type">${m.agm_type||"عادية"}</div>
         </div>`).join("");
   }
 }
