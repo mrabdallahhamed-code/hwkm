@@ -3321,7 +3321,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
         <select class="fs" id="mi-role">
           <option>رئيس مجلس</option><option>سكرتير المجلس</option>
           <option>رئيس لجنة الترشيحات</option><option>عضو لجنة الترشيحات</option>
-          <option selected>عضو مجلس</option><option>مساهم</option>
+          <option selected>عضو مجلس</option><option>عضو مجلس وعضو مساهم</option><option>مساهم</option>
         </select>
       </div>
       <p style="font-size:11px;color:var(--gray3)">بعد التوليد، شارك الرابط أو الرمز مع الشخص — لما يسجّل حساب جديد ويدخله، ينضم مباشرة لشركتك بالدور المحدد.</p>
@@ -3333,7 +3333,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
         <select class="fs" id="mi-existing-role">
           <option>رئيس مجلس</option><option>سكرتير المجلس</option>
           <option>رئيس لجنة الترشيحات</option><option>عضو لجنة الترشيحات</option>
-          <option selected>عضو مجلس</option><option>مساهم</option>
+          <option selected>عضو مجلس</option><option>عضو مجلس وعضو مساهم</option><option>مساهم</option>
         </select>
       </div>
       <p style="font-size:11px;color:var(--gray3)">استخدم هذا لو الشخص عنده حساب مسجّل مسبقًا بالمنصة (بشركة ثانية أو بدون شركة)، وتبي تربطه بشركتك مباشرة بدون ما يسجّل من جديد.</p>
@@ -3474,7 +3474,7 @@ const TRANSLATIONS = {
 
   // Login/signup screen
   "مرحبًا بك في حوكم":"Welcome to Hawkim","منصة الحوكمة المؤسسية":"Corporate Governance Platform",
-  "عضو مجلس":"Board Member","مساهم":"Shareholder","مدير النظام":"System Admin","رئيس مجلس":"Board Chairman",
+  "عضو مجلس":"Board Member","عضو مجلس وعضو مساهم":"Board Member & Shareholder","مساهم":"Shareholder","مدير النظام":"System Admin","رئيس مجلس":"Board Chairman",
   "سكرتير المجلس":"Board Secretary","نوع الحساب":"Account Type","رقم الأسهم":"Shares Count",
 
   // Meetings
@@ -4483,6 +4483,7 @@ const ROLE_STYLE = {
   "رئيس لجنة الترشيحات": { color: "var(--teal)", bg: "#E5F6F4", icon: "🎖️" },
   "عضو لجنة الترشيحات": { color: "var(--teal)", bg: "#E5F6F4", icon: "🎗️" },
   "عضو مجلس": { color: "var(--green)", bg: "#E8F8EF", icon: "👤" },
+  "عضو مجلس وعضو مساهم": { color: "var(--orange)", bg: "#FCEFE3", icon: "🤝" },
   "مساهم": { color: "var(--gray3)", bg: "var(--offwhite)", icon: "💰" }
 };
 
@@ -4718,7 +4719,7 @@ async function loadUsers(){
   (profiles||[]).forEach(p => { profileByEmail[p.email] = p; });
 
   const isSoleProp = currentCompanyType === "مؤسسة فردية";
-  const roles = isSoleProp ? ['مدير النظام','عضو مجلس'] : ['مدير النظام','رئيس مجلس','سكرتير المجلس','رئيس لجنة الترشيحات','عضو لجنة الترشيحات','عضو مجلس','مساهم'];
+  const roles = isSoleProp ? ['مدير النظام','عضو مجلس'] : ['مدير النظام','رئيس مجلس','سكرتير المجلس','رئيس لجنة الترشيحات','عضو لجنة الترشيحات','عضو مجلس','عضو مجلس وعضو مساهم','مساهم'];
   const roleDisplayLabel = (r) => isSoleProp && r === 'عضو مجلس' ? 'عضو فريق' : r;
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
