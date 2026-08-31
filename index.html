@@ -1218,32 +1218,79 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
 <!-- ══ AGM ════════════════════════════════ -->
 <div id="p-agm" class="page content">
-  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
-    <span>🤝 الجمعيات العامة</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mt-type').value='الجمعية العامة';toggleVotingDatesFields();newMeetingTopics=[];renderNewMeetingTopics();openM('m-meeting')">+ جمعية عامة جديدة</button>
-  </div>
 
-  <div class="sec-title" style="margin-top:16px">📅 الجمعيات القادمة</div>
-  <div class="meet-cards" id="upcomingAGMCards">
-    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
-  </div>
+  <div id="agmAdminBlock">
+    <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>🤝 الجمعيات العامة</span>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mt-type').value='الجمعية العامة';toggleVotingDatesFields();newMeetingTopics=[];renderNewMeetingTopics();openM('m-meeting')">+ جمعية عامة جديدة</button>
+    </div>
 
-  <div class="sec-title" style="margin-top:20px">📄 قوالب المستندات (Word)</div>
-  <div class="card" style="margin-bottom:20px">
-    <div class="card-body" id="docTemplatesList">
-      <div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div>
+    <div class="sec-title" style="margin-top:16px">📅 الجمعيات القادمة</div>
+    <div class="meet-cards" id="upcomingAGMCards">
+      <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
+    </div>
+
+    <div class="sec-title" style="margin-top:20px">📄 قوالب المستندات (Word)</div>
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-body" id="docTemplatesList">
+        <div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div>
+      </div>
+    </div>
+
+    <div class="sec-title" style="margin-top:20px">📚 سجل الجمعيات السابقة</div>
+    <div class="card">
+      <div class="card-body" style="padding:0">
+        <table class="tbl">
+          <thead><tr><th>الجمعية</th><th>التاريخ</th><th>النوع</th><th>نسبة المشاركة بالتصويت</th><th>الحالة</th><th>إجراء</th></tr></thead>
+          <tbody id="pastAGMTbody">
+            <tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
-  <div class="sec-title" style="margin-top:20px">📚 سجل الجمعيات السابقة</div>
-  <div class="card">
-    <div class="card-body" style="padding:0">
-      <table class="tbl">
-        <thead><tr><th>الجمعية</th><th>التاريخ</th><th>النوع</th><th>نسبة المشاركة بالتصويت</th><th>الحالة</th><th>إجراء</th></tr></thead>
-        <tbody id="pastAGMTbody">
-          <tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
-        </tbody>
-      </table>
+  <!-- ══ SHAREHOLDER-FACING VIEW — deliberately much more limited than the admin view above:
+       only the signed invitation + supporting attachments for the current AGM, plus plain
+       read-only lists for upcoming/past. No creation, templates, edit, or file-management
+       controls are exposed here. ══ -->
+  <div id="agmShareholderBlock" style="display:none">
+
+    <div class="sec-title">🤝 الجمعية الحالية</div>
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-body" id="shCurrentAGM">
+        <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
+      </div>
+    </div>
+
+    <div class="sec-title">📅 الجمعيات القادمة</div>
+    <div class="meet-cards" id="shUpcomingAGMCards">
+      <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
+    </div>
+
+    <div class="sec-title" style="margin-top:20px">📚 الجمعيات السابقة</div>
+    <div class="card">
+      <div class="card-body" style="padding:0">
+        <table class="tbl">
+          <thead><tr><th>الجمعية</th><th>التاريخ</th><th>النوع</th></tr></thead>
+          <tbody id="shPastAGMTbody">
+            <tr><td colspan="3" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Simple read-only popup for a shareholder to view a specific (upcoming-other or past)
+     AGM's signed invitation + supporting attachments, without leaving this page. -->
+<div class="modal-bg" id="m-sh-agm-view">
+  <div class="modal" style="max-width:460px">
+    <div id="shAGMModalBody"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeM('m-sh-agm-view')">إغلاق</button>
     </div>
   </div>
 </div>
@@ -7165,6 +7212,17 @@ let currentVotingMeetingId = null;
 
 function renderAGMSection(agmMeetings){
   agmMeetingsCache = agmMeetings;
+
+  const isShareholder = getCurrentRole() === 'مساهم';
+  const adminBlock = document.getElementById("agmAdminBlock");
+  const shBlock = document.getElementById("agmShareholderBlock");
+  if(adminBlock) adminBlock.style.display = isShareholder ? "none" : "block";
+  if(shBlock) shBlock.style.display = isShareholder ? "block" : "none";
+  if(isShareholder){
+    loadShareholderAGMView(agmMeetings);
+    return;
+  }
+
   loadDocumentTemplates();
   const todayStr = new Date().toISOString().slice(0,10);
   const currentYear = new Date().getFullYear();
@@ -7178,6 +7236,96 @@ function renderAGMSection(agmMeetings){
 
   renderUpcomingAGMCards(upcoming);
   renderPastAGMTable(past);
+}
+
+/* ── Shareholder-facing AGM view ──────────────────────────────────────────
+   Deliberately minimal: only the CURRENT assembly's signed invitation and
+   supporting attachments, plus plain read-only lists of what's upcoming and
+   what's already happened. No admin tools (create/edit/upload/tadawul/etc.)
+   are ever built into this branch. */
+async function loadShareholderAGMView(agmMeetings){
+  const todayStr = new Date().toISOString().slice(0,10);
+  const currentYear = new Date().getFullYear();
+
+  const upcoming = (agmMeetings||[])
+    .filter(m => m.meeting_date && m.meeting_date >= todayStr && new Date(m.meeting_date).getFullYear() === currentYear)
+    .sort((a,b) => (a.meeting_date||"").localeCompare(b.meeting_date||""));
+  const past = (agmMeetings||[])
+    .filter(m => !m.meeting_date || m.meeting_date < todayStr)
+    .sort((a,b) => (b.meeting_date||"").localeCompare(a.meeting_date||""));
+
+  const current = upcoming[0] || null;
+  const others = upcoming.slice(1);
+
+  const curBox = document.getElementById("shCurrentAGM");
+  if(curBox){
+    curBox.innerHTML = current
+      ? await shareholderAGMDetailHTML(current)
+      : '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:16px">لا توجد جمعية عامة قادمة حاليًا.</div>';
+  }
+
+  const upBox = document.getElementById("shUpcomingAGMCards");
+  if(upBox){
+    upBox.innerHTML = others.length === 0
+      ? '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:16px;grid-column:1/-1">لا توجد جمعيات عامة أخرى قادمة حاليًا.</div>'
+      : others.map(m => `<div class="mc q1" style="cursor:pointer" onclick="openShareholderAGMPopup(${m.id})">
+          <div class="mc-bar"></div>
+          <div class="mc-type">${m.meeting_type||''}</div>
+          <div class="mc-title">${m.title||""}</div>
+          <div class="mc-detail">📅 ${m.meeting_date||"—"}${m.meeting_time?(" — الساعة "+m.meeting_time):""}</div>
+          <div class="mc-detail">📍 ${m.method||"—"}</div>
+        </div>`).join("");
+  }
+
+  const pastBox = document.getElementById("shPastAGMTbody");
+  if(pastBox){
+    pastBox.innerHTML = past.length === 0
+      ? '<tr><td colspan="3" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا يوجد سجل جمعيات سابقة بعد</td></tr>'
+      : past.map(m => `<tr style="cursor:pointer" onclick="openShareholderAGMPopup(${m.id})">
+          <td>${m.title||""}</td><td>${m.meeting_date||"—"}</td><td>${m.meeting_type||"—"}</td>
+        </tr>`).join("");
+  }
+}
+
+/* Builds the shareholder's restricted view of one AGM: its signed invitation (only if it's
+   actually done signing — a draft or partially-signed invitation is never shown to a
+   shareholder) plus whatever supporting documents the company attached. */
+async function shareholderAGMDetailHTML(m){
+  const { data: invDocs } = await sb.from("signing_documents").select("id,file_url,signers_total")
+    .eq("related_meeting_id", m.id).eq("doc_type","دعوة جمعية عامة").order("id",{ascending:false}).limit(1);
+  const invitationDoc = (invDocs||[])[0];
+  let invitationFullySigned = false;
+  if(invitationDoc){
+    const { data: sigs } = await sb.from("official_doc_signatures").select("id").eq("document_id", invitationDoc.id);
+    invitationFullySigned = (sigs||[]).length >= (invitationDoc.signers_total||1);
+  }
+  const { data: supDocs } = await sb.from("meeting_supporting_docs").select("*").eq("meeting_id", m.id).order("id",{ascending:false});
+
+  const invitationHTML = (invitationDoc && invitationFullySigned)
+    ? `<a class="btn btn-gold" style="font-size:12px;padding:9px 18px;display:inline-flex;align-items:center;gap:6px" href="${invitationDoc.file_url}" target="_blank" rel="noopener">📨 عرض/تحميل دعوة الجمعية الموقّعة</a>`
+    : `<div style="font-size:12px;color:var(--gray3);background:var(--offwhite);border-radius:8px;padding:10px 12px">📨 دعوة الجمعية الموقّعة لم تُنشر بعد — تابعونا قريبًا.</div>`;
+
+  const supHTML = (supDocs && supDocs.length)
+    ? supDocs.map(d => `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--gray1);font-size:12px">
+        <span>📎 ${d.document_name||"وثيقة"}</span>
+        <a class="btn-xs primary" href="${d.file_url}" target="_blank" rel="noopener">📥 تحميل</a>
+      </div>`).join("")
+    : '<div style="font-size:11.5px;color:var(--gray3);padding:6px 0">لا توجد مرفقات داعمة حتى الآن.</div>';
+
+  return `
+    <div style="font-size:14.5px;font-weight:800;color:var(--dark);margin-bottom:4px">${m.title||"الجمعية العامة"}</div>
+    <div style="font-size:11.5px;color:var(--gray3);margin-bottom:16px">📅 ${m.meeting_date||"—"}${m.meeting_time?(" — الساعة "+m.meeting_time):""} &nbsp; 📍 ${m.method||"—"}</div>
+    <div style="margin-bottom:16px">${invitationHTML}</div>
+    <div style="font-size:12.5px;font-weight:800;color:var(--dark);margin-bottom:6px">📎 المرفقات الداعمة</div>
+    ${supHTML}
+  `;
+}
+
+async function openShareholderAGMPopup(meetingId){
+  const m = (agmMeetingsCache||[]).find(x => x.id === meetingId);
+  if(!m) return;
+  document.getElementById("shAGMModalBody").innerHTML = await shareholderAGMDetailHTML(m);
+  openM("m-sh-agm-view");
 }
 
 function renderUpcomingAGMCards(upcoming){
