@@ -2710,10 +2710,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <button class="btn-xs primary" style="margin-top:8px;width:100%" onclick="saveMeetingAttendance()">💾 حفظ الحضور</button>
       <div id="mdView-quorum" style="margin-top:10px"></div>
     </div>
-    <div style="margin-top:16px">
-      <div style="font-weight:800;font-size:12.5px;color:var(--dark);margin-bottom:8px">🗳️ قرارات للتصويت</div>
+    <div id="mdView-decisionsWrap" style="margin-top:16px">
+      <div id="mdView-decisionsTitle" style="font-weight:800;font-size:12.5px;color:var(--dark);margin-bottom:8px">🗳️ قرارات مجلس الإدارة للتصويت</div>
       <div id="mdView-decisions" style="margin-bottom:8px"></div>
-      <div style="display:flex;gap:6px">
+      <div id="mdView-decisionsAddRow" style="display:flex;gap:6px">
         <input class="fi" id="mdView-newdecision" placeholder="نص قرار جديد..." style="flex:1">
         <button class="btn btn-gold" style="font-size:11px;padding:8px 14px;white-space:nowrap" onclick="addBoardDecision()">+ إضافة قرار</button>
       </div>
@@ -7073,17 +7073,47 @@ async function getEligibleDecisionVoters(meetingId){
 }
 
 async function loadBoardDecisionsSection(meetingId){
+  const wrap = document.getElementById("mdView-decisionsWrap");
+  const titleEl = document.getElementById("mdView-decisionsTitle");
+  const addRow = document.getElementById("mdView-decisionsAddRow");
   const box = document.getElementById("mdView-decisions");
   if(!box) return;
   box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:11px;padding:8px">جارِ التحميل...</div>';
 
-  const [{ data: decisions }, eligibleVoters, { data: userData }] = await Promise.all([
-    sb.from("board_decisions").select("*").eq("meeting_id", meetingId).order("id",{ascending:true}),
-    getEligibleDecisionVoters(meetingId),
+  const [{ data: meetingRow }, { data: userData }] = await Promise.all([
+    sb.from("meetings").select("committee_id").eq("id", meetingId).single(),
     sb.auth.getUser()
   ]);
+  const committeeId = meetingRow ? meetingRow.committee_id : null;
   const myEmail = userData?.user?.email;
+  const role = getCurrentRole();
+  const isFullAccess = FULL_ACCESS_ROLES.includes(role);
+
+  const eligibleVoters = await getEligibleDecisionVoters(meetingId);
   const iAmEligible = eligibleVoters.some(v => v.claimed_by_email === myEmail);
+
+  // Committee decisions are private to that committee's own members — a board member who
+  // isn't on the committee shouldn't see the topic, the vote counts, or even that a vote is
+  // happening, not just be blocked from clicking a vote button. مدير النظام / رئيس مجلس /
+  // سكرتير المجلس can still see everything (they run governance across all committees).
+  let committeeName = null;
+  if(committeeId){
+    const { data: committee } = await sb.from("committees").select("committee_name").eq("id", committeeId).maybeSingle();
+    committeeName = committee ? committee.committee_name : "اللجنة";
+    if(!isFullAccess && !iAmEligible){
+      if(wrap) wrap.style.display = "none";
+      return;
+    }
+  }
+  if(wrap) wrap.style.display = "block";
+  if(titleEl) titleEl.textContent = committeeId ? `🗳️ قرارات ${committeeName} للتصويت` : "🗳️ قرارات مجلس الإدارة للتصويت";
+
+  // Writing a new decision (the topic text itself) is limited to سكرتير المجلس / مدير النظام
+  // — everyone eligible can still vote once it's posted, but only these two can post it.
+  const canWrite = role === "سكرتير المجلس" || role === "مدير النظام";
+  if(addRow) addRow.style.display = canWrite ? "flex" : "none";
+
+  const { data: decisions } = await sb.from("board_decisions").select("*").eq("meeting_id", meetingId).order("id",{ascending:true});
 
   if(!decisions || decisions.length === 0){
     box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:11px;padding:8px">لا توجد قرارات مطروحة بعد.</div>';
@@ -7122,6 +7152,11 @@ async function loadBoardDecisionsSection(meetingId){
 }
 
 async function addBoardDecision(){
+  const role = getCurrentRole();
+  if(role !== "سكرتير المجلس" && role !== "مدير النظام"){
+    alert("كتابة قرارات جديدة مقصورة على سكرتير المجلس أو مدير النظام.");
+    return;
+  }
   const input = document.getElementById("mdView-newdecision");
   const decision_text = input.value.trim();
   if(!decision_text || !currentAttendanceMeetingId) return;
