@@ -1039,6 +1039,16 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     </div>
   </div>
 
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
+    <span>🗳️ قرارات للتصويت</span>
+    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openAddDecisionModal('board')">+ إضافة قرار</button>
+  </div>
+  <div class="card">
+    <div class="card-body" id="boardDecisionsToVoteBody">
+      <div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</div>
+    </div>
+  </div>
+
   <div class="sec-title">📚 سجل الاجتماعات السابقة</div>
   <div class="card">
     <div class="card-body" style="padding:0">
@@ -1234,6 +1244,16 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
   <div class="meet-cards" id="upcomingCommitteeCards">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
+  </div>
+
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
+    <span>🗳️ قرارات اللجان للتصويت</span>
+    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openAddDecisionModal('committee')">+ إضافة قرار</button>
+  </div>
+  <div class="card">
+    <div class="card-body" id="committeeDecisionsToVoteBody">
+      <div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</div>
+    </div>
   </div>
 
   <div class="sec-title" style="margin-top:20px">📚 سجل اجتماعات اللجان السابقة</div>
@@ -2339,6 +2359,29 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
+<!-- Add a new decision (board or committee) to vote on -->
+<div class="modal-bg" id="m-add-decision">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">🗳️ إضافة قرار للتصويت</div>
+    <input type="hidden" id="ad-scope" value="board" />
+    <div class="fg"><label>الاجتماع المرتبط بالقرار</label><select class="fs" id="ad-meeting-select"><option value="">— اختر —</option></select></div>
+    <div class="fg"><label>نص القرار</label><textarea class="fta" id="ad-text" rows="2" placeholder="مثال: اعتماد توزيع الأرباح..."></textarea></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-add-decision')">إلغاء</button><button class="btn btn-gold" onclick="submitNewDecision()">✅ إضافة</button></div>
+  </div>
+</div>
+
+<!-- Claim/link a board_members row to an actual login account -->
+<div class="modal-bg" id="m-claim-member">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">🔗 ربط عضو بحساب دخول</div>
+    <input type="hidden" id="cm-member-id" value="" />
+    <p style="font-size:12px;color:var(--gray3);margin-bottom:10px">اربط <b id="cm-member-name"></b> بحساب دخول موجود بفريقكم — بعد الربط يقدر يصوّت على قرارات المجلس/اللجان، ويُحسب ضمن الحضور والنصاب.</p>
+    <div class="fg"><label>حساب الدخول</label><select class="fs" id="cm-email-select"><option value="">— اختر —</option></select></div>
+    <p style="font-size:10.5px;color:var(--gray3)">ما لقيت الحساب؟ تأكد إن الشخص انضم لفريقكم أولاً من صفحة "إدارة الفريق".</p>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-claim-member')">إلغاء</button><button class="btn btn-gold" onclick="confirmClaimMember()">🔗 ربط الآن</button></div>
+  </div>
+</div>
+
 <!-- Add member modal -->
 
 <div class="modal-bg" id="m-member">
@@ -2718,15 +2761,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
         <input class="fi" id="mdView-newtopic" placeholder="بند جديد بجدول الأعمال..." style="flex:1">
         <button class="btn btn-gold" style="font-size:11px;padding:8px 14px;white-space:nowrap" onclick="addMeetingTopic()">+ إضافة بند</button>
       </div>
-      <p style="font-size:10px;color:var(--gray3);margin-top:6px">هذي بنود جدول الأعمال المطروحة للمناقشة، وتظهر بمحضر الاجتماع تلقائيًا. أي قرار يُتخذ بشأن بند منها يُكتب أسفل بقسم "قرارات للتصويت".</p>
-    </div>
-    <div id="mdView-decisionsWrap" style="margin-top:16px">
-      <div id="mdView-decisionsTitle" style="font-weight:800;font-size:12.5px;color:var(--dark);margin-bottom:8px">🗳️ قرارات مجلس الإدارة للتصويت</div>
-      <div id="mdView-decisions" style="margin-bottom:8px"></div>
-      <div id="mdView-decisionsAddRow" style="display:flex;gap:6px">
-        <input class="fi" id="mdView-newdecision" placeholder="نص قرار جديد..." style="flex:1">
-        <button class="btn btn-gold" style="font-size:11px;padding:8px 14px;white-space:nowrap" onclick="addBoardDecision()">+ إضافة قرار</button>
-      </div>
+      <p style="font-size:10px;color:var(--gray3);margin-top:6px">هذي بنود جدول الأعمال المطروحة للمناقشة، وتظهر بمحضر الاجتماع تلقائيًا. القرارات نفسها والتصويت عليها تلقاها بقسم "🗳️ قرارات للتصويت" بالصفحة الرئيسية.</p>
     </div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-meeting-view')">إغلاق</button></div>
   </div>
@@ -6442,6 +6477,9 @@ async function loadMembers(){
     const committeeBadge = m.committee_member === "نعم" ? '<span class="badge done">عضو لجنة</span>' : "";
     const memberDisclosure = m.claimed_by_email ? disclosuresCache.find(d => d.member_email === m.claimed_by_email) : null;
     const disclosureBadge = memberDisclosure && memberDisclosure.status === "موقّع" ? '<span class="badge done">✅ أُفصح</span>' : '<span class="badge urgent">⚠️ لم يُفصح</span>';
+    const claimBadge = m.claimed_by_email
+      ? `<span class="badge done" title="${m.claimed_by_email}">🔗 مرتبط بحساب دخول</span>`
+      : '<span class="badge urgent">⚠️ غير مرتبط — لا يقدر يصوّت</span>';
     return `<div class="memcard">
       <div class="mem-av" style="background:${bg}">${initial}</div>
       <div class="mem-name">${m.name || ""}</div><div class="mem-role">${m.position_level || "عضو"} — ${m.position || ""}</div>
@@ -6449,12 +6487,53 @@ async function loadMembers(){
         <span class="badge info">${status}</span>${execBadge}${committeeBadge}
       </div>
       <div style="display:flex;justify-content:center;margin:2px 0">${disclosureBadge}</div>
+      <div style="display:flex;justify-content:center;margin:2px 0">${claimBadge}</div>
       <div class="mem-stats"><div><div class="ms-v">${m.join_date || "—"}</div><div class="ms-l">الانضمام</div></div></div>
       <div style="display:flex;gap:6px;margin-top:8px;width:100%">
         <button class="btn-xs primary" style="flex:1" onclick="editMember(${m.id})">✏️ تعديل</button>
+        ${m.claimed_by_email ? "" : `<button class="btn-xs" style="flex:1;background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1)" onclick="openClaimMemberModal(${m.id})">🔗 ربط بحساب</button>`}
       </div>
     </div>`;
   }).join("");
+}
+
+/* Linking a formal board_members row to an actual login (claimed_by_email) is what makes
+   that person count for quorum, attendance, and decision voting — being invited to the
+   platform with role "عضو مجلس" is NOT enough by itself, since board_members is a separate
+   roster from user_company_memberships. This is normally set automatically when someone signs
+   up with a matching national ID; this modal covers everyone else (e.g. invited by link). */
+async function openClaimMemberModal(memberId){
+  const m = membersCache.find(x => x.id === memberId);
+  if(!m) return;
+  document.getElementById("cm-member-id").value = memberId;
+  document.getElementById("cm-member-name").textContent = m.name || "";
+  const sel = document.getElementById("cm-email-select");
+  sel.innerHTML = '<option value="">جارِ التحميل...</option>';
+  openM("m-claim-member");
+
+  const { data: memberships } = await sb.from("user_company_memberships").select("email,role").eq("company_id", currentCompanyId);
+  const emails = (memberships||[]).map(x=>x.email);
+  const { data: profiles } = emails.length ? await sb.from("user_profiles").select("email,full_name").in("email", emails) : { data: [] };
+  const nameByEmail = {};
+  (profiles||[]).forEach(p => { nameByEmail[p.email] = p.full_name; });
+
+  if(!memberships || memberships.length === 0){
+    sel.innerHTML = '<option value="">لا يوجد أعضاء بالفريق بعد</option>';
+    return;
+  }
+  sel.innerHTML = '<option value="">— اختر حساب الدخول —</option>' +
+    memberships.map(x => `<option value="${x.email}">${nameByEmail[x.email]||x.email} (${x.role}) — ${x.email}</option>`).join("");
+}
+
+async function confirmClaimMember(){
+  const memberId = document.getElementById("cm-member-id").value;
+  const email = document.getElementById("cm-email-select").value;
+  if(!email){ alert("الرجاء اختيار حساب الدخول اللي تبي تربطه بهذا العضو"); return; }
+  const { error } = await sb.from("board_members").update({ claimed_by_email: email }).eq("id", memberId);
+  if(error){ alert("تعذّر الربط: " + error.message); return; }
+  closeM("m-claim-member");
+  alert("تم الربط بنجاح ✅ — هذا العضو الآن يقدر يصوّت على قرارات المجلس/اللجان، ويُحسب ضمن الحضور والنصاب.");
+  loadMembers();
 }
 
 function editMember(id){
@@ -6917,6 +6996,8 @@ async function loadMeetingsAll(){
   renderAGMSection(agm);
   renderCommitteeSection(committee);
   loadCommitteeMinutes(committee);
+  loadDecisionsToVoteSection("board");
+  loadDecisionsToVoteSection("committee");
 }
 
 /* ══════════ BOARD MINUTES (signed via e-signature) ══════════ */
@@ -7090,7 +7171,6 @@ function openMeetingDetailModal(id){
   currentAttendanceMeetingId = id;
   loadMeetingAttendanceSection(id);
   loadMeetingTopics(id);
-  loadBoardDecisionsSection(id);
   openM("m-meeting-view");
   autoGenerateMinutesIfDue(id).then(generated => {
     // Only refresh the modal if minutes were actually just created — never loop otherwise.
@@ -7181,108 +7261,154 @@ async function getEligibleDecisionVoters(meetingId){
   return data || [];
 }
 
-async function loadBoardDecisionsSection(meetingId){
-  const wrap = document.getElementById("mdView-decisionsWrap");
-  const titleEl = document.getElementById("mdView-decisionsTitle");
-  const addRow = document.getElementById("mdView-decisionsAddRow");
-  const box = document.getElementById("mdView-decisions");
+/* ══════════ DECISIONS TO VOTE ON — standalone section (not nested in a meeting modal) ══════════
+   Shows on both صفحة المجلس (board decisions only) and صفحة اللجان (committee decisions
+   only), reusing the same renderer with a scope filter. Committee decisions stay private to
+   that committee's own members (plus مدير النظام / رئيس مجلس / سكرتير المجلس, who see
+   everything), exactly like before — just now living on the page level, not per-meeting. */
+async function loadDecisionsToVoteSection(scope){
+  const boxId = scope === "committee" ? "committeeDecisionsToVoteBody" : "boardDecisionsToVoteBody";
+  const box = document.getElementById(boxId);
   if(!box) return;
-  box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:11px;padding:8px">جارِ التحميل...</div>';
+  box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div>';
 
-  const [{ data: meetingRow }, { data: userData }] = await Promise.all([
-    sb.from("meetings").select("committee_id").eq("id", meetingId).single(),
-    sb.auth.getUser()
-  ]);
-  const committeeId = meetingRow ? meetingRow.committee_id : null;
-  const myEmail = userData?.user?.email;
   const role = getCurrentRole();
   const isFullAccess = FULL_ACCESS_ROLES.includes(role);
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData?.user?.email;
 
-  const eligibleVoters = await getEligibleDecisionVoters(meetingId);
-  const iAmEligible = eligibleVoters.some(v => v.claimed_by_email === myEmail);
-
-  // Committee decisions are private to that committee's own members — a board member who
-  // isn't on the committee shouldn't see the topic, the vote counts, or even that a vote is
-  // happening, not just be blocked from clicking a vote button. مدير النظام / رئيس مجلس /
-  // سكرتير المجلس can still see everything (they run governance across all committees).
-  let committeeName = null;
-  if(committeeId){
-    const { data: committee } = await sb.from("committees").select("committee_name").eq("id", committeeId).maybeSingle();
-    committeeName = committee ? committee.committee_name : "اللجنة";
-    if(!isFullAccess && !iAmEligible){
-      if(wrap) wrap.style.display = "none";
-      return;
-    }
-  }
-  if(wrap) wrap.style.display = "block";
-  if(titleEl) titleEl.textContent = committeeId ? `🗳️ قرارات ${committeeName} للتصويت` : "🗳️ قرارات مجلس الإدارة للتصويت";
-
-  // Writing a new decision (the topic text itself) is limited to سكرتير المجلس / مدير النظام
-  // — everyone eligible can still vote once it's posted, but only these two can post it.
-  const canWrite = role === "سكرتير المجلس" || role === "مدير النظام";
-  if(addRow) addRow.style.display = canWrite ? "flex" : "none";
-
-  const { data: decisions } = await sb.from("board_decisions").select("*").eq("meeting_id", meetingId).order("id",{ascending:true});
-
-  if(!decisions || decisions.length === 0){
-    box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:11px;padding:8px">لا توجد قرارات مطروحة بعد.</div>';
+  let meetingsQuery = sb.from("meetings").select("id,title,meeting_date,meeting_type,committee_id")
+    .eq("company_id", currentCompanyId).in("meeting_type", BOARD_COMMITTEE_MEETING_TYPES)
+    .order("meeting_date",{ascending:false});
+  const { data: allMeetings } = await meetingsQuery;
+  const meetings = (allMeetings||[]).filter(m => scope === "committee" ? !!m.committee_id : !m.committee_id);
+  if(meetings.length === 0){
+    box.innerHTML = `<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد اجتماعات ${scope==="committee"?"لجان":"مجلس"} بعد.</div>`;
     return;
   }
 
-  const decisionIds = decisions.map(d => d.id);
+  const meetingIds = meetings.map(m=>m.id);
+  const { data: decisions } = await sb.from("board_decisions").select("*").in("meeting_id", meetingIds).order("id",{ascending:false});
+  if(!decisions || decisions.length === 0){
+    box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد قرارات مطروحة للتصويت حاليًا.</div>';
+    return;
+  }
+
+  const meetingById = {};
+  meetings.forEach(m => meetingById[m.id] = m);
+
+  // Committee membership lookup — built once for every committee involved here, not per-decision.
+  const committeeIds = [...new Set(meetings.filter(m=>m.committee_id).map(m=>m.committee_id))];
+  const committeeMemberEmails = {}, committeeNames = {};
+  if(committeeIds.length){
+    const [{ data: committees }, { data: links }] = await Promise.all([
+      sb.from("committees").select("id,committee_name").in("id", committeeIds),
+      sb.from("committee_members").select("committee_id,member_id").in("committee_id", committeeIds)
+    ]);
+    (committees||[]).forEach(c => committeeNames[c.id] = c.committee_name);
+    const memberIds = [...new Set((links||[]).map(l=>l.member_id))];
+    const { data: memberRows } = memberIds.length ? await sb.from("board_members").select("id,claimed_by_email").in("id", memberIds) : { data: [] };
+    const emailByMemberId = {};
+    (memberRows||[]).forEach(mr => { emailByMemberId[mr.id] = mr.claimed_by_email; });
+    (links||[]).forEach(l => {
+      if(!committeeMemberEmails[l.committee_id]) committeeMemberEmails[l.committee_id] = new Set();
+      const email = emailByMemberId[l.member_id];
+      if(email) committeeMemberEmails[l.committee_id].add(email);
+    });
+  }
+  const { data: allBoardMembers } = await sb.from("board_members").select("claimed_by_email").eq("company_id", currentCompanyId);
+  const boardEmails = new Set((allBoardMembers||[]).filter(x=>x.claimed_by_email).map(x=>x.claimed_by_email));
+
+  const visibleDecisions = decisions.filter(d => {
+    const meeting = meetingById[d.meeting_id];
+    if(!meeting) return false;
+    if(meeting.committee_id && !isFullAccess) return (committeeMemberEmails[meeting.committee_id]||new Set()).has(myEmail);
+    return true;
+  });
+  if(visibleDecisions.length === 0){
+    box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد قرارات مطروحة للتصويت حاليًا.</div>';
+    return;
+  }
+
+  const decisionIds = visibleDecisions.map(d=>d.id);
   const { data: allVotes } = await sb.from("board_decision_votes").select("*").in("decision_id", decisionIds);
 
-  box.innerHTML = decisions.map(d => {
-    const votes = (allVotes||[]).filter(v => v.decision_id === d.id);
+  box.innerHTML = visibleDecisions.map(d => {
+    const meeting = meetingById[d.meeting_id];
+    const votes = (allVotes||[]).filter(v=>v.decision_id===d.id);
     const yes = votes.filter(v=>v.vote==="موافق").length, no = votes.filter(v=>v.vote==="معارض").length, abs = votes.filter(v=>v.vote==="ممتنع").length;
-    const total = eligibleVoters.length;
-    const myVote = votes.find(v => v.voter_email === myEmail);
-    const canVote = iAmEligible && !myVote;
-    return `<div style="background:var(--offwhite);border-radius:8px;padding:10px;margin-bottom:8px">
-      <div style="font-size:12px;font-weight:700;margin-bottom:6px">${d.decision_text}</div>
+    const myVote = votes.find(v=>v.voter_email===myEmail);
+    const eligible = meeting.committee_id ? (committeeMemberEmails[meeting.committee_id]||new Set()).has(myEmail) : boardEmails.has(myEmail);
+    const contextLabel = meeting.committee_id ? (committeeNames[meeting.committee_id]||"لجنة") : "مجلس الإدارة";
+    return `<div style="background:var(--offwhite);border-radius:10px;padding:12px;margin-bottom:10px">
+      <div style="font-size:10.5px;color:var(--primary);font-weight:800;margin-bottom:4px">🗓️ ${meeting.title||""} — ${meeting.meeting_date||"—"} · ${contextLabel}</div>
+      <div style="font-size:12.5px;font-weight:700;margin-bottom:6px">${d.decision_text}</div>
       <div style="display:flex;gap:10px;font-size:11px;margin-bottom:6px">
         <span style="color:var(--green)">✅ ${yes}</span>
         <span style="color:var(--red)">❌ ${no}</span>
         <span style="color:var(--orange)">➖ ${abs}</span>
-        <span style="color:var(--gray3)">(${votes.length}/${total} صوّتوا)</span>
       </div>
       ${myVote
         ? `<div style="font-size:10.5px;color:var(--primary);font-weight:700">صوّتك: ${myVote.vote}</div>`
-        : canVote
+        : eligible
           ? `<div style="display:flex;gap:6px">
-              <button class="btn-xs" style="flex:1;background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px;cursor:pointer" onclick="castBoardDecisionVote(${d.id},'موافق')">موافق</button>
-              <button class="btn-xs" style="flex:1;background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px;cursor:pointer" onclick="castBoardDecisionVote(${d.id},'معارض')">معارض</button>
-              <button class="btn-xs" style="flex:1;background:#FEF3E2;color:var(--orange);border:none;border-radius:6px;padding:6px;cursor:pointer" onclick="castBoardDecisionVote(${d.id},'ممتنع')">ممتنع</button>
+              <button class="btn-xs" style="flex:1;background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px;cursor:pointer" onclick="castBoardDecisionVote(${d.id},'موافق','${scope}')">موافق</button>
+              <button class="btn-xs" style="flex:1;background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px;cursor:pointer" onclick="castBoardDecisionVote(${d.id},'معارض','${scope}')">معارض</button>
+              <button class="btn-xs" style="flex:1;background:#FEF3E2;color:var(--orange);border:none;border-radius:6px;padding:6px;cursor:pointer" onclick="castBoardDecisionVote(${d.id},'ممتنع','${scope}')">ممتنع</button>
             </div>`
-          : (iAmEligible ? "" : '<div style="font-size:10px;color:var(--gray3)">التصويت مقصور على أعضاء المجلس/اللجنة المعنية.</div>')
+          : '<div style="font-size:10px;color:var(--gray3)">التصويت مقصور على أعضاء المجلس/اللجنة المعنية. لو تعتقد إنك مؤهّل وما يظهر لك التصويت، تأكد إن حسابك مربوط بسجل "أعضاء مجلس الإدارة" (زر 🔗 ربط بحساب).</div>'
       }
     </div>`;
   }).join("");
 }
 
-async function addBoardDecision(){
-  const role = getCurrentRole();
-  if(role !== "سكرتير المجلس" && role !== "مدير النظام"){
-    alert("كتابة قرارات جديدة مقصورة على سكرتير المجلس أو مدير النظام.");
-    return;
-  }
-  const input = document.getElementById("mdView-newdecision");
-  const decision_text = input.value.trim();
-  if(!decision_text || !currentAttendanceMeetingId) return;
-  const { error } = await sb.from("board_decisions").insert([{ meeting_id: currentAttendanceMeetingId, decision_text, company_id: currentCompanyId }]);
-  if(error){ alert("تعذّر إضافة القرار: " + error.message); return; }
-  input.value = "";
-  loadBoardDecisionsSection(currentAttendanceMeetingId);
-}
-
-async function castBoardDecisionVote(decisionId, vote){
+async function castBoardDecisionVote(decisionId, vote, scope){
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData?.user?.email;
   const { error } = await sb.from("board_decision_votes").insert([{
     decision_id: decisionId, voter_email: myEmail, voter_name: currentUserProfile?currentUserProfile.full_name:myEmail, vote
   }]);
   if(error){ alert("تعذّر تسجيل صوتك: " + error.message); return; }
-  loadBoardDecisionsSection(currentAttendanceMeetingId);
+  loadDecisionsToVoteSection(scope || "board");
+}
+
+/* "+ إضافة قرار" — writing is limited to سكرتير المجلس / مدير النظام, same as before, just
+   opened from the standalone section now instead of from inside a specific meeting's modal.
+   The meeting itself is picked from a dropdown, scoped to board-only or committee-only
+   meetings depending on which page opened the form. */
+async function openAddDecisionModal(scope){
+  const role = getCurrentRole();
+  if(role !== "سكرتير المجلس" && role !== "مدير النظام"){
+    alert("كتابة قرارات جديدة مقصورة على سكرتير المجلس أو مدير النظام.");
+    return;
+  }
+  document.getElementById("ad-scope").value = scope;
+  const sel = document.getElementById("ad-meeting-select");
+  sel.innerHTML = '<option value="">جارِ التحميل...</option>';
+  openM("m-add-decision");
+
+  const { data: allMeetings } = await sb.from("meetings").select("id,title,meeting_date,committee_id")
+    .eq("company_id", currentCompanyId).in("meeting_type", BOARD_COMMITTEE_MEETING_TYPES).order("meeting_date",{ascending:false});
+  const meetings = (allMeetings||[]).filter(m => scope === "committee" ? !!m.committee_id : !m.committee_id);
+  if(meetings.length === 0){
+    sel.innerHTML = `<option value="">لا توجد اجتماعات ${scope==="committee"?"لجان":"مجلس"} بعد</option>`;
+    return;
+  }
+  sel.innerHTML = '<option value="">— اختر الاجتماع —</option>' +
+    meetings.map(m => `<option value="${m.id}">${m.title||""} — ${m.meeting_date||"—"}</option>`).join("");
+}
+
+async function submitNewDecision(){
+  const meetingId = document.getElementById("ad-meeting-select").value;
+  const scope = document.getElementById("ad-scope").value;
+  const text = document.getElementById("ad-text").value.trim();
+  if(!meetingId){ alert("الرجاء اختيار الاجتماع"); return; }
+  if(!text){ alert("الرجاء كتابة نص القرار"); return; }
+  const { error } = await sb.from("board_decisions").insert([{ meeting_id: Number(meetingId), decision_text: text, company_id: currentCompanyId }]);
+  if(error){ alert("تعذّر إضافة القرار: " + error.message); return; }
+  document.getElementById("ad-text").value = "";
+  closeM("m-add-decision");
+  loadDecisionsToVoteSection(scope);
 }
 
 const ATTEND_STATUSES = ["حاضر","غائب","اعتذر"];
