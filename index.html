@@ -1025,7 +1025,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <span>📅 الاجتماعات القادمة والجارية</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportMeetingsList()">📥 تصدير Excel</button>
-      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-meeting-request')">+ طلب اجتماع</button>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="newRequestTopics=[];renderNewRequestTopics();openM('m-meeting-request')">+ طلب اجتماع</button>
     </div>
   </div>
   <div class="meet-cards" id="upcomingMeetCards">
@@ -2299,7 +2299,8 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="fg"><label>نوع الاجتماع</label><select class="fs" id="mt-type" onchange="toggleVotingDatesFields()"><option>اجتماع مجلس الإدارة الدوري</option><option>اجتماع طارئ</option><option>اجتماع لجنة</option><option>الجمعية العامة</option></select></div>
     <div class="fg" id="mt-committee-field" style="display:none"><label>اللجنة</label><select class="fs" id="mt-committee-id"><option value="">— اختر اللجنة —</option></select></div>
     <div class="fg"><label>عنوان الاجتماع</label><input class="fi" id="mt-title" placeholder="مثال: اجتماع مجلس الإدارة — Q2 2026" /></div>
-    <div class="row2"><div class="fg"><label>التاريخ</label><input type="date" class="fi" id="mt-date"/></div><div class="fg"><label>الوقت</label><input type="time" class="fi" id="mt-time"/></div></div>
+    <div class="row2"><div class="fg"><label>التاريخ</label><input type="date" class="fi" id="mt-date"/></div><div class="fg"><label>من الساعة</label><input type="time" class="fi" id="mt-time"/></div></div>
+    <div class="fg"><label>إلى الساعة</label><input type="time" class="fi" id="mt-time-end"/></div>
     <div class="fg"><label>طريقة الانعقاد</label><select class="fs" id="mt-method"><option>عن بُعد (Zoom)</option><option>عن بُعد (Teams)</option><option>حضوري</option><option>هجين</option></select></div>
     <div class="fg"><label>رابط الانضمام للاجتماع (زوم/تيمز/بث مباشر)</label>
       <div style="display:flex;gap:6px">
@@ -2858,10 +2859,23 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="modal-title">🗳️ طلب اجتماع جديد</div>
     <div class="fg"><label>نوع الاجتماع</label><select class="fs" id="mtr-type"><option>اجتماع مجلس الإدارة الدوري</option><option>اجتماع طارئ</option></select></div>
     <div class="fg"><label>عنوان الاجتماع</label><input class="fi" id="mtr-title" placeholder="مثال: اجتماع مجلس الإدارة — Q3 2026" /></div>
-    <div class="row2"><div class="fg"><label>الموعد المقترح</label><input type="date" class="fi" id="mtr-date"/></div><div class="fg"><label>الوقت المقترح</label><input type="time" class="fi" id="mtr-time"/></div></div>
+    <div class="row2">
+      <div class="fg"><label>الموعد المقترح</label><input type="date" class="fi" id="mtr-date"/></div>
+      <div class="fg"><label>من الساعة</label><input type="time" class="fi" id="mtr-time"/></div>
+      <div class="fg"><label>إلى الساعة</label><input type="time" class="fi" id="mtr-time-end"/></div>
+    </div>
     <div class="fg"><label>طريقة الانعقاد</label><select class="fs" id="mtr-method"><option>عن بُعد (Zoom)</option><option>عن بُعد (Teams)</option><option>حضوري</option><option>هجين</option></select></div>
-    <div class="fg"><label>بنود الاجتماع / ملاحظات</label><textarea class="fta" id="mtr-notes" rows="2" placeholder="أهم بنود جدول الأعمال المقترحة..."></textarea></div>
-    <p style="font-size:11px;color:var(--gray3)">بعد الإرسال، يظهر الطلب لكل أعضاء المجلس ليوافقوا على الموعد أو يقترحوا موعدًا بديلًا. عند إجماع الكل على الموافقة، يتحول تلقائيًا لاجتماع مؤكد.</p>
+    <div class="fg"><label>ملاحظات إضافية (اختياري)</label><textarea class="fta" id="mtr-notes" rows="2" placeholder="أي تفاصيل إضافية..."></textarea></div>
+    <div style="background:var(--offwhite);border-radius:10px;padding:10px;margin-bottom:10px">
+      <label style="font-size:11px;font-weight:800;color:var(--primary)">📋 بنود جدول الأعمال (اختياري)</label>
+      <div id="mtr-topics-list" style="margin:6px 0"></div>
+      <div style="display:flex;gap:6px">
+        <input class="fi" id="mtr-new-topic" placeholder="نص بند جديد..." style="flex:1;margin:0">
+        <button type="button" class="btn btn-ghost" style="font-size:11px;padding:8px 14px;white-space:nowrap" onclick="addNewRequestTopic()">+ إضافة</button>
+      </div>
+      <p style="font-size:10.5px;color:var(--gray3);margin-top:4px">جدول الأعمال يتكوّن تلقائيًا من: "ترحيب رئيس المجلس"، ثم البنود اللي تضيفها هنا (أو تُضاف لاحقًا)، ثم "شكر الأعضاء وإنهاء الاجتماع" — بدون ما تحتاج تكتب هالبندين بنفسك.</p>
+    </div>
+    <p style="font-size:11px;color:var(--gray3)">بعد الإرسال، يظهر الطلب لكل أعضاء المجلس ليوافقوا على الموعد أو يقترحوا موعدًا بديلًا. عند إجماع الكل على الموافقة، يتحول تلقائيًا لاجتماع مؤكد وتُولَّد دعوته تلقائيًا.</p>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-meeting-request')">إلغاء</button><button class="btn btn-gold" onclick="submitMeetingRequest()">📨 إرسال الطلب</button></div>
   </div>
 </div>
@@ -7036,8 +7050,9 @@ function openMeetingDetailModal(id){
   const m = allMeetingsCache.find(x => x.id === id);
   if(!m) return;
   document.getElementById("mdView-title").textContent = m.title||"";
+  const timeRange = m.meeting_time ? (" — من الساعة "+m.meeting_time+(m.time_end?(" إلى "+m.time_end):"")) : "";
   document.getElementById("mdView-meta").innerHTML =
-    `📅 ${m.meeting_date||"—"}${m.meeting_time?(" — الساعة "+m.meeting_time):""} &nbsp;·&nbsp; 📍 ${m.method||"—"}` +
+    `📅 ${m.meeting_date||"—"}${timeRange} &nbsp;·&nbsp; 📍 ${m.method||"—"}` +
     (m.notes ? `<br>📝 ${m.notes}` : "");
 
   startMeetingCountdown(m, "mdView-countdown");
@@ -7077,6 +7092,10 @@ function openMeetingDetailModal(id){
   loadMeetingTopics(id);
   loadBoardDecisionsSection(id);
   openM("m-meeting-view");
+  autoGenerateMinutesIfDue(id).then(generated => {
+    // Only refresh the modal if minutes were actually just created — never loop otherwise.
+    if(generated && currentAttendanceMeetingId === id) openMeetingDetailModal(id);
+  });
 }
 
 /* Agenda items (بنود جدول الأعمال) for board/committee meetings — the same vote_topics
@@ -7410,7 +7429,7 @@ function renderUpcomingMeetingCards(boardMeetings){
       <div class="mc-bar"></div>
       <div class="mc-type">${isEmergency ? '🔴 طارئ · عاجل' : (m.meeting_type||'')}</div>
       <div class="mc-title">${m.title||""}</div>
-      <div class="mc-detail">📅 ${m.meeting_date||"—"}${m.meeting_time ? (" — الساعة "+m.meeting_time) : ""}</div>
+      <div class="mc-detail">📅 ${m.meeting_date||"—"}${m.meeting_time ? (" — من "+m.meeting_time+(m.time_end?(" إلى "+m.time_end):"")) : ""}</div>
       <div class="mc-detail">📍 ${m.method||"—"}</div>
       ${m.notes ? `<div class="mc-detail">📝 ${m.notes}</div>` : ""}
       <div class="mc-actions">
@@ -9547,7 +9566,7 @@ function renderUpcomingCommitteeCards(upcoming){
       <div class="mc-bar"></div>
       <div class="mc-type">${m.meeting_type||''}</div>
       <div class="mc-title">${m.title||""}</div>
-      <div class="mc-detail">📅 ${m.meeting_date||"—"}${m.meeting_time ? (" — الساعة "+m.meeting_time) : ""}</div>
+      <div class="mc-detail">📅 ${m.meeting_date||"—"}${m.meeting_time ? (" — من "+m.meeting_time+(m.time_end?(" إلى "+m.time_end):"")) : ""}</div>
       <div class="mc-detail">📍 ${m.method||"—"}</div>
       ${m.notes ? `<div class="mc-detail">📝 ${m.notes}</div>` : ""}
       <div class="mc-actions">
@@ -9568,6 +9587,66 @@ function renderPastCommitteeTable(past){
     <td>${m.title||""}</td><td>${m.meeting_type||"—"}</td><td>${m.meeting_date||"—"}</td><td>${m.meeting_time||"—"}</td>
     <td><button class="btn-xs primary" onclick="event.stopPropagation();openMeetingDetailModal(${m.id})">📂 التفاصيل</button></td>
   </tr>`).join("");
+}
+
+// Every board/committee meeting agenda automatically opens and closes with these two fixed
+// items — only the middle is company-specific. Applies to اجتماع مجلس الإدارة الدوري, اجتماع
+// طارئ, and اجتماع لجنة alike; NOT to الجمعية العامة, which has its own separate agenda flow.
+const AGENDA_OPENING_ITEM = "ترحيب رئيس مجلس الإدارة بالأعضاء الحاضرين";
+const AGENDA_CLOSING_ITEM = "شكر رئيس مجلس الإدارة للأعضاء على الحضور، وإنهاء الاجتماع";
+const BOARD_COMMITTEE_MEETING_TYPES = ["اجتماع مجلس الإدارة الدوري", "اجتماع طارئ", "اجتماع لجنة"];
+function withAgendaBookends(customTopics){
+  return [AGENDA_OPENING_ITEM, ...customTopics, AGENDA_CLOSING_ITEM];
+}
+
+/* Auto-generates and uploads a simple invitation document for a board/committee meeting —
+   agenda (with the fixed opening/closing items already baked in via vote_topics), date/time
+   range, method, and join link if any — then attaches it as the meeting's invitation_file_url.
+   No e-signature step here (unlike the AGM invitation, which legally needs board sign-off);
+   this is a routine internal notice, generated the moment the meeting is confirmed. */
+async function generateAndUploadMeetingInvitation(meetingId){
+  const { data: m } = await sb.from("meetings").select("*").eq("id", meetingId).single();
+  if(!m) return null;
+  const { data: topics } = await sb.from("vote_topics").select("*").eq("meeting_id", meetingId)
+    .order("sort_order",{ascending:true}).order("id",{ascending:true});
+
+  let scopeLabel = "مجلس الإدارة";
+  if(m.committee_id){
+    const { data: committee } = await sb.from("committees").select("committee_name").eq("id", m.committee_id).maybeSingle();
+    scopeLabel = committee ? committee.committee_name : "اللجنة";
+  }
+  const companyName = document.getElementById("reportCompanyName1")?.textContent
+    || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "الشركة";
+  const timeRange = m.meeting_time ? (m.meeting_time + (m.time_end ? (" إلى " + m.time_end) : "")) : "—";
+
+  const html = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+    <head><meta charset="UTF-8"><title>دعوة اجتماع</title>
+    <style>
+      body{font-family:'Tajawal',Arial,sans-serif;direction:rtl;text-align:right;line-height:1.9;font-size:13px;color:#0D2447}
+      h1{text-align:center;color:#1A3A6B;font-size:19px;border-bottom:2px solid #D4AF37;padding-bottom:8px}
+      h2{color:#1A3A6B;font-size:15px;margin-top:20px}
+      ol{padding-right:20px}
+    </style></head>
+    <body>
+      <h1>دعوة اجتماع ${scopeLabel}</h1>
+      <p><b>الشركة:</b> ${companyName}</p>
+      <p><b>عنوان الاجتماع:</b> ${m.title||"—"}</p>
+      <p><b>النوع:</b> ${m.meeting_type||"—"}</p>
+      <p><b>التاريخ:</b> ${m.meeting_date||"—"}</p>
+      <p><b>الوقت:</b> ${timeRange}</p>
+      <p><b>طريقة الانعقاد:</b> ${m.method||"—"}</p>
+      ${m.meeting_link ? `<p><b>رابط الانضمام:</b> ${m.meeting_link}</p>` : ""}
+      <h2>جدول الأعمال</h2>
+      ${(topics && topics.length) ? `<ol>${topics.map(t=>`<li>${t.topic_text}</li>`).join("")}</ol>` : "<p>سيُحدَّد جدول الأعمال لاحقًا.</p>"}
+    </body>
+    </html>
+  `;
+  const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+  const file_url = await uploadBlobToStorage(blob, "meeting-invitations", `دعوة-${m.title||'اجتماع'}-${Date.now()}.doc`);
+  if(!file_url) return null;
+  await sb.from("meetings").update({ invitation_file_url: file_url }).eq("id", meetingId);
+  return file_url;
 }
 
 let newMeetingTopics = [];
@@ -9598,6 +9677,7 @@ async function saveMeeting(){
   const meeting_type = document.getElementById("mt-type").value;
   const meeting_date = document.getElementById("mt-date").value || null;
   const meeting_time = document.getElementById("mt-time").value || null;
+  const time_end = document.getElementById("mt-time-end").value || null;
   const method = document.getElementById("mt-method").value;
   const meeting_link = document.getElementById("mt-link").value.trim();
   const notes = document.getElementById("mt-notes").value.trim();
@@ -9615,11 +9695,13 @@ async function saveMeeting(){
   const fileInput = document.getElementById("mt-file");
   const file_url = await uploadFile(fileInput, "meetings");
 
-  const { data: newMeeting, error } = await sb.from("meetings").insert([{ title, meeting_type, meeting_date, meeting_time, method, meeting_link, notes, file_url, voting_start: is_listed_agm?null:voting_start, voting_end: is_listed_agm?null:voting_end, agm_type, call_number, committee_id, is_listed_agm, company_id: currentCompanyId }]).select().single();
+  const { data: newMeeting, error } = await sb.from("meetings").insert([{ title, meeting_type, meeting_date, meeting_time, time_end, method, meeting_link, notes, file_url, voting_start: is_listed_agm?null:voting_start, voting_end: is_listed_agm?null:voting_end, agm_type, call_number, committee_id, is_listed_agm, company_id: currentCompanyId }]).select().single();
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
 
-  if(newMeetingTopics.length){
-    const topicRows = newMeetingTopics.map((topic_text, i) => ({ meeting_id: newMeeting.id, topic_text, sort_order: i, company_id: currentCompanyId }));
+  const isBoardOrCommittee = BOARD_COMMITTEE_MEETING_TYPES.includes(meeting_type);
+  const finalTopics = isBoardOrCommittee ? withAgendaBookends(newMeetingTopics) : newMeetingTopics;
+  if(finalTopics.length){
+    const topicRows = finalTopics.map((topic_text, i) => ({ meeting_id: newMeeting.id, topic_text, sort_order: i, company_id: currentCompanyId }));
     await sb.from("vote_topics").insert(topicRows);
   }
 
@@ -9628,6 +9710,7 @@ async function saveMeeting(){
   document.getElementById("mt-notes").value = "";
   document.getElementById("mt-voting-start").value = "";
   document.getElementById("mt-voting-end").value = "";
+  document.getElementById("mt-time-end").value = "";
   fileInput.value = "";
   newMeetingTopics = [];
   renderNewMeetingTopics();
@@ -9637,29 +9720,60 @@ async function saveMeeting(){
   if(meeting_type === "الجمعية العامة"){
     alert("تم حفظ الجمعية العامة ✅ — سنولّد دعوتها الرسمية الآن (سيُطلب منك اسم رئيس مجلس الإدارة للتوقيع).");
     await generateOfficialDoc("دعوة جمعية عامة", newMeeting.id);
+  } else if(isBoardOrCommittee){
+    await generateAndUploadMeetingInvitation(newMeeting.id);
+    alert("تم حفظ الاجتماع بنجاح ✅ — وتولّدت دعوته تلقائيًا بجدول الأعمال. ستجده في صفحته المخصصة حسب النوع.");
   } else {
     alert("تم حفظ الاجتماع بنجاح ✅ — ستجده في صفحته المخصصة حسب النوع");
   }
 }
 
 /* ══════════ MEETING REQUESTS (board approves the proposed date) ══════════ */
+let newRequestTopics = [];
+function addNewRequestTopic(){
+  const input = document.getElementById("mtr-new-topic");
+  const text = input.value.trim();
+  if(!text) return;
+  newRequestTopics.push(text);
+  input.value = "";
+  renderNewRequestTopics();
+}
+function removeNewRequestTopic(i){
+  newRequestTopics.splice(i,1);
+  renderNewRequestTopics();
+}
+function renderNewRequestTopics(){
+  const box = document.getElementById("mtr-topics-list");
+  if(!box) return;
+  if(newRequestTopics.length === 0){ box.innerHTML = '<div style="font-size:11px;color:var(--gray3)">لا توجد بنود إضافية بعد.</div>'; return; }
+  box.innerHTML = newRequestTopics.map((t,i) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px;border-bottom:1px solid var(--gray1)">
+    <span>${i+1}. ${t}</span>
+    <button type="button" onclick="removeNewRequestTopic(${i})" style="background:none;border:none;color:var(--gray3);cursor:pointer;font-size:11px">🗑️</button>
+  </div>`).join("");
+}
+
 async function submitMeetingRequest(){
   const title = document.getElementById("mtr-title").value.trim();
   if(!title){ alert("الرجاء إدخال عنوان الاجتماع"); return; }
   const meeting_type = document.getElementById("mtr-type").value;
   const proposed_date = document.getElementById("mtr-date").value || null;
   const proposed_time = document.getElementById("mtr-time").value || null;
+  const proposed_time_end = document.getElementById("mtr-time-end").value || null;
   const method = document.getElementById("mtr-method").value;
   const notes = document.getElementById("mtr-notes").value.trim();
   if(!proposed_date){ alert("الرجاء تحديد الموعد المقترح"); return; }
 
   const { error } = await sb.from("meeting_requests").insert([{
-    title, meeting_type, proposed_date, proposed_time, method, notes, status: "قيد الموافقة", company_id: currentCompanyId
+    title, meeting_type, proposed_date, proposed_time, proposed_time_end, method, notes,
+    proposed_topics: newRequestTopics, status: "قيد الموافقة", company_id: currentCompanyId
   }]);
   if(error){ alert("تعذّر إرسال الطلب: " + error.message); return; }
 
   document.getElementById("mtr-title").value = "";
   document.getElementById("mtr-notes").value = "";
+  document.getElementById("mtr-time-end").value = "";
+  newRequestTopics = [];
+  renderNewRequestTopics();
   closeM("m-meeting-request");
   loadMeetingRequestsReview();
   alert("تم إرسال طلب الاجتماع لأعضاء المجلس للموافقة على الموعد ✅");
@@ -9762,13 +9876,21 @@ async function recomputeMeetingRequestStatus(requestId){
   const { data: req } = await sb.from("meeting_requests").select("*").eq("id", requestId).single();
   if(!req) return;
 
-  const { error: insErr } = await sb.from("meetings").insert([{
+  const { data: newMeeting, error: insErr } = await sb.from("meetings").insert([{
     title: req.title, meeting_type: req.meeting_type, meeting_date: req.proposed_date,
-    meeting_time: req.proposed_time, method: req.method, notes: req.notes, company_id: currentCompanyId
-  }]);
+    meeting_time: req.proposed_time, time_end: req.proposed_time_end, method: req.method, notes: req.notes, company_id: currentCompanyId
+  }]).select().single();
   if(insErr) return;
 
+  // Agenda: fixed opening + whatever the requester listed + fixed closing — same rule as
+  // meetings created directly, so a request-approved meeting is never missing its agenda.
+  const customTopics = Array.isArray(req.proposed_topics) ? req.proposed_topics : [];
+  const finalTopics = withAgendaBookends(customTopics);
+  const topicRows = finalTopics.map((topic_text, i) => ({ meeting_id: newMeeting.id, topic_text, sort_order: i, company_id: currentCompanyId }));
+  await sb.from("vote_topics").insert(topicRows);
+
   await sb.from("meeting_requests").update({ status: "معتمد" }).eq("id", requestId);
+  await generateAndUploadMeetingInvitation(newMeeting.id);
 }
 
 /* ══════════ POLICIES (governance) ══════════ */
@@ -17912,9 +18034,9 @@ async function generateAGMMinutesDoc(meetingId){ return generateOfficialDoc("م�
 async function generateVoteMinutesPDF(meetingId){ return generateOfficialDoc("محضر فرز الأصوات", meetingId); }
 async function generateAttendanceSheet(meetingId){ return generateOfficialDoc("كشف حضور", meetingId || currentVotingMeetingId); }
 
-async function generateMeetingMinutesDoc(meetingId){
+async function buildMeetingMinutesHTML(meetingId){
   const { data: m, error: mErr } = await sb.from("meetings").select("*").eq("id", meetingId).single();
-  if(mErr || !m){ alert("تعذّر تحميل بيانات الاجتماع"); return; }
+  if(mErr || !m) return null;
 
   const { data: topics } = await sb.from("vote_topics").select("*").eq("meeting_id", meetingId).order("sort_order",{ascending:true}).order("id",{ascending:true});
   const { data: decisions } = await sb.from("board_decisions").select("*").eq("meeting_id", meetingId).order("id",{ascending:true});
@@ -17946,7 +18068,10 @@ async function generateMeetingMinutesDoc(meetingId){
 
   const companyName = document.getElementById("reportCompanyName1")?.textContent || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "الشركة";
   const dateNow = new Date().toLocaleDateString("ar-SA");
+  const timeRange = m.meeting_time ? (' — من الساعة '+m.meeting_time+(m.time_end?(' إلى '+m.time_end):'')) : '';
 
+  // The attendee list is built directly from the real attendance record (meeting_attendance),
+  // never typed by hand — this is the "يكتب فيه أعضاء المجلس الحاضرين" part done automatically.
   const attendanceRows = members.map((mem,i) => `<tr><td>${i+1}</td><td>${mem.name||""}</td><td>${mem.position||"—"}</td><td>${byMember[mem.id]||"لم يُسجَّل"}</td></tr>`).join("")
     || '<tr><td colspan="4">لا يوجد أعضاء مسجّلون.</td></tr>';
 
@@ -17968,7 +18093,7 @@ async function generateMeetingMinutesDoc(meetingId){
       <p><b>الشركة:</b> ${companyName}</p>
       <p><b>عنوان الاجتماع:</b> ${m.title||"—"}</p>
       <p><b>النوع:</b> ${m.meeting_type||"—"}</p>
-      <p><b>التاريخ:</b> ${m.meeting_date||"—"} ${m.meeting_time?(' — الساعة '+m.meeting_time):''}</p>
+      <p><b>التاريخ:</b> ${m.meeting_date||"—"}${timeRange}</p>
       <p><b>طريقة الانعقاد:</b> ${m.method||"—"}</p>
 
       <h2>أولاً: الحضور والنصاب</h2>
@@ -18007,7 +18132,13 @@ async function generateMeetingMinutesDoc(meetingId){
     </body>
     </html>
   `;
+  return { html, m, scopeLabel };
+}
 
+async function generateMeetingMinutesDoc(meetingId){
+  const built = await buildMeetingMinutesHTML(meetingId);
+  if(!built){ alert("تعذّر تحميل بيانات الاجتماع"); return; }
+  const { html, m, scopeLabel } = built;
   const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -18017,6 +18148,31 @@ async function generateMeetingMinutesDoc(meetingId){
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+/* Auto-generates the minutes the moment someone opens a board/committee meeting whose end
+   time has already passed and that doesn't have a minutes file yet — uploaded to storage and
+   auto-archived, not just a local download, so it exists as a real record without anyone
+   having to remember to click "توليد". The manual "توليد" button above still works too, e.g.
+   to regenerate after attendance gets corrected later. */
+async function autoGenerateMinutesIfDue(meetingId){
+  const { data: m } = await sb.from("meetings").select("id,title,meeting_date,time_end,meeting_time,minutes_file_url,meeting_type")
+    .eq("id", meetingId).single();
+  if(!m || m.minutes_file_url) return false;
+  if(!BOARD_COMMITTEE_MEETING_TYPES.includes(m.meeting_type)) return false;
+  if(!m.meeting_date) return false;
+  const endClock = m.time_end || m.meeting_time || "23:59";
+  const meetingEndsAt = new Date(`${m.meeting_date}T${endClock}`);
+  if(isNaN(meetingEndsAt.getTime()) || meetingEndsAt > new Date()) return false; // meeting hasn't ended yet
+
+  const built = await buildMeetingMinutesHTML(meetingId);
+  if(!built) return false;
+  const blob = new Blob(['\ufeff', built.html], { type: 'application/msword' });
+  const file_url = await uploadBlobToStorage(blob, "meeting-minutes", `محضر-${m.title||built.scopeLabel}-${Date.now()}.doc`);
+  if(!file_url) return false;
+  await sb.from("meetings").update({ minutes_file_url: file_url }).eq("id", meetingId);
+  await autoArchiveDocument(`محضر ${built.scopeLabel} — ${m.title||""}`, "محاضر", file_url);
+  return true;
 }
 
 /* ══════════ DOCUMENT TEMPLATES (upload real Word templates, fill with real data) ══════════ */
