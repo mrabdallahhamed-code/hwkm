@@ -2710,6 +2710,15 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <button class="btn-xs primary" style="margin-top:8px;width:100%" onclick="saveMeetingAttendance()">💾 حفظ الحضور</button>
       <div id="mdView-quorum" style="margin-top:10px"></div>
     </div>
+    <div id="mdView-topicsWrap" style="margin-top:16px">
+      <div style="font-weight:800;font-size:12.5px;color:var(--dark);margin-bottom:8px">📋 بنود جدول الأعمال</div>
+      <div id="mdView-topics" style="margin-bottom:8px"></div>
+      <div id="mdView-topicsAddRow" style="display:flex;gap:6px">
+        <input class="fi" id="mdView-newtopic" placeholder="بند جديد بجدول الأعمال..." style="flex:1">
+        <button class="btn btn-gold" style="font-size:11px;padding:8px 14px;white-space:nowrap" onclick="addMeetingTopic()">+ إضافة بند</button>
+      </div>
+      <p style="font-size:10px;color:var(--gray3);margin-top:6px">هذي بنود جدول الأعمال المطروحة للمناقشة، وتظهر بمحضر الاجتماع تلقائيًا. أي قرار يُتخذ بشأن بند منها يُكتب أسفل بقسم "قرارات للتصويت".</p>
+    </div>
     <div id="mdView-decisionsWrap" style="margin-top:16px">
       <div id="mdView-decisionsTitle" style="font-weight:800;font-size:12.5px;color:var(--dark);margin-bottom:8px">🗳️ قرارات مجلس الإدارة للتصويت</div>
       <div id="mdView-decisions" style="margin-bottom:8px"></div>
@@ -5430,6 +5439,20 @@ function renderArchiveDocs(){
   grid.innerHTML = html;
 }
 
+/* Files created by the platform itself (minutes, finalized policies, etc.) file themselves
+   into the Archive automatically the moment they're generated/finalized — no separate manual
+   upload step needed. Silently does nothing if the same file is somehow archived twice. */
+async function autoArchiveDocument(document_name, category, file_url){
+  if(!file_url || !currentCompanyId) return;
+  const { data: dup } = await sb.from("archive_documents").select("id")
+    .eq("company_id", currentCompanyId).eq("file_url", file_url).maybeSingle();
+  if(dup) return;
+  await sb.from("archive_documents").insert([{
+    document_name, category, upload_date: new Date().toISOString().slice(0,10), file_url, company_id: currentCompanyId
+  }]);
+  if(document.getElementById("p-archive")?.classList.contains("active")) loadArchive();
+}
+
 async function saveArchiveDoc(){
   const document_name = document.getElementById("mar-name").value.trim();
   if(!document_name){ alert("الرجاء إدخال اسم الوثيقة"); return; }
@@ -7051,8 +7074,75 @@ function openMeetingDetailModal(id){
     </div>`;
   currentAttendanceMeetingId = id;
   loadMeetingAttendanceSection(id);
+  loadMeetingTopics(id);
   loadBoardDecisionsSection(id);
   openM("m-meeting-view");
+}
+
+/* Agenda items (بنود جدول الأعمال) for board/committee meetings — the same vote_topics
+   table AGM meetings already use, and the exact table generateMeetingMinutesDoc() already
+   reads from. Without this section the minutes generator always fell back to the free-text
+   "notes" field because nothing ever populated vote_topics for non-AGM meetings. Writing
+   agenda items is limited to سكرتير المجلس / مدير النظام, same as decisions. */
+async function loadMeetingTopics(meetingId){
+  const wrap = document.getElementById("mdView-topicsWrap");
+  const box = document.getElementById("mdView-topics");
+  const addRow = document.getElementById("mdView-topicsAddRow");
+  if(!box) return;
+
+  const { data: meetingRow } = await sb.from("meetings").select("committee_id").eq("id", meetingId).single();
+  const committeeId = meetingRow ? meetingRow.committee_id : null;
+  const role = getCurrentRole();
+  const isFullAccess = FULL_ACCESS_ROLES.includes(role);
+  if(committeeId && !isFullAccess){
+    const eligibleVoters = await getEligibleDecisionVoters(meetingId);
+    const { data: userData } = await sb.auth.getUser();
+    const myEmail = userData?.user?.email;
+    const iAmEligible = eligibleVoters.some(v => v.claimed_by_email === myEmail);
+    if(!iAmEligible){ if(wrap) wrap.style.display = "none"; return; }
+  }
+  if(wrap) wrap.style.display = "block";
+
+  const canWrite = role === "سكرتير المجلس" || role === "مدير النظام";
+  if(addRow) addRow.style.display = canWrite ? "flex" : "none";
+
+  const { data, error } = await sb.from("vote_topics").select("*").eq("meeting_id", meetingId)
+    .order("sort_order",{ascending:true}).order("id",{ascending:true});
+  if(error){ box.innerHTML = `<div style="color:var(--red);font-size:11px">تعذّر التحميل: ${error.message}</div>`; return; }
+  if(!data || data.length === 0){
+    box.innerHTML = '<div style="font-size:11px;color:var(--gray3);padding:6px 0">لا توجد بنود مضافة بعد.</div>';
+    return;
+  }
+  box.innerHTML = data.map((t,i) => `<div class="topic-row">
+      <div class="topic-num">${i+1}</div>
+      <div class="topic-text">${t.topic_text}</div>
+      ${canWrite ? `<button class="topic-del" onclick="deleteMeetingTopic(${t.id},${meetingId})">🗑️</button>` : ""}
+    </div>`).join("");
+}
+
+async function addMeetingTopic(){
+  const role = getCurrentRole();
+  if(role !== "سكرتير المجلس" && role !== "مدير النظام"){
+    alert("إضافة بنود جدول الأعمال مقصورة على سكرتير المجلس أو مدير النظام.");
+    return;
+  }
+  const input = document.getElementById("mdView-newtopic");
+  const topic_text = input.value.trim();
+  if(!topic_text || !currentAttendanceMeetingId) return;
+  const { data: existing } = await sb.from("vote_topics").select("id").eq("meeting_id", currentAttendanceMeetingId);
+  const { error } = await sb.from("vote_topics").insert([{
+    meeting_id: currentAttendanceMeetingId, topic_text, sort_order: (existing||[]).length, company_id: currentCompanyId
+  }]);
+  if(error){ alert("تعذّر إضافة البند: " + error.message); return; }
+  input.value = "";
+  loadMeetingTopics(currentAttendanceMeetingId);
+}
+
+async function deleteMeetingTopic(topicId, meetingId){
+  if(!confirm("حذف هذا البند نهائيًا؟")) return;
+  const { error } = await sb.from("vote_topics").delete().eq("id", topicId);
+  if(error){ alert("تعذّر الحذف: " + error.message); return; }
+  loadMeetingTopics(meetingId);
 }
 
 /* ══════════ BOARD/COMMITTEE DECISION VOTING ══════════
@@ -11028,7 +11118,31 @@ async function confirmOfficialSignature(){
   } else {
     alert("تم حفظ توقيعك، لكن تعذّر إعادة توليد المستند — تواصل مع الدعم الفني.");
   }
+  await archiveIfFullySigned(currentOfficialSignDocId, newUrl);
   loadSigning();
+}
+
+/* Once a document collects every required signature, it files itself into the Archive
+   automatically — a draft/partially-signed document never gets archived, only a finished,
+   fully-executed one. Covers every signing_documents type uniformly: AGM invitations and
+   minutes, disclosure forms, and final policy approvals alike. */
+const ARCHIVE_CATEGORY_BY_DOC_TYPE = {
+  "دعوة جمعية عامة": "جمعيات",
+  "محضر جمعية عامة": "محاضر",
+  "محضر فرز الأصوات": "محاضر",
+  "كشف حضور": "محاضر",
+  "نموذج إفصاح عضوية مجلس": "حوكمة",
+  "اعتماد سياسة": "سياسات"
+};
+async function archiveIfFullySigned(signingDocId, latestFileUrl){
+  const { data: doc } = await sb.from("signing_documents").select("*").eq("id", signingDocId).single();
+  if(!doc) return;
+  const { count } = await sb.from("official_doc_signatures").select("*", { count: "exact", head: true }).eq("document_id", signingDocId);
+  const signedCount = count || 0;
+  if(signedCount < (doc.signers_total || 1)) return; // still missing a signature — not final yet
+  await sb.from("signing_documents").update({ status: "موقّع بالكامل" }).eq("id", signingDocId);
+  const category = ARCHIVE_CATEGORY_BY_DOC_TYPE[doc.doc_type] || "أخرى";
+  await autoArchiveDocument(doc.document_name || doc.doc_type, category, latestFileUrl || doc.file_url);
 }
 
 async function generateSignedDocumentPDF(docId, btn){
