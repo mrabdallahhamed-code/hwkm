@@ -10232,10 +10232,15 @@ async function recomputeMeetingRequestStatus(requestId){
   const anyAlt = revs.some(r => r.response === "تعديل الموعد");
   if(anyAlt) return; // stays pending — needs discussion/a new proposed date
 
-  const { count } = await sb.from("board_members").select("*", { count: 'exact', head: true }).eq("company_id", currentCompanyId);
+  // Only members actually linked to a login account (claimed_by_email) can ever respond to a
+  // request through the platform — counting unlinked roster entries here would make consensus
+  // permanently impossible to reach whenever even one board member hasn't been "🔗 ربط بحساب"
+  // yet. See "👥 أعضاء مجلس الإدارة" for who's linked.
+  const { count } = await sb.from("board_members").select("*", { count: 'exact', head: true })
+    .eq("company_id", currentCompanyId).not("claimed_by_email", "is", null);
   const totalMembers = count || 0;
   const approvedEmails = new Set(revs.filter(r=>r.response==="موافقة").map(r=>r.reviewer_email));
-  if(totalMembers > 0 && approvedEmails.size < totalMembers) return; // not everyone has responded yet
+  if(totalMembers > 0 && approvedEmails.size < totalMembers) return; // not everyone linked has responded yet
 
   const { data: req } = await sb.from("meeting_requests").select("*").eq("id", requestId).single();
   if(!req) return;
