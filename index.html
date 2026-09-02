@@ -7219,10 +7219,10 @@ async function renderFinalMinutesBox(m){
   const box = document.getElementById("mdView-minutesFile");
   if(!box) return;
   if(!m.signing_doc_id){
-    box.innerHTML = `<p class="modal-section-hint" style="margin-bottom:10px">لسا ما ربطت محضر هذا الاجتماع بمستند توقيع. بعد ما يتولّد المحضر (تلقائيًا بعد انتهاء الاجتماع، أو يدويًا الآن)، ارفعه لصفحة "التوقيع الإلكتروني" وابنِ عليه مستند توقيع، ثم اربطه هنا.</p>
+    box.innerHTML = `<p class="modal-section-hint" style="margin-bottom:10px">لسا ما تولّد محضر هذا الاجتماع. بمجرد ما ينتهي وقت الاجتماع، يتولّد المحضر تلقائيًا (بالحضور الفعلي والقرارات ونتائج التصويت) ويُربط تلقائيًا بمستند توقيع — أو ولّده يدويًا الآن.</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-gold" style="font-size:11px;padding:8px 16px" onclick="generateMeetingMinutesDoc(${m.id})">📝 توليد مسودة Word الآن</button>
-        <button class="btn btn-outline" style="font-size:11px;padding:8px 16px" onclick="linkMeetingToSigningDoc(${m.id})">🔗 ربط بمستند توقيع</button>
+        <button class="btn btn-gold" style="font-size:11px;padding:8px 16px" onclick="generateMeetingMinutesDoc(${m.id})">📝 تحميل مسودة الآن</button>
+        <button class="btn btn-outline" style="font-size:11px;padding:8px 16px" onclick="linkMeetingToSigningDoc(${m.id})">🔗 ربط بمستند توقيع آخر يدويًا</button>
       </div>`;
     return;
   }
@@ -7503,17 +7503,17 @@ async function loadMeetingAttendanceSection(meetingId){
 async function renderBoardQuorumWidget(members, attendanceRecords){
   const box = document.getElementById("mdView-quorum");
   if(!box) return;
-  if(!attendanceRecords || attendanceRecords.length===0){ box.innerHTML = ""; return; }
 
   const { data: company } = await sb.from("companies").select("*").eq("id", currentCompanyId).single();
   const threshold = Number(company?.board_quorum_percentage ?? 50);
-  const presentCount = attendanceRecords.filter(a => a.status === "حاضر").length;
+  const presentCount = (attendanceRecords||[]).filter(a => a.status === "حاضر").length;
   const totalCount = members.length;
   const pctPresent = totalCount ? (presentCount/totalCount)*100 : 0;
   const met = pctPresent >= threshold;
+  const anyRecorded = attendanceRecords && attendanceRecords.length > 0;
 
-  box.innerHTML = `<div style="padding:10px;border-radius:8px;background:${met?'#E8F8EF':'#FDE8E8'};font-size:12px;font-weight:700;color:${met?'var(--green)':'var(--red)'}">
-    ${met ? '✅' : '❌'} النصاب المطلوب: ${threshold}% (${Math.ceil(totalCount*threshold/100)} من ${totalCount}) — الحاضرون: ${presentCount}/${totalCount} (${pctPresent.toFixed(0)}%) ${met ? '— تحقق النصاب' : '— لم يتحقق النصاب'}
+  box.innerHTML = `<div style="padding:10px;border-radius:8px;background:${anyRecorded ? (met?'#E8F8EF':'#FDE8E8') : 'var(--offwhite)'};font-size:12px;font-weight:700;color:${anyRecorded ? (met?'var(--green)':'var(--red)') : 'var(--gray3)'}">
+    ${anyRecorded ? (met ? '✅' : '❌') : '⏳'} إجمالي الحضور: ${presentCount} من ${totalCount} عضوًا (${pctPresent.toFixed(0)}%) — النصاب المطلوب: ${threshold}% (${Math.ceil(totalCount*threshold/100)} من ${totalCount}) ${anyRecorded ? (met ? '— تحقق النصاب' : '— لم يتحقق النصاب') : '— لسا ما تسجّل حضور'}
   </div>`;
 }
 
@@ -18287,6 +18287,30 @@ async function buildMeetingMinutesHTML(meetingId){
   return { html, m, scopeLabel };
 }
 
+/* Closes the loop between the generated minutes (which already bakes in real attendance,
+   agenda, and decision vote tallies) and the "المحضر النهائي" signing workflow — instead of
+   someone manually uploading a separate, disconnected file to sign. If a signing document
+   isn't linked yet, one is created automatically requiring every eligible member's signature;
+   if one exists but hasn't collected any signatures yet, its file is kept in sync so it
+   always reflects the latest votes right up until someone actually starts signing it. */
+async function linkGeneratedMinutesForSigning(meetingId, file_url, m){
+  if(m.signing_doc_id){
+    const { data: existingDoc } = await sb.from("signing_documents").select("*").eq("id", m.signing_doc_id).single();
+    if(existingDoc && !(existingDoc.signers_done > 0)){
+      await sb.from("signing_documents").update({ file_url }).eq("id", m.signing_doc_id);
+    }
+    return;
+  }
+  const eligible = await getEligibleDecisionVoters(meetingId);
+  const signers_total = eligible.length || 1;
+  const { data: doc, error } = await sb.from("signing_documents").insert([{
+    document_name: `محضر اجتماع — ${m.title||""}`, doc_type: m.committee_id ? "محضر اجتماع لجنة" : "محضر اجتماع مجلس",
+    signers_total, signers_done: 0, status: "قيد التوقيع", file_url, company_id: currentCompanyId
+  }]).select().single();
+  if(error || !doc) return;
+  await sb.from("meetings").update({ signing_doc_id: doc.id }).eq("id", meetingId);
+}
+
 async function generateMeetingMinutesDoc(meetingId){
   const built = await buildMeetingMinutesHTML(meetingId);
   if(!built){ alert("تعذّر تحميل بيانات الاجتماع"); return; }
@@ -18308,7 +18332,7 @@ async function generateMeetingMinutesDoc(meetingId){
    having to remember to click "توليد". The manual "توليد" button above still works too, e.g.
    to regenerate after attendance gets corrected later. */
 async function autoGenerateMinutesIfDue(meetingId){
-  const { data: m } = await sb.from("meetings").select("id,title,meeting_date,time_end,meeting_time,minutes_file_url,meeting_type")
+  const { data: m } = await sb.from("meetings").select("*")
     .eq("id", meetingId).single();
   if(!m || m.minutes_file_url) return false;
   if(!BOARD_COMMITTEE_MEETING_TYPES.includes(m.meeting_type)) return false;
@@ -18324,6 +18348,7 @@ async function autoGenerateMinutesIfDue(meetingId){
   if(!file_url) return false;
   await sb.from("meetings").update({ minutes_file_url: file_url }).eq("id", meetingId);
   await autoArchiveDocument(`محضر ${built.scopeLabel} — ${m.title||""}`, "محاضر", file_url);
+  await linkGeneratedMinutesForSigning(meetingId, file_url, m);
   return true;
 }
 
