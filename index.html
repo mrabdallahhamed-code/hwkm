@@ -1079,7 +1079,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <span>🤝 الاجتماع الحالي</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportMeetingsList()">📥 تصدير Excel</button>
-      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="newRequestTopics=[];renderNewRequestTopics();openM('m-meeting-request')">+ طلب اجتماع</button>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="newRequestTopics=[];renderNewRequestTopics();document.getElementById('mtr-type').value='اجتماع مجلس الإدارة الدوري';document.getElementById('mtr-committee-field').style.display='none';document.getElementById('mtr-link').value='';openM('m-meeting-request')">+ طلب اجتماع</button>
     </div>
   </div>
   <div class="meet-cards" id="currentMeetCard">
@@ -1272,7 +1272,10 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
     <span>🤝 اجتماع اللجنة الحالي</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mt-type').value='اجتماع لجنة';toggleVotingDatesFields();convertingMeetingPlanId=null;newMeetingTopics=[];renderNewMeetingTopics();openM('m-meeting')">+ اجتماع لجنة جديد</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="newRequestTopics=[];renderNewRequestTopics();document.getElementById('mtr-type').value='اجتماع لجنة';toggleRequestCommitteeField();document.getElementById('mtr-link').value='';openM('m-meeting-request')">🗳️ طلب اجتماع لجنة</button>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mt-type').value='اجتماع لجنة';toggleVotingDatesFields();convertingMeetingPlanId=null;newMeetingTopics=[];renderNewMeetingTopics();openM('m-meeting')">+ اجتماع لجنة جديد</button>
+    </div>
   </div>
   <div class="meet-cards" id="currentCommitteeMeetCard">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
@@ -2954,7 +2957,8 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <div class="modal-bg" id="m-meeting-request">
   <div class="modal">
     <div class="modal-title">🗳️ طلب اجتماع جديد</div>
-    <div class="fg"><label>نوع الاجتماع</label><select class="fs" id="mtr-type"><option>اجتماع مجلس الإدارة الدوري</option><option>اجتماع طارئ</option></select></div>
+    <div class="fg"><label>نوع الاجتماع</label><select class="fs" id="mtr-type" onchange="toggleRequestCommitteeField()"><option>اجتماع مجلس الإدارة الدوري</option><option>اجتماع طارئ</option><option>اجتماع لجنة</option></select></div>
+    <div class="fg" id="mtr-committee-field" style="display:none"><label>اللجنة</label><select class="fs" id="mtr-committee-id"><option value="">— اختر اللجنة —</option></select></div>
     <div class="fg"><label>عنوان الاجتماع</label><input class="fi" id="mtr-title" placeholder="مثال: اجتماع مجلس الإدارة — Q3 2026" /></div>
     <div class="row2">
       <div class="fg"><label>الموعد المقترح</label><input type="date" class="fi" id="mtr-date"/></div>
@@ -2962,6 +2966,12 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <div class="fg"><label>إلى الساعة</label><input type="time" class="fi" id="mtr-time-end"/></div>
     </div>
     <div class="fg"><label>طريقة الانعقاد</label><select class="fs" id="mtr-method"><option>عن بُعد (Zoom)</option><option>عن بُعد (Teams)</option><option>حضوري</option><option>هجين</option></select></div>
+    <div class="fg"><label>رابط الانضمام (اختياري)</label>
+      <div style="display:flex;gap:6px">
+        <input class="fi" id="mtr-link" placeholder="https://..." style="flex:1;margin:0"/>
+        <button type="button" class="btn-xs primary" style="white-space:nowrap" onclick="generateTeamsMeetingLinkForRequest()">✨ توليد تلقائي</button>
+      </div>
+    </div>
     <div class="fg"><label>ملاحظات إضافية (اختياري)</label><textarea class="fta" id="mtr-notes" rows="2" placeholder="أي تفاصيل إضافية..."></textarea></div>
     <div style="background:var(--offwhite);border-radius:10px;padding:10px;margin-bottom:10px">
       <label style="font-size:11px;font-weight:800;color:var(--primary)">📋 بنود جدول الأعمال (اختياري)</label>
@@ -2972,7 +2982,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       </div>
       <p style="font-size:10.5px;color:var(--gray3);margin-top:4px">جدول الأعمال يتكوّن تلقائيًا من: "ترحيب رئيس المجلس"، ثم البنود اللي تضيفها هنا (أو تُضاف لاحقًا)، ثم "شكر الأعضاء وإنهاء الاجتماع" — بدون ما تحتاج تكتب هالبندين بنفسك.</p>
     </div>
-    <p style="font-size:11px;color:var(--gray3)">بعد الإرسال، يظهر الطلب لكل أعضاء المجلس ليوافقوا على الموعد أو يقترحوا موعدًا بديلًا. عند إجماع الكل على الموافقة، يتحول تلقائيًا لاجتماع مؤكد وتُولَّد دعوته تلقائيًا.</p>
+    <p style="font-size:11px;color:var(--gray3)">بعد الإرسال، يظهر الطلب لأعضاء المجلس (أو أعضاء اللجنة المحددة) ليوافقوا على الموعد أو يقترحوا موعدًا بديلًا، ويصلهم إيميل تلقائي بالطلب. عند إجماع الكل على الموافقة، يتحول تلقائيًا لاجتماع مؤكد وتُولَّد دعوته تلقائيًا.</p>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-meeting-request')">إلغاء</button><button class="btn btn-gold" onclick="submitMeetingRequest()">📨 إرسال الطلب</button></div>
   </div>
 </div>
@@ -9918,6 +9928,50 @@ async function generateTeamsMeetingLink(){
   }
 }
 
+// Same as generateTeamsMeetingLink() above, but for the "طلب اجتماع" form (mtr-* fields)
+// instead of the direct-creation form (mt-* fields) — so a proposed meeting can already
+// have a join link ready before it's even confirmed by consensus.
+async function generateTeamsMeetingLinkForRequest(){
+  const title = document.getElementById("mtr-title").value.trim() || "اجتماع";
+  const dateVal = document.getElementById("mtr-date").value;
+  const timeVal = document.getElementById("mtr-time").value || "12:00";
+  if(!dateVal){ alert("حدد التاريخ المقترح أولًا قبل توليد الرابط"); return; }
+
+  const start = new Date(`${dateVal}T${timeVal}`);
+  const end = new Date(start.getTime() + 60*60*1000);
+
+  try{
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/create-teams-meeting`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subject: title, startTime: start.toISOString(), endTime: end.toISOString() })
+    });
+    const data = await res.json();
+    if(!res.ok || !data.joinUrl){
+      alert("⚠️ توليد الرابط التلقائي غير مفعّل بعد — يحتاج ربط حساب Teams أولًا (اكتب الرابط يدويًا مؤقتًا).");
+      return;
+    }
+    document.getElementById("mtr-link").value = data.joinUrl;
+    alert("تم توليد رابط الاجتماع تلقائيًا ✅");
+  }catch(e){
+    alert("⚠️ توليد الرابط التلقائي غير مفعّل بعد — يحتاج ربط حساب Teams أولًا (اكتب الرابط يدويًا مؤقتًا).");
+  }
+}
+
+// Shows the committee picker on the request form when "اجتماع لجنة" is chosen — mirrors
+// toggleVotingDatesFields()'s committee-field logic for the direct-creation form.
+async function toggleRequestCommitteeField(){
+  const type = document.getElementById("mtr-type").value;
+  const field = document.getElementById("mtr-committee-field");
+  if(!field) return;
+  field.style.display = (type === "اجتماع لجنة") ? "block" : "none";
+  if(type === "اجتماع لجنة"){
+    const sel = document.getElementById("mtr-committee-id");
+    const { data } = await sb.from("committees").select("*").eq("company_id", currentCompanyId).order("id",{ascending:true});
+    sel.innerHTML = '<option value="">— اختر اللجنة —</option>' + (data||[]).map(c => `<option value="${c.id}">${c.committee_name}</option>`).join("");
+  }
+}
+
 async function toggleVotingDatesFields(){
   const type = document.getElementById("mt-type").value;
   const box = document.getElementById("mt-voting-dates");
@@ -10132,23 +10186,29 @@ async function submitMeetingRequest(){
   const proposed_time = document.getElementById("mtr-time").value || null;
   const proposed_time_end = document.getElementById("mtr-time-end").value || null;
   const method = document.getElementById("mtr-method").value;
+  const meeting_link = document.getElementById("mtr-link").value.trim() || null;
   const notes = document.getElementById("mtr-notes").value.trim();
+  const committee_id = (meeting_type === "اجتماع لجنة" && document.getElementById("mtr-committee-id").value)
+    ? Number(document.getElementById("mtr-committee-id").value) : null;
   if(!proposed_date){ alert("الرجاء تحديد الموعد المقترح"); return; }
+  if(meeting_type === "اجتماع لجنة" && !committee_id){ alert("الرجاء اختيار اللجنة"); return; }
 
   const { data: newReq, error } = await sb.from("meeting_requests").insert([{
-    title, meeting_type, proposed_date, proposed_time, proposed_time_end, method, notes,
-    proposed_topics: newRequestTopics, status: "قيد الموافقة", company_id: currentCompanyId
+    title, meeting_type, proposed_date, proposed_time, proposed_time_end, method, meeting_link, notes,
+    committee_id, proposed_topics: newRequestTopics, status: "قيد الموافقة", company_id: currentCompanyId
   }]).select().single();
   if(error){ alert("تعذّر إرسال الطلب: " + error.message); return; }
 
   document.getElementById("mtr-title").value = "";
   document.getElementById("mtr-notes").value = "";
   document.getElementById("mtr-time-end").value = "";
+  document.getElementById("mtr-link").value = "";
+  document.getElementById("mtr-committee-field").style.display = "none";
   newRequestTopics = [];
   renderNewRequestTopics();
   closeM("m-meeting-request");
   loadMeetingsAll();
-  alert("تم إرسال طلب الاجتماع لأعضاء المجلس للموافقة على الموعد ✅");
+  alert("تم إرسال طلب الاجتماع " + (committee_id ? "لأعضاء اللجنة" : "لأعضاء المجلس") + " للموافقة على الموعد ✅");
 
   notifyBoardOfMeetingRequest(newReq);
 }
@@ -10157,8 +10217,19 @@ async function submitMeetingRequest(){
    respond) the moment a meeting request is submitted — so the requester never has to go
    message each member individually just to ask them to log in and approve. */
 async function notifyBoardOfMeetingRequest(req){
-  const { data: members } = await sb.from("board_members").select("name,claimed_by_email")
-    .eq("company_id", currentCompanyId).not("claimed_by_email", "is", null);
+  let members;
+  if(req.committee_id){
+    const { data: links } = await sb.from("committee_members").select("member_id").eq("committee_id", req.committee_id);
+    const memberIds = (links||[]).map(l => l.member_id);
+    const { data } = memberIds.length
+      ? await sb.from("board_members").select("name,claimed_by_email").in("id", memberIds).not("claimed_by_email","is",null)
+      : { data: [] };
+    members = data;
+  } else {
+    const { data } = await sb.from("board_members").select("name,claimed_by_email")
+      .eq("company_id", currentCompanyId).not("claimed_by_email", "is", null);
+    members = data;
+  }
   const emails = [...new Set((members||[]).map(m => m.claimed_by_email))];
   if(emails.length === 0) return;
 
@@ -10271,22 +10342,34 @@ async function recomputeMeetingRequestStatus(requestId){
   const anyAlt = revs.some(r => r.response === "تعديل الموعد");
   if(anyAlt) return; // stays pending — needs discussion/a new proposed date
 
-  // Only members actually linked to a login account (claimed_by_email) can ever respond to a
-  // request through the platform — counting unlinked roster entries here would make consensus
-  // permanently impossible to reach whenever even one board member hasn't been "🔗 ربط بحساب"
-  // yet. See "👥 أعضاء مجلس الإدارة" for who's linked.
-  const { count } = await sb.from("board_members").select("*", { count: 'exact', head: true })
-    .eq("company_id", currentCompanyId).not("claimed_by_email", "is", null);
-  const totalMembers = count || 0;
-  const approvedEmails = new Set(revs.filter(r=>r.response==="موافقة").map(r=>r.reviewer_email));
-  if(totalMembers > 0 && approvedEmails.size < totalMembers) return; // not everyone linked has responded yet
-
   const { data: req } = await sb.from("meeting_requests").select("*").eq("id", requestId).single();
   if(!req) return;
 
+  // Only members actually linked to a login account (claimed_by_email) can ever respond to a
+  // request through the platform — counting unlinked roster entries here would make consensus
+  // permanently impossible to reach whenever even one member hasn't been "🔗 ربط بحساب" yet.
+  // A committee-scoped request only needs that committee's own members to agree, not the
+  // whole board — same eligibility rule used for committee decision voting.
+  let totalMembers;
+  if(req.committee_id){
+    const { data: links } = await sb.from("committee_members").select("member_id").eq("committee_id", req.committee_id);
+    const memberIds = (links||[]).map(l => l.member_id);
+    const { count } = memberIds.length
+      ? await sb.from("board_members").select("*", { count:'exact', head:true }).in("id", memberIds).not("claimed_by_email","is",null)
+      : { count: 0 };
+    totalMembers = count || 0;
+  } else {
+    const { count } = await sb.from("board_members").select("*", { count: 'exact', head: true })
+      .eq("company_id", currentCompanyId).not("claimed_by_email", "is", null);
+    totalMembers = count || 0;
+  }
+  const approvedEmails = new Set(revs.filter(r=>r.response==="موافقة").map(r=>r.reviewer_email));
+  if(totalMembers > 0 && approvedEmails.size < totalMembers) return; // not everyone linked has responded yet
+
   const { data: newMeeting, error: insErr } = await sb.from("meetings").insert([{
     title: req.title, meeting_type: req.meeting_type, meeting_date: req.proposed_date,
-    meeting_time: req.proposed_time, time_end: req.proposed_time_end, method: req.method, notes: req.notes, company_id: currentCompanyId
+    meeting_time: req.proposed_time, time_end: req.proposed_time_end, method: req.method,
+    meeting_link: req.meeting_link, committee_id: req.committee_id, notes: req.notes, company_id: currentCompanyId
   }]).select().single();
   if(insErr) return;
 
