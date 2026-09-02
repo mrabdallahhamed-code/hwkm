@@ -10135,10 +10135,10 @@ async function submitMeetingRequest(){
   const notes = document.getElementById("mtr-notes").value.trim();
   if(!proposed_date){ alert("الرجاء تحديد الموعد المقترح"); return; }
 
-  const { error } = await sb.from("meeting_requests").insert([{
+  const { data: newReq, error } = await sb.from("meeting_requests").insert([{
     title, meeting_type, proposed_date, proposed_time, proposed_time_end, method, notes,
     proposed_topics: newRequestTopics, status: "قيد الموافقة", company_id: currentCompanyId
-  }]);
+  }]).select().single();
   if(error){ alert("تعذّر إرسال الطلب: " + error.message); return; }
 
   document.getElementById("mtr-title").value = "";
@@ -10149,6 +10149,45 @@ async function submitMeetingRequest(){
   closeM("m-meeting-request");
   loadMeetingsAll();
   alert("تم إرسال طلب الاجتماع لأعضاء المجلس للموافقة على الموعد ✅");
+
+  notifyBoardOfMeetingRequest(newReq);
+}
+
+/* Auto-emails every board member who's linked to a login (the only ones who can actually
+   respond) the moment a meeting request is submitted — so the requester never has to go
+   message each member individually just to ask them to log in and approve. */
+async function notifyBoardOfMeetingRequest(req){
+  const { data: members } = await sb.from("board_members").select("name,claimed_by_email")
+    .eq("company_id", currentCompanyId).not("claimed_by_email", "is", null);
+  const emails = [...new Set((members||[]).map(m => m.claimed_by_email))];
+  if(emails.length === 0) return;
+
+  const { data: profiles } = await sb.from("user_profiles").select("email,full_name").in("email", emails);
+  const nameByEmail = {};
+  (profiles||[]).forEach(p => { nameByEmail[p.email] = p.full_name; });
+
+  const { data: company } = await sb.from("companies").select("name").eq("id", currentCompanyId).single();
+  const requesterName = currentUserProfile ? (currentUserProfile.full_name || "") : "";
+  const appLink = `${window.location.origin}${window.location.pathname}`;
+  const timeRange = req.proposed_time ? (`من الساعة ${req.proposed_time}` + (req.proposed_time_end ? ` إلى ${req.proposed_time_end}` : "")) : "";
+
+  const subject = `🗳️ طلب اجتماع جديد يحتاج موافقتك — ${req.title||""}`;
+  for(const email of emails){
+    const html = `
+      <div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px">
+        <h2 style="color:#1A3A6B">🗳️ طلب اجتماع جديد يحتاج رأيك</h2>
+        <p>مرحبًا ${nameByEmail[email]||""}،</p>
+        <p>${requesterName ? `طلب ${requesterName}` : "تم تقديم طلب"} عقد اجتماع بشركة ${company?.name||""}، ويحتاج موافقتك على الموعد المقترح:</p>
+        <p><b>العنوان:</b> ${req.title||""}<br/>
+           <b>النوع:</b> ${req.meeting_type||""}<br/>
+           <b>الموعد المقترح:</b> ${req.proposed_date||""} ${timeRange}<br/>
+           <b>طريقة الانعقاد:</b> ${req.method||""}</p>
+        ${req.notes ? `<p><b>ملاحظات:</b> ${req.notes}</p>` : ""}
+        <p><a href="${appLink}" target="_blank" style="background:#B8972A;color:#0D2447;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block">افتح المنصة للرد على الطلب</a></p>
+        <p style="color:#8B95A5;font-size:12px;margin-top:20px">هذه رسالة تلقائية من منصّة حوكم.</p>
+      </div>`;
+    await sendNotificationEmail(email, subject, html);
+  }
 }
 
 async function openMeetingRequestPopup(requestId){
