@@ -7330,8 +7330,13 @@ async function addMeetingTopic(){
     meeting_id: currentAttendanceMeetingId, topic_text, sort_order: (existing||[]).length, company_id: currentCompanyId
   }]);
   if(error){ alert("تعذّر إضافة البند: " + error.message); return; }
+  // Every real agenda item automatically becomes a decision members can vote on — no
+  // separate re-typing step needed. (The two fixed opening/closing items never go through
+  // this function, so they're never mistakenly turned into votable "decisions".)
+  await sb.from("board_decisions").insert([{ meeting_id: currentAttendanceMeetingId, decision_text: topic_text, company_id: currentCompanyId }]);
   input.value = "";
   loadMeetingTopics(currentAttendanceMeetingId);
+  loadMeetingDecisionsGrid(currentAttendanceMeetingId);
 }
 
 async function deleteMeetingTopic(topicId, meetingId){
@@ -9858,6 +9863,12 @@ async function saveMeeting(){
     const topicRows = finalTopics.map((topic_text, i) => ({ meeting_id: newMeeting.id, topic_text, sort_order: i, company_id: currentCompanyId }));
     await sb.from("vote_topics").insert(topicRows);
   }
+  // Every real agenda item (not the two fixed opening/closing ones) becomes a votable
+  // decision automatically, same as adding a topic later from the meeting's own page.
+  if(isBoardOrCommittee && newMeetingTopics.length){
+    const decisionRows = newMeetingTopics.map(topic_text => ({ meeting_id: newMeeting.id, decision_text: topic_text, company_id: currentCompanyId }));
+    await sb.from("board_decisions").insert(decisionRows);
+  }
 
   document.getElementById("mt-title").value = "";
   document.getElementById("mt-link").value = "";
@@ -10034,6 +10045,11 @@ async function recomputeMeetingRequestStatus(requestId){
   const finalTopics = withAgendaBookends(customTopics);
   const topicRows = finalTopics.map((topic_text, i) => ({ meeting_id: newMeeting.id, topic_text, sort_order: i, company_id: currentCompanyId }));
   await sb.from("vote_topics").insert(topicRows);
+  // Same automatic conversion: every real agenda item becomes a votable decision.
+  if(customTopics.length){
+    const decisionRows = customTopics.map(topic_text => ({ meeting_id: newMeeting.id, decision_text: topic_text, company_id: currentCompanyId }));
+    await sb.from("board_decisions").insert(decisionRows);
+  }
 
   await sb.from("meeting_requests").update({ status: "معتمد" }).eq("id", requestId);
   await generateAndUploadMeetingInvitation(newMeeting.id);
