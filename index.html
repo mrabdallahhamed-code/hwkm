@@ -534,6 +534,33 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 .decision-ineligible{font-size:9.5px;color:var(--gray3);text-align:center;padding:4px}
 @media(max-width:640px){.decisions-grid{grid-template-columns:1fr}}
 
+/* ── ANNUAL MEETING PLAN STRIP — a lightweight, non-binding schedule, visually distinct
+   from real confirmed meeting cards (softer indigo tone, dashed accent, pin icon) ── */
+.plan-strip{display:flex;gap:14px;overflow-x:auto;padding:6px 2px 14px;margin-bottom:4px;scroll-snap-type:x proximity}
+.plan-strip::-webkit-scrollbar{height:5px}
+.plan-strip::-webkit-scrollbar-thumb{background:var(--gray2);border-radius:3px}
+.plan-card{flex-shrink:0;width:235px;scroll-snap-align:start;position:relative;overflow:hidden;
+  background:linear-gradient(150deg,#EEF3FC 0%,#F7F9FE 100%);border:1.5px dashed #C3D4F0;
+  border-radius:16px;padding:16px 16px 14px;transition:all .22s cubic-bezier(.2,.8,.3,1)}
+.plan-card:hover{transform:translateY(-4px);box-shadow:0 14px 30px rgba(26,58,107,.13);border-color:var(--primary3)}
+.plan-pin{position:absolute;top:14px;left:14px;font-size:13px;opacity:.45}
+.plan-badge{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:800;color:var(--primary);
+  background:rgba(26,58,107,.09);border-radius:999px;padding:4px 10px;margin-bottom:10px}
+.plan-title{font-size:13.5px;font-weight:800;color:var(--dark);margin-bottom:7px;line-height:1.45;min-height:38px}
+.plan-period{font-size:11.5px;color:var(--primary2);font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:5px}
+.plan-type{font-size:10.5px;color:var(--gray3);margin-bottom:13px}
+.plan-actions{display:flex;gap:5px}
+.plan-actions button{flex:1;border:none;border-radius:8px;padding:7px 4px;font-size:9.5px;font-weight:700;
+  cursor:pointer;font-family:'Tajawal',sans-serif;transition:all .15s}
+.plan-convert{background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--dark)}
+.plan-convert:hover{box-shadow:0 4px 12px rgba(184,151,42,.35)}
+.plan-edit{background:var(--white);color:var(--primary);border:1px solid #C8D8EE!important}
+.plan-edit:hover{background:var(--gray1)}
+.plan-del{background:#FDE8E8;color:var(--red)}
+.plan-del:hover{background:#FBD5D5}
+.plan-empty{color:var(--gray3);font-size:12px;padding:18px;flex:1;text-align:center;
+  border:1.5px dashed var(--gray1);border-radius:16px;background:var(--white)}
+
 /* ── SHAREHOLDER AGM VIEW ── */
 .sh-agm-hero{background:linear-gradient(120deg,var(--dark) 0%,var(--primary) 55%,var(--primary2) 100%);
   border-radius:18px 18px 0 0;padding:20px 22px;color:#fff;position:relative;overflow:hidden}
@@ -980,7 +1007,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
         </div>
       </div>
     </div>
-    <button class="btn btn-outline" onclick="newMeetingTopics=[];renderNewMeetingTopics();openM('m-meeting')">+ اجتماع</button>
+    <button class="btn btn-outline" onclick="convertingMeetingPlanId=null;newMeetingTopics=[];renderNewMeetingTopics();openM('m-meeting')">+ اجتماع</button>
     <button class="btn btn-gold">📄 تقرير</button>
   </div>
 </header>
@@ -1057,6 +1084,15 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
   <div class="meet-cards" id="currentMeetCard">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
+  </div>
+
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:22px">
+    <span>🗓️ الخطة السنوية للاجتماعات</span>
+    <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openNewMeetingPlanModal()">+ إضافة خطة</button>
+  </div>
+  <p class="modal-section-hint" style="margin:-8px 0 4px">تخطيط أولي غير ملزم — لتحديد موعد فعلي ومُلزم للأعضاء، استخدم "+ طلب اجتماع" بالأعلى.</p>
+  <div class="plan-strip" id="meetingPlansStrip">
+    <div style="color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div>
   </div>
 
   <div class="sec-title" style="margin-top:22px">📅 الاجتماعات المجدولة القادمة</div>
@@ -1236,7 +1272,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
     <span>🤝 اجتماع اللجنة الحالي</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mt-type').value='اجتماع لجنة';toggleVotingDatesFields();newMeetingTopics=[];renderNewMeetingTopics();openM('m-meeting')">+ اجتماع لجنة جديد</button>
+    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mt-type').value='اجتماع لجنة';toggleVotingDatesFields();convertingMeetingPlanId=null;newMeetingTopics=[];renderNewMeetingTopics();openM('m-meeting')">+ اجتماع لجنة جديد</button>
   </div>
   <div class="meet-cards" id="currentCommitteeMeetCard">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
@@ -1259,7 +1295,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div id="agmAdminBlock">
     <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
       <span>🤝 الجمعيات العامة</span>
-      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mt-type').value='الجمعية العامة';toggleVotingDatesFields();newMeetingTopics=[];renderNewMeetingTopics();openM('m-meeting')">+ جمعية عامة جديدة</button>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mt-type').value='الجمعية العامة';toggleVotingDatesFields();convertingMeetingPlanId=null;newMeetingTopics=[];renderNewMeetingTopics();openM('m-meeting')">+ جمعية عامة جديدة</button>
     </div>
 
     <div class="sec-title" style="margin-top:16px">📅 الجمعيات القادمة</div>
@@ -2946,6 +2982,20 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="modal" style="max-width:440px">
     <div id="mrqModalBody"></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-meeting-request-view')">إغلاق</button></div>
+  </div>
+</div>
+
+<!-- Add/edit a non-binding annual meeting plan entry -->
+<div class="modal-bg" id="m-meeting-plan">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title" id="mplan-modal-title">🗓️ إضافة خطة اجتماع</div>
+    <input type="hidden" id="mplan-id" value=""/>
+    <div class="fg"><label>عنوان الخطة</label><input class="fi" id="mplan-title" placeholder="مثال: الاجتماع الدوري الأول 2027"/></div>
+    <div class="fg"><label>نوع الاجتماع</label><select class="fs" id="mplan-type"><option>اجتماع مجلس الإدارة الدوري</option><option>اجتماع طارئ</option><option>اجتماع لجنة</option></select></div>
+    <div class="fg"><label>الفترة/الموعد التقريبي</label><input class="fi" id="mplan-period" placeholder="مثال: الربع الأول 2027، أو مارس 2027"/></div>
+    <div class="fg"><label>ملاحظات (اختياري)</label><textarea class="fta" id="mplan-notes" rows="2" placeholder="أي تفاصيل إضافية..."></textarea></div>
+    <p style="font-size:10.5px;color:var(--gray3)">هذي خطة أولية غير ملزمة — ما تنشئ اجتماعًا فعليًا ولا تحتاج موافقة أحد. استخدم "🔄 تحويل لاجتماع" لاحقًا لما يقترب الموعد الفعلي.</p>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-meeting-plan')">إلغاء</button><button class="btn btn-gold" onclick="saveMeetingPlan()">💾 حفظ الخطة</button></div>
   </div>
 </div>
 
@@ -7024,6 +7074,114 @@ async function loadMeetingsAll(){
   renderMeetingCardsGroup(board, "board");
   renderMeetingCardsGroup(committee, "committee");
   renderAGMSection(agm);
+  loadMeetingPlans();
+}
+
+/* ══════════ ANNUAL MEETING PLAN (non-binding scheduling — no consensus required) ══════════
+   Sits between "الاجتماع الحالي" and "الاجتماعات المجدولة القادمة". Purely a planning aid for
+   السكرتير/مدير النظام: pencil in roughly when meetings should happen this year without
+   committing anyone to a binding date the way "طلب اجتماع" does. */
+let meetingPlansCache = [];
+const PLAN_TYPE_ICON = { "اجتماع مجلس الإدارة الدوري":"🤝", "اجتماع طارئ":"🔴", "اجتماع لجنة":"🧩" };
+
+async function loadMeetingPlans(){
+  const box = document.getElementById("meetingPlansStrip");
+  if(!box) return;
+  const { data, error } = await sb.from("meeting_plans").select("*")
+    .eq("company_id", currentCompanyId).eq("status","مخطط له").order("id",{ascending:true});
+  if(error){ box.innerHTML = `<div class="plan-empty">تعذّر تحميل الخطة (${error.message})</div>`; return; }
+  meetingPlansCache = data || [];
+  if(meetingPlansCache.length === 0){
+    box.innerHTML = '<div class="plan-empty">لا توجد خطط مضافة بعد — اضغط "+ إضافة خطة" لتبدأ التخطيط السنوي.</div>';
+    return;
+  }
+  box.innerHTML = meetingPlansCache.map(p => `
+    <div class="plan-card">
+      <div class="plan-pin">📌</div>
+      <div class="plan-badge">مخطط له</div>
+      <div class="plan-title">${p.title||""}</div>
+      <div class="plan-period">🗓️ ${p.planned_period||"— لم يُحدَّد بعد"}</div>
+      <div class="plan-type">${PLAN_TYPE_ICON[p.meeting_type]||"📅"} ${p.meeting_type||""}</div>
+      <div class="plan-actions">
+        <button class="plan-convert" onclick="convertPlanToMeeting(${p.id})">🔄 تحويل لاجتماع</button>
+        <button class="plan-edit" onclick="openEditMeetingPlanModal(${p.id})">✏️</button>
+        <button class="plan-del" onclick="deleteMeetingPlan(${p.id})">🗑️</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function meetingPlanRoleGuard(){
+  const role = getCurrentRole();
+  if(role !== "سكرتير المجلس" && role !== "مدير النظام"){
+    alert("إدارة الخطة السنوية مقصورة على سكرتير المجلس أو مدير النظام.");
+    return false;
+  }
+  return true;
+}
+
+function openNewMeetingPlanModal(){
+  if(!meetingPlanRoleGuard()) return;
+  document.getElementById("mplan-id").value = "";
+  document.getElementById("mplan-modal-title").textContent = "🗓️ إضافة خطة اجتماع";
+  document.getElementById("mplan-title").value = "";
+  document.getElementById("mplan-type").value = "اجتماع مجلس الإدارة الدوري";
+  document.getElementById("mplan-period").value = "";
+  document.getElementById("mplan-notes").value = "";
+  openM("m-meeting-plan");
+}
+
+function openEditMeetingPlanModal(id){
+  if(!meetingPlanRoleGuard()) return;
+  const p = meetingPlansCache.find(x=>x.id===id);
+  if(!p) return;
+  document.getElementById("mplan-id").value = id;
+  document.getElementById("mplan-modal-title").textContent = "✏️ تعديل خطة اجتماع";
+  document.getElementById("mplan-title").value = p.title||"";
+  document.getElementById("mplan-type").value = p.meeting_type||"اجتماع مجلس الإدارة الدوري";
+  document.getElementById("mplan-period").value = p.planned_period||"";
+  document.getElementById("mplan-notes").value = p.notes||"";
+  openM("m-meeting-plan");
+}
+
+async function saveMeetingPlan(){
+  const id = document.getElementById("mplan-id").value;
+  const title = document.getElementById("mplan-title").value.trim();
+  const meeting_type = document.getElementById("mplan-type").value;
+  const planned_period = document.getElementById("mplan-period").value.trim();
+  const notes = document.getElementById("mplan-notes").value.trim();
+  if(!title){ alert("الرجاء إدخال عنوان الخطة"); return; }
+
+  const payload = { title, meeting_type, planned_period, notes };
+  const { error } = id
+    ? await sb.from("meeting_plans").update(payload).eq("id", id)
+    : await sb.from("meeting_plans").insert([{ ...payload, status:"مخطط له", company_id: currentCompanyId }]);
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  closeM("m-meeting-plan");
+  loadMeetingPlans();
+}
+
+async function deleteMeetingPlan(id){
+  if(!meetingPlanRoleGuard()) return;
+  if(!confirm("حذف هذه الخطة نهائيًا؟")) return;
+  await sb.from("meeting_plans").delete().eq("id", id);
+  loadMeetingPlans();
+}
+
+let convertingMeetingPlanId = null;
+function convertPlanToMeeting(id){
+  if(!meetingPlanRoleGuard()) return;
+  const p = meetingPlansCache.find(x=>x.id===id);
+  if(!p) return;
+  document.getElementById("mt-title").value = p.title||"";
+  document.getElementById("mt-type").value = p.meeting_type||"اجتماع مجلس الإدارة الدوري";
+  document.getElementById("mt-notes").value = p.notes||"";
+  toggleVotingDatesFields();
+  newMeetingTopics = [];
+  renderNewMeetingTopics();
+  convertingMeetingPlanId = id;
+  openM("m-meeting");
+  alert(`جهّزنا نموذج الاجتماع مسبقًا ببيانات خطة "${p.title}" — حدّد التاريخ والوقت الفعلي بالأسفل ثم احفظ.`);
 }
 
 /* ══════════ BOARD MINUTES (signed via e-signature) ══════════ */
@@ -9924,6 +10082,11 @@ async function saveMeeting(){
   newMeetingTopics = [];
   renderNewMeetingTopics();
   closeM("m-meeting");
+
+  if(convertingMeetingPlanId){
+    await sb.from("meeting_plans").update({ status:"تحوّل لاجتماع", linked_meeting_id: newMeeting.id }).eq("id", convertingMeetingPlanId);
+    convertingMeetingPlanId = null;
+  }
   loadMeetingsAll();
 
   if(meeting_type === "الجمعية العامة"){
