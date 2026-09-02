@@ -1638,6 +1638,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <div id="votingTopicsContainer" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
         <div style="text-align:center;color:var(--gray3);font-size:12px">جارِ التحميل...</div>
       </div>
+      <div id="votingElectionContainer" style="margin-bottom:14px"></div>
       <div id="vote-msg" style="display:none;padding:8px 12px;background:#E8F8EF;border-radius:8px;font-size:12px;font-weight:700;color:var(--green);margin-bottom:10px">تم تسجيل تصويتك</div>
       <button class="btn btn-gold" style="width:100%" onclick="generateShareholderVotePDF()">📄 تحميل بطاقة تصويت المساهم PDF</button>
     </div>
@@ -2938,6 +2939,28 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
               <button class="btn btn-gold" style="font-size:11px;padding:8px 14px;white-space:nowrap" onclick="addAGMTopic()">+ إضافة بند</button>
             </div>
             <p class="modal-section-hint" style="margin-top:6px;margin-bottom:0">هذه البنود تظهر تلقائيًا بصفحة التصويت فقط أثناء الفترة المحددة أعلاه، وتختفي تلقائيًا بعد موعد نهاية التصويت.</p>
+          </div>
+        </div>
+
+        <div class="modal-section accent-gold">
+          <div class="modal-section-head">🗳️ انتخاب أعضاء مجلس الإدارة</div>
+          <div class="modal-section-body">
+            <div class="row2">
+              <div class="fg"><label style="font-size:11px">طريقة الانتخاب (حسب النظام الأساسي)</label>
+                <select class="fs" id="agmView-election-method" onchange="saveElectionMethod()">
+                  <option value="عادي">عادي (موافق/معارض لكل مرشح)</option>
+                  <option value="تراكمي">تراكمي (توزيع أصوات على المرشحين)</option>
+                </select>
+              </div>
+              <div class="fg"><label style="font-size:11px">عدد المقاعد الشاغرة</label><input type="number" class="fi" id="agmView-election-seats" value="1" min="1" onchange="saveElectionSeats()"/></div>
+            </div>
+            <div id="agmView-candidates" style="margin-bottom:8px"></div>
+            <div style="display:flex;gap:6px">
+              <input class="fi" id="agmView-newcandidate" placeholder="اسم مرشح جديد..." style="flex:1">
+              <button class="btn btn-gold" style="font-size:11px;padding:8px 14px;white-space:nowrap" onclick="addElectionCandidate()">+ إضافة مرشح</button>
+            </div>
+            <p class="modal-section-hint" style="margin-top:6px;margin-bottom:0" id="agmView-electionMethodHint"></p>
+            <div id="agmView-electionResults" style="margin-top:12px"></div>
           </div>
         </div>
       </div>
@@ -6619,7 +6642,7 @@ async function openNewBoardTermModal(){
     .eq("company_id", currentCompanyId).eq("status","نشط").order("id",{ascending:true});
   membersBox.innerHTML = (members && members.length)
     ? members.map(m => `<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--offwhite);border-radius:8px;margin-bottom:6px;font-size:12px;cursor:pointer">
-        <input type="checkbox" data-bt-member-id="${m.id}" checked style="accent-color:var(--gold);width:15px;height:15px;flex-shrink:0"/>
+        <input type="checkbox" data-bt-member-id="${m.id}" data-bt-member-name="${(m.name||'').replace(/"/g,'')}" checked style="accent-color:var(--gold);width:15px;height:15px;flex-shrink:0"/>
         <span>${m.name||""} <span style="color:var(--gray3);font-size:10.5px">— ${m.position||""}</span></span>
       </label>`).join("")
     : '<div style="font-size:11px;color:var(--gray3)">لا يوجد أعضاء حاليون مسجّلون.</div>';
@@ -6657,10 +6680,12 @@ async function saveBoardTerm(){
   if(termErr){ alert("تعذّر إنشاء الدورة: " + termErr.message); return; }
 
   const checkboxes = [...document.querySelectorAll("#bt-current-members [data-bt-member-id]")];
+  const continuingNames = [];
   for(const cb of checkboxes){
     const memberId = Number(cb.dataset.btMemberId);
     if(cb.checked){
       await sb.from("board_members").update({ term_id: term.id }).eq("id", memberId);
+      continuingNames.push(cb.dataset.btMemberName || "");
     } else {
       await sb.from("board_members").update({ status:"منتهي العضوية", term_end_date: term_start }).eq("id", memberId);
     }
@@ -6684,20 +6709,33 @@ async function saveBoardTerm(){
   closeM("m-board-term");
   loadMembers();
 
-  const { data: agmRow } = await sb.from("meetings").select("meeting_date").eq("id", agm_meeting_id).single();
-  if(newMembersAdded.length === 1){
-    alert("تم اعتماد دورة المجلس الجديدة بنجاح ✅ — جهّزنا لك الآن مسودة إعلان تعيين العضو الجديد للمراجعة.");
-    prefillAppointmentAnnouncement(newMembersAdded[0], agmRow?.meeting_date || term_start);
-  } else if(newMembersAdded.length > 1){
-    alert(`تم اعتماد دورة المجلس الجديدة بنجاح ✅ — عندك ${newMembersAdded.length} أعضاء جدد يحتاجون إعلان تعيين منفصل لكل واحد. جهّزنا مسودة أول عضو (${newMembersAdded[0]}) الآن؛ للباقي (${newMembersAdded.slice(1).join("، ")})، روح لصفحة "الإعلانات" → "توليد إعلان جديد" → اختر "تعيين عضو مجلس إدارة جديد" لكل واحد منهم.`);
-    prefillAppointmentAnnouncement(newMembersAdded[0], agmRow?.meeting_date || term_start);
+  const allTermMembers = [...continuingNames, ...newMembersAdded].filter(Boolean);
+  if(allTermMembers.length){
+    alert("تم اعتماد دورة المجلس الجديدة بنجاح ✅ — جهّزنا لك الآن مسودة «إعلان نتائج الجمعية» معبّاة بأعضاء المجلس الجدد كاملين، للمراجعة والتوليد.");
+    await prefillAgmResultsWithElectedBoard(Number(agm_meeting_id), allTermMembers, term_start);
   } else {
     alert("تم اعتماد دورة المجلس الجديدة بنجاح ✅");
   }
 }
 
+/* Discloses the WHOLE elected/renewed board in one shot, inside the AGM's own "نتائج
+   الجمعية" announcement (the "أعضاء مجلس تم انتخابهم/تعيينهم" field) — matching real Tadawul
+   practice for a board elected at a general assembly, instead of one appointment
+   announcement per member (that's only for a single seat changing between assemblies). */
+async function prefillAgmResultsWithElectedBoard(agmMeetingId, memberNames, termStart){
+  const { data: agmRow } = await sb.from("meetings").select("*").eq("id", agmMeetingId).single();
+  if(agmRow && !agmMeetingsCache.some(x => x.id === agmMeetingId)) agmMeetingsCache.push(agmRow);
+  currentAGMModalMeetingId = agmMeetingId;
+  openTadawulAnnouncementForm("نتائج");
+  setTimeout(() => {
+    const el = document.getElementById("tdwAnn-elected");
+    if(el) el.value = memberNames.map(n => `${n} — بداية الدورة: ${termStart}`).join("\n");
+  }, 50);
+}
+
 /* Opens the existing generic (86-type) announcement form pre-filled for a specific new
-   board member — the admin still reviews and clicks generate, same as any other announcement. */
+   board member — kept available for a single mid-term seat change (not a full AGM renewal),
+   still reachable manually from "الإعلانات" → "تعيين عضو مجلس إدارة جديد". */
 function prefillAppointmentAnnouncement(memberName, meetingDate){
   selectAnnouncementType("تعيين عضو مجلس إدارة جديد");
   setTimeout(() => {
@@ -9990,6 +10028,7 @@ async function openAGMDetailModal(id){
 
   await loadAGMSupportingDocs(m.id);
   await loadAGMTopicsForModal(m.id);
+  await loadElectionSection(m.id);
   await loadCheckinShareholdersDropdown();
   await loadCheckinList(m.id);
   document.getElementById("agmCheckin-shareholder").dataset.meetingId = m.id;
@@ -10087,6 +10126,113 @@ async function deleteAGMTopic(topicId, meetingId){
   const { error } = await sb.from("vote_topics").delete().eq("id", topicId);
   if(error){ alert("تعذّر الحذف: " + error.message); return; }
   loadAGMTopicsForModal(meetingId);
+}
+
+/* ══════════ BOARD ELECTION — cumulative or regular voting, per company bylaws ══════════
+   The method (تراكمي/عادي) is a company-wide setting (per its Articles of Association),
+   editable right here; changing it doesn't touch votes already cast, only how future ones
+   and the live tally are interpreted. Cumulative: each shareholder gets (shares × seats)
+   votes total, freely allocated across candidates. Regular: a plain موافق/معارض/ممتنع per
+   candidate, weighted by shares like every other AGM vote. */
+let currentElectionCandidates = [];
+const ELECTION_METHOD_HINTS = {
+  "تراكمي": "تراكمي: كل مساهم يملك (أسهمه × عدد المقاعد) صوتًا، يوزّعها على المرشحين كيف يحب.",
+  "عادي": "عادي: يصوّت المساهم موافق/معارض/ممتنع على كل مرشح لحاله."
+};
+
+async function loadElectionSection(meetingId){
+  const methodSel = document.getElementById("agmView-election-method");
+  const seatsInput = document.getElementById("agmView-election-seats");
+  const hint = document.getElementById("agmView-electionMethodHint");
+  if(!methodSel) return;
+
+  const { data: company } = await sb.from("companies").select("board_election_method").eq("id", currentCompanyId).single();
+  const method = company?.board_election_method || "عادي";
+  methodSel.value = method;
+  if(hint) hint.textContent = ELECTION_METHOD_HINTS[method];
+
+  const { data: candidates } = await sb.from("board_election_candidates").select("*").eq("meeting_id", meetingId).order("id",{ascending:true});
+  currentElectionCandidates = candidates || [];
+  if(currentElectionCandidates.length && seatsInput) seatsInput.value = currentElectionCandidates[0].seats_available || 1;
+
+  renderElectionCandidatesList();
+  renderElectionResults(meetingId, method);
+}
+
+function renderElectionCandidatesList(){
+  const box = document.getElementById("agmView-candidates");
+  if(!box) return;
+  box.innerHTML = currentElectionCandidates.length
+    ? currentElectionCandidates.map((c,i) => `<div class="topic-row">
+        <div class="topic-num">${i+1}</div>
+        <div class="topic-text">${c.name}</div>
+        <button class="topic-del" onclick="deleteElectionCandidate(${c.id})">🗑️</button>
+      </div>`).join("")
+    : '<div style="font-size:11px;color:var(--gray3);padding:6px 0">لا يوجد مرشحون مضافون بعد.</div>';
+}
+
+async function saveElectionMethod(){
+  const method = document.getElementById("agmView-election-method").value;
+  await sb.from("companies").update({ board_election_method: method }).eq("id", currentCompanyId);
+  const hint = document.getElementById("agmView-electionMethodHint");
+  if(hint) hint.textContent = ELECTION_METHOD_HINTS[method];
+  if(currentAGMModalMeetingId) renderElectionResults(currentAGMModalMeetingId, method);
+}
+
+async function saveElectionSeats(){
+  if(!currentAGMModalMeetingId) return;
+  const seats = Number(document.getElementById("agmView-election-seats").value) || 1;
+  await sb.from("board_election_candidates").update({ seats_available: seats }).eq("meeting_id", currentAGMModalMeetingId);
+  loadElectionSection(currentAGMModalMeetingId);
+}
+
+async function addElectionCandidate(){
+  const input = document.getElementById("agmView-newcandidate");
+  const name = input.value.trim();
+  if(!name || !currentAGMModalMeetingId) return;
+  const seats = Number(document.getElementById("agmView-election-seats").value) || 1;
+  const { error } = await sb.from("board_election_candidates").insert([{
+    meeting_id: currentAGMModalMeetingId, name, seats_available: seats, company_id: currentCompanyId
+  }]);
+  if(error){ alert("تعذّر إضافة المرشح: " + error.message); return; }
+  input.value = "";
+  loadElectionSection(currentAGMModalMeetingId);
+}
+
+async function deleteElectionCandidate(id){
+  if(!confirm("حذف هذا المرشح؟ سيُحذف معه أي أصوات مسجّلة له.")) return;
+  await sb.from("board_election_candidates").delete().eq("id", id);
+  loadElectionSection(currentAGMModalMeetingId);
+}
+
+async function renderElectionResults(meetingId, method){
+  const box = document.getElementById("agmView-electionResults");
+  if(!box) return;
+  if(!currentElectionCandidates || currentElectionCandidates.length === 0){ box.innerHTML = ""; return; }
+  method = method || document.getElementById("agmView-election-method")?.value || "عادي";
+  const seats = currentElectionCandidates[0]?.seats_available || 1;
+
+  const candidateIds = currentElectionCandidates.map(c=>c.id);
+  const { data: allVotes } = await sb.from("board_election_votes").select("*").in("candidate_id", candidateIds);
+
+  const tallies = currentElectionCandidates.map(c => {
+    const votes = (allVotes||[]).filter(v=>v.candidate_id===c.id);
+    let score;
+    if(method === "تراكمي"){
+      score = votes.reduce((s,v)=> s + (Number(v.votes_allocated)||0), 0);
+    } else {
+      const yesShares = votes.filter(v=>v.vote==="موافق").reduce((s,v)=>s+(Number(v.shares_count)||0),0);
+      const noShares = votes.filter(v=>v.vote==="معارض").reduce((s,v)=>s+(Number(v.shares_count)||0),0);
+      score = yesShares - noShares;
+    }
+    return { ...c, score, voterCount: votes.length };
+  }).sort((a,b) => b.score - a.score);
+
+  box.innerHTML = `<div style="font-size:11.5px;font-weight:800;color:var(--dark);margin-bottom:8px">📊 النتائج الحية (أعلى ${seats} يفوزون)</div>` +
+    tallies.map((c,i) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:${i<seats?'#E8F8EF':'var(--offwhite)'};border-radius:8px;margin-bottom:6px">
+      <span style="font-size:12px;font-weight:700;color:var(--dark)">${i+1}. ${c.name} ${i<seats?'<span style="color:var(--green);font-weight:800">✅ منتخب</span>':''}</span>
+      <span style="font-size:11.5px;color:var(--gray3)">${method==="تراكمي" ? c.score.toLocaleString('ar-SA')+" صوت" : c.score.toLocaleString('ar-SA')+" صافي"} (${c.voterCount} صوّت)</span>
+    </div>`).join("");
 }
 
 function isoToDatetimeLocal(iso){
@@ -15545,6 +15691,8 @@ async function loadVotingPage(){
     }
   }
 
+  await loadElectionVotingSection(isOpen);
+
   await loadCompanySettings();
   if(isOverseer){
     loadVoteResults();
@@ -17597,6 +17745,123 @@ async function voteItem(btn, topic, result){
     loadVoteResults();
     loadShareholdersSummary();
   }
+}
+
+/* ── Shareholder-facing election voting — method (تراكمي/عادي) driven by the company's own
+   setting, so the correct UI (allocation inputs vs plain agree/disagree) shows automatically. */
+async function loadElectionVotingSection(isOpen){
+  const box = document.getElementById("votingElectionContainer");
+  if(!box) return;
+  if(!isOpen || !currentVotingMeetingId){ box.innerHTML = ""; return; }
+
+  const { data: candidates } = await sb.from("board_election_candidates").select("*").eq("meeting_id", currentVotingMeetingId).order("id",{ascending:true});
+  if(!candidates || candidates.length === 0){ box.innerHTML = ""; return; }
+
+  const { data: company } = await sb.from("companies").select("board_election_method").eq("id", currentCompanyId).single();
+  const method = company?.board_election_method || "عادي";
+  const seats = candidates[0]?.seats_available || 1;
+
+  const nameEl = document.getElementById('gm-shareholder-name');
+  const sharesEl = document.getElementById('gm-shares-count');
+  const shareholder_name = nameEl ? nameEl.value.trim() : "";
+  const shares_count = sharesEl && sharesEl.value ? Number(sharesEl.value) : 0;
+
+  const candidateIds = candidates.map(c=>c.id);
+  let myVotes = [];
+  if(shareholder_name){
+    const { data } = await sb.from("board_election_votes").select("*").in("candidate_id", candidateIds).eq("shareholder_name", shareholder_name);
+    myVotes = data || [];
+  }
+  const alreadyVoted = myVotes.length > 0;
+
+  if(method === "تراكمي"){
+    const maxVotes = shares_count * seats;
+    box.innerHTML = `
+      <div style="background:var(--offwhite);border-radius:10px;padding:12px;border-right:4px solid var(--gold)">
+        <div style="font-size:12.5px;font-weight:800;color:var(--dark);margin-bottom:4px">🗳️ انتخاب أعضاء مجلس الإدارة (تصويت تراكمي)</div>
+        <div style="font-size:11px;color:var(--gray3);margin-bottom:10px">رصيدك: <b>${maxVotes.toLocaleString('ar-SA')}</b> صوت (${shares_count} سهم × ${seats} مقعد) — وزّعها على المرشحين كيف تحب.</div>
+        ${alreadyVoted ? '<div style="font-size:11.5px;color:var(--primary);font-weight:700;margin-bottom:8px">✅ صوّتّ بالفعل على هذا الانتخاب.</div>' : ''}
+        <div id="electionAllocRows">
+          ${candidates.map(c => {
+            const existing = myVotes.find(v=>v.candidate_id===c.id);
+            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--gray1)">
+              <span style="font-size:12px">${c.name}</span>
+              <input type="number" min="0" max="${maxVotes}" class="fi" data-cand-id="${c.id}" value="${existing?existing.votes_allocated:0}" style="width:100px;margin:0;padding:6px 8px" oninput="updateElectionAllocTotal(${maxVotes})" ${alreadyVoted?'disabled':''}/>
+            </div>`;
+          }).join("")}
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--gray3)">
+          <span>الموزَّع: <b id="electionAllocTotal">0</b> / ${maxVotes}</span>
+        </div>
+        ${alreadyVoted ? '' : `<button class="btn btn-gold" style="width:100%;margin-top:10px" onclick="submitElectionAllocation(${maxVotes})">✅ تأكيد توزيع الأصوات</button>`}
+      </div>`;
+    updateElectionAllocTotal(maxVotes);
+  } else {
+    box.innerHTML = `
+      <div style="background:var(--offwhite);border-radius:10px;padding:12px;border-right:4px solid var(--gold)">
+        <div style="font-size:12.5px;font-weight:800;color:var(--dark);margin-bottom:10px">🗳️ انتخاب أعضاء مجلس الإدارة</div>
+        ${candidates.map(c => {
+          const existing = myVotes.find(v=>v.candidate_id===c.id);
+          return `<div style="margin-bottom:10px">
+            <div style="font-size:12.5px;font-weight:700;margin-bottom:6px">${c.name}</div>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-primary" style="font-size:11px;padding:4px 12px;opacity:${existing&&existing.vote==='موافق'?'1':'0.5'}" onclick="voteCandidate(this,${c.id},'موافق')">موافق</button>
+              <button class="btn btn-ghost" style="font-size:11px;padding:4px 12px;border:1px solid var(--red);color:var(--red);opacity:${existing&&existing.vote==='معارض'?'1':'0.5'}" onclick="voteCandidate(this,${c.id},'معارض')">معارض</button>
+              <button class="btn btn-ghost" style="font-size:11px;padding:4px 12px;opacity:${existing&&existing.vote==='ممتنع'?'1':'0.5'}" onclick="voteCandidate(this,${c.id},'ممتنع')">ممتنع</button>
+            </div>
+          </div>`;
+        }).join("")}
+      </div>`;
+  }
+}
+
+function updateElectionAllocTotal(maxVotes){
+  const inputs = [...document.querySelectorAll("#electionAllocRows input[data-cand-id]")];
+  const total = inputs.reduce((s,inp)=> s + (Number(inp.value)||0), 0);
+  const el = document.getElementById("electionAllocTotal");
+  if(el){ el.textContent = total.toLocaleString('ar-SA'); el.style.color = total > maxVotes ? "var(--red)" : "var(--dark)"; }
+}
+
+async function submitElectionAllocation(maxVotes){
+  const nameEl = document.getElementById('gm-shareholder-name');
+  const sharesEl = document.getElementById('gm-shares-count');
+  const shareholder_name = nameEl ? nameEl.value.trim() : "";
+  const shares_count = sharesEl && sharesEl.value ? Number(sharesEl.value) : null;
+  if(!shareholder_name || !shares_count){ alert("الرجاء إدخال اسم المساهم وعدد الأسهم قبل التصويت"); return; }
+
+  const inputs = [...document.querySelectorAll("#electionAllocRows input[data-cand-id]")];
+  const total = inputs.reduce((s,inp)=> s + (Number(inp.value)||0), 0);
+  if(total > maxVotes){ alert(`مجموع الأصوات الموزّعة (${total}) يتجاوز رصيدك (${maxVotes}). عدّل التوزيع.`); return; }
+  if(total === 0){ alert("وزّع صوتًا واحدًا على الأقل قبل التأكيد."); return; }
+  if(!confirm("تأكيد توزيع الأصوات؟ ما تقدر تعدّله بعد التأكيد.")) return;
+
+  const { data: userData } = await sb.auth.getUser();
+  for(const inp of inputs){
+    const candidateId = Number(inp.dataset.candId);
+    const votes_allocated = Number(inp.value) || 0;
+    if(votes_allocated <= 0) continue;
+    await sb.from("board_election_votes").insert([{
+      candidate_id: candidateId, shareholder_name, shareholder_email: userData?.user?.email||null,
+      votes_allocated, shares_count, company_id: currentCompanyId
+    }]);
+  }
+  alert("تم تسجيل توزيع أصواتك بنجاح ✅");
+  loadVotingPage();
+}
+
+async function voteCandidate(btn, candidateId, vote){
+  const nameEl = document.getElementById('gm-shareholder-name');
+  const sharesEl = document.getElementById('gm-shares-count');
+  const shareholder_name = nameEl ? nameEl.value.trim() : "";
+  const shares_count = sharesEl && sharesEl.value ? Number(sharesEl.value) : null;
+  if(!shareholder_name || !shares_count){ alert("الرجاء إدخال اسم المساهم وعدد الأسهم قبل التصويت"); return; }
+
+  await sb.from("board_election_votes").delete().eq("candidate_id", candidateId).eq("shareholder_name", shareholder_name);
+  const { error } = await sb.from("board_election_votes").insert([{
+    candidate_id: candidateId, shareholder_name, vote, shares_count, company_id: currentCompanyId
+  }]);
+  if(error){ alert("تعذّر تسجيل التصويت: " + error.message); return; }
+  loadVotingPage();
 }
 
 /* Personalized PDF for the shareholder currently filling the form */
