@@ -519,6 +519,21 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 .topic-del{background:none;border:none;color:var(--gray3);cursor:pointer;font-size:12px;flex-shrink:0}
 .topic-del:hover{color:var(--red)}
 
+/* ── DECISIONS GRID (compact — stays tidy even with several decisions) ── */
+.decisions-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.decision-card{background:var(--white);border:1px solid var(--gray1);border-radius:12px;padding:12px;
+  display:flex;flex-direction:column;box-shadow:0 2px 8px rgba(26,58,107,.05)}
+.decision-text{font-size:12px;font-weight:700;color:var(--dark);line-height:1.5;margin-bottom:8px;flex:1}
+.decision-tally{display:flex;gap:8px;font-size:10.5px;margin-bottom:8px}
+.decision-tally .yes{color:var(--green);font-weight:700}
+.decision-tally .no{color:var(--red);font-weight:700}
+.decision-tally .abs{color:var(--orange);font-weight:700}
+.decision-actions{display:flex;gap:5px}
+.decision-actions button{flex:1;border:none;border-radius:6px;padding:6px;font-size:10.5px;font-weight:700;cursor:pointer;font-family:'Tajawal',sans-serif}
+.decision-myvote{font-size:10.5px;color:var(--primary);font-weight:700;background:var(--gray1);border-radius:6px;padding:5px 8px;text-align:center}
+.decision-ineligible{font-size:9.5px;color:var(--gray3);text-align:center;padding:4px}
+@media(max-width:640px){.decisions-grid{grid-template-columns:1fr}}
+
 /* ── SHAREHOLDER AGM VIEW ── */
 .sh-agm-hero{background:linear-gradient(120deg,var(--dark) 0%,var(--primary) 55%,var(--primary2) 100%);
   border-radius:18px 18px 0 0;padding:20px 22px;color:#fff;position:relative;overflow:hidden}
@@ -1034,55 +1049,24 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 <!-- ══ MEETINGS ══════════════════════════ -->
 <div id="p-meetings" class="page content">
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
-    <span>📅 الاجتماعات القادمة والجارية</span>
+    <span>🤝 الاجتماع الحالي</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportMeetingsList()">📥 تصدير Excel</button>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="newRequestTopics=[];renderNewRequestTopics();openM('m-meeting-request')">+ طلب اجتماع</button>
     </div>
   </div>
+  <div class="meet-cards" id="currentMeetCard">
+    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
+  </div>
+
+  <div class="sec-title" style="margin-top:22px">📅 الاجتماعات المجدولة القادمة</div>
   <div class="meet-cards" id="upcomingMeetCards">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
   </div>
 
-  <div class="card" style="margin-top:20px" id="meetingReqReviewCard">
-    <div class="card-head"><span class="card-title">🗳️ طلبات اجتماعات تحتاج رأيك</span></div>
-    <div class="card-body" id="meetingReqReviewBody" style="padding:14px">
-      <div style="text-align:center;color:var(--gray3);font-size:12px">جارِ التحميل...</div>
-    </div>
-  </div>
-
-  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
-    <span>🗳️ قرارات للتصويت</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openAddDecisionModal('board')">+ إضافة قرار</button>
-  </div>
-  <div class="card">
-    <div class="card-body" id="boardDecisionsToVoteBody">
-      <div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</div>
-    </div>
-  </div>
-
-  <div class="sec-title">📚 سجل الاجتماعات السابقة</div>
-  <div class="card">
-    <div class="card-body" style="padding:0">
-      <table class="tbl">
-        <thead><tr><th>الاجتماع</th><th>النوع</th><th>التاريخ</th><th>الوقت</th><th>إجراء</th></tr></thead>
-        <tbody id="pastBoardMeetingsTbody">
-          <tr><td colspan="5" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="sec-title" style="margin-top:20px">📜 محاضر المجلس</div>
-  <div class="card">
-    <div class="card-body" style="padding:0">
-      <table class="tbl">
-        <thead><tr><th>العنوان</th><th>النوع</th><th>التاريخ</th><th>الوقت</th><th>حالة التوقيع</th><th>المحضر</th></tr></thead>
-        <tbody id="boardMinutesTbody">
-          <tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
-        </tbody>
-      </table>
-    </div>
+  <div class="sec-title" style="margin-top:22px">📚 الاجتماعات السابقة</div>
+  <div class="meet-cards" id="pastMeetCards">
+    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
   </div>
 </div>
 
@@ -1251,45 +1235,21 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
-    <span>📅 اجتماعات اللجان القادمة</span>
+    <span>🤝 اجتماع اللجنة الحالي</span>
     <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mt-type').value='اجتماع لجنة';toggleVotingDatesFields();newMeetingTopics=[];renderNewMeetingTopics();openM('m-meeting')">+ اجتماع لجنة جديد</button>
   </div>
+  <div class="meet-cards" id="currentCommitteeMeetCard">
+    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
+  </div>
+
+  <div class="sec-title" style="margin-top:22px">📅 اجتماعات اللجان المجدولة القادمة</div>
   <div class="meet-cards" id="upcomingCommitteeCards">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
   </div>
 
-  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
-    <span>🗳️ قرارات اللجان للتصويت</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openAddDecisionModal('committee')">+ إضافة قرار</button>
-  </div>
-  <div class="card">
-    <div class="card-body" id="committeeDecisionsToVoteBody">
-      <div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</div>
-    </div>
-  </div>
-
-  <div class="sec-title" style="margin-top:20px">📚 سجل اجتماعات اللجان السابقة</div>
-  <div class="card">
-    <div class="card-body" style="padding:0">
-      <table class="tbl">
-        <thead><tr><th>الاجتماع</th><th>اللجنة/النوع</th><th>التاريخ</th><th>الوقت</th><th>إجراء</th></tr></thead>
-        <tbody id="pastCommitteeTbody">
-          <tr><td colspan="5" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="sec-title" style="margin-top:20px">📜 محاضر اللجان</div>
-  <div class="card">
-    <div class="card-body" style="padding:0">
-      <table class="tbl">
-        <thead><tr><th>العنوان</th><th>النوع</th><th>التاريخ</th><th>الوقت</th><th>حالة التوقيع</th><th>المحضر</th></tr></thead>
-        <tbody id="committeeMinutesTbody">
-          <tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
-        </tbody>
-      </table>
-    </div>
+  <div class="sec-title" style="margin-top:22px">📚 اجتماعات اللجان السابقة</div>
+  <div class="meet-cards" id="pastCommitteeMeetCards">
+    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
   </div>
 </div>
 
@@ -2371,17 +2331,6 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
-<!-- Add a new decision (board or committee) to vote on -->
-<div class="modal-bg" id="m-add-decision">
-  <div class="modal" style="max-width:420px">
-    <div class="modal-title">🗳️ إضافة قرار للتصويت</div>
-    <input type="hidden" id="ad-scope" value="board" />
-    <div class="fg"><label>الاجتماع المرتبط بالقرار</label><select class="fs" id="ad-meeting-select"><option value="">— اختر —</option></select></div>
-    <div class="fg"><label>نص القرار</label><textarea class="fta" id="ad-text" rows="2" placeholder="مثال: اعتماد توزيع الأرباح..."></textarea></div>
-    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-add-decision')">إلغاء</button><button class="btn btn-gold" onclick="submitNewDecision()">✅ إضافة</button></div>
-  </div>
-</div>
-
 <!-- Claim/link a board_members row to an actual login account -->
 <div class="modal-bg" id="m-claim-member">
   <div class="modal" style="max-width:420px">
@@ -2753,29 +2702,91 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
-<div class="modal-bg" id="m-meeting-view">
-  <div class="modal" style="max-width:480px">
-    <div class="modal-title" id="mdView-title">تفاصيل الاجتماع</div>
-    <div style="font-size:12px;color:var(--gray3);margin-bottom:16px" id="mdView-meta"></div>
-    <div id="mdView-countdown" style="display:none;background:linear-gradient(135deg,var(--primary),var(--primary2));border-radius:10px;padding:14px;margin-bottom:12px;text-align:center"></div>
-    <div id="mdView-linkBtn" style="display:none;margin-bottom:12px"></div>
-    <div id="mdView-files"></div>
-    <div style="margin-top:16px">
-      <div style="font-weight:800;font-size:12.5px;color:var(--dark);margin-bottom:8px">👥 تسجيل الحضور</div>
-      <div id="mdView-attendance"></div>
-      <button class="btn-xs primary" style="margin-top:8px;width:100%" onclick="saveMeetingAttendance()">💾 حفظ الحضور</button>
-      <div id="mdView-quorum" style="margin-top:10px"></div>
-    </div>
-    <div id="mdView-topicsWrap" style="margin-top:16px">
-      <div style="font-weight:800;font-size:12.5px;color:var(--dark);margin-bottom:8px">📋 بنود جدول الأعمال</div>
-      <div id="mdView-topics" style="margin-bottom:8px"></div>
-      <div id="mdView-topicsAddRow" style="display:flex;gap:6px">
-        <input class="fi" id="mdView-newtopic" placeholder="بند جديد بجدول الأعمال..." style="flex:1">
-        <button class="btn btn-gold" style="font-size:11px;padding:8px 14px;white-space:nowrap" onclick="addMeetingTopic()">+ إضافة بند</button>
+<div class="modal-bg fullpage" id="m-meeting-view">
+  <div class="modal">
+    <div class="fp-header">
+      <button class="fp-back" onclick="closeM('m-meeting-view')" aria-label="رجوع">→</button>
+      <div class="fp-header-icon" id="mdView-headerIcon">📅</div>
+      <div class="fp-header-titles">
+        <div class="fp-title" id="mdView-title">تفاصيل الاجتماع</div>
+        <div class="fp-meta" id="mdView-meta"></div>
       </div>
-      <p style="font-size:10px;color:var(--gray3);margin-top:6px">هذي بنود جدول الأعمال المطروحة للمناقشة، وتظهر بمحضر الاجتماع تلقائيًا. القرارات نفسها والتصويت عليها تلقاها بقسم "🗳️ قرارات للتصويت" بالصفحة الرئيسية.</p>
     </div>
-    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-meeting-view')">إغلاق</button></div>
+
+    <div class="fp-tabs">
+      <div class="fp-tab active" data-mdtab="support" onclick="switchMeetingDetailTab('support')">📎 الملفات الداعمة</div>
+      <div class="fp-tab" data-mdtab="files" onclick="switchMeetingDetailTab('files')">📁 ملفات الاجتماع</div>
+      <div class="fp-tab" data-mdtab="voting" onclick="switchMeetingDetailTab('voting')">🗳️ قرارات والتصويت</div>
+    </div>
+
+    <div id="mdView-countdown" style="display:none;background:linear-gradient(135deg,var(--primary),var(--primary2));padding:14px 24px;text-align:center;flex-shrink:0"></div>
+    <div id="mdView-linkBtn" style="display:none;padding:12px 24px 0;flex-shrink:0"></div>
+
+    <div class="fp-body">
+
+      <div class="fp-pane active" data-mdpane="support">
+        <div class="modal-section accent-plain">
+          <div class="modal-section-head">📎 الوثائق والمرفقات الداعمة</div>
+          <div class="modal-section-body">
+            <p class="modal-section-hint">أي وثيقة تسند مناقشات هذا الاجتماع — تقارير، عروض تقديمية، مستندات مرجعية، وغيرها.</p>
+            <div id="mdView-supdocs"></div>
+            <label class="btn btn-ghost" style="font-size:11px;padding:6px 14px;cursor:pointer;margin-top:6px;display:inline-block">+ إضافة وثيقة<input type="file" id="mdView-supdocs-input" style="display:none" onchange="uploadMeetingSupportingDoc(this)"></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="fp-pane" data-mdpane="files">
+        <div class="modal-section accent-plain">
+          <div class="modal-section-head">📄 جدول الأعمال والدعوة</div>
+          <div class="modal-section-body" id="mdView-agendaInviteFiles"></div>
+        </div>
+        <div class="modal-section accent-gold">
+          <div class="modal-section-head">📋 المحضر النهائي</div>
+          <div class="modal-section-body" id="mdView-minutesFile"></div>
+        </div>
+        <div class="modal-section accent-plain">
+          <div class="modal-section-head">🔔 تذكيرات ومشاركة</div>
+          <div class="modal-section-body" id="mdView-utilityActions"></div>
+        </div>
+      </div>
+
+      <div class="fp-pane" data-mdpane="voting">
+        <div class="modal-section accent-gold">
+          <div class="modal-section-head">🏛️ الحضور والنصاب</div>
+          <div class="modal-section-body">
+            <div id="mdView-attendance"></div>
+            <button class="btn-xs primary" style="margin-top:10px;width:100%" onclick="saveMeetingAttendance()">💾 حفظ الحضور</button>
+            <div id="mdView-quorum" style="margin-top:10px"></div>
+          </div>
+        </div>
+
+        <div id="mdView-topicsWrap" class="modal-section accent-plain">
+          <div class="modal-section-head">📋 بنود جدول الأعمال</div>
+          <div class="modal-section-body">
+            <div id="mdView-topics" style="margin-bottom:8px"></div>
+            <div id="mdView-topicsAddRow" style="display:flex;gap:6px">
+              <input class="fi" id="mdView-newtopic" placeholder="بند جديد بجدول الأعمال..." style="flex:1">
+              <button class="btn btn-gold" style="font-size:11px;padding:8px 14px;white-space:nowrap" onclick="addMeetingTopic()">+ إضافة بند</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="mdView-decisionsWrap" class="modal-section accent-primary">
+          <div class="modal-section-head" style="display:flex;justify-content:space-between;align-items:center">
+            <span>🗳️ القرارات والتصويت</span>
+            <button id="mdView-addDecisionBtn" class="btn-xs gold" style="display:none" onclick="openAddDecisionInline()">+ إضافة قرار</button>
+          </div>
+          <div class="modal-section-body">
+            <div id="mdView-decisionAddForm" style="display:none;margin-bottom:12px;background:var(--offwhite);border-radius:10px;padding:10px">
+              <textarea class="fta" id="mdView-newdecision-text" rows="2" placeholder="نص القرار..." style="margin-bottom:6px"></textarea>
+              <button class="btn-xs gold" style="width:100%" onclick="submitInlineDecision()">✅ إضافة للتصويت</button>
+            </div>
+            <div id="mdView-decisionsGrid" class="decisions-grid"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </div>
 </div>
 
@@ -2924,6 +2935,14 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     </div>
     <p style="font-size:11px;color:var(--gray3)">بعد الإرسال، يظهر الطلب لكل أعضاء المجلس ليوافقوا على الموعد أو يقترحوا موعدًا بديلًا. عند إجماع الكل على الموافقة، يتحول تلقائيًا لاجتماع مؤكد وتُولَّد دعوته تلقائيًا.</p>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-meeting-request')">إلغاء</button><button class="btn btn-gold" onclick="submitMeetingRequest()">📨 إرسال الطلب</button></div>
+  </div>
+</div>
+
+<!-- Respond to a single pending meeting request (opened from its card) -->
+<div class="modal-bg" id="m-meeting-request-view">
+  <div class="modal" style="max-width:440px">
+    <div id="mrqModalBody"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-meeting-request-view')">إغلاق</button></div>
   </div>
 </div>
 
@@ -6989,8 +7008,6 @@ async function loadDashboard(){
 function setText(id, val){ const el = document.getElementById(id); if(el) el.textContent = val; }
 
 async function loadMeetingsAll(){
-  const emptyMsg = '<tr><td colspan="10" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد بيانات بعد</td></tr>';
-
   const { data, error } = await sb.from("meetings").select("*").eq("company_id", currentCompanyId).order("id", { ascending: false });
   if(error){
     return;
@@ -7001,15 +7018,9 @@ async function loadMeetingsAll(){
   const committee = (data || []).filter(m => m.meeting_type === "اجتماع لجنة");
   const agm = (data || []).filter(m => m.meeting_type === "الجمعية العامة");
 
-  renderUpcomingMeetingCards(board);
-  renderPastBoardMeetingsTable(board);
-  loadMeetingRequestsReview();
-  loadBoardMinutes(board);
+  renderMeetingCardsGroup(board, "board");
+  renderMeetingCardsGroup(committee, "committee");
   renderAGMSection(agm);
-  renderCommitteeSection(committee);
-  loadCommitteeMinutes(committee);
-  loadDecisionsToVoteSection("board");
-  loadDecisionsToVoteSection("committee");
 }
 
 /* ══════════ BOARD MINUTES (signed via e-signature) ══════════ */
@@ -7139,10 +7150,13 @@ function fileRowWide(id, field, url, label, accept, reloadFn){
 }
 
 let currentAttendanceMeetingId = null;
-function openMeetingDetailModal(id){
+async function openMeetingDetailModal(id){
   const m = allMeetingsCache.find(x => x.id === id);
   if(!m) return;
+  currentAttendanceMeetingId = id;
+
   document.getElementById("mdView-title").textContent = m.title||"";
+  document.getElementById("mdView-headerIcon").textContent = m.committee_id ? "🧩" : (m.meeting_type==="اجتماع طارئ" ? "🔴" : "🤝");
   const timeRange = m.meeting_time ? (" — من الساعة "+m.meeting_time+(m.time_end?(" إلى "+m.time_end):"")) : "";
   document.getElementById("mdView-meta").innerHTML =
     `📅 ${m.meeting_date||"—"}${timeRange} &nbsp;·&nbsp; 📍 ${m.method||"—"}` +
@@ -7157,37 +7171,108 @@ function openMeetingDetailModal(id){
     linkBox.style.display = "none";
   }
 
-  document.getElementById("mdView-files").innerHTML =
+  // Tab 2a: agenda + invitation
+  document.getElementById("mdView-agendaInviteFiles").innerHTML =
     fileRowWide(m.id,'agenda_file_url',m.agenda_file_url,'📄 جدول الأعمال') +
-    fileRowWide(m.id,'invitation_file_url',m.invitation_file_url,'📨 الدعوة') +
-    fileRowWide(m.id,'minutes_file_url',m.minutes_file_url,'📋 المحضر (رفع يدوي — PDF فقط)','.pdf') +
-    `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
-      <div style="font-size:13px;font-weight:800;color:var(--dark)">📝 توليد المحضر تلقائيًا (Word)</div>
-      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateMeetingMinutesDoc(${m.id})">📝 توليد Word</button>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
-      <div style="font-size:13px;font-weight:800;color:var(--dark)">📧 إرسال تذكير بريدي لفريق الشركة</div>
+    fileRowWide(m.id,'invitation_file_url',m.invitation_file_url,'📨 الدعوة');
+
+  // Tab 2b: minutes — shown as "المحضر النهائي" only once fully signed via the same
+  // signing_documents workflow used across the platform; otherwise shows exactly where
+  // it stands (not linked yet / awaiting signatures), never a bare unsigned file.
+  await renderFinalMinutesBox(m);
+
+  // Tab 2c: reminders, calendar, sharing
+  document.getElementById("mdView-utilityActions").innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gray1)">
+      <div style="font-size:12.5px;font-weight:700;color:var(--dark)">📧 إرسال تذكير بريدي لفريق الشركة</div>
       <button class="btn" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);font-size:11px;padding:6px 14px" onclick="sendMeetingReminderEmails(${m.id})">📧 إرسال</button>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray1)">
-      <div style="font-size:13px;font-weight:800;color:var(--dark)">📆 إضافة للتقويم الشخصي</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gray1)">
+      <div style="font-size:12.5px;font-weight:700;color:var(--dark)">📆 إضافة للتقويم الشخصي</div>
       <div style="display:flex;gap:6px">
         <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer" onclick="addToCalendar(${m.id},'google',false)">Google</button>
         <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer" onclick="addToCalendar(${m.id},'outlook',false)">Outlook</button>
       </div>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0">
-      <div style="font-size:13px;font-weight:800;color:var(--dark)">📱 مشاركة عبر واتساب</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0">
+      <div style="font-size:12.5px;font-weight:700;color:var(--dark)">📱 مشاركة عبر واتساب</div>
       <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer" onclick="shareMeetingViaWhatsApp(${m.id},false)">📱 مشاركة</button>
     </div>`;
-  currentAttendanceMeetingId = id;
+
+  loadMeetingSupportingDocs(id);
   loadMeetingAttendanceSection(id);
   loadMeetingTopics(id);
+  loadMeetingDecisionsGrid(id);
+  switchMeetingDetailTab('support');
   openM("m-meeting-view");
+
   autoGenerateMinutesIfDue(id).then(generated => {
     // Only refresh the modal if minutes were actually just created — never loop otherwise.
     if(generated && currentAttendanceMeetingId === id) openMeetingDetailModal(id);
   });
+}
+
+/* "المحضر النهائي" — reuses the exact same signing_documents mechanism the rest of the
+   platform already uses (link a meeting to a signing document, collect every signature,
+   only then is it final). Nothing calling itself "final" here is ever an unsigned draft. */
+async function renderFinalMinutesBox(m){
+  const box = document.getElementById("mdView-minutesFile");
+  if(!box) return;
+  if(!m.signing_doc_id){
+    box.innerHTML = `<p class="modal-section-hint" style="margin-bottom:10px">لسا ما ربطت محضر هذا الاجتماع بمستند توقيع. بعد ما يتولّد المحضر (تلقائيًا بعد انتهاء الاجتماع، أو يدويًا الآن)، ارفعه لصفحة "التوقيع الإلكتروني" وابنِ عليه مستند توقيع، ثم اربطه هنا.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-gold" style="font-size:11px;padding:8px 16px" onclick="generateMeetingMinutesDoc(${m.id})">📝 توليد مسودة Word الآن</button>
+        <button class="btn btn-outline" style="font-size:11px;padding:8px 16px" onclick="linkMeetingToSigningDoc(${m.id})">🔗 ربط بمستند توقيع</button>
+      </div>`;
+    return;
+  }
+  const { data: doc } = await sb.from("signing_documents").select("*").eq("id", m.signing_doc_id).single();
+  if(!doc){ box.innerHTML = `<p class="modal-section-hint">تعذّر تحميل مستند التوقيع المرتبط.</p>`; return; }
+  const fullySigned = (doc.signers_done||0) >= (doc.signers_total||1) && doc.signers_total;
+  if(fullySigned){
+    box.innerHTML = `<div style="background:#E8F8EF;border-radius:10px;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div><div style="font-weight:800;color:var(--green);font-size:12.5px">✅ المحضر النهائي — موقّع بالكامل (${doc.signers_done}/${doc.signers_total})</div></div>
+        <button class="btn btn-gold" style="font-size:11px;padding:8px 16px" onclick="generateSignedMinutesPDF(${m.id})">📜 عرض المحضر النهائي</button>
+      </div>`;
+  } else {
+    box.innerHTML = `<div style="background:var(--offwhite);border-radius:10px;padding:12px">
+        <div style="font-weight:700;color:var(--dark);font-size:12px;margin-bottom:8px">⏳ قيد التوقيع (${doc.signers_done||0}/${doc.signers_total||'?'}) — لن يظهر كمحضر نهائي إلا بعد اكتمال كل التوقيعات.</div>
+        <button class="btn-xs" style="background:none;border:none;color:var(--primary);font-size:11px;cursor:pointer;text-decoration:underline" onclick="linkMeetingToSigningDoc(${m.id})">🔗 تغيير الربط</button>
+      </div>`;
+  }
+}
+
+/* ── Supporting documents tab (same pattern/table already used for AGM, own container id) ── */
+async function loadMeetingSupportingDocs(meetingId){
+  const box = document.getElementById("mdView-supdocs");
+  if(!box) return;
+  const { data, error } = await sb.from("meeting_supporting_docs").select("*").eq("meeting_id", meetingId).order("id",{ascending:false});
+  if(error){ box.innerHTML = '<div style="font-size:11px;color:var(--red)">تعذّر التحميل</div>'; return; }
+  if(!data || data.length===0){ box.innerHTML = '<div style="font-size:11px;color:var(--gray3)">لا توجد وثائق داعمة مرفوعة بعد.</div>'; return; }
+  box.innerHTML = data.map(d => `<div class="sh-doc-row">
+      <div class="sh-doc-name">📎 ${d.document_name||"وثيقة"}</div>
+      <div style="display:flex;gap:6px">
+        <a class="btn-xs" style="background:var(--gray1);color:var(--primary);border:none" href="${d.file_url}" target="_blank" rel="noopener">👁️ عرض</a>
+        <a class="btn-xs primary" href="${d.file_url}" download>📥 تحميل</a>
+        <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none" onclick="deleteMeetingSupportingDoc(${d.id},${meetingId})">🗑️</button>
+      </div>
+    </div>`).join("");
+}
+async function uploadMeetingSupportingDoc(inputEl){
+  const meetingId = currentAttendanceMeetingId;
+  if(!meetingId || !inputEl.files || !inputEl.files[0]) return;
+  const file_url = await uploadFile(inputEl, "meeting-docs");
+  if(!file_url) return;
+  const document_name = inputEl.files[0].name;
+  const { error } = await sb.from("meeting_supporting_docs").insert([{ meeting_id: meetingId, document_name, file_url, company_id: currentCompanyId }]);
+  if(error){ alert("تعذّر رفع الوثيقة: " + error.message); return; }
+  inputEl.value = "";
+  loadMeetingSupportingDocs(meetingId);
+}
+async function deleteMeetingSupportingDoc(docId, meetingId){
+  if(!confirm("حذف هذه الوثيقة؟")) return;
+  await sb.from("meeting_supporting_docs").delete().eq("id", docId);
+  loadMeetingSupportingDocs(meetingId);
 }
 
 /* Agenda items (بنود جدول الأعمال) for board/committee meetings — the same vote_topics
@@ -7273,154 +7358,97 @@ async function getEligibleDecisionVoters(meetingId){
   return data || [];
 }
 
-/* ══════════ DECISIONS TO VOTE ON — standalone section (not nested in a meeting modal) ══════════
-   Shows on both صفحة المجلس (board decisions only) and صفحة اللجان (committee decisions
-   only), reusing the same renderer with a scope filter. Committee decisions stay private to
-   that committee's own members (plus مدير النظام / رئيس مجلس / سكرتير المجلس, who see
-   everything), exactly like before — just now living on the page level, not per-meeting. */
-async function loadDecisionsToVoteSection(scope){
-  const boxId = scope === "committee" ? "committeeDecisionsToVoteBody" : "boardDecisionsToVoteBody";
-  const box = document.getElementById(boxId);
-  if(!box) return;
-  box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div>';
+/* ══════════ DECISIONS & VOTING — compact grid, scoped to ONE meeting at a time ══════════
+   Lives inside "🗳️ قرارات والتصويت" tab of that meeting's own detail page. Committee
+   decisions stay private to that committee's own members (plus مدير النظام / رئيس مجلس /
+   سكرتير المجلس, who see everything). Writing new decisions is limited to سكرتير المجلس /
+   مدير النظام, same as always — everyone eligible can still vote once one is posted. */
+async function loadMeetingDecisionsGrid(meetingId){
+  const wrap = document.getElementById("mdView-decisionsWrap");
+  const grid = document.getElementById("mdView-decisionsGrid");
+  const addBtn = document.getElementById("mdView-addDecisionBtn");
+  if(!grid) return;
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--gray3);font-size:11px;padding:10px">جارِ التحميل...</div>';
 
+  const { data: meetingRow } = await sb.from("meetings").select("committee_id").eq("id", meetingId).single();
+  const committeeId = meetingRow ? meetingRow.committee_id : null;
   const role = getCurrentRole();
   const isFullAccess = FULL_ACCESS_ROLES.includes(role);
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData?.user?.email;
 
-  let meetingsQuery = sb.from("meetings").select("id,title,meeting_date,meeting_type,committee_id")
-    .eq("company_id", currentCompanyId).in("meeting_type", BOARD_COMMITTEE_MEETING_TYPES)
-    .order("meeting_date",{ascending:false});
-  const { data: allMeetings } = await meetingsQuery;
-  const meetings = (allMeetings||[]).filter(m => scope === "committee" ? !!m.committee_id : !m.committee_id);
-  if(meetings.length === 0){
-    box.innerHTML = `<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد اجتماعات ${scope==="committee"?"لجان":"مجلس"} بعد.</div>`;
+  const eligibleVoters = await getEligibleDecisionVoters(meetingId);
+  const iAmEligible = eligibleVoters.some(v => v.claimed_by_email === myEmail);
+
+  if(committeeId && !isFullAccess && !iAmEligible){
+    if(wrap) wrap.style.display = "none";
     return;
   }
+  if(wrap) wrap.style.display = "block";
 
-  const meetingIds = meetings.map(m=>m.id);
-  const { data: decisions } = await sb.from("board_decisions").select("*").in("meeting_id", meetingIds).order("id",{ascending:false});
+  const canWrite = role === "سكرتير المجلس" || role === "مدير النظام";
+  if(addBtn) addBtn.style.display = canWrite ? "inline-block" : "none";
+
+  const { data: decisions } = await sb.from("board_decisions").select("*").eq("meeting_id", meetingId).order("id",{ascending:true});
   if(!decisions || decisions.length === 0){
-    box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد قرارات مطروحة للتصويت حاليًا.</div>';
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--gray3);font-size:11.5px;padding:14px">لا توجد قرارات مطروحة بعد.</div>';
     return;
   }
 
-  const meetingById = {};
-  meetings.forEach(m => meetingById[m.id] = m);
-
-  // Committee membership lookup — built once for every committee involved here, not per-decision.
-  const committeeIds = [...new Set(meetings.filter(m=>m.committee_id).map(m=>m.committee_id))];
-  const committeeMemberEmails = {}, committeeNames = {};
-  if(committeeIds.length){
-    const [{ data: committees }, { data: links }] = await Promise.all([
-      sb.from("committees").select("id,committee_name").in("id", committeeIds),
-      sb.from("committee_members").select("committee_id,member_id").in("committee_id", committeeIds)
-    ]);
-    (committees||[]).forEach(c => committeeNames[c.id] = c.committee_name);
-    const memberIds = [...new Set((links||[]).map(l=>l.member_id))];
-    const { data: memberRows } = memberIds.length ? await sb.from("board_members").select("id,claimed_by_email").in("id", memberIds) : { data: [] };
-    const emailByMemberId = {};
-    (memberRows||[]).forEach(mr => { emailByMemberId[mr.id] = mr.claimed_by_email; });
-    (links||[]).forEach(l => {
-      if(!committeeMemberEmails[l.committee_id]) committeeMemberEmails[l.committee_id] = new Set();
-      const email = emailByMemberId[l.member_id];
-      if(email) committeeMemberEmails[l.committee_id].add(email);
-    });
-  }
-  const { data: allBoardMembers } = await sb.from("board_members").select("claimed_by_email").eq("company_id", currentCompanyId);
-  const boardEmails = new Set((allBoardMembers||[]).filter(x=>x.claimed_by_email).map(x=>x.claimed_by_email));
-
-  const visibleDecisions = decisions.filter(d => {
-    const meeting = meetingById[d.meeting_id];
-    if(!meeting) return false;
-    if(meeting.committee_id && !isFullAccess) return (committeeMemberEmails[meeting.committee_id]||new Set()).has(myEmail);
-    return true;
-  });
-  if(visibleDecisions.length === 0){
-    box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد قرارات مطروحة للتصويت حاليًا.</div>';
-    return;
-  }
-
-  const decisionIds = visibleDecisions.map(d=>d.id);
+  const decisionIds = decisions.map(d=>d.id);
   const { data: allVotes } = await sb.from("board_decision_votes").select("*").in("decision_id", decisionIds);
 
-  box.innerHTML = visibleDecisions.map(d => {
-    const meeting = meetingById[d.meeting_id];
+  grid.innerHTML = decisions.map(d => {
     const votes = (allVotes||[]).filter(v=>v.decision_id===d.id);
     const yes = votes.filter(v=>v.vote==="موافق").length, no = votes.filter(v=>v.vote==="معارض").length, abs = votes.filter(v=>v.vote==="ممتنع").length;
     const myVote = votes.find(v=>v.voter_email===myEmail);
-    const eligible = meeting.committee_id ? (committeeMemberEmails[meeting.committee_id]||new Set()).has(myEmail) : boardEmails.has(myEmail);
-    const contextLabel = meeting.committee_id ? (committeeNames[meeting.committee_id]||"لجنة") : "مجلس الإدارة";
-    return `<div style="background:var(--offwhite);border-radius:10px;padding:12px;margin-bottom:10px">
-      <div style="font-size:10.5px;color:var(--primary);font-weight:800;margin-bottom:4px">🗓️ ${meeting.title||""} — ${meeting.meeting_date||"—"} · ${contextLabel}</div>
-      <div style="font-size:12.5px;font-weight:700;margin-bottom:6px">${d.decision_text}</div>
-      <div style="display:flex;gap:10px;font-size:11px;margin-bottom:6px">
-        <span style="color:var(--green)">✅ ${yes}</span>
-        <span style="color:var(--red)">❌ ${no}</span>
-        <span style="color:var(--orange)">➖ ${abs}</span>
-      </div>
+    return `<div class="decision-card">
+      <div class="decision-text">${d.decision_text}</div>
+      <div class="decision-tally"><span class="yes">✅ ${yes}</span><span class="no">❌ ${no}</span><span class="abs">➖ ${abs}</span></div>
       ${myVote
-        ? `<div style="font-size:10.5px;color:var(--primary);font-weight:700">صوّتك: ${myVote.vote}</div>`
-        : eligible
-          ? `<div style="display:flex;gap:6px">
-              <button class="btn-xs" style="flex:1;background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px;cursor:pointer" onclick="castBoardDecisionVote(${d.id},'موافق','${scope}')">موافق</button>
-              <button class="btn-xs" style="flex:1;background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px;cursor:pointer" onclick="castBoardDecisionVote(${d.id},'معارض','${scope}')">معارض</button>
-              <button class="btn-xs" style="flex:1;background:#FEF3E2;color:var(--orange);border:none;border-radius:6px;padding:6px;cursor:pointer" onclick="castBoardDecisionVote(${d.id},'ممتنع','${scope}')">ممتنع</button>
+        ? `<div class="decision-myvote">صوّتك: ${myVote.vote}</div>`
+        : iAmEligible
+          ? `<div class="decision-actions">
+              <button style="background:#E8F8EF;color:var(--green)" onclick="castMeetingDecisionVote(${d.id},'موافق')">موافق</button>
+              <button style="background:#FDE8E8;color:var(--red)" onclick="castMeetingDecisionVote(${d.id},'معارض')">معارض</button>
+              <button style="background:#FEF3E2;color:var(--orange)" onclick="castMeetingDecisionVote(${d.id},'ممتنع')">ممتنع</button>
             </div>`
-          : '<div style="font-size:10px;color:var(--gray3)">التصويت مقصور على أعضاء المجلس/اللجنة المعنية. لو تعتقد إنك مؤهّل وما يظهر لك التصويت، تأكد إن حسابك مربوط بسجل "أعضاء مجلس الإدارة" (زر 🔗 ربط بحساب).</div>'
+          : '<div class="decision-ineligible">التصويت مقصور على الأعضاء المؤهّلين. لو تعتقد إنك مؤهّل، تأكد إن حسابك مربوط بسجل "أعضاء مجلس الإدارة".</div>'
       }
     </div>`;
   }).join("");
 }
 
-async function castBoardDecisionVote(decisionId, vote, scope){
+async function castMeetingDecisionVote(decisionId, vote){
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData?.user?.email;
   const { error } = await sb.from("board_decision_votes").insert([{
     decision_id: decisionId, voter_email: myEmail, voter_name: currentUserProfile?currentUserProfile.full_name:myEmail, vote
   }]);
   if(error){ alert("تعذّر تسجيل صوتك: " + error.message); return; }
-  loadDecisionsToVoteSection(scope || "board");
+  loadMeetingDecisionsGrid(currentAttendanceMeetingId);
 }
 
-/* "+ إضافة قرار" — writing is limited to سكرتير المجلس / مدير النظام, same as before, just
-   opened from the standalone section now instead of from inside a specific meeting's modal.
-   The meeting itself is picked from a dropdown, scoped to board-only or committee-only
-   meetings depending on which page opened the form. */
-async function openAddDecisionModal(scope){
+function openAddDecisionInline(){
   const role = getCurrentRole();
   if(role !== "سكرتير المجلس" && role !== "مدير النظام"){
     alert("كتابة قرارات جديدة مقصورة على سكرتير المجلس أو مدير النظام.");
     return;
   }
-  document.getElementById("ad-scope").value = scope;
-  const sel = document.getElementById("ad-meeting-select");
-  sel.innerHTML = '<option value="">جارِ التحميل...</option>';
-  openM("m-add-decision");
-
-  const { data: allMeetings } = await sb.from("meetings").select("id,title,meeting_date,committee_id")
-    .eq("company_id", currentCompanyId).in("meeting_type", BOARD_COMMITTEE_MEETING_TYPES).order("meeting_date",{ascending:false});
-  const meetings = (allMeetings||[]).filter(m => scope === "committee" ? !!m.committee_id : !m.committee_id);
-  if(meetings.length === 0){
-    sel.innerHTML = `<option value="">لا توجد اجتماعات ${scope==="committee"?"لجان":"مجلس"} بعد</option>`;
-    return;
-  }
-  sel.innerHTML = '<option value="">— اختر الاجتماع —</option>' +
-    meetings.map(m => `<option value="${m.id}">${m.title||""} — ${m.meeting_date||"—"}</option>`).join("");
+  const form = document.getElementById("mdView-decisionAddForm");
+  if(form) form.style.display = form.style.display === "none" ? "block" : "none";
 }
 
-async function submitNewDecision(){
-  const meetingId = document.getElementById("ad-meeting-select").value;
-  const scope = document.getElementById("ad-scope").value;
-  const text = document.getElementById("ad-text").value.trim();
-  if(!meetingId){ alert("الرجاء اختيار الاجتماع"); return; }
+async function submitInlineDecision(){
+  const meetingId = currentAttendanceMeetingId;
+  const text = document.getElementById("mdView-newdecision-text").value.trim();
+  if(!meetingId){ return; }
   if(!text){ alert("الرجاء كتابة نص القرار"); return; }
-  const { error } = await sb.from("board_decisions").insert([{ meeting_id: Number(meetingId), decision_text: text, company_id: currentCompanyId }]);
+  const { error } = await sb.from("board_decisions").insert([{ meeting_id: meetingId, decision_text: text, company_id: currentCompanyId }]);
   if(error){ alert("تعذّر إضافة القرار: " + error.message); return; }
-  document.getElementById("ad-text").value = "";
-  closeM("m-add-decision");
-  loadDecisionsToVoteSection(scope);
+  document.getElementById("mdView-newdecision-text").value = "";
+  document.getElementById("mdView-decisionAddForm").style.display = "none";
+  loadMeetingDecisionsGrid(meetingId);
 }
 
 const ATTEND_STATUSES = ["حاضر","غائب","اعتذر"];
@@ -7524,57 +7552,96 @@ async function computeAttendancePercentages(){
   }));
 }
 
-function renderPastBoardMeetingsTable(boardMeetings){
-  const tbody = document.getElementById("pastBoardMeetingsTbody");
-  if(!tbody) return;
-  const todayStr = new Date().toISOString().slice(0,10);
-  const past = boardMeetings
-    .filter(m => !m.meeting_date || m.meeting_date < todayStr)
-    .sort((a,b) => (b.meeting_date||"").localeCompare(a.meeting_date||""));
-  if(past.length === 0){
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا يوجد سجل اجتماعات مجلس سابقة بعد</td></tr>';
-    return;
-  }
-  tbody.innerHTML = past.map(m => {
-    const fileCount = [m.agenda_file_url,m.invitation_file_url,m.minutes_file_url].filter(Boolean).length;
-    return `<tr style="cursor:pointer" onclick="openMeetingDetailModal(${m.id})">
-      <td>${m.title||""}</td><td>${m.meeting_type||"—"}</td><td>${m.meeting_date||"—"}</td><td>${m.meeting_time||"—"}</td>
-      <td><button class="btn-xs primary" onclick="event.stopPropagation();openMeetingDetailModal(${m.id})">📂 الملفات ${fileCount ? `(${fileCount})` : ''}</button></td>
-    </tr>`;
-  }).join("");
+/* ══════════ UNIFIED BOARD/COMMITTEE MEETING CARDS: current / upcoming / past ══════════
+   Same rendering used for both صفحة المجلس and صفحة اللجان (scope='board'|'committee').
+   Pending meeting_requests (not yet confirmed) are folded directly into the "upcoming" grid
+   as a visually distinct card — no separate "طلبات تحتاج رأيك" section anymore. */
+function meetingCardHTML(m){
+  const isEmergency = m.meeting_type === "اجتماع طارئ";
+  const cls = m.committee_id ? "q2" : (isEmergency ? "em" : "q1");
+  const typeLabel = isEmergency ? "🔴 طارئ · عاجل" : (m.meeting_type||"");
+  return `<div class="mc ${cls}" style="cursor:pointer" onclick="openMeetingDetailModal(${m.id})">
+    <div class="mc-bar"></div>
+    <div class="mc-type">${typeLabel}</div>
+    <div class="mc-title">${m.title||""}</div>
+    <div class="mc-detail">📅 ${m.meeting_date||"—"}${m.meeting_time ? (" — من "+m.meeting_time+(m.time_end?(" إلى "+m.time_end):"")) : ""}</div>
+    <div class="mc-detail">📍 ${m.method||"—"}</div>
+    ${m.notes ? `<div class="mc-detail">📝 ${m.notes}</div>` : ""}
+    <div class="mc-actions">
+      <button class="btn-xs primary" style="width:100%" onclick="event.stopPropagation();openMeetingDetailModal(${m.id})">📂 عرض التفاصيل</button>
+    </div>
+  </div>`;
 }
 
-function renderUpcomingMeetingCards(boardMeetings){
-  const wrap = document.getElementById("upcomingMeetCards");
-  if(!wrap) return;
-  const todayStr = new Date().toISOString().slice(0,10);
-  const currentYear = new Date().getFullYear();
+function meetingRequestCardHTML(r){
+  return `<div class="mc" style="cursor:pointer;border:1.5px dashed var(--gold2);background:linear-gradient(145deg,#FFFBF0,#FFF6E0)" onclick="openMeetingRequestPopup(${r.id})">
+    <div class="mc-bar" style="background:linear-gradient(90deg,var(--gold2),var(--gold3))"></div>
+    <div class="mc-type" style="color:var(--gold)">⏳ بانتظار موافقة الأعضاء</div>
+    <div class="mc-title">${r.title||""}</div>
+    <div class="mc-detail">📅 ${r.proposed_date||"—"}${r.proposed_time ? (" — من "+r.proposed_time+(r.proposed_time_end?(" إلى "+r.proposed_time_end):"")) : ""}</div>
+    <div class="mc-detail">📍 ${r.method||"—"}</div>
+    <div class="mc-actions">
+      <button class="btn-xs gold" style="width:100%" onclick="event.stopPropagation();openMeetingRequestPopup(${r.id})">🗳️ الرد على الطلب</button>
+    </div>
+  </div>`;
+}
 
-  const upcoming = boardMeetings
-    .filter(m => m.meeting_date && m.meeting_date >= todayStr && new Date(m.meeting_date).getFullYear() === currentYear)
+function pastMeetingCardHTML(m){
+  return `<div class="mc" style="cursor:pointer" onclick="openMeetingDetailModal(${m.id})">
+    <div class="mc-bar" style="background:linear-gradient(90deg,var(--gray2),var(--gray3))"></div>
+    <div class="mc-type">${m.meeting_type||""} · منتهٍ</div>
+    <div class="mc-title">${m.title||""}</div>
+    <div class="mc-detail">📅 ${m.meeting_date||"—"}</div>
+    <div class="mc-actions">
+      <button class="btn-xs" style="width:100%;background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1)" onclick="event.stopPropagation();openMeetingDetailModal(${m.id})">📂 عرض التفاصيل</button>
+    </div>
+  </div>`;
+}
+
+async function renderMeetingCardsGroup(meetings, scope){
+  const currentBoxId = scope === "committee" ? "currentCommitteeMeetCard" : "currentMeetCard";
+  const upcomingBoxId = scope === "committee" ? "upcomingCommitteeCards" : "upcomingMeetCards";
+  const pastBoxId = scope === "committee" ? "pastCommitteeMeetCards" : "pastMeetCards";
+  const currentBox = document.getElementById(currentBoxId);
+  const upcomingBox = document.getElementById(upcomingBoxId);
+  const pastBox = document.getElementById(pastBoxId);
+  const noun = scope === "committee" ? "لجان" : "مجلس";
+
+  const todayStr = new Date().toISOString().slice(0,10);
+  const upcoming = meetings.filter(m => m.meeting_date && m.meeting_date >= todayStr)
     .sort((a,b) => (a.meeting_date||"").localeCompare(b.meeting_date||""));
+  const past = meetings.filter(m => !m.meeting_date || m.meeting_date < todayStr)
+    .sort((a,b) => (b.meeting_date||"").localeCompare(a.meeting_date||""));
+
+  const current = upcoming[0] || null;
+  const others = upcoming.slice(1);
   upcomingMeetingsCache = upcoming;
 
-  if(upcoming.length === 0){
-    wrap.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">لا توجد اجتماعات مجلس قادمة هذا العام حاليًا.</div>';
-    return;
+  let requestCards = [];
+  if(scope === "board"){
+    const { data: reqs } = await sb.from("meeting_requests").select("*")
+      .eq("company_id", currentCompanyId).eq("status","قيد الموافقة").order("id",{ascending:false});
+    requestCards = reqs || [];
   }
 
-  wrap.innerHTML = upcoming.map(m => {
-    const isEmergency = m.meeting_type === "اجتماع طارئ";
-    const fileCount = [m.agenda_file_url,m.invitation_file_url,m.minutes_file_url].filter(Boolean).length;
-    return `<div class="mc ${isEmergency ? 'em' : 'q1'}" style="cursor:pointer" onclick="openMeetingDetailModal(${m.id})">
-      <div class="mc-bar"></div>
-      <div class="mc-type">${isEmergency ? '🔴 طارئ · عاجل' : (m.meeting_type||'')}</div>
-      <div class="mc-title">${m.title||""}</div>
-      <div class="mc-detail">📅 ${m.meeting_date||"—"}${m.meeting_time ? (" — من "+m.meeting_time+(m.time_end?(" إلى "+m.time_end):"")) : ""}</div>
-      <div class="mc-detail">📍 ${m.method||"—"}</div>
-      ${m.notes ? `<div class="mc-detail">📝 ${m.notes}</div>` : ""}
-      <div class="mc-actions">
-        <button class="btn-xs primary" style="width:100%" onclick="event.stopPropagation();openMeetingDetailModal(${m.id})">📂 عرض التفاصيل والملفات ${fileCount ? `(${fileCount})` : ''}</button>
-      </div>
-    </div>`;
-  }).join("");
+  if(currentBox){
+    currentBox.innerHTML = current
+      ? meetingCardHTML(current)
+      : `<div style="text-align:center;color:var(--gray3);font-size:12px;padding:16px;grid-column:1/-1">لا يوجد اجتماع ${noun} قادم مؤكد حاليًا${requestCards.length?' — تحقق من الطلبات بانتظار الموافقة أدناه.':'.'}</div>`;
+  }
+
+  if(upcomingBox){
+    const cards = [...others.map(meetingCardHTML), ...requestCards.map(meetingRequestCardHTML)];
+    upcomingBox.innerHTML = cards.length
+      ? cards.join("")
+      : `<div style="text-align:center;color:var(--gray3);font-size:12px;padding:16px;grid-column:1/-1">لا توجد اجتماعات ${noun} مجدولة أخرى حاليًا.</div>`;
+  }
+
+  if(pastBox){
+    pastBox.innerHTML = past.length
+      ? past.map(pastMeetingCardHTML).join("")
+      : `<div style="text-align:center;color:var(--gray3);font-size:12px;padding:16px;grid-column:1/-1">لا يوجد سجل اجتماعات ${noun} سابقة بعد.</div>`;
+  }
 }
 
 /* ══════════ AGM (الجمعية العامة) — cards, detail modal, per-meeting voting topics ══════════ */
@@ -9676,57 +9743,6 @@ function toggleListedAgmMode(){
 }
 
 /* ══════════ COMMITTEE MEETINGS (same card + detail pattern as board meetings) ══════════ */
-function renderCommitteeSection(committeeMeetings){
-  const todayStr = new Date().toISOString().slice(0,10);
-  const currentYear = new Date().getFullYear();
-
-  const upcoming = committeeMeetings
-    .filter(m => m.meeting_date && m.meeting_date >= todayStr && new Date(m.meeting_date).getFullYear() === currentYear)
-    .sort((a,b) => (a.meeting_date||"").localeCompare(b.meeting_date||""));
-  const past = committeeMeetings
-    .filter(m => !m.meeting_date || m.meeting_date < todayStr)
-    .sort((a,b) => (b.meeting_date||"").localeCompare(a.meeting_date||""));
-
-  renderUpcomingCommitteeCards(upcoming);
-  renderPastCommitteeTable(past);
-}
-
-function renderUpcomingCommitteeCards(upcoming){
-  const wrap = document.getElementById("upcomingCommitteeCards");
-  if(!wrap) return;
-  if(upcoming.length === 0){
-    wrap.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">لا توجد اجتماعات لجان قادمة هذا العام حاليًا.</div>';
-    return;
-  }
-  wrap.innerHTML = upcoming.map(m => {
-    const fileCount = [m.agenda_file_url,m.invitation_file_url,m.minutes_file_url].filter(Boolean).length;
-    return `<div class="mc q2" style="cursor:pointer" onclick="openMeetingDetailModal(${m.id})">
-      <div class="mc-bar"></div>
-      <div class="mc-type">${m.meeting_type||''}</div>
-      <div class="mc-title">${m.title||""}</div>
-      <div class="mc-detail">📅 ${m.meeting_date||"—"}${m.meeting_time ? (" — من "+m.meeting_time+(m.time_end?(" إلى "+m.time_end):"")) : ""}</div>
-      <div class="mc-detail">📍 ${m.method||"—"}</div>
-      ${m.notes ? `<div class="mc-detail">📝 ${m.notes}</div>` : ""}
-      <div class="mc-actions">
-        <button class="btn-xs primary" style="width:100%" onclick="event.stopPropagation();openMeetingDetailModal(${m.id})">📂 عرض التفاصيل والملفات ${fileCount ? `(${fileCount})` : ''}</button>
-      </div>
-    </div>`;
-  }).join("");
-}
-
-function renderPastCommitteeTable(past){
-  const tbody = document.getElementById("pastCommitteeTbody");
-  if(!tbody) return;
-  if(past.length === 0){
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا يوجد سجل اجتماعات لجان سابقة بعد</td></tr>';
-    return;
-  }
-  tbody.innerHTML = past.map(m => `<tr style="cursor:pointer" onclick="openMeetingDetailModal(${m.id})">
-    <td>${m.title||""}</td><td>${m.meeting_type||"—"}</td><td>${m.meeting_date||"—"}</td><td>${m.meeting_time||"—"}</td>
-    <td><button class="btn-xs primary" onclick="event.stopPropagation();openMeetingDetailModal(${m.id})">📂 التفاصيل</button></td>
-  </tr>`).join("");
-}
-
 // Every board/committee meeting agenda automatically opens and closes with these two fixed
 // items — only the middle is company-specific. Applies to اجتماع مجلس الإدارة الدوري, اجتماع
 // طارئ, and اجتماع لجنة alike; NOT to الجمعية العامة, which has its own separate agenda flow.
@@ -9913,59 +9929,51 @@ async function submitMeetingRequest(){
   newRequestTopics = [];
   renderNewRequestTopics();
   closeM("m-meeting-request");
-  loadMeetingRequestsReview();
+  loadMeetingsAll();
   alert("تم إرسال طلب الاجتماع لأعضاء المجلس للموافقة على الموعد ✅");
 }
 
-async function loadMeetingRequestsReview(){
-  const card = document.getElementById("meetingReqReviewCard");
-  const box = document.getElementById("meetingReqReviewBody");
-  if(!box || !card) return;
-  const role = getCurrentRole();
-  if(role === 'مساهم'){ card.style.display = "none"; return; }
-  card.style.display = "block";
+async function openMeetingRequestPopup(requestId){
+  const body = document.getElementById("mrqModalBody");
+  if(!body) return;
+  body.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>';
+  openM("m-meeting-request-view");
 
-  const { data: pending, error } = await sb.from("meeting_requests")
-    .select("*").eq("company_id", currentCompanyId).eq("status", "قيد الموافقة").order("id",{ascending:false});
-  if(error){ box.innerHTML = '<div style="color:var(--red);font-size:12px">تعذّر التحميل: '+error.message+'</div>'; return; }
-  if(!pending || pending.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px">لا توجد طلبات اجتماعات معلّقة حاليًا.</div>'; return; }
+  const { data: req, error } = await sb.from("meeting_requests").select("*").eq("id", requestId).single();
+  if(error || !req){ body.innerHTML = '<div style="color:var(--red);font-size:12px">تعذّر تحميل الطلب</div>'; return; }
 
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
-  const ids = pending.map(r=>r.id);
-  const { data: responses } = await sb.from("meeting_request_responses").select("*").in("request_id", ids);
-  const byReq = {};
-  (responses||[]).forEach(r => { if(!byReq[r.request_id]) byReq[r.request_id] = []; byReq[r.request_id].push(r); });
+  const { data: responses } = await sb.from("meeting_request_responses").select("*").eq("request_id", requestId);
+  const revs = responses || [];
+  const mine = myEmail ? revs.find(r=>r.reviewer_email===myEmail) : null;
+  const approvedCount = revs.filter(r=>r.response==="موافقة").length;
+  const altCount = revs.filter(r=>r.response==="تعديل الموعد").length;
+  const altList = revs.filter(r=>r.response==="تعديل الموعد").map(r=>
+    `<div style="font-size:10.5px;color:var(--gray3)">↳ ${r.reviewer_name||r.reviewer_email}: يقترح ${r.alt_date||"—"}${r.alt_time?(' — '+r.alt_time):''}${r.notes?(' ('+r.notes+')'):''}</div>`
+  ).join("");
+  const timeRange = req.proposed_time ? (' — من '+req.proposed_time+(req.proposed_time_end?(' إلى '+req.proposed_time_end):'')) : '';
 
-  box.innerHTML = pending.map(req => {
-    const revs = byReq[req.id] || [];
-    const mine = myEmail ? revs.find(r=>r.reviewer_email===myEmail) : null;
-    const approvedCount = revs.filter(r=>r.response==="موافقة").length;
-    const altCount = revs.filter(r=>r.response==="تعديل الموعد").length;
-    const altList = revs.filter(r=>r.response==="تعديل الموعد").map(r=>
-      `<div style="font-size:10.5px;color:var(--gray3)">↳ ${r.reviewer_name||r.reviewer_email}: يقترح ${r.alt_date||"—"}${r.alt_time?(' — '+r.alt_time):''}${r.notes?(' ('+r.notes+')'):''}</div>`
-    ).join("");
-
-    return `<div style="border:1px solid var(--gray1);border-radius:10px;padding:12px;margin-bottom:14px">
-      <div style="font-weight:800;font-size:13px;color:var(--dark)">${req.title||""} <span style="font-size:11px;color:var(--gray3);font-weight:600">— ${req.meeting_type||""}</span></div>
-      <div style="font-size:12px;color:var(--dark);margin:6px 0">📅 الموعد المقترح: <b>${req.proposed_date||"—"}</b>${req.proposed_time?(' — الساعة '+req.proposed_time):''} · 📍 ${req.method||"—"}</div>
-      ${req.notes ? `<div style="font-size:11.5px;color:var(--gray3);margin-bottom:8px">📝 ${req.notes}</div>` : ""}
-      <div style="font-size:11px;color:var(--gray3);margin-bottom:8px">✅ موافقون: ${approvedCount} &nbsp;·&nbsp; 🔁 مقترحون موعدًا آخر: ${altCount}</div>
-      ${altList}
-      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-        <button class="btn-xs" style="background:${mine&&mine.response==='موافقة'?'linear-gradient(135deg,var(--primary),var(--accent))':'#E8F8EF'};color:${mine&&mine.response==='موافقة'?'#fff':'var(--green)'};border:none;border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer" onclick="respondMeetingRequest(${req.id},'موافقة')">✅ موافقة على الموعد</button>
-        <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer" onclick="toggleAltDateForm(${req.id})">🔁 اقتراح موعد بديل</button>
+  body.innerHTML = `
+    <div style="font-weight:800;font-size:15px;color:var(--dark)">${req.title||""}</div>
+    <div style="font-size:11px;color:var(--gray3);font-weight:600;margin-bottom:10px">${req.meeting_type||""}</div>
+    <div style="font-size:13px;color:var(--dark);margin:6px 0">📅 الموعد المقترح: <b>${req.proposed_date||"—"}</b>${timeRange} &nbsp;·&nbsp; 📍 ${req.method||"—"}</div>
+    ${req.notes ? `<div style="font-size:12px;color:var(--gray3);margin-bottom:8px">📝 ${req.notes}</div>` : ""}
+    <div style="font-size:11.5px;color:var(--gray3);margin-bottom:8px">✅ موافقون: ${approvedCount} &nbsp;·&nbsp; 🔁 مقترحون موعدًا آخر: ${altCount}</div>
+    ${altList}
+    <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">
+      <button class="btn-xs" style="background:${mine&&mine.response==='موافقة'?'linear-gradient(135deg,var(--primary),var(--accent))':'#E8F8EF'};color:${mine&&mine.response==='موافقة'?'#fff':'var(--green)'};border:none;border-radius:6px;padding:7px 14px;font-size:11.5px;cursor:pointer" onclick="respondMeetingRequest(${req.id},'موافقة')">✅ موافقة على الموعد</button>
+      <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:7px 14px;font-size:11.5px;cursor:pointer" onclick="toggleAltDateForm(${req.id})">🔁 اقتراح موعد بديل</button>
+    </div>
+    <div id="alt-form-${req.id}" style="display:none;margin-top:10px;padding:10px;background:var(--offwhite);border-radius:8px">
+      <div class="row2">
+        <div class="fg"><label style="font-size:11px">الموعد البديل</label><input type="date" class="fi" id="alt-date-${req.id}"/></div>
+        <div class="fg"><label style="font-size:11px">الوقت البديل</label><input type="time" class="fi" id="alt-time-${req.id}"/></div>
       </div>
-      <div id="alt-form-${req.id}" style="display:none;margin-top:10px;padding:10px;background:var(--offwhite);border-radius:8px">
-        <div class="row2">
-          <div class="fg"><label style="font-size:11px">الموعد البديل</label><input type="date" class="fi" id="alt-date-${req.id}"/></div>
-          <div class="fg"><label style="font-size:11px">الوقت البديل</label><input type="time" class="fi" id="alt-time-${req.id}"/></div>
-        </div>
-        <textarea id="alt-notes-${req.id}" placeholder="سبب التعديل (اختياري)" rows="2" style="width:100%;border:1px solid var(--gray1);border-radius:8px;padding:8px;font-family:'Tajawal',sans-serif;font-size:12px;resize:none;margin-top:6px"></textarea>
-        <button class="btn-xs primary" style="margin-top:8px" onclick="respondMeetingRequest(${req.id},'تعديل الموعد')">📨 إرسال الاقتراح</button>
-      </div>
-    </div>`;
-  }).join("");
+      <textarea id="alt-notes-${req.id}" placeholder="سبب التعديل (اختياري)" rows="2" style="width:100%;border:1px solid var(--gray1);border-radius:8px;padding:8px;font-family:'Tajawal',sans-serif;font-size:12px;resize:none;margin-top:6px"></textarea>
+      <button class="btn-xs primary" style="margin-top:8px" onclick="respondMeetingRequest(${req.id},'تعديل الموعد')">📨 إرسال الاقتراح</button>
+    </div>
+  `;
 }
 
 function toggleAltDateForm(requestId){
@@ -9994,7 +10002,7 @@ async function respondMeetingRequest(requestId, response){
   if(error){ alert("تعذّر حفظ ردّك: " + error.message); return; }
 
   await recomputeMeetingRequestStatus(requestId);
-  loadMeetingRequestsReview();
+  closeM("m-meeting-request-view");
   loadMeetingsAll();
 }
 
@@ -16696,6 +16704,12 @@ function switchAGMTab(name){
   document.querySelectorAll('#m-agm-view [data-agmtab]').forEach(t=>t.classList.toggle('active', t.dataset.agmtab===name));
   document.querySelectorAll('#m-agm-view [data-agmpane]').forEach(p=>p.classList.toggle('active', p.dataset.agmpane===name));
   const body = document.querySelector('#m-agm-view .fp-body');
+  if(body) body.scrollTop = 0;
+}
+function switchMeetingDetailTab(name){
+  document.querySelectorAll('#m-meeting-view [data-mdtab]').forEach(t=>t.classList.toggle('active', t.dataset.mdtab===name));
+  document.querySelectorAll('#m-meeting-view [data-mdpane]').forEach(p=>p.classList.toggle('active', p.dataset.mdpane===name));
+  const body = document.querySelector('#m-meeting-view .fp-body');
   if(body) body.scrollTop = 0;
 }
 document.querySelectorAll('.modal-bg').forEach(m=>{
