@@ -2772,9 +2772,12 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
         </div>
 
         <div id="mdView-decisionsWrap" class="modal-section accent-primary">
-          <div class="modal-section-head" style="display:flex;justify-content:space-between;align-items:center">
+          <div class="modal-section-head" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
             <span>🗳️ القرارات والتصويت</span>
-            <button id="mdView-addDecisionBtn" class="btn-xs gold" style="display:none" onclick="openAddDecisionInline()">+ إضافة قرار</button>
+            <div style="display:flex;gap:6px">
+              <button id="mdView-syncDecisionsBtn" class="btn-xs" style="display:none;background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1)" onclick="syncTopicsToDecisions()">🔄 مزامنة مع البنود</button>
+              <button id="mdView-addDecisionBtn" class="btn-xs gold" style="display:none" onclick="openAddDecisionInline()">+ إضافة قرار</button>
+            </div>
           </div>
           <div class="modal-section-body">
             <div id="mdView-decisionAddForm" style="display:none;margin-bottom:12px;background:var(--offwhite);border-radius:10px;padding:10px">
@@ -7393,6 +7396,8 @@ async function loadMeetingDecisionsGrid(meetingId){
 
   const canWrite = role === "سكرتير المجلس" || role === "مدير النظام";
   if(addBtn) addBtn.style.display = canWrite ? "inline-block" : "none";
+  const syncBtn = document.getElementById("mdView-syncDecisionsBtn");
+  if(syncBtn) syncBtn.style.display = canWrite ? "inline-block" : "none";
 
   const { data: decisions } = await sb.from("board_decisions").select("*").eq("meeting_id", meetingId).order("id",{ascending:true});
   if(!decisions || decisions.length === 0){
@@ -7411,7 +7416,7 @@ async function loadMeetingDecisionsGrid(meetingId){
       <div class="decision-text">${d.decision_text}</div>
       <div class="decision-tally"><span class="yes">✅ ${yes}</span><span class="no">❌ ${no}</span><span class="abs">➖ ${abs}</span></div>
       ${myVote
-        ? `<div class="decision-myvote">صوّتك: ${myVote.vote}</div>`
+        ? `<div class="decision-myvote">صوّتك: ${myVote.vote} <button onclick="changeMeetingDecisionVote(${d.id})" style="background:none;border:none;color:var(--primary);text-decoration:underline;cursor:pointer;font-size:10px;margin-right:4px">تغيير</button></div>`
         : iAmEligible
           ? `<div class="decision-actions">
               <button style="background:#E8F8EF;color:var(--green)" onclick="castMeetingDecisionVote(${d.id},'موافق')">موافق</button>
@@ -7422,6 +7427,45 @@ async function loadMeetingDecisionsGrid(meetingId){
       }
     </div>`;
   }).join("");
+}
+
+/* Backfills decisions for meetings created before agenda items started auto-converting into
+   votable decisions — matches each topic's exact text against existing decision_text values
+   and only inserts the ones missing, so it's always safe to click more than once. */
+async function syncTopicsToDecisions(){
+  const meetingId = currentAttendanceMeetingId;
+  if(!meetingId) return;
+  const role = getCurrentRole();
+  if(role !== "سكرتير المجلس" && role !== "مدير النظام"){
+    alert("هذا الإجراء مقصور على سكرتير المجلس أو مدير النظام.");
+    return;
+  }
+  const [{ data: topics }, { data: decisions }] = await Promise.all([
+    sb.from("vote_topics").select("topic_text").eq("meeting_id", meetingId),
+    sb.from("board_decisions").select("decision_text").eq("meeting_id", meetingId)
+  ]);
+  const existingTexts = new Set((decisions||[]).map(d => d.decision_text));
+  const missing = (topics||[])
+    .map(t => t.topic_text)
+    .filter(text => text !== AGENDA_OPENING_ITEM && text !== AGENDA_CLOSING_ITEM)
+    .filter(text => !existingTexts.has(text));
+  if(missing.length === 0){
+    alert("كل البنود مطابقة لقرارات موجودة بالفعل — ما فيه شيء ناقص.");
+    return;
+  }
+  const rows = missing.map(decision_text => ({ meeting_id: meetingId, decision_text, company_id: currentCompanyId }));
+  const { error } = await sb.from("board_decisions").insert(rows);
+  if(error){ alert("تعذّرت المزامنة: " + error.message); return; }
+  alert(`تمت إضافة ${missing.length} قرار من البنود الناقصة ✅`);
+  loadMeetingDecisionsGrid(meetingId);
+}
+
+async function changeMeetingDecisionVote(decisionId){
+  if(!confirm("حذف تصويتك الحالي على هذا القرار عشان تصوّت من جديد؟")) return;
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData?.user?.email;
+  await sb.from("board_decision_votes").delete().eq("decision_id", decisionId).eq("voter_email", myEmail);
+  loadMeetingDecisionsGrid(currentAttendanceMeetingId);
 }
 
 async function castMeetingDecisionVote(decisionId, vote){
