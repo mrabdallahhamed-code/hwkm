@@ -2682,6 +2682,74 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 </div>
 
 <!-- Add org structure modal -->
+<!-- Job description: draft → edit → final PDF → e-signature, per position -->
+<div class="modal-bg fullpage" id="m-job-desc">
+  <div class="modal">
+    <div class="fp-header">
+      <button class="fp-back" onclick="closeM('m-job-desc')" aria-label="رجوع">→</button>
+      <div class="fp-header-icon">📄</div>
+      <div class="fp-header-titles">
+        <div class="fp-title">بطاقة توصيف وظيفي</div>
+        <div class="fp-meta" id="jd-position-title"></div>
+      </div>
+      <div id="jd-status-badge"></div>
+    </div>
+    <div class="fp-body">
+      <div style="max-width:720px;margin:0 auto">
+        <input type="hidden" id="jd-position-id" value=""/>
+        <input type="hidden" id="jd-id" value=""/>
+
+        <div class="modal-section accent-plain">
+          <div class="modal-section-head">🏷️ بيانات الوظيفة الأساسية</div>
+          <div class="modal-section-body">
+            <div class="row2">
+              <div class="fg"><label style="font-size:11px">الإدارة</label><input class="fi" id="jd-department"/></div>
+              <div class="fg"><label style="font-size:11px">القطاع / نشاط الشركة</label><input class="fi" id="jd-sector"/></div>
+            </div>
+            <div class="row2">
+              <div class="fg"><label style="font-size:11px">كود الوظيفة</label><input class="fi" id="jd-code"/></div>
+              <div class="fg"><label style="font-size:11px">المسمى الوظيفي للمدير المباشر</label><input class="fi" id="jd-manager"/></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-section accent-gold">
+          <div class="modal-section-head">🎯 الهدف من الوظيفة</div>
+          <div class="modal-section-body"><textarea class="fta" id="jd-purpose" rows="4"></textarea>
+            <p class="modal-section-hint" style="margin-top:6px;margin-bottom:0">سطر لكل نقطة — تتحول تلقائيًا لتعداد نقطي بالمستند النهائي.</p></div>
+        </div>
+        <div class="modal-section accent-gold">
+          <div class="modal-section-head">📋 المهام والمسؤوليات الوظيفية</div>
+          <div class="modal-section-body"><textarea class="fta" id="jd-tasks" rows="6"></textarea></div>
+        </div>
+        <div class="modal-section accent-gold">
+          <div class="modal-section-head">🔑 الصلاحيات</div>
+          <div class="modal-section-body"><textarea class="fta" id="jd-authorities" rows="4"></textarea></div>
+        </div>
+        <div class="modal-section accent-gold">
+          <div class="modal-section-head">🎓 المؤهلات والخبرات</div>
+          <div class="modal-section-body"><textarea class="fta" id="jd-qualifications" rows="3"></textarea></div>
+        </div>
+        <div class="modal-section accent-gold">
+          <div class="modal-section-head">💡 المهارات والقدرات</div>
+          <div class="modal-section-body"><textarea class="fta" id="jd-skills" rows="4"></textarea></div>
+        </div>
+
+        <div class="modal-section accent-plain" id="jd-finalSection">
+          <div class="modal-section-head">📤 المستند النهائي والتوقيع</div>
+          <div class="modal-section-body" id="jd-finalBody"></div>
+        </div>
+
+        <div class="modal-foot" style="border:none;padding-top:0">
+          <button class="btn btn-ghost" onclick="closeM('m-job-desc')">إغلاق</button>
+          <button class="btn btn-gold" onclick="saveJobDescriptionDraft()">💾 حفظ كمسودة</button>
+          <button class="btn btn-primary" onclick="generateJobDescriptionDoc()">📄 توليد المستند النهائي</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-structure">
   <div class="modal">
     <div class="modal-title" id="mst-title-h">🌳 إضافة منصب في الهيكل التنظيمي</div>
@@ -3592,6 +3660,16 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div class="row2">
       <div class="fg"><label>رقم السجل التجاري</label><input class="fi" id="mco-cr-number" placeholder="مثال: 1010XXXXXX" /></div>
       <div class="fg"><label>تاريخ السجل</label><input type="date" class="fi" id="mco-cr-date"/></div>
+    </div>
+    <div class="row2">
+      <div class="fg"><label>نشاط الشركة</label><input class="fi" id="mco-activity" placeholder="مثال: المقاولات، التجزئة، التقنية..." /></div>
+      <div class="fg"><label>حجم الشركة</label>
+        <select class="fs" id="mco-size">
+          <option value="صغيرة">صغيرة (أقل من 50 موظف)</option>
+          <option value="متوسطة">متوسطة (50-250 موظف)</option>
+          <option value="كبيرة">كبيرة (أكثر من 250 موظف)</option>
+        </select>
+      </div>
     </div>
     <div class="fg"><label>الشخص المسؤول</label><input class="fi" id="mco-resp-name" placeholder="مثال: عبدالله حامد" /></div>
     <div class="row2">
@@ -5694,6 +5772,8 @@ function resetCompanyForm(){
   document.getElementById("mco-type").value = "مساهمة غير مدرجة";
   document.getElementById("mco-cr-number").value = "";
   document.getElementById("mco-cr-date").value = "";
+  document.getElementById("mco-activity").value = "";
+  document.getElementById("mco-size").value = "صغيرة";
   document.getElementById("mco-resp-name").value = "";
   document.getElementById("mco-resp-phone").value = "";
   document.getElementById("mco-resp-email").value = "";
@@ -5719,6 +5799,8 @@ async function openEditCompanyModal(){
   document.getElementById("mco-type").value = c.company_type || "مساهمة غير مدرجة";
   document.getElementById("mco-cr-number").value = c.cr_number || "";
   document.getElementById("mco-cr-date").value = c.cr_date || "";
+  document.getElementById("mco-activity").value = c.business_activity || "";
+  document.getElementById("mco-size").value = c.company_size || "صغيرة";
   document.getElementById("mco-resp-name").value = c.responsible_person || "";
   document.getElementById("mco-resp-phone").value = c.responsible_phone || "";
   document.getElementById("mco-resp-email").value = c.responsible_email || "";
@@ -6193,6 +6275,8 @@ async function saveCompany(){
   const company_type = document.getElementById("mco-type").value;
   const cr_number = document.getElementById("mco-cr-number").value.trim();
   const cr_date = document.getElementById("mco-cr-date").value || null;
+  const business_activity = document.getElementById("mco-activity").value.trim();
+  const company_size = document.getElementById("mco-size").value;
   const responsible_person = document.getElementById("mco-resp-name").value.trim();
   const responsible_phone = document.getElementById("mco-resp-phone").value.trim();
   const responsible_email = document.getElementById("mco-resp-email").value.trim();
@@ -6206,7 +6290,7 @@ async function saveCompany(){
   const letterhead_url = (letterheadInput.files && letterheadInput.files[0]) ? await uploadFile(letterheadInput, "company-branding") : undefined;
   const seal_url = (sealInput.files && sealInput.files[0]) ? await uploadFile(sealInput, "company-branding") : undefined;
 
-  const payload = { name, company_type, cr_number, cr_date, responsible_person, responsible_phone, responsible_email, total_capital, total_shares, share_nominal_value, seal_position };
+  const payload = { name, company_type, cr_number, cr_date, business_activity, company_size, responsible_person, responsible_phone, responsible_email, total_capital, total_shares, share_nominal_value, seal_position };
   if(letterhead_url !== undefined) payload.letterhead_url = letterhead_url;
   if(seal_url !== undefined) payload.seal_url = seal_url;
 
@@ -12214,7 +12298,8 @@ const ARCHIVE_CATEGORY_BY_DOC_TYPE = {
   "محضر فرز الأصوات": "محاضر",
   "كشف حضور": "محاضر",
   "نموذج إفصاح عضوية مجلس": "حوكمة",
-  "اعتماد سياسة": "سياسات"
+  "اعتماد سياسة": "سياسات",
+  "بطاقة توصيف وظيفي": "حوكمة"
 };
 async function archiveIfFullySigned(signingDocId, latestFileUrl){
   const { data: doc } = await sb.from("signing_documents").select("*").eq("id", signingDocId).single();
@@ -12225,6 +12310,9 @@ async function archiveIfFullySigned(signingDocId, latestFileUrl){
   await sb.from("signing_documents").update({ status: "موقّع بالكامل" }).eq("id", signingDocId);
   const category = ARCHIVE_CATEGORY_BY_DOC_TYPE[doc.doc_type] || "أخرى";
   await autoArchiveDocument(doc.document_name || doc.doc_type, category, latestFileUrl || doc.file_url);
+  if(doc.doc_type === "بطاقة توصيف وظيفي"){
+    await sb.from("job_descriptions").update({ status: "موقّعة نهائية", final_file_url: latestFileUrl || doc.file_url }).eq("signing_doc_id", signingDocId);
+  }
 }
 
 async function generateSignedDocumentPDF(docId, btn){
@@ -12575,11 +12663,198 @@ async function loadStructure(){
     <td>${s.is_leadership !== false ? '<span style="color:var(--green)">✓ نعم</span>' : '<span style="color:var(--gray3)">— لا</span>'}</td>
     <td>
       <button class="btn-xs primary" onclick="editStructure(${s.id})">✏️ تعديل</button>
+      <button class="btn-xs" style="background:#FDF5DC;color:var(--gold);border:1px solid #F0D8A0;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;margin-right:4px" onclick="openJobDescriptionModal(${s.id})">📄 الوصف الوظيفي</button>
       <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;margin-right:4px" onclick="deletePosition(${s.id})">🗑️ حذف</button>
     </td>
   </tr>`).join("") || emptyRowHTML(7, "لا يوجد مناصب أفراد بعد (المجالس والجهات تظهر بالشجرة فقط).");
 
   if(chartWrap) chartWrap.innerHTML = renderOrgTree(structureCache.filter(s => s.is_leadership !== false));
+}
+
+/* ══════════ JOB DESCRIPTIONS — draft → edit → final document → e-signature ══════════
+   Generic by design: pulls the company's own name, legal entity type (to word the approval
+   line correctly — مجلس الإدارة for a joint-stock company, الشركاء for an LLC...), and
+   registered activity, so the same tool works for any company instead of being written for
+   one specific industry. Content sections start with light, general-purpose seed bullets the
+   admin edits per role — no fabricated industry-specific claims. */
+let currentJobDescription = null;
+
+const GENERIC_JD_SEEDS = {
+  purpose: ["تحقيق أهداف الإدارة ضمن الخطة العامة للشركة.", "الإشراف على تنفيذ المهام المنوطة بالوظيفة بكفاءة وجودة عالية."],
+  tasks: ["تنفيذ المهام اليومية المرتبطة بالوظيفة وفق السياسات المعتمدة.", "إعداد التقارير الدورية ورفعها للمدير المباشر.", "التنسيق مع الإدارات الأخرى لإنجاز الأعمال المشتركة.", "الالتزام بإجراءات وسياسات الشركة المعتمدة."],
+  authorities: ["اتخاذ القرارات التشغيلية اليومية ضمن نطاق الوظيفة."],
+  qualifications: ["المؤهل العلمي المناسب لطبيعة الوظيفة.", "الخبرة العملية المناسبة لمستوى الوظيفة."],
+  skills: ["مهارات التواصل والعمل ضمن فريق.", "القدرة على التخطيط وتنظيم الوقت."]
+};
+
+function approvalAuthorityLabel(companyType){
+  if(companyType === "مساهمة مدرجة" || companyType === "مساهمة غير مدرجة") return "مجلس الإدارة";
+  if(companyType === "ذات مسؤولية محدودة") return "الشركاء";
+  return "الإدارة العليا";
+}
+
+function autoJobCode(title){
+  if(!title) return "JOB-" + Math.floor(Math.random()*900+100);
+  const words = title.trim().split(/\s+/).filter(w => !["إدارة","الإدارة","مدير","نائب","رئيس","لـ"].includes(w));
+  const initials = (words.slice(0,2).map(w=>w[0]).join("") || title[0]).toUpperCase();
+  return `${initials}-${Math.floor(Math.random()*900+100)}`;
+}
+
+async function openJobDescriptionModal(positionId){
+  const pos = structureCache.find(s => s.id === positionId);
+  if(!pos) return;
+  document.getElementById("jd-position-id").value = positionId;
+  document.getElementById("jd-position-title").textContent = pos.position_title || "";
+
+  const { data: company } = await sb.from("companies").select("*").eq("id", currentCompanyId).single();
+  const { data: existing } = await sb.from("job_descriptions").select("*").eq("position_id", positionId).order("id",{ascending:false}).limit(1).maybeSingle();
+  currentJobDescription = existing || null;
+  document.getElementById("jd-id").value = existing ? existing.id : "";
+
+  let content = {};
+  try{ content = existing && existing.draft_content ? JSON.parse(existing.draft_content) : {}; }catch(e){ content = {}; }
+
+  document.getElementById("jd-department").value = content.department || pos.position_title || "";
+  document.getElementById("jd-sector").value = content.sector || company?.business_activity || "";
+  document.getElementById("jd-code").value = content.code || autoJobCode(pos.position_title);
+  document.getElementById("jd-manager").value = content.manager || pos.parent_position || "—";
+  document.getElementById("jd-purpose").value = content.purpose || GENERIC_JD_SEEDS.purpose.map(t=>"• "+t).join("\n");
+  document.getElementById("jd-tasks").value = content.tasks || GENERIC_JD_SEEDS.tasks.map(t=>"• "+t).join("\n");
+  document.getElementById("jd-authorities").value = content.authorities || GENERIC_JD_SEEDS.authorities.map(t=>"• "+t).join("\n");
+  document.getElementById("jd-qualifications").value = content.qualifications || GENERIC_JD_SEEDS.qualifications.map(t=>"• "+t).join("\n");
+  document.getElementById("jd-skills").value = content.skills || GENERIC_JD_SEEDS.skills.map(t=>"• "+t).join("\n");
+
+  const status = existing?.status || "مسودة";
+  document.getElementById("jd-status-badge").innerHTML =
+    `<span class="badge ${status==='موقّعة نهائية'?'done':(status==='قيد التوقيع'?'pending':'info')}" style="flex-shrink:0">${status}</span>`;
+
+  renderJobDescriptionFinalSection(existing);
+  openM("m-job-desc");
+}
+
+function collectJobDescriptionContent(){
+  return {
+    department: document.getElementById("jd-department").value.trim(),
+    sector: document.getElementById("jd-sector").value.trim(),
+    code: document.getElementById("jd-code").value.trim(),
+    manager: document.getElementById("jd-manager").value.trim(),
+    purpose: document.getElementById("jd-purpose").value,
+    tasks: document.getElementById("jd-tasks").value,
+    authorities: document.getElementById("jd-authorities").value,
+    qualifications: document.getElementById("jd-qualifications").value,
+    skills: document.getElementById("jd-skills").value
+  };
+}
+
+async function saveJobDescriptionDraft(){
+  const positionId = Number(document.getElementById("jd-position-id").value);
+  const id = document.getElementById("jd-id").value;
+  const draft_content = JSON.stringify(collectJobDescriptionContent());
+  if(id){
+    const { error } = await sb.from("job_descriptions").update({ draft_content }).eq("id", id);
+    if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  } else {
+    const { data, error } = await sb.from("job_descriptions")
+      .insert([{ position_id: positionId, company_id: currentCompanyId, draft_content, status:"مسودة" }]).select().single();
+    if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+    document.getElementById("jd-id").value = data.id;
+    currentJobDescription = data;
+  }
+  alert("تم حفظ المسودة ✅");
+}
+
+function bulletLines(text){
+  return (text||"").split("\n").map(l=>l.trim()).filter(Boolean).map(l=>l.replace(/^•\s*/,""));
+}
+
+async function generateJobDescriptionDoc(){
+  await saveJobDescriptionDraft();
+  const positionId = Number(document.getElementById("jd-position-id").value);
+  const pos = structureCache.find(s => s.id === positionId);
+  const { data: company } = await sb.from("companies").select("*").eq("id", currentCompanyId).single();
+  const c = collectJobDescriptionContent();
+  const approverLabel = approvalAuthorityLabel(company?.company_type);
+
+  const html = `<html><head><meta charset="UTF-8"><title>بطاقة توصيف وظيفي</title>
+    <style>
+      body{font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:30px;color:#0D2447}
+      h1{text-align:center;color:#1A3A6B;border-bottom:2px solid #D4AF37;padding-bottom:10px}
+      table.meta{width:100%;border-collapse:collapse;margin:16px 0}
+      table.meta td{border:1px solid #999;padding:8px 10px;font-size:12.5px}
+      table.meta td.label{background:#EAF0F8;font-weight:bold;width:180px}
+      h2{color:#1A3A6B;font-size:14px;margin-top:18px;border-bottom:1px solid #ccc;padding-bottom:4px}
+      ul{padding-right:20px;font-size:12.5px;line-height:1.9}
+      .sig{margin-top:50px;display:flex;justify-content:space-between;font-size:12px}
+      .sig div{width:30%;text-align:center;border-top:1px solid #333;padding-top:6px}
+    </style></head><body>
+      <h1>بطاقة توصيف وظيفي</h1>
+      <table class="meta">
+        <tr><td class="label">المسمى الوظيفي</td><td>${pos?.position_title||""}</td><td class="label">كود الوظيفة</td><td>${c.code}</td></tr>
+        <tr><td class="label">الإدارة</td><td>${c.department}</td><td class="label">القطاع</td><td>${c.sector}</td></tr>
+        <tr><td class="label">الشركة</td><td>${company?.name||""}</td><td class="label">المسمى الوظيفي للمدير المباشر</td><td>${c.manager}</td></tr>
+      </table>
+      <h2>الهدف من الوظيفة</h2><ul>${bulletLines(c.purpose).map(t=>`<li>${t}</li>`).join("")}</ul>
+      <h2>المهام والمسؤوليات الوظيفية</h2><ul>${bulletLines(c.tasks).map(t=>`<li>${t}</li>`).join("")}</ul>
+      <h2>الصلاحيات</h2><ul>${bulletLines(c.authorities).map(t=>`<li>${t}</li>`).join("")}</ul>
+      <h2>المؤهلات والخبرات</h2><ul>${bulletLines(c.qualifications).map(t=>`<li>${t}</li>`).join("")}</ul>
+      <h2>المهارات والقدرات</h2><ul>${bulletLines(c.skills).map(t=>`<li>${t}</li>`).join("")}</ul>
+      <div class="sig"><div>إعداد</div><div>مراجعة</div><div>اعتمدت بواسطة (${approverLabel})</div></div>
+      <div class="sig" style="margin-top:40px"><div>اسم شاغل الوظيفة</div><div>توقيع شاغل الوظيفة</div><div>التاريخ</div></div>
+    </body></html>`;
+
+  const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+  const positionSafe = (pos?.position_title||"وظيفة").replace(/[\/\\]/g,"-");
+  const file_url = await uploadBlobToStorage(blob, "job-descriptions", `توصيف-${positionSafe}-${Date.now()}.doc`);
+  if(!file_url){ alert("تعذّر رفع المستند"); return; }
+
+  const id = document.getElementById("jd-id").value;
+  await sb.from("job_descriptions").update({ final_file_url: file_url }).eq("id", id);
+  const { data: refreshed } = await sb.from("job_descriptions").select("*").eq("id", id).single();
+  currentJobDescription = refreshed;
+  renderJobDescriptionFinalSection(refreshed);
+  alert("تم توليد المستند النهائي ✅ راجعه ثم أرسله للتوقيع.");
+}
+
+function renderJobDescriptionFinalSection(jd){
+  const box = document.getElementById("jd-finalBody");
+  if(!box) return;
+  if(!jd || !jd.final_file_url){
+    box.innerHTML = '<p class="modal-section-hint">ولّد المستند النهائي أولًا (زر "📄 توليد المستند النهائي") قبل إرساله للتوقيع.</p>';
+    return;
+  }
+  if(jd.signing_doc_id){
+    box.innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <a class="btn btn-outline" style="font-size:11px;padding:8px 16px" href="${jd.final_file_url}" target="_blank" rel="noopener">👁️ عرض المستند</a>
+      <span style="font-size:11.5px;color:var(--gray3)">حالة التوقيع: ${jd.status}</span>
+    </div>`;
+  } else {
+    box.innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a class="btn btn-outline" style="font-size:11px;padding:8px 16px" href="${jd.final_file_url}" target="_blank" rel="noopener">👁️ عرض المستند</a>
+      <button class="btn btn-gold" style="font-size:11px;padding:8px 16px" onclick="sendJobDescriptionForSigning()">🔏 إرسال للتوقيع</button>
+    </div>`;
+  }
+}
+
+async function sendJobDescriptionForSigning(){
+  const id = document.getElementById("jd-id").value;
+  const jd = currentJobDescription;
+  if(!jd || !jd.final_file_url){ alert("ولّد المستند النهائي أولًا"); return; }
+  const pos = structureCache.find(s => s.id === Number(document.getElementById("jd-position-id").value));
+
+  const signersInput = prompt("كم عدد الموقّعين المطلوبين (مثال: إعداد + مراجعة + اعتماد + الموظف)؟", "4");
+  const signers_total = Number(signersInput) || 4;
+
+  const { data: doc, error } = await sb.from("signing_documents").insert([{
+    document_name: `بطاقة توصيف وظيفي — ${pos?.position_title||""}`, doc_type: "بطاقة توصيف وظيفي",
+    signers_total, signers_done: 0, status:"قيد التوقيع", file_url: jd.final_file_url, company_id: currentCompanyId
+  }]).select().single();
+  if(error){ alert("تعذّر الإرسال للتوقيع: " + error.message); return; }
+
+  await sb.from("job_descriptions").update({ signing_doc_id: doc.id, status:"قيد التوقيع" }).eq("id", id);
+  const { data: refreshed } = await sb.from("job_descriptions").select("*").eq("id", id).single();
+  currentJobDescription = refreshed;
+  renderJobDescriptionFinalSection(refreshed);
+  alert("تم إرسال المستند للتوقيع ✅ — تابع حالته من صفحة «التوقيع الإلكتروني».");
 }
 
 /* ══════════ SHAREHOLDERS REGISTRY (real ownership + transfer history) ══════════ */
