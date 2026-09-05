@@ -6658,6 +6658,12 @@ checkSession();
 if(new URLSearchParams(window.location.search).get("invite") && authMode === "login"){
   toggleAuthMode();
 }
+// Lets the marketing site link straight into signup mode (e.g. "جرّب المنصة" →
+// web.hwkm.net/?mode=signup) instead of routing visitors through a separate lead-capture
+// form first — each signup gets its own isolated company workspace and a 14-day trial.
+if(new URLSearchParams(window.location.search).get("mode") === "signup" && authMode === "login"){
+  toggleAuthMode();
+}
 // Apply any saved language preference immediately (before login, so the login screen itself
 // is translated too) — this runs synchronously at script parse time, ahead of any page render.
 document.documentElement.lang = currentLang;
