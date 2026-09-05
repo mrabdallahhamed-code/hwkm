@@ -3080,6 +3080,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
       <div class="fg"><label>من الساعة</label><input type="time" class="fi" id="mtr-time"/></div>
       <div class="fg"><label>إلى الساعة</label><input type="time" class="fi" id="mtr-time-end"/></div>
     </div>
+    <div class="fg"><label>مهلة الرد المطلوبة من الأعضاء (بالأيام)</label><input type="number" class="fi" id="mtr-response-days" value="2" min="1"/></div>
     <div class="fg"><label>طريقة الانعقاد</label><select class="fs" id="mtr-method"><option>عن بُعد (Zoom)</option><option>عن بُعد (Teams)</option><option>حضوري</option><option>هجين</option></select></div>
     <div class="fg"><label>رابط الانضمام (اختياري)</label>
       <div style="display:flex;gap:6px">
@@ -8043,10 +8044,16 @@ async function changeMeetingDecisionVote(decisionId){
 }
 
 async function castMeetingDecisionVote(decisionId, vote){
+  let justification = null;
+  if(vote === "ممتنع"){
+    justification = prompt("أنت تختار «ممتنع» — الرجاء كتابة سبب الامتناع (يُسجَّل بسجلك، ويُحتسب «امتناع بدون مبرر» إذا تُرك فارغًا):");
+    if(justification === null) return; // cancelled
+    justification = justification.trim() || null;
+  }
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData?.user?.email;
   const { error } = await sb.from("board_decision_votes").insert([{
-    decision_id: decisionId, voter_email: myEmail, voter_name: currentUserProfile?currentUserProfile.full_name:myEmail, vote
+    decision_id: decisionId, voter_email: myEmail, voter_name: currentUserProfile?currentUserProfile.full_name:myEmail, vote, justification
   }]);
   if(error){ alert("تعذّر تسجيل صوتك: " + error.message); return; }
   loadMeetingDecisionsGrid(currentAttendanceMeetingId);
@@ -8210,12 +8217,18 @@ function meetingCardHTML(m){
 }
 
 function meetingRequestCardHTML(r){
+  let deadlineDetail = "";
+  if(r.response_deadline){
+    const isOver = new Date(r.response_deadline) < new Date();
+    deadlineDetail = `<div class="mc-detail" style="color:${isOver?'var(--red)':'var(--gold)'};font-weight:700">${isOver ? '⌛ انتهت مهلة الرد' : '⏰ آخر موعد للرد: '+new Date(r.response_deadline).toLocaleDateString('ar-SA')}</div>`;
+  }
   return `<div class="mc" style="cursor:pointer;border:1.5px dashed var(--gold2);background:linear-gradient(145deg,#FFFBF0,#FFF6E0)" onclick="openMeetingRequestPopup(${r.id})">
     <div class="mc-bar" style="background:linear-gradient(90deg,var(--gold2),var(--gold3))"></div>
     <div class="mc-type" style="color:var(--gold)">⏳ بانتظار موافقة الأعضاء</div>
     <div class="mc-title">${r.title||""}</div>
     <div class="mc-detail">📅 ${r.proposed_date||"—"}${r.proposed_time ? (" — من "+r.proposed_time+(r.proposed_time_end?(" إلى "+r.proposed_time_end):"")) : ""}</div>
     <div class="mc-detail">📍 ${r.method||"—"}</div>
+    ${deadlineDetail}
     <div class="mc-actions">
       <button class="btn-xs gold" style="width:100%" onclick="event.stopPropagation();openMeetingRequestPopup(${r.id})">🗳️ الرد على الطلب</button>
     </div>
@@ -10747,9 +10760,12 @@ async function submitMeetingRequest(){
   if(!proposed_date){ alert("الرجاء تحديد الموعد المقترح"); return; }
   if(meeting_type === "اجتماع لجنة" && !committee_id){ alert("الرجاء اختيار اللجنة"); return; }
 
+  const responseDays = Number(document.getElementById("mtr-response-days").value) || 2;
+  const response_deadline = new Date(Date.now() + responseDays*24*60*60*1000).toISOString();
+
   const { data: newReq, error } = await sb.from("meeting_requests").insert([{
     title, meeting_type, proposed_date, proposed_time, proposed_time_end, method, meeting_link, notes,
-    committee_id, proposed_topics: newRequestTopics, status: "قيد الموافقة", company_id: currentCompanyId
+    committee_id, proposed_topics: newRequestTopics, status: "قيد الموافقة", response_deadline, company_id: currentCompanyId
   }]).select().single();
   if(error){ alert("تعذّر إرسال الطلب: " + error.message); return; }
 
@@ -10835,10 +10851,19 @@ async function openMeetingRequestPopup(requestId){
     `<div style="font-size:10.5px;color:var(--gray3)">↳ ${r.reviewer_name||r.reviewer_email}: يقترح ${r.alt_date||"—"}${r.alt_time?(' — '+r.alt_time):''}${r.notes?(' ('+r.notes+')'):''}</div>`
   ).join("");
   const timeRange = req.proposed_time ? (' — من '+req.proposed_time+(req.proposed_time_end?(' إلى '+req.proposed_time_end):'')) : '';
+  let deadlineHTML = "";
+  if(req.response_deadline){
+    const isOver = new Date(req.response_deadline) < new Date();
+    const deadlineStr = new Date(req.response_deadline).toLocaleString('ar-SA', {dateStyle:'medium', timeStyle:'short'});
+    deadlineHTML = `<div style="font-size:11px;font-weight:800;padding:6px 10px;border-radius:6px;margin-bottom:8px;background:${isOver?'#FDE8E8':'#FDF5DC'};color:${isOver?'var(--red)':'var(--gold)'}">
+      ${isOver ? '⌛ انتهت مهلة الرد المحددة' : '⏰ آخر موعد للرد: '+deadlineStr}
+    </div>`;
+  }
 
   body.innerHTML = `
     <div style="font-weight:800;font-size:15px;color:var(--dark)">${req.title||""}</div>
     <div style="font-size:11px;color:var(--gray3);font-weight:600;margin-bottom:10px">${req.meeting_type||""}</div>
+    ${deadlineHTML}
     <div style="font-size:13px;color:var(--dark);margin:6px 0">📅 الموعد المقترح: <b>${req.proposed_date||"—"}</b>${timeRange} &nbsp;·&nbsp; 📍 ${req.method||"—"}</div>
     ${req.notes ? `<div style="font-size:12px;color:var(--gray3);margin-bottom:8px">📝 ${req.notes}</div>` : ""}
     <div style="font-size:11.5px;color:var(--gray3);margin-bottom:8px">✅ موافقون: ${approvedCount} &nbsp;·&nbsp; 🔁 مقترحون موعدًا آخر: ${altCount}</div>
@@ -17607,8 +17632,59 @@ async function savePerf(){
     }
   }
 
-  const { error } = await sb.from("performance_evaluations").insert([payload]);
+  // Board member: an automatic "الانضباط والالتزام" score computed from real behavior —
+  // response to meeting requests within their deadline, and abstaining from a decision vote
+  // without writing a justification — actually factored into the final average (inserted as
+  // a "النظام (تلقائي)" review row), not just shown as a side note for a human to weigh.
+  let autoDisciplineScore = null;
+  if(entity_type === "عضو مجلس"){
+    const { data: member } = await sb.from("board_members").select("*")
+      .eq("company_id", currentCompanyId).eq("name", entity_name).maybeSingle();
+    if(member && member.claimed_by_email){
+      const email = member.claimed_by_email;
+
+      const { data: allRequests } = await sb.from("meeting_requests").select("id,response_deadline")
+        .eq("company_id", currentCompanyId).not("response_deadline","is",null);
+      const reqIds = (allRequests||[]).map(r=>r.id);
+      const { data: myResponses } = reqIds.length
+        ? await sb.from("meeting_request_responses").select("request_id,created_at").in("request_id", reqIds).eq("reviewer_email", email)
+        : { data: [] };
+      const respTimeByReq = {};
+      (myResponses||[]).forEach(r => { respTimeByReq[r.request_id] = r.created_at; });
+      const totalReq = (allRequests||[]).length;
+      let onTimeCount = 0;
+      (allRequests||[]).forEach(r => {
+        const t = respTimeByReq[r.id];
+        if(t && new Date(t) <= new Date(r.response_deadline)) onTimeCount++;
+      });
+
+      const { data: myVotes } = await sb.from("board_decision_votes").select("vote,justification").eq("voter_email", email);
+      const totalVotes = (myVotes||[]).length;
+      const unjustifiedAbstentions = (myVotes||[]).filter(v => v.vote === "ممتنع" && (!v.justification || !v.justification.trim())).length;
+
+      if(totalReq > 0 || totalVotes > 0){
+        let score = 5;
+        if(totalReq > 0) score -= (1 - onTimeCount/totalReq) * 2; // up to -2 for full non-response
+        if(totalVotes > 0) score -= (unjustifiedAbstentions/totalVotes) * 2; // up to -2 for all-unjustified-abstain
+        score = Math.max(1, Math.min(5, score));
+        autoDisciplineScore = score;
+
+        const notePieces = [];
+        if(totalReq > 0) notePieces.push(`استجاب لـ${onTimeCount} من ${totalReq} طلبات اجتماع خلال المهلة المحددة.`);
+        if(totalVotes > 0) notePieces.push(`امتنع عن التصويت بدون مبرر واضح في ${unjustifiedAbstentions} من ${totalVotes} تصويتات شارك فيها.`);
+        payload.auto_context_note = `📊 مؤشرات الانضباط الآلية: ${notePieces.join(" ")} — درجة الانضباط المحسوبة تلقائيًا: ${score.toFixed(1)}/5 (مُدرجة ضمن المعدل النهائي).`;
+      }
+    }
+  }
+
+  const { data: newEval, error } = await sb.from("performance_evaluations").insert([payload]).select().single();
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
+  if(autoDisciplineScore !== null){
+    await sb.from("performance_evaluation_reviews").insert([{
+      evaluation_id: newEval.id, reviewer_email: "system@hwkm.internal", reviewer_name: "النظام (تلقائي)",
+      criterion: "الانضباط والالتزام (آلي)", score: Math.round(autoDisciplineScore), company_id: currentCompanyId
+    }]);
+  }
   document.getElementById("mpe-entity").value=""; document.getElementById("mpe-period").value="";
   closeM("m-perf"); loadPerf();
 }
