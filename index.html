@@ -1455,7 +1455,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportPoliciesList()">📥 تصدير Excel</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openPolicyWorkflowPicker()">⚙️ إعداد تسلسلات التوقيع</button>
-      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mp-id').value='';document.getElementById('mp-title-h').textContent='🏛️ إضافة سياسة جديدة';document.getElementById('mp-name').value='';document.getElementById('mp-type').value='';document.getElementById('mp-approval').value='';document.getElementById('mp-review').value='';document.getElementById('mp-approval-level').value='مجلس الإدارة';populatePolicyCategorySelect();openM('m-policy')">+ إضافة سياسة</button>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mp-id').value='';document.getElementById('mp-title-h').textContent='🏛️ إضافة سياسة جديدة';document.getElementById('mp-name').value='';document.getElementById('mp-type').value='';document.getElementById('mp-submission').value=new Date().toISOString().slice(0,10);document.getElementById('mp-target-approval').value='';document.getElementById('mp-approval-wrap').style.display='none';document.getElementById('mp-approval').value='';document.getElementById('mp-review').value='';document.getElementById('mp-approval-level').value='مجلس الإدارة';populatePolicyCategorySelect();openM('m-policy')">+ إضافة سياسة</button>
     </div>
   </div>
   <div style="background:linear-gradient(135deg,var(--primary),var(--primary2));border-radius:14px;padding:16px 18px;margin-bottom:18px;box-shadow:0 6px 20px rgba(26,58,107,0.18)">
@@ -2451,7 +2451,9 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <input type="hidden" id="mp-id" value="" />
     <div class="fg"><label>اسم السياسة</label><input class="fi" id="mp-name" placeholder="مثال: سياسة إدارة المخاطر" /></div>
     <div class="fg"><label>النوع</label><input class="fi" id="mp-type" placeholder="مثال: رئيسية / أعضاء المجلس / مالية" /></div>
-    <div class="row2"><div class="fg"><label>تاريخ الاعتماد</label><input type="date" class="fi" id="mp-approval"/></div><div class="fg"><label>موعد المراجعة</label><input type="date" class="fi" id="mp-review"/></div></div>
+    <div class="row2"><div class="fg"><label>تاريخ الرفع</label><input type="date" class="fi" id="mp-submission" readonly style="background:var(--offwhite);color:var(--gray3)"/></div><div class="fg"><label>تاريخ الاعتماد المتوقع</label><input type="date" class="fi" id="mp-target-approval"/></div></div>
+    <div class="fg" id="mp-approval-wrap" style="display:none"><label>تاريخ الاعتماد الفعلي (يُسجَّل تلقائيًا عند اكتمال التوقيع)</label><input type="date" class="fi" id="mp-approval" readonly style="background:var(--offwhite);color:var(--gray3)"/></div>
+    <div class="fg"><label>موعد المراجعة القادمة</label><input type="date" class="fi" id="mp-review"/></div>
     <div class="fg"><label>مستوى الاعتماد المطلوب (يحدد تسلسل التوقيع تلقائيًا)</label>
       <select class="fs" id="mp-approval-level">
         <option value="داخلية">داخلية — الحوكمة والرئيس التنفيذي فقط</option>
@@ -2558,13 +2560,21 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
 
 <div class="modal-bg" id="m-policy-workflow-picker">
   <div class="modal" style="max-width:420px">
-    <div class="modal-title">⚙️ إعداد تسلسلات توقيع السياسات</div>
-    <p style="font-size:11.5px;color:var(--gray3);margin-bottom:12px">لكل مسار اعتماد تسلسل توقيع مستقل — اختر أي وحد تبي تعدّله:</p>
-    <button class="btn btn-ghost" style="width:100%;margin-bottom:8px;text-align:right" onclick="closeM('m-policy-workflow-picker');openWorkflowTemplateModal('policy_hr')">👥 سياسات الموارد البشرية</button>
-    <button class="btn btn-ghost" style="width:100%;margin-bottom:8px;text-align:right" onclick="closeM('m-policy-workflow-picker');openWorkflowTemplateModal('policy_board')">🏛️ سياسات تحتاج مجلس الإدارة</button>
-    <button class="btn btn-ghost" style="width:100%;margin-bottom:8px;text-align:right" onclick="closeM('m-policy-workflow-picker');openWorkflowTemplateModal('policy_agm')">🤝 سياسات تحتاج الجمعية العامة</button>
-    <button class="btn btn-ghost" style="width:100%;text-align:right" onclick="closeM('m-policy-workflow-picker');openWorkflowTemplateModal('policy_internal')">📋 السياسات الداخلية</button>
+    <div class="modal-title">⚙️ إعداد تسلسلات اعتماد السياسات</div>
+    <p style="font-size:11.5px;color:var(--gray3);margin-bottom:12px">كل فئة سياسة لها تسلسل اعتماد مستقل بالكامل — رتّب المناصب بالترتيب اللي تحتاجه (مثال: مدير الموارد البشرية ← الرئيس التنفيذي ← مجلس الإدارة)، واختر أي فئة تبي تعدّلها:</p>
+    <div id="policyWorkflowCategoryList"></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-policy-workflow-picker')">إغلاق</button></div>
+  </div>
+</div>
+
+<!-- Restrict a team member's visibility to specific policy categories only -->
+<div class="modal-bg" id="m-policy-category-restriction">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">📋 تقييد فئة السياسات — <span id="pcr-name"></span></div>
+    <input type="hidden" id="pcr-membership-id" value=""/>
+    <p style="font-size:11.5px;color:var(--gray3);margin-bottom:12px">حدّد الفئات اللي يقدر هذا العضو يشوفها بصفحة السياسات فقط — أي فئة ما تحددها ما تظهر له إطلاقًا. اتركها كلها فاضية عشان يشوف كل الفئات بدون قيد.</p>
+    <div id="pcr-category-list"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-policy-category-restriction')">إلغاء</button><button class="btn btn-gold" onclick="savePolicyCategoryRestriction()">✅ حفظ القيد</button></div>
   </div>
 </div>
 
@@ -5077,6 +5087,7 @@ async function loadUsers(){
         </div>
         ${u.id ? `<button style="width:100%;background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:8px;padding:6px;font-size:11px;font-weight:600;cursor:pointer;margin-bottom:8px" onclick="openEditProfileModal(${u.id})">✏️ تعديل البيانات (الجوال والهوية)</button>` : ""}
         <button style="width:100%;background:#EAF0F8;color:var(--primary);border:none;border-radius:8px;padding:6px;font-size:11px;font-weight:700;cursor:pointer;margin-bottom:8px" onclick="openUserPermissionOverridesModal('${(m.email||'').replace(/'/g,"")}','${(u.full_name||m.email||'').replace(/'/g,"")}', currentCompanyId)">🔧 صلاحيات مخصّصة${isCustomRole?' (مطلوبة لهذا المسمى)':''}</button>
+        <button style="width:100%;background:#FDF5DC;color:var(--gold);border:none;border-radius:8px;padding:6px;font-size:11px;font-weight:700;cursor:pointer;margin-bottom:8px" onclick="openPolicyCategoryRestrictionModal(${m.id},'${(m.email||'').replace(/'/g,"")}','${(u.full_name||m.email||'').replace(/'/g,"")}')">📋 تقييد فئة السياسات</button>
 
         <div style="margin-top:auto">
           <label style="font-size:10px;color:var(--gray3);display:block;margin-bottom:4px">الدور / الصلاحية بهذه الشركة</label>
@@ -5091,6 +5102,34 @@ async function loadUsers(){
       </div>
     </div>`;
   }).join("");
+}
+
+/* Position-based policy visibility — e.g. مدير المشتريات only ever sees سياسة المشتريات.
+   An empty/unset list means "no restriction, sees everything", so setting this up is opt-in
+   per member and never accidentally locks someone out until an admin deliberately configures it. */
+async function openPolicyCategoryRestrictionModal(membershipId, email, name){
+  document.getElementById("pcr-membership-id").value = membershipId;
+  document.getElementById("pcr-name").textContent = name || email;
+  const box = document.getElementById("pcr-category-list");
+  box.innerHTML = '<div style="font-size:11px;color:var(--gray3)">جارِ التحميل...</div>';
+  openM("m-policy-category-restriction");
+
+  const { data: membership } = await sb.from("user_company_memberships").select("allowed_policy_categories").eq("id", membershipId).single();
+  const current = Array.isArray(membership?.allowed_policy_categories) ? membership.allowed_policy_categories : [];
+
+  box.innerHTML = getPolicyCategoriesForCompany().map(cat => `<label style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--offwhite);border-radius:8px;margin-bottom:6px;font-size:12.5px;cursor:pointer">
+    <input type="checkbox" data-pcr-cat="${cat}" ${current.includes(cat)?'checked':''} style="accent-color:var(--gold);width:15px;height:15px;flex-shrink:0"/>
+    ${POLICY_CATEGORY_ICONS[cat]||"📄"} ${cat}
+  </label>`).join("");
+}
+
+async function savePolicyCategoryRestriction(){
+  const membershipId = document.getElementById("pcr-membership-id").value;
+  const checked = [...document.querySelectorAll("#pcr-category-list [data-pcr-cat]:checked")].map(cb => cb.dataset.pcrCat);
+  const { error } = await sb.from("user_company_memberships").update({ allowed_policy_categories: checked }).eq("id", membershipId);
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  closeM("m-policy-category-restriction");
+  alert(checked.length ? `تم تقييد العرض بـ${checked.length} فئة ✅` : "تم إلغاء القيد — يشوف كل الفئات الآن ✅");
 }
 
 async function deleteUserProfile(membershipId, name){
@@ -11042,6 +11081,22 @@ async function loadPolicies(){
   currentCompanyPolicyDeadlineDays = companyRow?.policy_stage_deadline_days ?? 14;
   await loadPolicyStageContext();
   policiesCache = data || [];
+
+  // Position-based visibility: مدير المشتريات only sees سياسة المشتريات, etc. Full-access
+  // roles (مدير النظام / رئيس مجلس / سكرتير المجلس) and anyone with no restriction configured
+  // still see everything — the restriction only kicks in once an admin has actually set it.
+  const myRole = getCurrentRole();
+  if(!FULL_ACCESS_ROLES.includes(myRole)){
+    const { data: userData } = await sb.auth.getUser();
+    const myEmail = userData?.user?.email;
+    const { data: membership } = await sb.from("user_company_memberships").select("allowed_policy_categories")
+      .eq("company_id", currentCompanyId).eq("email", myEmail).maybeSingle();
+    const allowed = membership?.allowed_policy_categories;
+    if(Array.isArray(allowed) && allowed.length > 0){
+      policiesCache = policiesCache.filter(p => allowed.includes(p.category));
+    }
+  }
+
   renderPolicyPills();
   renderPoliciesFiltered();
 }
@@ -11176,7 +11231,10 @@ function renderPoliciesFiltered(){
           ${policyStageStepper(p.status, p)}
           ${deadlineBadge ? `<div style="text-align:center;margin-top:2px">${deadlineBadge}</div>` : ""}
           <div style="font-size:11px;color:var(--gray3);display:flex;gap:14px;margin-top:6px;flex-wrap:wrap">
-            <span>📅 اعتماد: ${p.approval_date||"—"}</span>
+            <span>📤 رُفعت: ${p.submission_date||"—"}</span>
+            ${p.approval_date
+              ? `<span style="color:var(--green)">✅ اعتُمدت: ${p.approval_date}</span>`
+              : `<span>🎯 متوقّع: ${p.target_approval_date||"—"}</span>`}
             <span>🔁 مراجعة: ${p.review_date||"—"}</span>
             ${p.approval_level === "جمعية عامة" ? '<span style="color:var(--gold)">🏛️ تحتاج الجمعية العامة</span>' : p.approval_level === "داخلية" ? '<span style="color:var(--gray3)">📋 داخلية</span>' : ""}
           </div>
@@ -11386,7 +11444,15 @@ function editPolicy(id){
   document.getElementById("mp-title-h").textContent = "✏️ تعديل السياسة";
   document.getElementById("mp-name").value = p.policy_name || "";
   document.getElementById("mp-type").value = p.policy_type || "";
-  document.getElementById("mp-approval").value = p.approval_date || "";
+  document.getElementById("mp-submission").value = p.submission_date || "";
+  document.getElementById("mp-target-approval").value = p.target_approval_date || "";
+  const approvalWrap = document.getElementById("mp-approval-wrap");
+  if(p.approval_date){
+    approvalWrap.style.display = "block";
+    document.getElementById("mp-approval").value = p.approval_date;
+  } else {
+    approvalWrap.style.display = "none";
+  }
   document.getElementById("mp-review").value = p.review_date || "";
   document.getElementById("mp-status").value = p.status || "مسودة";
   populatePolicyCategorySelect(p.category || "لوائح داخلية");
@@ -11394,27 +11460,30 @@ function editPolicy(id){
   openM("m-policy");
 }
 
-/* ══════════ POLICY GOVERNANCE WORKFLOW (reuses the same vote+sequential-sign engine) ══════════
-   Which of the 4 signing sequences applies is derived automatically from the policy's own
-   fields — HR category takes priority (its own dedicated path regardless of approval_level),
-   otherwise approval_level picks between داخلية / مجلس الإدارة / جمعية عامة. */
-function openPolicyWorkflowPicker(){ openM("m-policy-workflow-picker"); }
-
-function getPolicyWorkflowType(policy){
-  if(policy.category === "سياسات الموارد البشرية") return "policy_hr";
-  if(policy.category === "سياسات الجمعية العامة") return "policy_agm";
-  if(policy.category === "سياسات ولوائح المجلس" || policy.category === "سياسات ولوائح اللجان") return "policy_board";
-  if(policy.approval_level === "جمعية عامة") return "policy_agm";
-  if(policy.approval_level === "داخلية") return "policy_internal";
-  return "policy_board";
+/* ══════════ POLICY GOVERNANCE WORKFLOW (reuses the same sequential-sign engine) ══════════
+   Every real policy category (the 8 in POLICY_CATEGORY_ICONS) gets its own fully independent,
+   admin-configurable approval sequence — not 4 broad buckets that silently override each
+   other. A policy's docType is derived directly from its own category, so what you configure
+   for "سياسة المشتريات" only ever applies to سياسة المشتريات policies. */
+function openPolicyWorkflowPicker(){
+  const box = document.getElementById("policyWorkflowCategoryList");
+  box.innerHTML = Object.entries(POLICY_CATEGORY_ICONS).map(([cat, icon]) =>
+    `<button class="btn btn-ghost" style="width:100%;margin-bottom:8px;text-align:right" onclick="closeM('m-policy-workflow-picker');openWorkflowTemplateModal('${policyCategoryToDocType(cat)}')">${icon} ${cat}</button>`
+  ).join("");
+  openM("m-policy-workflow-picker");
 }
 
-const POLICY_WORKFLOW_LABELS = {
-  policy_hr: "سياسات الموارد البشرية",
-  policy_board: "سياسات تحتاج مجلس الإدارة",
-  policy_agm: "سياسات تحتاج الجمعية العامة",
-  policy_internal: "السياسات الداخلية"
-};
+function policyCategoryToDocType(category){
+  return "policy_" + (category || "بدون فئة");
+}
+
+function getPolicyWorkflowType(policy){
+  return policyCategoryToDocType(policy.category);
+}
+
+const POLICY_WORKFLOW_LABELS = Object.fromEntries(
+  Object.keys(POLICY_CATEGORY_ICONS).map(cat => [policyCategoryToDocType(cat), cat])
+);
 
 async function buildPolicyCanvasPages(policy, signaturesMap, orderedRoles){
   const b = await CanvasPDFBuilder.create(currentCompanyId);
@@ -11471,7 +11540,9 @@ async function savePolicy(){
   const id = document.getElementById("mp-id").value;
   const policy_name = document.getElementById("mp-name").value.trim();
   const policy_type = document.getElementById("mp-type").value.trim();
-  const approval_date = document.getElementById("mp-approval").value || null;
+  const submission_date = document.getElementById("mp-submission").value || new Date().toISOString().slice(0,10);
+  const target_approval_date = document.getElementById("mp-target-approval").value || null;
+  const approval_date = document.getElementById("mp-approval").value || null; // read-only field; only ever set automatically once the approval cycle completes
   const review_date = document.getElementById("mp-review").value || null;
   const status = document.getElementById("mp-status").value;
   const category = document.getElementById("mp-category").value;
@@ -11483,7 +11554,7 @@ async function savePolicy(){
 
   const previous = id ? policiesCache.find(x => x.id === Number(id)) : null;
 
-  const payload = { policy_name, policy_type, approval_date, review_date, status, category, approval_level, company_id: currentCompanyId };
+  const payload = { policy_name, policy_type, submission_date, target_approval_date, approval_date, review_date, status, category, approval_level, company_id: currentCompanyId };
   if(file_url) payload.file_url = file_url;
   if(!id || (previous && previous.status !== status)) payload.stage_entered_at = new Date().toISOString();
 
@@ -11503,6 +11574,8 @@ async function savePolicy(){
   document.getElementById("mp-title-h").textContent = "🏛️ إضافة سياسة جديدة";
   document.getElementById("mp-name").value = "";
   document.getElementById("mp-type").value = "";
+  document.getElementById("mp-submission").value = "";
+  document.getElementById("mp-target-approval").value = "";
   document.getElementById("mp-approval").value = "";
   document.getElementById("mp-review").value = "";
   fileInput.value = "";
@@ -14162,9 +14235,18 @@ async function startGovernanceApproval(docType, refId){
     alert(`لازم تحدد تسلسل التوقيع أولًا لهذا النوع (${POLICY_WORKFLOW_LABELS[docType]||docType}) — اضغط زر "⚙️ إعداد التسلسل" المطابق.`);
     return;
   }
-  if(!confirm("سيبدأ هذا دورة اعتماد جديدة: تصويت المجلس أولًا، ثم توقيع تسلسلي بالمناصب المحددة. متابعة؟")) return;
 
   const isMatrix = docType === "matrix";
+  // Policies skip the blanket "whole board votes first" gate — their approval IS the ordered
+  // role sequence itself (e.g. مدير الموارد البشرية → الرئيس التنفيذي → مجلس الإدارة), with
+  // board sign-off happening wherever it's placed in that sequence, not as a mandatory
+  // separate step before it. The matrix keeps the board-wide vote, since it affects everyone.
+  const skipVote = !isMatrix;
+  if(!confirm(skipVote
+    ? "سيبدأ هذا دورة اعتماد جديدة بالتسلسل المحدد بالمناصب (بدون تصويت عام مسبق). متابعة؟"
+    : "سيبدأ هذا دورة اعتماد جديدة: تصويت المجلس أولًا، ثم توقيع تسلسلي بالمناصب المحددة. متابعة؟"
+  )) return;
+
   const docLabel = isMatrix ? "مصفوفة الصلاحيات" : "سياسة";
   let b;
   if(isMatrix){
@@ -14181,17 +14263,35 @@ async function startGovernanceApproval(docType, refId){
 
   const { data: approval, error } = await sb.from("governance_approvals").insert([{
     company_id: currentCompanyId, document_type: docType, document_ref_id: refId,
-    document_snapshot_url: snapshotUrl, status: "قيد التصويت"
+    document_snapshot_url: snapshotUrl, status: skipVote ? "قيد التوقيع" : "قيد التصويت"
   }]).select().single();
   if(error){ alert("تعذّر بدء الدورة: " + error.message); return; }
 
-  const board = await getBoardApprovers();
-  for(const b2 of board){
-    await sendNotificationEmail(b2.email, `🗳️ طلب تصويت — ${docLabel}`,
-      `<div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px"><h2>🗳️ طلب تصويت</h2><p>مطلوب تصويتك على ${docLabel} المحدثة. ادخل المنصة لتسجيل تصويتك.</p></div>`);
+  if(skipVote){
+    await notifyGovernanceSigningTurn(approval.id, docType, template.ordered_roles[0], docLabel);
+    alert(`تم بدء دورة الاعتماد ✅ — أول موقّع بالتسلسل: ${template.ordered_roles[0]}.`);
+  } else {
+    const board = await getBoardApprovers();
+    for(const b2 of board){
+      await sendNotificationEmail(b2.email, `🗳️ طلب تصويت — ${docLabel}`,
+        `<div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px"><h2>🗳️ طلب تصويت</h2><p>مطلوب تصويتك على ${docLabel} المحدثة. ادخل المنصة لتسجيل تصويتك.</p></div>`);
+    }
+    alert("تم بدء دورة الاعتماد ✅ — أُرسل طلب تصويت لأعضاء المجلس.");
   }
-  alert("تم بدء دورة الاعتماد ✅ — أُرسل طلب تصويت لأعضاء المجلس.");
   loadMatrixApprovalStatus();
+}
+
+/* Best-effort email to whoever holds the role currently up for signature — matches by
+   user role text since ordered_roles are free-typed role names, same convention used
+   elsewhere in the platform for role-based lookups. Silently does nothing if nobody with
+   that exact role is found; the in-app approval screen still shows whose turn it is regardless. */
+async function notifyGovernanceSigningTurn(approvalId, docType, roleName, docLabel){
+  if(!roleName) return;
+  const { data: holders } = await sb.from("user_profiles").select("full_name,email,role").eq("company_id", currentCompanyId).eq("role", roleName);
+  for(const h of (holders||[])){
+    await sendNotificationEmail(h.email, `✍️ دورك للتوقيع — ${docLabel}`,
+      `<div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px"><h2>✍️ دورك للاعتماد والتوقيع</h2><p>وصل الدور لمنصبكم (${roleName}) للاعتماد على ${docLabel}. ادخل المنصة لمراجعتها وتوقيعها.</p></div>`);
+  }
 }
 
 async function loadMatrixApprovalStatus(){
@@ -14403,6 +14503,18 @@ async function confirmGovernanceSignature(){
     document_snapshot_url: newUrl || approval.document_snapshot_url,
     status: allSigned ? "مكتملة" : "قيد التوقيع"
   }).eq("id", currentGovSignApprovalId);
+
+  // Close the loop with the policy record itself: once every position in the chain has
+  // signed, the policy is formally "معتمدة نهائيًا" and its actual approval date is set now
+  // — not guessed at creation time. Otherwise, nudge whoever's turn is next.
+  if(!isMatrix && policyForRegen && policyForRegen.id){
+    if(allSigned){
+      await sb.from("policies").update({ status: "معتمدة نهائيًا", approval_date: new Date().toISOString().slice(0,10), file_url: newUrl || policyForRegen.file_url }).eq("id", policyForRegen.id);
+    } else {
+      const nextRole = orderedRoles[orderPos+1];
+      if(nextRole) await notifyGovernanceSigningTurn(currentGovSignApprovalId, approval.document_type, nextRole, "سياسة");
+    }
+  }
 
   alert(allSigned ? "تم دمج توقيعك — واكتملت دورة الاعتماد بالكامل ✅" : "تم دمج توقيعك ✅ — بانتظار باقي المناصب.");
   openGovernanceApprovalModal(currentGovSignApprovalId);
