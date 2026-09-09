@@ -8,6 +8,26 @@
       dsn: "https://fd2faf49ba3aae4bead11f7cbf56d96e@o4511922607751168.ingest.de.sentry.io/4511922627412048"
     });
   }
+  // Most real errors in this app are already "handled" gracefully — caught, then shown to
+  // the user as alert("تعذّر ..." / "خطأ ..." / "فشل ...") instead of thrown as an unhandled
+  // exception. Sentry only captures unhandled exceptions by default, so all of that handled
+  // (but still real) failure history was invisible to it. Rather than touching the ~200
+  // individual call sites, this wraps the one function they all funnel through: any alert()
+  // whose text matches an error-style message also gets reported to Sentry as a breadcrumb,
+  // with zero change to what the user actually sees.
+  (function(){
+    var nativeAlert = window.alert.bind(window);
+    var ERROR_ALERT_PATTERN = /تعذّر|تعذر|خطأ|فشل|error/i;
+    window.alert = function(message){
+      try {
+        var text = String(message);
+        if(ERROR_ALERT_PATTERN.test(text) && window.Sentry){
+          window.Sentry.captureMessage(text, "error");
+        }
+      } catch(e) { /* never let error-reporting itself break the actual alert */ }
+      return nativeAlert(message);
+    };
+  })();
 </script>
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
