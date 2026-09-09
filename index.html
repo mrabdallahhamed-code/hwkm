@@ -2080,6 +2080,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportUsersList()">📥 تصدير Excel</button>
       <button id="btnListedShareholderLink" class="btn btn-ghost" style="font-size:11px;padding:6px 14px;display:none" onclick="showListedShareholderLink()">🔗 رابط تسجيل المساهمين</button>
+      <button id="btnCreateTestUser" class="btn btn-ghost" style="font-size:11px;padding:6px 14px;display:none" onclick="openCreateTestUserModal()">🧪 إنشاء مستخدم تجريبي</button>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openInviteModal()">🔗 دعوة عضو جديد</button>
     </div>
   </div>
@@ -3645,6 +3646,33 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   </div>
 </div>
 
+<!-- Create an internal test/demo user — fake email, no OTP, no Nafath, no real inbox needed.
+     Restricted to مدير النظام. Calls a server-side Edge Function since creating an auth user
+     requires the Supabase service-role key, which must never be embedded in client code. -->
+<div class="modal-bg" id="m-create-test-user">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">🧪 إنشاء مستخدم تجريبي</div>
+    <p style="font-size:11px;color:var(--gray3);margin-bottom:12px">لفريقكم الداخلي فقط — إيميل وهمي، بدون أي تأكيد بريد أو OTP أو ربط نفاذ. الحساب يشتغل فورًا بنفس كلمة المرور اللي تحددها.</p>
+    <div class="fg"><label>الاسم</label><input class="fi" id="ctu-name" placeholder="مثال: أحمد (تجريبي)"/></div>
+    <div class="fg"><label>الإيميل (وهمي، أي صيغة)</label><input class="fi" id="ctu-email" placeholder="ahmed.test@hwkm.internal"/></div>
+    <div class="fg"><label>كلمة المرور</label>
+      <div style="display:flex;gap:6px">
+        <input class="fi" id="ctu-password" placeholder="كلمة مرور" style="flex:1;margin:0"/>
+        <button type="button" class="btn-xs primary" style="white-space:nowrap" onclick="document.getElementById('ctu-password').value = Math.random().toString(36).slice(-10)+'A1!'">توليد</button>
+      </div>
+    </div>
+    <div class="fg"><label>الدور</label>
+      <select class="fs" id="ctu-role">
+        <option>مدير النظام</option><option>رئيس مجلس</option><option>سكرتير المجلس</option>
+        <option>عضو مجلس</option><option>عضو مجلس وعضو مساهم</option><option>مساهم</option>
+        <option>رئيس لجنة مراجعة</option><option>عضو لجنة مراجعة</option>
+        <option>رئيس لجنة الترشيحات</option><option>عضو لجنة الترشيحات</option>
+      </select>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-create-test-user')">إلغاء</button><button class="btn btn-gold" onclick="createTestUser()">✅ إنشاء الحساب</button></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-invite">
   <div class="modal">
     <div class="modal-title" id="mi-title-h">🔗 دعوة عضو جديد</div>
@@ -5077,6 +5105,8 @@ async function loadUsers(){
   const linkBtn = document.getElementById("btnListedShareholderLink");
   if(linkBtn) linkBtn.style.display = (currentCompanyType === "مساهمة مدرجة") ? "inline-block" : "none";
   if(currentCompanyType === "مساهمة مدرجة") loadPendingShareholderVerifications();
+  const testUserBtn = document.getElementById("btnCreateTestUser");
+  if(testUserBtn) testUserBtn.style.display = (getCurrentRole() === "مدير النظام") ? "inline-block" : "none";
   const grid = document.getElementById("usersCardsGrid");
   if(!grid) return;
   if(getCurrentRole() !== 'مدير النظام'){
@@ -13874,6 +13904,45 @@ async function sendBulkEmails(recipients, subject, html, confirmLabel){
   }
   alert(`تم الإرسال: ${sent} ناجح${failed?`، ${failed} فشل`:''}`);
   return { sent, failed };
+}
+
+/* Internal test/demo users — fake email, auto-confirmed server-side, no OTP/Nafath involved.
+   The actual account creation happens in an Edge Function (create-test-user) since it needs
+   the Supabase service-role key, which must never touch client-side code. */
+function openCreateTestUserModal(){
+  document.getElementById("ctu-name").value = "";
+  document.getElementById("ctu-email").value = "";
+  document.getElementById("ctu-password").value = "";
+  document.getElementById("ctu-role").value = "مدير النظام";
+  openM("m-create-test-user");
+}
+
+async function createTestUser(){
+  const name = document.getElementById("ctu-name").value.trim();
+  const email = document.getElementById("ctu-email").value.trim();
+  const password = document.getElementById("ctu-password").value.trim();
+  const role = document.getElementById("ctu-role").value;
+  if(!name || !email || !password){ alert("الرجاء تعبئة الاسم والإيميل وكلمة المرور"); return; }
+  if(password.length < 6){ alert("كلمة المرور لازم تكون ٦ أحرف على الأقل"); return; }
+
+  const { data: sessionData } = await sb.auth.getSession();
+  const token = sessionData?.session?.access_token;
+  if(!token){ alert("تعذّر التحقق من جلستك — سجّل دخول من جديد وحاول مرة ثانية"); return; }
+
+  try{
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/create-test-user`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+      body: JSON.stringify({ company_id: currentCompanyId, name, email, password, role })
+    });
+    const data = await res.json();
+    if(!res.ok){ alert("تعذّر إنشاء الحساب: " + (data.error || "خطأ غير معروف")); return; }
+    closeM("m-create-test-user");
+    alert(`تم إنشاء المستخدم التجريبي بنجاح ✅\nالإيميل: ${email}\nكلمة المرور: ${password}\n\nسجّل دخول فورًا بنفس البيانات، بدون أي تأكيد إضافي.`);
+    loadUsers();
+  }catch(e){
+    alert("تعذّر الاتصال بالدالة الخلفية: " + e.message + "\n\nتأكد إنك نشرت دالة create-test-user على Supabase.");
+  }
 }
 
 // Sends the actual generated/signed invitation to every shareholder in the registry who has
