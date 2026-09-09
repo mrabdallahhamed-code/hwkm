@@ -1454,6 +1454,7 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <span>🏛️ السياسات والحوكمة</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportPoliciesList()">📥 تصدير Excel</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openPolicyDeadlineSettingsModal()">⏳ مهلة كل مرحلة</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openPolicyWorkflowPicker()">⚙️ إعداد تسلسلات التوقيع</button>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mp-id').value='';document.getElementById('mp-title-h').textContent='🏛️ إضافة سياسة جديدة';document.getElementById('mp-name').value='';document.getElementById('mp-type').value='';document.getElementById('mp-submission').value=new Date().toISOString().slice(0,10);document.getElementById('mp-target-approval').value='';document.getElementById('mp-approval-wrap').style.display='none';document.getElementById('mp-approval').value='';document.getElementById('mp-review').value='';document.getElementById('mp-approval-level').value='مجلس الإدارة';populatePolicyCategorySelect();openM('m-policy')">+ إضافة سياسة</button>
     </div>
@@ -2564,6 +2565,16 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
     <p style="font-size:11.5px;color:var(--gray3);margin-bottom:12px">كل فئة سياسة لها تسلسل اعتماد مستقل بالكامل — رتّب المناصب بالترتيب اللي تحتاجه (مثال: مدير الموارد البشرية ← الرئيس التنفيذي ← مجلس الإدارة)، واختر أي فئة تبي تعدّلها:</p>
     <div id="policyWorkflowCategoryList"></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-policy-workflow-picker')">إغلاق</button></div>
+  </div>
+</div>
+
+<!-- Company-wide setting: how many days each approval/signing stage is allowed to take -->
+<div class="modal-bg" id="m-policy-deadline">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-title">⏳ مهلة كل مرحلة اعتماد</div>
+    <p style="font-size:11.5px;color:var(--gray3);margin-bottom:12px">عدد الأيام المسموح بها لكل خطوة بدورة الاعتماد قبل ما تُحتسب متأخرة — كل شركة تقدر تحدده حسب سياستها الداخلية.</p>
+    <div class="fg"><label>عدد الأيام</label><input type="number" class="fi" id="mpd-days" min="1" value="14"/></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-policy-deadline')">إلغاء</button><button class="btn btn-gold" onclick="savePolicyDeadlineSettings()">✅ حفظ</button></div>
   </div>
 </div>
 
@@ -5102,6 +5113,24 @@ async function loadUsers(){
       </div>
     </div>`;
   }).join("");
+}
+
+/* Company-configurable deadline (days) per approval/signing stage — replaces the previous
+   hardcoded 14-day constant used everywhere the policies page shows a deadline countdown. */
+async function openPolicyDeadlineSettingsModal(){
+  const { data: company } = await sb.from("companies").select("policy_stage_deadline_days").eq("id", currentCompanyId).single();
+  document.getElementById("mpd-days").value = company?.policy_stage_deadline_days ?? 14;
+  openM("m-policy-deadline");
+}
+
+async function savePolicyDeadlineSettings(){
+  const days = Number(document.getElementById("mpd-days").value) || 14;
+  const { error } = await sb.from("companies").update({ policy_stage_deadline_days: days }).eq("id", currentCompanyId);
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  currentCompanyPolicyDeadlineDays = days;
+  closeM("m-policy-deadline");
+  alert(`تم تحديث مهلة كل مرحلة إلى ${days} يوم ✅`);
+  loadPolicies();
 }
 
 /* Position-based policy visibility — e.g. مدير المشتريات only ever sees سياسة المشتريات.
@@ -11205,20 +11234,6 @@ function renderPoliciesFiltered(){
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;align-items:stretch;${indent}">`;
 
     groups[cat].forEach(p => {
-      const stages = getPolicyStageSequence(p);
-      const stageIdx = stages.indexOf(p.status);
-      const nextBtn = (stageIdx >= 0 && stageIdx < stages.length-1)
-        ? `<button class="btn-xs primary" style="width:100%;margin-top:8px" onclick="advancePolicyStage(${p.id})">⏩ نقل إلى: ${displayStageLabel(stages[stageIdx+1])}</button>`
-        : "";
-      const deadlineDays = Number(currentCompanyPolicyDeadlineDays ?? 14);
-      let deadlineBadge = "";
-      if(p.status !== "معتمدة نهائيًا" && p.stage_entered_at){
-        const daysPassed = Math.floor((Date.now() - new Date(p.stage_entered_at).getTime()) / 86400000);
-        const daysLeft = deadlineDays - daysPassed;
-        deadlineBadge = daysLeft >= 0
-          ? `<span style="font-size:10.5px;color:var(--gray3)">⏳ متبقٍ ${daysLeft} يوم على هذه المرحلة</span>`
-          : `<span style="font-size:10.5px;color:var(--red);font-weight:700">⚠️ متأخرة ${Math.abs(daysLeft)} يوم عن الحد المسموح</span>`;
-      }
       html += `<div class="card" style="margin:0;display:flex;flex-direction:column">
         <div class="card-body" style="display:flex;flex-direction:column;flex:1">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
@@ -11228,8 +11243,6 @@ function renderPoliciesFiltered(){
             </div>
             <div style="flex-shrink:0">${statusBadge(p.status)}</div>
           </div>
-          ${policyStageStepper(p.status, p)}
-          ${deadlineBadge ? `<div style="text-align:center;margin-top:2px">${deadlineBadge}</div>` : ""}
           <div style="font-size:11px;color:var(--gray3);display:flex;gap:14px;margin-top:6px;flex-wrap:wrap">
             <span>📤 رُفعت: ${p.submission_date||"—"}</span>
             ${p.approval_date
@@ -11244,11 +11257,9 @@ function renderPoliciesFiltered(){
               <button class="btn-xs primary" onclick="editPolicy(${p.id})">✏️ تعديل</button>
               <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="openPolicyHistoryModal(${p.id})">🕒 السجل</button>
               <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="deletePolicy(${p.id})">🗑️ حذف</button>
-              ${stageIdx < stages.length-1 ? `<button class="btn-xs" style="background:#E8F0FA;color:var(--primary);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="sendPolicyApprovalReminder(${p.id})">🔔 تذكير الموافقة</button>` : ""}
               <button class="btn-xs gold" onclick="startPolicyGovernanceApproval(${p.id})">📤 بدء دورة اعتماد وتوقيع</button>
             </div>
             <div id="policy-gov-status-${p.id}" style="margin-top:6px"></div>
-            ${nextBtn}
           </div>
         </div>
       </div>`;
@@ -11533,7 +11544,13 @@ async function loadPolicyApprovalStatus(policyId, containerId){
     box.innerHTML = `<span style="font-size:10.5px;color:${current.status==='مكتملة'?'var(--green)':'var(--red)'};cursor:pointer;text-decoration:underline" onclick="openGovernanceApprovalModal(${current.id})">${current.status}</span>`;
     return;
   }
-  box.innerHTML = `<span style="font-size:10.5px;color:var(--gold);cursor:pointer;text-decoration:underline" onclick="openGovernanceApprovalModal(${current.id})">🟡 ${current.status}</span>`;
+  const deadlineDays = Number(currentCompanyPolicyDeadlineDays ?? 14);
+  const daysPassed = Math.floor((Date.now() - new Date(current.created_at).getTime()) / 86400000);
+  const daysLeft = deadlineDays - daysPassed;
+  const deadlineNote = daysLeft >= 0
+    ? `<span style="font-size:10px;color:var(--gray3)">— متبقٍ ${daysLeft} يوم</span>`
+    : `<span style="font-size:10px;color:var(--red);font-weight:700">— متأخرة ${Math.abs(daysLeft)} يوم</span>`;
+  box.innerHTML = `<span style="font-size:10.5px;color:var(--gold);cursor:pointer;text-decoration:underline" onclick="openGovernanceApprovalModal(${current.id})">🟡 ${current.status}</span> ${deadlineNote}`;
 }
 
 async function savePolicy(){
@@ -14263,13 +14280,13 @@ async function startGovernanceApproval(docType, refId){
 
   const { data: approval, error } = await sb.from("governance_approvals").insert([{
     company_id: currentCompanyId, document_type: docType, document_ref_id: refId,
-    document_snapshot_url: snapshotUrl, status: skipVote ? "قيد التوقيع" : "قيد التصويت"
+    document_snapshot_url: snapshotUrl, status: skipVote ? "قيد الاعتماد" : "قيد التصويت"
   }]).select().single();
   if(error){ alert("تعذّر بدء الدورة: " + error.message); return; }
 
   if(skipVote){
-    await notifyGovernanceSigningTurn(approval.id, docType, template.ordered_roles[0], docLabel);
-    alert(`تم بدء دورة الاعتماد ✅ — أول موقّع بالتسلسل: ${template.ordered_roles[0]}.`);
+    await notifyGovernanceSigningTurn(approval.id, docType, template.ordered_roles[0], docLabel, "اعتماد");
+    alert(`تم بدء دورة الاعتماد ✅ — أول من يعتمد بالتسلسل: ${template.ordered_roles[0]}. التوقيع الرسمي يبدأ فقط بعد ما يوافق الجميع.`);
   } else {
     const board = await getBoardApprovers();
     for(const b2 of board){
@@ -14281,16 +14298,17 @@ async function startGovernanceApproval(docType, refId){
   loadMatrixApprovalStatus();
 }
 
-/* Best-effort email to whoever holds the role currently up for signature — matches by
-   user role text since ordered_roles are free-typed role names, same convention used
-   elsewhere in the platform for role-based lookups. Silently does nothing if nobody with
-   that exact role is found; the in-app approval screen still shows whose turn it is regardless. */
-async function notifyGovernanceSigningTurn(approvalId, docType, roleName, docLabel){
+/* Best-effort email to whoever holds the role currently up — used for both phases (اعتماد /
+   توقيع), matched by role text since ordered_roles are free-typed role names, same convention
+   used elsewhere. Silently does nothing if nobody with that exact role is found; the in-app
+   approval screen still shows whose turn it is regardless. */
+async function notifyGovernanceSigningTurn(approvalId, docType, roleName, docLabel, phase){
   if(!roleName) return;
   const { data: holders } = await sb.from("user_profiles").select("full_name,email,role").eq("company_id", currentCompanyId).eq("role", roleName);
+  const isApproval = phase === "اعتماد";
   for(const h of (holders||[])){
-    await sendNotificationEmail(h.email, `✍️ دورك للتوقيع — ${docLabel}`,
-      `<div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px"><h2>✍️ دورك للاعتماد والتوقيع</h2><p>وصل الدور لمنصبكم (${roleName}) للاعتماد على ${docLabel}. ادخل المنصة لمراجعتها وتوقيعها.</p></div>`);
+    await sendNotificationEmail(h.email, `${isApproval?'✅ دورك للاعتماد':'✍️ دورك للتوقيع'} — ${docLabel}`,
+      `<div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px"><h2>${isApproval?'✅ دورك للاعتماد':'✍️ دورك للتوقيع الإلكتروني'}</h2><p>وصل الدور لمنصبكم (${roleName}) لـ${isApproval?'اعتماد':'توقيع'} ${docLabel}. ادخل المنصة لمراجعتها و${isApproval?'اعتمادها':'توقيعها'}.</p></div>`);
   }
 }
 
@@ -14312,44 +14330,77 @@ async function openGovernanceApprovalModal(approvalId){
   const { data: approval } = await sb.from("governance_approvals").select("*").eq("id", approvalId).single();
   if(!approval){ alert("تعذّر تحميل الدورة"); return; }
   const { data: template } = await sb.from("signing_workflow_templates").select("*").eq("company_id", currentCompanyId).eq("document_type", approval.document_type).maybeSingle();
-  const [{ data: votes }, { data: sigs }] = await Promise.all([
+  const [{ data: votes }, { data: allSteps }] = await Promise.all([
     sb.from("governance_votes").select("*").eq("approval_id", approvalId),
     sb.from("governance_signatures").select("*").eq("approval_id", approvalId).order("order_position",{ascending:true})
   ]);
+  const approvalSteps = (allSteps||[]).filter(s => s.phase === "اعتماد");
+  const sigs = (allSteps||[]).filter(s => s.phase !== "اعتماد"); // "توقيع" — also covers pre-existing rows with no phase set
   const board = await getBoardApprovers();
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData?.user?.email;
   const myVote = (votes||[]).find(v => v.voter_email === myEmail);
+  const isMatrix = approval.document_type === "matrix";
 
-  document.getElementById("ga-title").textContent = `دورة اعتماد — ${approval.document_type==='matrix'?'مصفوفة الصلاحيات':'سياسة'}`;
+  document.getElementById("ga-title").textContent = `دورة اعتماد — ${isMatrix?'مصفوفة الصلاحيات':'سياسة'}`;
   const body = document.getElementById("ga-body");
 
   let html = `<div class="sec-title" style="font-size:13px">📄 نسخة الوثيقة</div>
     <a href="${approval.document_snapshot_url}" target="_blank" style="font-size:12px;color:var(--primary);font-weight:700">📄 عرض النسخة الحالية (PDF)</a>`;
 
-  html += `<div class="sec-title" style="font-size:13px;margin-top:16px">🗳️ التصويت (${(votes||[]).length}/${board.length})</div>`;
-  html += `<div style="margin-bottom:10px">${(votes||[]).map(v => `<div style="font-size:11.5px;padding:4px 0">
-    <b>${v.voter_name||v.voter_email}</b> — <span style="color:${v.decision==='موافقة'?'var(--green)':v.decision==='رفض'?'var(--red)':'var(--gold)'};font-weight:700">${v.decision}</span>
-    ${v.notes?` — <span style="color:var(--gray3)">${v.notes}</span>`:""}
-  </div>`).join("") || '<div style="font-size:11px;color:var(--gray3)">لا توجد أصوات بعد.</div>'}</div>`;
+  // Board-wide vote — matrix only. Policies skip straight to the ordered approval chain below.
+  if(isMatrix){
+    html += `<div class="sec-title" style="font-size:13px;margin-top:16px">🗳️ التصويت (${(votes||[]).length}/${board.length})</div>`;
+    html += `<div style="margin-bottom:10px">${(votes||[]).map(v => `<div style="font-size:11.5px;padding:4px 0">
+      <b>${v.voter_name||v.voter_email}</b> — <span style="color:${v.decision==='موافقة'?'var(--green)':v.decision==='رفض'?'var(--red)':'var(--gold)'};font-weight:700">${v.decision}</span>
+      ${v.notes?` — <span style="color:var(--gray3)">${v.notes}</span>`:""}
+    </div>`).join("") || '<div style="font-size:11px;color:var(--gray3)">لا توجد أصوات بعد.</div>'}</div>`;
 
-  if(approval.status === "قيد التصويت" && !myVote && board.some(b2=>b2.email===myEmail)){
-    html += `<div class="card"><div class="card-body">
-      <textarea class="fi" id="ga-vote-notes" rows="2" placeholder="ملاحظاتك (اختياري، خصوصًا عند الاعتراض)"></textarea>
-      <div style="display:flex;gap:6px;margin-top:8px">
-        <button class="btn-xs" style="flex:1;background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:8px;cursor:pointer" onclick="castGovernanceVote(${approvalId},'موافقة')">✅ موافقة</button>
-        <button class="btn-xs" style="flex:1;background:#FEF3E2;color:var(--gold);border:none;border-radius:6px;padding:8px;cursor:pointer" onclick="castGovernanceVote(${approvalId},'اعتراض')">⚠️ اعتراض (مع ملاحظات)</button>
-        <button class="btn-xs" style="flex:1;background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:8px;cursor:pointer" onclick="castGovernanceVote(${approvalId},'رفض')">❌ رفض</button>
-      </div>
-    </div></div>`;
+    if(approval.status === "قيد التصويت" && !myVote && board.some(b2=>b2.email===myEmail)){
+      html += `<div class="card"><div class="card-body">
+        <textarea class="fi" id="ga-vote-notes" rows="2" placeholder="ملاحظاتك (اختياري، خصوصًا عند الاعتراض)"></textarea>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <button class="btn-xs" style="flex:1;background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:8px;cursor:pointer" onclick="castGovernanceVote(${approvalId},'موافقة')">✅ موافقة</button>
+          <button class="btn-xs" style="flex:1;background:#FEF3E2;color:var(--gold);border:none;border-radius:6px;padding:8px;cursor:pointer" onclick="castGovernanceVote(${approvalId},'اعتراض')">⚠️ اعتراض (مع ملاحظات)</button>
+          <button class="btn-xs" style="flex:1;background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:8px;cursor:pointer" onclick="castGovernanceVote(${approvalId},'رفض')">❌ رفض</button>
+        </div>
+      </div></div>`;
+    }
   }
 
   if(approval.status === "مرفوضة"){
     html += `<div style="background:#FDE8E8;border-radius:8px;padding:10px;margin-top:10px;font-size:12px;color:var(--red);font-weight:700">❌ رُفضت الوثيقة — لم تنتقل لمرحلة التوقيع.</div>`;
   }
 
+  // Phase 1 — الاعتماد: everyone in the chain must agree, in order, before anyone signs
+  // anything. This is a lightweight decision (no signature), and it's a hard gate: one
+  // rejection halts the whole cycle before it ever reaches formal signing.
+  if(["قيد الاعتماد","قيد التوقيع","مكتملة"].includes(approval.status) && template){
+    html += `<div class="sec-title" style="font-size:13px;margin-top:16px">✅ مرحلة الاعتماد (بالترتيب)</div>`;
+    template.ordered_roles.forEach((role, i) => {
+      const step = approvalSteps.find(s => s.role === role);
+      const prevApproved = i === 0 || approvalSteps.some(s => s.role === template.ordered_roles[i-1] && s.decision === "موافقة");
+      const isMyTurn = !step && prevApproved && approval.status === "قيد الاعتماد";
+      html += `<div style="display:flex;align-items:center;gap:10px;background:var(--offwhite);border-radius:8px;padding:10px;margin-bottom:6px">
+        <span style="background:${step?(step.decision==='موافقة'?'var(--green)':'var(--red)'):isMyTurn?'var(--gold)':'var(--gray2)'};color:#fff;font-weight:800;font-size:11px;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</span>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:700">${role}</div>
+          ${step ? `<div style="font-size:10.5px;color:${step.decision==='موافقة'?'var(--green)':'var(--red)'}">${step.decision==='موافقة'?'✅ وافق':'❌ رفض'}: ${step.signer_name} — ${new Date(step.signed_at).toLocaleString('ar-SA')}</div>`
+            : isMyTurn ? `<div style="font-size:10.5px;color:var(--gold)">🟡 بانتظار قرارك</div>`
+            : `<div style="font-size:10.5px;color:var(--gray3)">⏳ بانتظار دور المنصب السابق</div>`}
+        </div>
+        ${isMyTurn ? `<div style="display:flex;gap:5px">
+            <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 10px;cursor:pointer" onclick="castGovernanceApprovalStep(${approvalId},'${role.replace(/'/g,"")}','موافقة')">موافقة</button>
+            <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px 10px;cursor:pointer" onclick="castGovernanceApprovalStep(${approvalId},'${role.replace(/'/g,"")}','رفض')">رفض</button>
+          </div>` : ""}
+      </div>`;
+    });
+  }
+
+  // Phase 2 — التوقيع: only reachable once every role above has approved. Same ordered
+  // sequence, now with an actual signature.
   if(["قيد التوقيع","مكتملة"].includes(approval.status) && template){
-    html += `<div class="sec-title" style="font-size:13px;margin-top:16px">✍️ التوقيع التسلسلي بالمناصب</div>`;
+    html += `<div class="sec-title" style="font-size:13px;margin-top:16px">✍️ مرحلة التوقيع الإلكتروني (بعد اكتمال الاعتماد)</div>`;
     template.ordered_roles.forEach((role, i) => {
       const sig = (sigs||[]).find(s => s.role === role);
       const prevSigned = i === 0 || (sigs||[]).some(s => s.role === template.ordered_roles[i-1]);
@@ -14374,6 +14425,45 @@ async function openGovernanceApprovalModal(approvalId){
 
   body.innerHTML = html;
   openM("m-governance-approval");
+}
+
+/* Phase 1 decision (no signature) — one rejection halts the whole cycle immediately.
+   Once every ordered role has approved, the cycle auto-advances to "قيد التوقيع" and the
+   first signer is notified — signing never starts before approval is unanimous. */
+async function castGovernanceApprovalStep(approvalId, role, decision){
+  const { data: userData } = await sb.auth.getUser();
+  const email = userData?.user?.email;
+  const { error } = await sb.from("governance_signatures").insert([{
+    approval_id: approvalId, role, order_position: -1, phase: "اعتماد", decision,
+    signer_name: currentUserProfile?currentUserProfile.full_name:email, signer_email: email, signed_at: new Date().toISOString()
+  }]);
+  if(error){ alert("تعذّر تسجيل قرارك: " + error.message); return; }
+
+  if(decision === "رفض"){
+    await sb.from("governance_approvals").update({ status: "مرفوضة" }).eq("id", approvalId);
+    alert("تم تسجيل الرفض — توقفت دورة الاعتماد. ❌");
+    openGovernanceApprovalModal(approvalId);
+    return;
+  }
+
+  const { data: approval } = await sb.from("governance_approvals").select("*").eq("id", approvalId).single();
+  const { data: template } = await sb.from("signing_workflow_templates").select("*").eq("company_id", currentCompanyId).eq("document_type", approval.document_type).maybeSingle();
+  const { data: steps } = await sb.from("governance_signatures").select("*").eq("approval_id", approvalId).eq("phase","اعتماد");
+  const allApproved = template.ordered_roles.every(r => (steps||[]).some(s => s.role === r && s.decision === "موافقة"));
+
+  if(allApproved){
+    await sb.from("governance_approvals").update({ status: "قيد التوقيع" }).eq("id", approvalId);
+    const docLabel = approval.document_type === "matrix" ? "مصفوفة الصلاحيات" : "سياسة";
+    await notifyGovernanceSigningTurn(approvalId, approval.document_type, template.ordered_roles[0], docLabel, "توقيع");
+    alert("تم اعتماد آخر دور بالتسلسل ✅ — بدأت الآن مرحلة التوقيع الإلكتروني الرسمي.");
+  } else {
+    const idx = template.ordered_roles.indexOf(role);
+    const nextRole = template.ordered_roles[idx+1];
+    const docLabel = approval.document_type === "matrix" ? "مصفوفة الصلاحيات" : "سياسة";
+    if(nextRole) await notifyGovernanceSigningTurn(approvalId, approval.document_type, nextRole, docLabel, "اعتماد");
+    alert("تم تسجيل موافقتك ✅");
+  }
+  openGovernanceApprovalModal(approvalId);
 }
 
 async function castGovernanceVote(approvalId, decision){
@@ -14457,7 +14547,9 @@ async function confirmGovernanceSignature(){
   const orderPos = orderedRoles.indexOf(currentGovSignRole);
 
   // Re-verify sequence server-side-equivalent (not just trusting the UI state) before writing.
-  const { data: existingSigs } = await sb.from("governance_signatures").select("role").eq("approval_id", currentGovSignApprovalId);
+  // Only look at actual SIGNING-phase rows — the ordered اعتماد decisions live in the same
+  // table but must never be mistaken for a signature here.
+  const { data: existingSigs } = await sb.from("governance_signatures").select("role").eq("approval_id", currentGovSignApprovalId).eq("phase","توقيع");
   const signedRoles = (existingSigs||[]).map(s=>s.role);
   if(orderPos > 0 && !signedRoles.includes(orderedRoles[orderPos-1])){
     alert(`لا يمكنك التوقيع الآن — بانتظار توقيع "${orderedRoles[orderPos-1]}" أولًا.`);
@@ -14469,7 +14561,7 @@ async function confirmGovernanceSignature(){
   const email = userData?.user?.email;
   const signature_image = document.getElementById("govSigCanvas").toDataURL("image/png");
   const { error } = await sb.from("governance_signatures").insert([{
-    approval_id: currentGovSignApprovalId, role: currentGovSignRole, order_position: orderPos,
+    approval_id: currentGovSignApprovalId, role: currentGovSignRole, order_position: orderPos, phase: "توقيع",
     signer_name: currentUserProfile?currentUserProfile.full_name:email, signer_email: email,
     signature_image, signed_at: new Date().toISOString()
   }]);
@@ -14479,7 +14571,7 @@ async function confirmGovernanceSignature(){
   alert("⏳ جارِ دمج توقيعك بالوثيقة...");
 
   // Regenerate the full document with every collected signature embedded at its slot.
-  const { data: allSigs } = await sb.from("governance_signatures").select("*").eq("approval_id", currentGovSignApprovalId);
+  const { data: allSigs } = await sb.from("governance_signatures").select("*").eq("approval_id", currentGovSignApprovalId).eq("phase","توقيع");
   const signaturesMap = {};
   (allSigs||[]).forEach(s => { signaturesMap[s.role] = { name: s.signer_name, image: s.signature_image }; });
   const isMatrix = approval.document_type === "matrix";
