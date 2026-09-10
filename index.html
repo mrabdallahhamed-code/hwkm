@@ -142,7 +142,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 .sidebar{
   position:fixed;top:0;right:0;
   width:var(--sidebar-w);height:100vh;
-  background:linear-gradient(180deg,var(--dark) 0%,var(--primary) 60%,var(--primary2) 100%);
+  background:linear-gradient(180deg,#0D2E52 0%,#173F6E 55%,#1F4E86 100%);
   border-left:1px solid rgba(180,146,63,0.2);
   box-shadow:4px 0 24px rgba(10,22,40,.15);
   overflow-y:auto;z-index:200;
@@ -768,35 +768,40 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   background:linear-gradient(135deg,var(--dark) 0%,var(--primary) 60%,var(--primary2) 100%);
   display:flex;align-items:center;justify-content:center;
   font-family:'Tajawal',sans-serif;
+  padding:20px;
 }
 .login-box{
-  background:#fff;border-radius:16px;padding:34px 30px;
-  width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,0.35);
+  background:#fff;border-radius:10px;padding:30px 32px;
+  width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.35);
+  max-height:94vh;overflow-y:auto;
 }
-.login-logo{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:22px;}
+.login-box::-webkit-scrollbar{width:5px;}
+.login-box::-webkit-scrollbar-thumb{background:var(--gray2);border-radius:3px;}
+.login-logo{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:18px;}
 .login-logo .lg-mark{
-  width:64px;height:64px;border-radius:14px;
+  width:56px;height:56px;border-radius:12px;
   display:flex;align-items:center;justify-content:center;
   overflow:hidden;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,0.12);
 }
 .login-logo .lg-mark img{width:100%;height:100%;object-fit:contain;}
-.login-logo .lg-name{font-size:20px;font-weight:900;color:var(--primary);}
-.login-field{margin-bottom:14px;}
-.login-field label{display:block;font-size:12px;font-weight:700;color:var(--dark);margin-bottom:5px;}
+.login-logo .lg-name{font-size:18px;font-weight:900;color:var(--primary);}
+.login-field{margin-bottom:12px;}
+.login-field label{display:block;font-size:11.5px;font-weight:700;color:var(--dark);margin-bottom:4px;}
 .login-field input{
-  width:100%;padding:11px 12px;border-radius:8px;border:1.5px solid var(--gray1);
+  width:100%;padding:10px 12px;border-radius:6px;border:1.5px solid var(--gray1);
   font-family:'Tajawal',sans-serif;font-size:13px;outline:none;
 }
 .login-field input:focus{border-color:var(--primary3);}
+.login-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .login-btn{
-  width:100%;padding:12px;border:none;border-radius:8px;margin-top:6px;
-  background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--dark);
-  font-family:'Tajawal',sans-serif;font-weight:800;font-size:14px;cursor:pointer;
+  width:100%;padding:11px;border:none;border-radius:6px;margin-top:4px;
+  background:var(--gold);color:#fff;
+  font-family:'Tajawal',sans-serif;font-weight:800;font-size:13.5px;cursor:pointer;
 }
-.login-btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(180,146,63,0.35);}
-.login-switch{text-align:center;font-size:12px;color:var(--gray3);margin-top:14px;cursor:pointer;}
+.login-btn:hover{background:var(--dark);}
+.login-switch{text-align:center;font-size:11.5px;color:var(--gray3);margin-top:12px;cursor:pointer;}
 .login-switch b{color:var(--primary3);}
-.login-msg{font-size:12px;text-align:center;border-radius:8px;padding:8px;margin-bottom:12px;display:none;}
+.login-msg{font-size:11.5px;text-align:center;border-radius:6px;padding:8px;margin-bottom:10px;display:none;}
 </style>
 <script src="https://unpkg.com/pizzip@3.2.0/dist/pizzip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -816,16 +821,18 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     </div>
     <div class="login-msg" id="loginMsg"></div>
     <div id="listedCompanyBanner" style="display:none;background:#EAF0F8;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;font-weight:700;color:var(--primary);text-align:center"></div>
-    <div class="login-field" id="signupTypeField" style="display:none">
-      <label>نوع الحساب</label>
-      <select class="fs" id="signupAccountType" style="width:100%;padding:11px 12px;border-radius:8px;border:1.5px solid var(--gray1);font-family:'Tajawal',sans-serif;font-size:13px" onchange="toggleShareholderFields()">
-        <option value="عضو">عضو مجلس إدارة / موظف</option>
-        <option value="مساهم">مساهم</option>
-      </select>
-    </div>
-    <div class="login-field" id="signupNameField" style="display:none">
-      <label>الاسم الكامل</label>
-      <input class="fi" id="signupFullName" placeholder="الاسم الثلاثي" />
+    <div class="login-row2">
+      <div class="login-field" id="signupTypeField" style="display:none;margin-bottom:12px">
+        <label>نوع الحساب</label>
+        <select class="fs" id="signupAccountType" style="width:100%;padding:10px 12px;border-radius:6px;border:1.5px solid var(--gray1);font-family:'Tajawal',sans-serif;font-size:13px" onchange="toggleShareholderFields()">
+          <option value="عضو">عضو مجلس / موظف</option>
+          <option value="مساهم">مساهم</option>
+        </select>
+      </div>
+      <div class="login-field" id="signupNameField" style="display:none;margin-bottom:12px">
+        <label>الاسم الكامل</label>
+        <input class="fi" id="signupFullName" placeholder="الاسم الثلاثي" />
+      </div>
     </div>
     <div class="login-field" id="signupNationalIdField" style="display:none">
       <label>رقم الهوية</label>
@@ -1315,28 +1322,24 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 
 <!-- ══ SIGNING ════════════════════════════ -->
 <div id="p-signing" class="page content">
-  <div class="sec-title"><span class="ico-i ico-signature"></span>وثائق التوقيع الإلكتروني</div>
-  <div class="card">
-    <div class="card-body" style="padding:0">
-      <table class="tbl">
-        <thead><tr><th>الوثيقة</th><th>النوع</th><th>الموقّعون</th><th>الموقّعون فعليًا</th><th>الحالة</th><th>الموعد</th><th>الإجراء</th></tr></thead>
-        <tbody id="signingActionTbody">
-          <tr><td colspan="7" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
-        </tbody>
-      </table>
-    </div>
+  <div class="sec-title"><span class="ico-i ico-signature"></span>بانتظار توقيعك</div>
+  <div id="signingActionCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-bottom:26px">
+    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
   </div>
 
-  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
     <span><span class="ico-i ico-folder"></span>أرشيف وثائق التوقيع</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-signing')">+ توقيع جديد</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input class="fi" id="signingArchiveSearch" placeholder="ابحث باسم الوثيقة أو النوع..." style="margin:0;width:220px;font-size:12px;padding:8px 12px" oninput="renderSigningArchiveTable()"/>
+      <button class="btn btn-gold" style="font-size:11px;padding:8px 16px;white-space:nowrap" onclick="openM('m-signing')">+ توقيع جديد</button>
+    </div>
   </div>
   <div class="card">
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>الوثيقة</th><th>النوع</th><th>الموقّعون</th><th>الحالة</th><th>الموعد</th><th>الملف</th><th>إجراء</th></tr></thead>
+        <thead><tr><th>الوثيقة</th><th>النوع</th><th>التقدّم</th><th>الحالة</th><th>الموعد</th><th>الإجراء</th></tr></thead>
         <tbody id="signingTbody">
-          <tr><td colspan="7" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+          <tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
       </table>
     </div>
@@ -2155,7 +2158,15 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     <div class="card-body" id="pendingInvitesList"></div>
   </div>
 
-  <div class="sec-title" style="margin-top:4px"><span class="ico-i ico-users"></span>فريق حوكمة الشركة</div>
+  <div class="sec-title" style="margin-top:4px;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <span><span class="ico-i ico-users"></span>فريق حوكمة الشركة <span id="usersCountBadge" style="color:var(--gray3);font-weight:600;font-size:12px"></span></span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input class="fi" id="usersSearch" placeholder="ابحث بالاسم أو الإيميل أو الدور..." style="margin:0;width:240px;font-size:12px;padding:8px 12px" oninput="renderUsersFiltered()"/>
+      <select class="fs" id="usersRoleFilter" style="margin:0;width:160px;font-size:12px;padding:8px 10px" onchange="renderUsersFiltered()">
+        <option value="">كل الأدوار</option>
+      </select>
+    </div>
+  </div>
   <div id="usersCardsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
   </div>
@@ -5189,6 +5200,8 @@ async function saveUserPermissionOverrides(){
   closeM("m-user-permission-overrides");
 }
 
+let usersPageCache = { memberships: [], profileByEmail: {}, roles: [], isSoleProp: false, myEmail: null };
+
 async function loadUsers(){
   loadPendingInvites();
   const linkBtn = document.getElementById("btnListedShareholderLink");
@@ -5213,17 +5226,61 @@ async function loadUsers(){
 
   const isSoleProp = currentCompanyType === "مؤسسة فردية";
   const roles = isSoleProp ? ['مدير النظام','عضو مجلس'] : ['مدير النظام','رئيس مجلس','سكرتير المجلس','رئيس لجنة الترشيحات','عضو لجنة الترشيحات','رئيس لجنة مراجعة','عضو لجنة مراجعة','عضو مجلس','عضو مجلس وعضو مساهم','مساهم'];
-  const roleDisplayLabel = (r) => isSoleProp && r === 'عضو مجلس' ? 'عضو فريق' : r;
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
 
-  grid.innerHTML = memberships.map(m => {
+  usersPageCache = { memberships, profileByEmail, roles, isSoleProp, myEmail };
+
+  // Populate the role filter dropdown with whatever roles actually exist on this team
+  // (including custom ones), so it stays useful regardless of team size or role mix.
+  const filterSel = document.getElementById("usersRoleFilter");
+  if(filterSel){
+    const uniqueRoles = [...new Set(memberships.map(m => m.role))];
+    const currentVal = filterSel.value;
+    filterSel.innerHTML = '<option value="">كل الأدوار</option>' + uniqueRoles.map(r => `<option value="${r}">${r}</option>`).join("");
+    filterSel.value = uniqueRoles.includes(currentVal) ? currentVal : "";
+  }
+
+  renderUsersFiltered();
+}
+
+function roleDisplayLabelFor(r){
+  return usersPageCache.isSoleProp && r === 'عضو مجلس' ? 'عضو فريق' : r;
+}
+
+function renderUsersFiltered(){
+  const grid = document.getElementById("usersCardsGrid");
+  if(!grid) return;
+  const { memberships, profileByEmail } = usersPageCache;
+  const q = (document.getElementById("usersSearch")?.value || "").trim().toLowerCase();
+  const roleFilter = document.getElementById("usersRoleFilter")?.value || "";
+
+  const filtered = memberships.filter(m => {
+    if(roleFilter && m.role !== roleFilter) return false;
+    if(!q) return true;
     const u = profileByEmail[m.email] || {};
-    const st = roleStyleOf(m.role);
-    const initial = (u.full_name || m.email || "؟").trim().charAt(0);
-    const isMe = m.email === myEmail;
-    const isCustomRole = !roles.includes(m.role);
-    return `<div class="card" style="margin:0;border-top:4px solid ${st.color};display:flex;flex-direction:column">
+    return (u.full_name||"").toLowerCase().includes(q) || (m.email||"").toLowerCase().includes(q) || (m.role||"").toLowerCase().includes(q);
+  });
+
+  const countBadge = document.getElementById("usersCountBadge");
+  if(countBadge) countBadge.textContent = `(${filtered.length} من ${memberships.length})`;
+
+  if(filtered.length === 0){
+    grid.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">لا نتائج مطابقة.</div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map(renderUserCard).join("");
+}
+
+function renderUserCard(m){
+  const { profileByEmail, roles, myEmail } = usersPageCache;
+  const u = profileByEmail[m.email] || {};
+  const st = roleStyleOf(m.role);
+  const initial = (u.full_name || m.email || "؟").trim().charAt(0);
+  const isMe = m.email === myEmail;
+  const isCustomRole = !roles.includes(m.role);
+  return `<div class="card" style="margin:0;border-top:4px solid ${st.color};display:flex;flex-direction:column">
       <div class="card-body" style="display:flex;flex-direction:column;flex:1">
         <div style="display:flex;align-items:flex-start;gap:12px">
           <div style="width:46px;height:46px;border-radius:50%;background:${st.color};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;flex-shrink:0">${initial}</div>
@@ -5246,7 +5303,7 @@ async function loadUsers(){
           <label style="font-size:10px;color:var(--gray3);display:block;margin-bottom:4px">الدور / الصلاحية بهذه الشركة</label>
           <select onchange="this.value==='__custom__' ? promptCustomRole(${m.id}) : updateUserRole(${m.id}, this.value)" style="width:100%;font-size:12px;font-weight:700;padding:8px 10px;border-radius:8px;cursor:pointer;background:${st.bg};color:${st.color};border:1.5px solid ${st.color}55;margin-bottom:8px">
             ${isCustomRole ? `<option value="${m.role}" selected>${st.icon} ${m.role}</option>` : ""}
-            ${roles.map(r=>`<option value="${r}" ${m.role===r?"selected":""}>${ROLE_STYLE[r].icon} ${roleDisplayLabel(r)}</option>`).join("")}
+            ${roles.map(r=>`<option value="${r}" ${m.role===r?"selected":""}>${ROLE_STYLE[r].icon} ${roleDisplayLabelFor(r)}</option>`).join("")}
             <option value="__custom__"><span class="ico-i ico-tag"></span>مسمى مخصّص (لجنة أخرى)...</option>
           </select>
           ${isCustomRole ? `<p style="font-size:9.5px;color:var(--gray3);margin:-2px 0 8px">مسمى مخصّص — استخدم "🔧 صلاحيات مخصّصة" فوق لتحديد أي صفحات يشوفها بالضبط.</p>` : ""}
@@ -5254,7 +5311,6 @@ async function loadUsers(){
         </div>
       </div>
     </div>`;
-  }).join("");
 }
 
 /* Company-configurable deadline (days) per approval/signing stage — replaces the previous
@@ -12238,95 +12294,116 @@ async function saveCompliance(){
 /* ══════════ SIGNING DOCUMENTS ══════════ */
 /* ══════════ E-SIGNATURE (real per-user signing) ══════════ */
 let signingDocsCache = [];
+let signingSigsByDoc = {};
+let signingOfficialSigsByDoc = {};
+
 async function loadSigning(){
+  const actionBox = document.getElementById("signingActionCards");
   const archiveTbody = document.getElementById("signingTbody");
-  const actionTbody = document.getElementById("signingActionTbody");
-  if(!archiveTbody && !actionTbody) return;
+  if(!actionBox && !archiveTbody) return;
 
   const { data: docs, error } = await sb.from("signing_documents").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
   if(error){
-    if(archiveTbody) archiveTbody.innerHTML = errorRowHTML(7, error.message);
-    if(actionTbody) actionTbody.innerHTML = errorRowHTML(7, error.message);
+    if(actionBox) actionBox.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--red);font-size:12px;padding:20px">${error.message}</div>`;
+    if(archiveTbody) archiveTbody.innerHTML = errorRowHTML(6, error.message);
     return;
   }
   signingDocsCache = docs || [];
 
   const docIds = signingDocsCache.map(d=>d.id);
-  let sigsByDoc = {};
-  let officialSigsByDoc = {};
+  signingSigsByDoc = {};
+  signingOfficialSigsByDoc = {};
   if(docIds.length){
     const [{ data: sigs }, { data: officialSigs }] = await Promise.all([
       sb.from("document_signatures").select("*").in("document_id", docIds),
       sb.from("official_doc_signatures").select("*").in("document_id", docIds)
     ]);
-    (sigs||[]).forEach(s => { if(!sigsByDoc[s.document_id]) sigsByDoc[s.document_id]=[]; sigsByDoc[s.document_id].push(s); });
-    (officialSigs||[]).forEach(s => { if(!officialSigsByDoc[s.document_id]) officialSigsByDoc[s.document_id]=[]; officialSigsByDoc[s.document_id].push(s); });
+    (sigs||[]).forEach(s => { if(!signingSigsByDoc[s.document_id]) signingSigsByDoc[s.document_id]=[]; signingSigsByDoc[s.document_id].push(s); });
+    (officialSigs||[]).forEach(s => { if(!signingOfficialSigsByDoc[s.document_id]) signingOfficialSigsByDoc[s.document_id]=[]; signingOfficialSigsByDoc[s.document_id].push(s); });
   }
 
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
   const role = getCurrentRole();
 
-  if(signingDocsCache.length===0){
-    if(archiveTbody) archiveTbody.innerHTML = emptyRowHTML(7, 'لا توجد بيانات بعد. اضغط "+ توقيع جديد" للبدء.');
-    if(actionTbody) actionTbody.innerHTML = emptyRowHTML(7, 'لا توجد وثائق بعد.');
-    return;
-  }
-
-  // Archive table: full reference list of every document, with real computed signer counts
-  if(archiveTbody){
-    archiveTbody.innerHTML = signingDocsCache.map(s => {
-      const isOfficialDocEarly = !!s.signer_roles;
-      const signed = isOfficialDocEarly ? (officialSigsByDoc[s.id] || []) : (sigsByDoc[s.id] || []);
-      const total = s.signers_total || 0;
-      const isComplete = total>0 && signed.length >= total;
-      const statusBadge = isComplete ? '<span class="badge done">مكتمل ✍️</span>' : '<span class="badge pending">قيد التوقيع</span>';
-      const isOfficialDoc = !!s.signer_roles;
-      const actionCell = isOfficialDoc
-        ? `${s.file_url ? `<a class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:4px 10px;font-size:11px;text-decoration:none" href="${s.file_url}" target="_blank" rel="noopener"><span class="ico-i ico-document"></span>عرض المستند</a>` : ""} ${isComplete ? "" : `<button class="btn-xs gold" onclick="openOfficialSignModal(${s.id})"><span class="ico-i ico-signature"></span>توقيع</button>`} <button class="btn-xs" style="background:#FEF3E2;color:var(--gold);border:1px solid var(--gold);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="applyCompanySealToDoc(${s.id})">🔖 إضافة الختم</button>`
-        : `${s.file_url ? `<a class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:4px 10px;font-size:11px;text-decoration:none" href="${s.file_url}" target="_blank" rel="noopener"><span class="ico-i ico-document"></span>الملف الأصلي (غير موقّع)</a>` : ""} <button class="btn-xs gold" onclick="generateSignedDocumentPDF(${s.id},this)">${isComplete ? "📥 تحميل الوثيقة الموقّعة (PDF)" : "🖨️ حالة التوقيع"}</button>`;
-      return `<tr>
-        <td>${s.document_name||""}</td><td>${s.doc_type||"—"}</td>
-        <td>${signed.length}/${total||"?"} وقّعوا</td>
-        <td>${statusBadge}</td><td>${s.due_date||"—"}</td>
-        <td>${actionCell}</td>
-        <td><button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="deleteSigningDoc(${s.id})"><span class="ico-i ico-trash"></span>حذف</button></td>
-      </tr>`;
-    }).join("");
-  }
-
-  // Action table: only for people who still need to sign something (or can view progress)
-  if(actionTbody){
+  // ── Pending cards: only what still needs a signature, front and center ──
+  if(actionBox){
     if(role === 'مساهم'){
-      actionTbody.innerHTML = emptyRowHTML(7, 'لا توجد وثائق تخصّك.');
+      actionBox.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--gray3);font-size:12px;padding:20px">لا توجد وثائق تخصّك.</div>`;
     } else {
       const pending = signingDocsCache.filter(s => {
-        const signed = (!!s.signer_roles ? officialSigsByDoc[s.id] : sigsByDoc[s.id]) || [];
+        const signed = (!!s.signer_roles ? signingOfficialSigsByDoc[s.id] : signingSigsByDoc[s.id]) || [];
         const total = s.signers_total || 0;
         return !(total>0 && signed.length >= total);
       });
       if(pending.length===0){
-        actionTbody.innerHTML = emptyRowHTML(7, 'لا توجد وثائق تنتظر التوقيع حاليًا. ✅');
+        actionBox.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--green);font-size:12.5px;padding:20px;font-weight:700"><span class="ico-i ico-check"></span>لا توجد وثائق تنتظر التوقيع حاليًا.</div>`;
       } else {
-        actionTbody.innerHTML = pending.map(s => {
-          const signed = (!!s.signer_roles ? officialSigsByDoc[s.id] : sigsByDoc[s.id]) || [];
+        actionBox.innerHTML = pending.map(s => {
+          const signed = (!!s.signer_roles ? signingOfficialSigsByDoc[s.id] : signingSigsByDoc[s.id]) || [];
           const total = s.signers_total || 0;
           const iSigned = myEmail && signed.some(x => x.signer_email === myEmail);
           const namesList = signed.length ? signed.map(x=>x.signer_name||x.signer_email).join('، ') : 'لا أحد بعد';
+          const pct = total>0 ? Math.round(signed.length/total*100) : 0;
           const actionBtn = iSigned
-            ? '<span class="badge done"><span class="ico-i ico-check"></span>وقّعت بالفعل</span>'
-            : `<button class="btn-xs gold" onclick="openSignaturePad(${s.id})"><span class="ico-i ico-signature"></span>توقيع</button>`;
-          return `<tr>
-            <td>${s.document_name||""}</td><td>${s.doc_type||"—"}</td>
-            <td>${signed.length}/${total||"?"}</td>
-            <td style="font-size:10.5px;color:var(--gray3)">${namesList}</td>
-            <td><span class="badge pending">قيد التوقيع</span></td><td>${s.due_date||"—"}</td>
-            <td>${actionBtn}</td>
-          </tr>`;
+            ? '<span class="badge done" style="width:100%;justify-content:center;padding:9px 0"><span class="ico-i ico-check"></span>وقّعت بالفعل</span>'
+            : `<button class="btn btn-gold" style="width:100%" onclick="openSignaturePad(${s.id})"><span class="ico-i ico-signature"></span>توقيع الآن</button>`;
+          return `<div class="card">
+            <div class="card-body">
+              <div style="font-weight:800;font-size:13.5px;color:var(--dark);margin-bottom:2px">${s.document_name||""}</div>
+              <div style="font-size:11px;color:var(--gray3);margin-bottom:10px">${s.doc_type||"—"} ${s.due_date?(' · موعد: '+s.due_date):''}</div>
+              <div style="background:var(--gray1);border-radius:3px;height:5px;overflow:hidden;margin-bottom:6px">
+                <div style="background:var(--gold);height:100%;width:${pct}%"></div>
+              </div>
+              <div style="font-size:10.5px;color:var(--gray3);margin-bottom:12px">${signed.length}/${total||"?"} وقّعوا — ${namesList}</div>
+              ${actionBtn}
+            </div>
+          </div>`;
         }).join("");
       }
     }
   }
+
+  renderSigningArchiveTable();
+}
+
+function renderSigningArchiveTable(){
+  const archiveTbody = document.getElementById("signingTbody");
+  if(!archiveTbody) return;
+  const q = (document.getElementById("signingArchiveSearch")?.value || "").trim().toLowerCase();
+  const list = q
+    ? signingDocsCache.filter(s => (s.document_name||"").toLowerCase().includes(q) || (s.doc_type||"").toLowerCase().includes(q))
+    : signingDocsCache;
+
+  if(signingDocsCache.length===0){
+    archiveTbody.innerHTML = emptyRowHTML(6, 'لا توجد بيانات بعد. اضغط "+ توقيع جديد" للبدء.');
+    return;
+  }
+  if(list.length===0){
+    archiveTbody.innerHTML = emptyRowHTML(6, 'لا نتائج مطابقة للبحث.');
+    return;
+  }
+
+  archiveTbody.innerHTML = list.map(s => {
+    const isOfficialDoc = !!s.signer_roles;
+    const signed = isOfficialDoc ? (signingOfficialSigsByDoc[s.id] || []) : (signingSigsByDoc[s.id] || []);
+    const total = s.signers_total || 0;
+    const isComplete = total>0 && signed.length >= total;
+    const statusBadge = isComplete ? '<span class="badge done"><span class="ico-i ico-check" style="margin-left:3px"></span>مكتمل</span>' : '<span class="badge pending">قيد التوقيع</span>';
+    const fileLink = s.file_url ? `<a href="${s.file_url}" target="_blank" rel="noopener" title="عرض الملف" style="color:var(--primary);margin-left:10px"><span class="ico ico-document" style="width:16px;height:16px"></span></a>` : "";
+    const primaryAction = isOfficialDoc
+      ? (isComplete ? `<button class="btn-xs" style="background:#FEF3E2;color:var(--gold);border:1px solid var(--gold);border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer" onclick="applyCompanySealToDoc(${s.id})">إضافة الختم</button>`
+                    : `<button class="btn-xs gold" onclick="openOfficialSignModal(${s.id})">توقيع</button>`)
+      : `<button class="btn-xs gold" onclick="generateSignedDocumentPDF(${s.id},this)">${isComplete ? "تحميل PDF" : "حالة التوقيع"}</button>`;
+    return `<tr>
+      <td>${fileLink}${s.document_name||""}</td>
+      <td style="color:var(--gray3);font-size:12px">${s.doc_type||"—"}</td>
+      <td style="font-size:12px">${signed.length}/${total||"?"}</td>
+      <td>${statusBadge}</td>
+      <td style="color:var(--gray3);font-size:12px">${s.due_date||"—"}</td>
+      <td style="display:flex;gap:6px;align-items:center">${primaryAction}<button class="btn-xs" style="background:#FBEAEA;color:var(--red);border:none;border-radius:6px;padding:5px 8px;font-size:11px;cursor:pointer" onclick="deleteSigningDoc(${s.id})" title="حذف"><span class="ico ico-trash" style="width:13px;height:13px"></span></button></td>
+    </tr>`;
+  }).join("");
 }
 
 let currentSignDocId = null;
