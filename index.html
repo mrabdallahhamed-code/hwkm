@@ -1705,7 +1705,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 <div id="p-perf" class="page content">
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
     <span><span class="ico-i ico-ruler"></span>تقييم الأداء</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openM('m-perf')">+ فتح تقييم جديد</button>
+    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openPerfModal()">+ فتح تقييم جديد</button>
   </div>
 
   <!-- Board / nomination-committee review submission (visible to all board-level roles) -->
@@ -3912,10 +3912,11 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   <div class="modal">
     <div class="modal-title" id="mpe-title"><span class="ico-i ico-ruler"></span>فتح تقييم جديد</div>
     <input type="hidden" id="mpe-id" value="" />
-    <div class="fg"><label>الجهة/الشخص المُقيَّم</label><input class="fi" id="mpe-entity" placeholder="مثال: فلاح السبيعي / مجلس الإدارة" /></div>
-    <div class="fg"><label>النوع</label><select class="fs" id="mpe-type"><option>عضو مجلس</option><option>المجلس ككل</option><option>لجنة</option><option>تنفيذي</option></select></div>
+    <div class="fg"><label>الشخص المُقيَّم</label>
+      <select class="fs" id="mpe-entity-select"></select>
+    </div>
     <div class="fg"><label>الفترة</label><input class="fi" id="mpe-period" placeholder="مثال: 2026" /></div>
-    <p style="font-size:11px;color:var(--gray3)">يفتح تلقائيًا لأعضاء المجلس ولجنة الترشيحات، والنتيجة لمدير النظام فقط.</p>
+    <p style="font-size:11px;color:var(--gray3)">يُحدَّد بنك الأسئلة والمقيّمون تلقائيًا حسب دور الشخص الفعلي — بدون تدخل يدوي.</p>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-perf')">إلغاء</button><button class="btn btn-gold" onclick="savePerf()"><span class="ico-i ico-check"></span>فتح التقييم</button></div>
   </div>
 </div>
@@ -4595,7 +4596,7 @@ async function loadCurrentUserProfile(){
 
 /* ══════════ ROLES & PERMISSIONS ══════════ */
 const FULL_ACCESS_ROLES = ['مدير النظام','رئيس مجلس','سكرتير المجلس'];
-const PERF_RESULTS_ROLES = ['مدير النظام','رئيس مجلس','سكرتير المجلس','رئيس لجنة الترشيحات','عضو لجنة الترشيحات'];
+
 const SHAREHOLDER_PAGES = ['agm','voting','signing'];
 
 // A person's role can differ per company they belong to (e.g. board member at one company,
@@ -18078,12 +18079,13 @@ async function loadPerfAttendanceWidget(){
 
 async function loadPerf(){
   const resultsSection = document.getElementById("perfResultsSection");
-  const isAdmin = PERF_RESULTS_ROLES.includes(getCurrentRole());
+  const allowedRoles = await getPerfResultsAllowedRoles();
+  const isAdmin = allowedRoles.includes(getCurrentRole());
   if(resultsSection) resultsSection.style.display = isAdmin ? "block" : "none";
 
   loadPerfReviewSection();
 
-  if(!isAdmin) return; // Only authorized governance roles load/see the results
+  if(!isAdmin) return; // Only nominations-committee members (or the chairman, if no such committee exists) see results
   loadPerfAttendanceWidget();
   const tbody = document.getElementById("perfTbody");
   const cardsWrap = document.getElementById("perfResultsCards");
@@ -18105,13 +18107,16 @@ async function loadPerf(){
     reviewsByEval[rv.evaluation_id].push(rv);
   });
 
+  // Resolve each evaluation's real role once, for the correct question bank in the bars below
+  const rolesByEval = {};
+  for(const p of data){ rolesByEval[p.id] = p.evaluated_email ? await getEvaluatedPersonRole(p.evaluated_email) : null; }
+
   // Polished progress-bar cards (one per evaluation)
   if(cardsWrap){
     cardsWrap.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px;align-items:stretch">' + data.map(p => {
       const revs = reviewsByEval[p.id] || [];
-      const icon = p.entity_type === "تنفيذي" ? "👔" : (p.entity_type === "لجنة" ? "🏛️" : "🧑‍💼");
       const uniqueReviewers = new Set(revs.map(r=>r.reviewer_email)).size;
-      const statusBadge = p.status === "مكتمل" ? '<span class="badge done">مكتمل ✅</span>' : '<span class="badge pending">مفتوح للتقييم</span>';
+      const statusBadge = p.status === "مكتمل" ? '<span class="badge done">مكتمل</span>' : '<span class="badge pending">مفتوح للتقييم</span>';
 
       const byCrit = {};
       revs.forEach(r => {
@@ -18119,7 +18124,7 @@ async function loadPerf(){
         if(!byCrit[c]) byCrit[c] = [];
         byCrit[c].push(r.score||0);
       });
-      const criteriaOrder = getPerfCriteria(p.entity_type);
+      const criteriaOrder = getPerfCriteria(p.entity_type, rolesByEval[p.id]);
       const bars = criteriaOrder.filter(c=>byCrit[c]).map(c => {
         const avg = byCrit[c].reduce((a,b)=>a+b,0)/byCrit[c].length;
         const pct = Math.round((avg/5)*100);
@@ -18131,7 +18136,7 @@ async function loadPerf(){
         : "";
 
       return `<div class="card" style="margin:0;display:flex;flex-direction:column">
-        <div class="card-head"><span class="card-title">${icon} ${p.entity_name||""} <span style="font-size:11px;color:var(--gray3);font-weight:600">— ${p.period||""}</span></span>${statusBadge}</div>
+        <div class="card-head"><span class="card-title">${p.entity_name||""} <span style="font-size:11px;color:var(--gray3);font-weight:600">— ${p.period||""}</span></span>${statusBadge}</div>
         <div class="card-body" style="display:flex;flex-direction:column;flex:1">
           ${bars || '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا توجد تقييمات مسجّلة من الأعضاء بعد.</div>'}
           <div style="font-size:11px;color:var(--gray3);margin-top:8px"><span class="ico-i ico-users"></span>عدد المقيّمين: ${uniqueReviewers}${p.score!=null ? " · الدرجة الإجمالية: "+Number(p.score).toFixed(1)+"/5 — "+(PERF_SCORE_LABELS[Math.round(p.score)]||"") : ""}</div>
@@ -18144,10 +18149,10 @@ async function loadPerf(){
   tbody.innerHTML = data.map(p => {
     const revs = reviewsByEval[p.id] || [];
     const uniqueReviewers = new Set(revs.map(r=>r.reviewer_email)).size;
-    const statusBadge = p.status === "مكتمل" ? '<span class="badge done">مكتمل ✅</span>' : '<span class="badge pending">مفتوح للتقييم</span>';
+    const statusBadge = p.status === "مكتمل" ? '<span class="badge done">مكتمل</span>' : '<span class="badge pending">مفتوح للتقييم</span>';
     const scoreDisplay = p.score!=null ? (Number(p.score).toFixed(1) + "/5 — " + (PERF_SCORE_LABELS[Math.round(p.score)]||"")) : "—";
     return `<tr>
-      <td>${p.entity_name||""}</td><td>${p.entity_type||"—"}</td><td>${p.period||"—"}</td>
+      <td>${p.entity_name||""}</td><td>${rolesByEval[p.id]||p.entity_type||"—"}</td><td>${p.period||"—"}</td>
       <td>${statusBadge}</td>
       <td style="text-align:center">${uniqueReviewers}</td>
       <td>${scoreDisplay}</td>
@@ -18156,14 +18161,43 @@ async function loadPerf(){
   }).join("");
 }
 
-async function savePerf(){
-  const entity_name = document.getElementById("mpe-entity").value.trim();
-  if(!entity_name){ alert("الرجاء إدخال اسم الجهة/الشخص"); return; }
-  const entity_type = document.getElementById("mpe-type").value;
-  const period = document.getElementById("mpe-period").value.trim();
-  const payload = { entity_name, entity_type, period, status: "مفتوح للتقييم", company_id: currentCompanyId };
+async function openPerfModal(){
+  const sel = document.getElementById("mpe-entity-select");
+  sel.innerHTML = '<option value="">جارِ التحميل...</option>';
+  document.getElementById("mpe-period").value = "";
+  openM("m-perf");
 
-  if(entity_type === "تنفيذي"){
+  if(currentCompanyType === "مؤسسة فردية"){
+    // Sole proprietorships only ever evaluate the executive — nothing else is even offered.
+    const { data: execs } = await sb.from("board_members").select("id,name,claimed_by_email").eq("company_id", currentCompanyId).eq("is_executive", true).not("claimed_by_email","is",null);
+    if(!execs || execs.length===0){
+      sel.innerHTML = '<option value="">لا يوجد رئيس تنفيذي مرتبط بحساب بعد</option>';
+      return;
+    }
+    sel.innerHTML = execs.map(e => `<option value="${e.claimed_by_email}">${e.name} — الرئيس التنفيذي</option>`).join("");
+    return;
+  }
+
+  const people = await getPerfEligiblePeople();
+  if(people.length===0){
+    sel.innerHTML = '<option value="">لا يوجد أعضاء مرتبطين بحسابات بعد</option>';
+    return;
+  }
+  sel.innerHTML = people.map(p => `<option value="${p.email}">${p.name} — ${p.role}</option>`).join("");
+}
+
+async function savePerf(){
+  const evaluated_email = document.getElementById("mpe-entity-select").value;
+  if(!evaluated_email){ alert("الرجاء اختيار الشخص المُقيَّم"); return; }
+  const period = document.getElementById("mpe-period").value.trim();
+
+  const { data: person } = await sb.from("board_members").select("name").eq("company_id", currentCompanyId).eq("claimed_by_email", evaluated_email).maybeSingle();
+  const evaluated_role = await getEvaluatedPersonRole(evaluated_email);
+  const entity_type = evaluated_role === "تنفيذي" ? "تنفيذي" : "عضو مجلس"; // kept for legacy display/back-compat only
+
+  const payload = { entity_name: person?.name || evaluated_email, entity_type, evaluated_email, period, status: "مفتوح للتقييم", company_id: currentCompanyId };
+
+  if(evaluated_role === "تنفيذي"){
     const { data: reports } = await sb.from("ceo_monthly_reports").select("period_label,timeliness_score,submitted_day_of_month")
       .eq("company_id", currentCompanyId).not("timeliness_score","is",null).order("created_at",{ascending:false}).limit(6);
     if(reports && reports.length){
@@ -18173,23 +18207,22 @@ async function savePerf(){
       else if(avg >= 75) interpretation = "التزام جيد بمواعيد رفع التقرير مع بعض التأخير غير المتكرر.";
       else if(avg >= 50) interpretation = "تأخر ملحوظ ومتكرر برفع التقرير المالي والتشغيلي — قد يشير إلى ضعف بالسيطرة على الإدارات أو عدم إلمام كافٍ بتفاصيل الشركة أولًا بأول، ويستحق أن يُطرح مع الرئيس التنفيذي أثناء التقييم.";
       else interpretation = "تأخر كبير ومتكرر برفع التقرير المالي والتشغيلي — مؤشر مقلق على ضعف السيطرة الإدارية والإلمام بتفاصيل الشركة، يستحق مناقشة مباشرة مع الرئيس التنفيذي أثناء هذا التقييم.";
-      payload.auto_context_note = `📊 متوسط درجة الانضباط بمواعيد رفع التقرير (آخر ${reports.length} تقارير): ${avg.toFixed(0)}%\n${interpretation}`;
+      payload.auto_context_note = `متوسط درجة الانضباط بمواعيد رفع التقرير (آخر ${reports.length} تقارير): ${avg.toFixed(0)}%\n${interpretation}`;
     }
   }
 
-  // Board member: an automatic "الانضباط والالتزام" score computed from real behavior —
-  // response to meeting requests within their deadline, and abstaining from a decision vote
-  // without writing a justification — actually factored into the final average (inserted as
-  // a "النظام (تلقائي)" review row), not just shown as a side note for a human to weigh.
-  let autoDisciplineScore = null;
-  if(entity_type === "عضو مجلس"){
-    const { data: member } = await sb.from("board_members").select("*")
-      .eq("company_id", currentCompanyId).eq("name", entity_name).maybeSingle();
-    if(member && member.claimed_by_email){
-      const email = member.claimed_by_email;
+  // Automatic, system-computed sub-scores — never a human vote. Extends the discipline score
+  // that already existed with two more objectively trackable dimensions: real attendance rate
+  // and real voting participation rate. Each becomes its own "النظام (تلقائي)" row so it enters
+  // the final average on equal footing with the human-scored criteria, not as a side note.
+  const autoScores = []; // { criterion, score, note }
+  if(evaluated_role === "عضو مجلس" || evaluated_role === "رئيس مجلس"){
+    const { data: member } = await sb.from("board_members").select("*").eq("company_id", currentCompanyId).eq("claimed_by_email", evaluated_email).maybeSingle();
+    if(member){
+      const email = evaluated_email;
 
-      const { data: allRequests } = await sb.from("meeting_requests").select("id,response_deadline")
-        .eq("company_id", currentCompanyId).not("response_deadline","is",null);
+      // 1) Response discipline (existing metric, unchanged)
+      const { data: allRequests } = await sb.from("meeting_requests").select("id,response_deadline").eq("company_id", currentCompanyId).not("response_deadline","is",null);
       const reqIds = (allRequests||[]).map(r=>r.id);
       const { data: myResponses } = reqIds.length
         ? await sb.from("meeting_request_responses").select("request_id,created_at").in("request_id", reqIds).eq("reviewer_email", email)
@@ -18198,10 +18231,7 @@ async function savePerf(){
       (myResponses||[]).forEach(r => { respTimeByReq[r.request_id] = r.created_at; });
       const totalReq = (allRequests||[]).length;
       let onTimeCount = 0;
-      (allRequests||[]).forEach(r => {
-        const t = respTimeByReq[r.id];
-        if(t && new Date(t) <= new Date(r.response_deadline)) onTimeCount++;
-      });
+      (allRequests||[]).forEach(r => { const t = respTimeByReq[r.id]; if(t && new Date(t) <= new Date(r.response_deadline)) onTimeCount++; });
 
       const { data: myVotes } = await sb.from("board_decision_votes").select("vote,justification").eq("voter_email", email);
       const totalVotes = (myVotes||[]).length;
@@ -18209,28 +18239,43 @@ async function savePerf(){
 
       if(totalReq > 0 || totalVotes > 0){
         let score = 5;
-        if(totalReq > 0) score -= (1 - onTimeCount/totalReq) * 2; // up to -2 for full non-response
-        if(totalVotes > 0) score -= (unjustifiedAbstentions/totalVotes) * 2; // up to -2 for all-unjustified-abstain
+        if(totalReq > 0) score -= (1 - onTimeCount/totalReq) * 2;
+        if(totalVotes > 0) score -= (unjustifiedAbstentions/totalVotes) * 2;
         score = Math.max(1, Math.min(5, score));
-        autoDisciplineScore = score;
+        autoScores.push({ criterion: "الانضباط والالتزام (آلي)", score,
+          note: `استجاب لـ${onTimeCount} من ${totalReq} طلبات اجتماع خلال المهلة المحددة. امتنع بدون مبرر واضح في ${unjustifiedAbstentions} من ${totalVotes} تصويتات.` });
+      }
 
-        const notePieces = [];
-        if(totalReq > 0) notePieces.push(`استجاب لـ${onTimeCount} من ${totalReq} طلبات اجتماع خلال المهلة المحددة.`);
-        if(totalVotes > 0) notePieces.push(`امتنع عن التصويت بدون مبرر واضح في ${unjustifiedAbstentions} من ${totalVotes} تصويتات شارك فيها.`);
-        payload.auto_context_note = `📊 مؤشرات الانضباط الآلية: ${notePieces.join(" ")} — درجة الانضباط المحسوبة تلقائيًا: ${score.toFixed(1)}/5 (مُدرجة ضمن المعدل النهائي).`;
+      // 2) Real attendance rate across actual meetings, reusing the same computation used
+      // elsewhere in governance reports — matched by board_members.id, not email.
+      const attendanceStats = await computeAttendancePercentages();
+      const myAttendanceStat = attendanceStats.find(a => a.name === member.name && a.pct !== null);
+      if(myAttendanceStat){
+        const rate = myAttendanceStat.pct / 100;
+        autoScores.push({ criterion: "نسبة الحضور الفعلية (آلي)", score: 1 + rate*4,
+          note: `نسبة الحضور الفعلية: ${myAttendanceStat.pct}% (${myAttendanceStat.present} من ${myAttendanceStat.total} اجتماعًا).` });
+      }
+
+      // 3) Real decision-voting participation rate
+      const { data: allDecisions } = await sb.from("board_decisions").select("id").eq("company_id", currentCompanyId);
+      if(allDecisions && allDecisions.length > 0){
+        const participationRate = totalVotes / allDecisions.length;
+        autoScores.push({ criterion: "نسبة المشاركة بالتصويت (آلي)", score: 1 + Math.min(1,participationRate)*4,
+          note: `شارك بالتصويت على ${totalVotes} من ${allDecisions.length} قرارًا مطروحًا.` });
       }
     }
   }
 
   const { data: newEval, error } = await sb.from("performance_evaluations").insert([payload]).select().single();
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
-  if(autoDisciplineScore !== null){
-    await sb.from("performance_evaluation_reviews").insert([{
+
+  if(autoScores.length){
+    await sb.from("performance_evaluation_reviews").insert(autoScores.map(a => ({
       evaluation_id: newEval.id, reviewer_email: "system@hwkm.internal", reviewer_name: "النظام (تلقائي)",
-      criterion: "الانضباط والالتزام (آلي)", score: Math.round(autoDisciplineScore), company_id: currentCompanyId
-    }]);
+      criterion: a.criterion, score: Math.round(a.score), notes: a.note, company_id: currentCompanyId
+    })));
   }
-  document.getElementById("mpe-entity").value=""; document.getElementById("mpe-period").value="";
+
   closeM("m-perf"); loadPerf();
 }
 
@@ -18245,10 +18290,98 @@ async function closePerfEvaluation(id){
   loadPerf();
 }
 
-const PERF_CRITERIA_BOARD = ["الفاعلية والحضور","جودة القرارات الاستراتيجية","الالتزام بمعايير الحوكمة","التفاعل مع الإدارة التنفيذية","الرقابة على الأداء المالي"];
-const PERF_CRITERIA_EXEC = ["الأهداف الاستراتيجية","الأداء التشغيلي","القيادة والفريق","الامتثال والحوكمة","السيطرة على الإدارات وانضباط التقارير","الإلمام بتفاصيل الشركة أولًا بأول"];
-function getPerfCriteria(entityType){
-  return entityType === "تنفيذي" ? PERF_CRITERIA_EXEC : PERF_CRITERIA_BOARD;
+/* Determines a board member's actual evaluation role from real data — chairman via their
+   user_company_memberships role, executive via board_members.is_executive, else a regular
+   member. This is what actually picks the question bank and the auto-assigned reviewer
+   audience; it is never typed by hand. */
+async function getEvaluatedPersonRole(email){
+  if(!email) return "عضو مجلس";
+  const { data: membership } = await sb.from("user_company_memberships").select("role").eq("company_id", currentCompanyId).eq("email", email).maybeSingle();
+  if(membership && membership.role === "رئيس مجلس") return "رئيس مجلس";
+  const { data: bm } = await sb.from("board_members").select("is_executive").eq("company_id", currentCompanyId).eq("claimed_by_email", email).maybeSingle();
+  if(bm && bm.is_executive) return "تنفيذي";
+  return "عضو مجلس";
+}
+
+/* Everyone eligible to be evaluated (has a linked account) plus their real role — powers both
+   the "من نقيّم" picker and, per person, who else should automatically review them. */
+async function getPerfEligiblePeople(){
+  const { data: members } = await sb.from("board_members").select("id,name,claimed_by_email,is_executive").eq("company_id", currentCompanyId).not("claimed_by_email","is",null);
+  const { data: chairMembership } = await sb.from("user_company_memberships").select("email").eq("company_id", currentCompanyId).eq("role","رئيس مجلس").maybeSingle();
+  const chairEmail = chairMembership ? chairMembership.email : null;
+  return (members||[]).map(m => ({
+    id: m.id, name: m.name, email: m.claimed_by_email,
+    role: m.claimed_by_email && m.claimed_by_email === chairEmail ? "رئيس مجلس" : (m.is_executive ? "تنفيذي" : "عضو مجلس"),
+  }));
+}
+
+/* Who should automatically evaluate this person — every other linked board member (never
+   themselves), regardless of whether they're being evaluated as chairman, member, or exec. */
+async function getPerfReviewerAudience(evaluatedEmail){
+  const people = await getPerfEligiblePeople();
+  return people.filter(p => p.email !== evaluatedEmail).map(p => p.email);
+}
+
+/* Results visibility: nominations-committee members if that committee actually has anyone in
+   it, otherwise the board chairman only — never a broader "any governance admin" set. Sole
+   proprietorships have no board, so it collapses to "the owner" (مدير النظام) by definition. */
+async function getPerfResultsAllowedRoles(){
+  if(currentCompanyType === "مؤسسة فردية") return ["مدير النظام"];
+  const { data: nomCommittee } = await sb.from("user_company_memberships").select("role").eq("company_id", currentCompanyId).in("role",["رئيس لجنة الترشيحات","عضو لجنة الترشيحات"]);
+  if(nomCommittee && nomCommittee.length > 0) return ["رئيس لجنة الترشيحات","عضو لجنة الترشيحات"];
+  return ["رئيس مجلس"];
+}
+
+const PERF_CRITERIA_MEMBER = [
+  "يشارك بالمعلومات أو الأفكار",
+  "يحضر اجتماعات مجلس الإدارة بانتظام وفي الوقت المحدد",
+  "يشارك بنشاط في أنشطة مجلس الإدارة، ويعمل بشكل بناء مع زملائه في المجلس",
+  "يتخذ مواقف بناءة وفعالة في اجتماعات مجلس الإدارة أو اللجان، عند الحاجة إلى ذلك",
+  "يتقبل ردود فعل وإبداء ملاحظات مجلس الإدارة",
+  "يحرص على التزام الاجتماعات بجدول الأعمال",
+  "يساهم بشكل فعال في التصدي للخلافات وإيجاد الحلول",
+  "يقدم رأيه بصدق في القضايا المطروحة",
+  "يقدم آراء متميزة في القضايا المطروحة ولديه المهارات",
+  "قادر على ترتيب الأولويات والتركيز على تحقيق الأهداف",
+  "يحفز الآخرين من أجل تحقيق الإنجازات",
+  "يقدم المشورة البناءة في مناقشات ومداولات المجلس",
+  "يمتلك مهارات تحليلية تساهم في عملية صنع القرار",
+  "يتجنب الاصطدام بالآخرين",
+  "يساهم بإضافات جديدة في اجتماعات مجلس الإدارة ويحضر الاجتماعات ويُعدّ لها إعدادًا جيدًا",
+  "يبادر في طلب المعلومات لاكتساب المعرفة",
+  "يحفز الأعضاء على المشاركة بفعالية في المواضيع المطروحة",
+  "يركز على تحقيق الأهداف",
+  "يعمل على ربط الأهداف باستراتيجيات الشركة",
+  "يعمل على الاستغلال الأمثل للموارد البشرية والمالية لتخطيط الخطط الاستراتيجية للشركة",
+];
+const PERF_CRITERIA_CHAIRMAN = [
+  ...PERF_CRITERIA_MEMBER,
+  "قادر على قيادة المجلس بشكل فعال ويشجع على مشاركة جميع الأعضاء",
+  "علاقة العمل بينه وبين الرئيس التنفيذي جيدة وبنّاءة",
+  "يعي هو والرئيس التنفيذي المهام الموكلة لكل منهما بوضوح",
+];
+const PERF_CRITERIA_EXEC = [
+  "يحضر اجتماعات مجلس الإدارة بانتظام ويقدّم التقارير المطلوبة في وقتها",
+  "ينفّذ قرارات مجلس الإدارة بفعالية والتزام",
+  "يوفّر معلومات دقيقة وشفافة وفي وقتها المناسب للمجلس",
+  "يمتلك رؤية واضحة لاستراتيجية الشركة وأهدافها طويلة المدى",
+  "يدير الموارد البشرية والمالية بكفاءة تخدم الخطة الاستراتيجية",
+  "يبني علاقة عمل بنّاءة وشفافة مع رئيس مجلس الإدارة وأعضائه",
+  "يتحمّل المسؤولية عن نتائج الأداء التشغيلي والمالي للشركة",
+  "يبادر بطرح المخاطر والتحديات على المجلس قبل تفاقمها",
+  "يحرص على الامتثال للأنظمة واللوائح ومعايير الحوكمة",
+  "يقود فريق الإدارة التنفيذية بفعالية ويحقق نتائج ملموسة",
+];
+// Which bank applies depends on the person's actual role, not a free-typed "type" — see
+// getEvaluatedPersonRole(). entityType is kept only as a fallback for legacy rows saved before
+// this change (their evaluated_email is null, so we can't re-derive the role from data).
+function getPerfCriteria(entityType, personRole){
+  if(personRole === "رئيس مجلس") return PERF_CRITERIA_CHAIRMAN;
+  if(personRole === "تنفيذي") return PERF_CRITERIA_EXEC;
+  if(personRole === "عضو مجلس") return PERF_CRITERIA_MEMBER;
+  // Legacy fallback by entity_type for evaluations saved before role-based banks existed
+  if(entityType === "تنفيذي") return PERF_CRITERIA_EXEC;
+  return PERF_CRITERIA_MEMBER;
 }
 
 /* Board members & nomination-committee members submit their own rating here, item by item */
@@ -18258,26 +18391,45 @@ async function loadPerfReviewSection(){
   const role = getCurrentRole();
   if(role === 'مساهم'){ box.innerHTML = ""; return; }
 
-  const { data: openEvals, error } = await sb.from("performance_evaluations")
-    .select("*").eq("company_id", currentCompanyId).eq("status", "مفتوح للتقييم").order("id",{ascending:false});
-  if(error){ box.innerHTML = '<div style="color:var(--red);font-size:12px">تعذّر التحميل: '+error.message+'</div>'; return; }
-  if(!openEvals || openEvals.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px">لا توجد تقييمات مفتوحة حاليًا.</div>'; return; }
-
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
+
+  const { data: allOpenEvals, error } = await sb.from("performance_evaluations")
+    .select("*").eq("company_id", currentCompanyId).eq("status", "مفتوح للتقييم").order("id",{ascending:false});
+  if(error){ box.innerHTML = '<div style="color:var(--red);font-size:12px">تعذّر التحميل: '+error.message+'</div>'; return; }
+
+  // Never show someone their own evaluation, and only show evaluations this person is
+  // actually part of the auto-assigned reviewer audience for (peers only, self excluded) —
+  // legacy rows saved before evaluated_email existed fall back to "everyone eligible" so they
+  // don't just silently vanish.
+  const openEvals = [];
+  for(const ev of (allOpenEvals||[])){
+    if(ev.evaluated_email && ev.evaluated_email === myEmail) continue;
+    if(ev.evaluated_email){
+      const audience = await getPerfReviewerAudience(ev.evaluated_email);
+      if(!audience.includes(myEmail)) continue;
+    }
+    openEvals.push(ev);
+  }
+  if(openEvals.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px">لا توجد تقييمات مفتوحة تخصّك حاليًا.</div>'; return; }
+
   const ids = openEvals.map(e=>e.id);
   const { data: myReviews } = await sb.from("performance_evaluation_reviews").select("*").in("evaluation_id", ids).eq("reviewer_email", myEmail||"");
   const mineByEvalCriterion = {};
   (myReviews||[]).forEach(r => { mineByEvalCriterion[r.evaluation_id+'|'+r.criterion] = r; });
 
+  // Resolve each evaluation's real role once (drives which question bank renders)
+  const rolesByEval = {};
+  for(const ev of openEvals){ rolesByEval[ev.id] = ev.evaluated_email ? await getEvaluatedPersonRole(ev.evaluated_email) : null; }
+
   box.innerHTML = openEvals.map(ev => {
-    const criteria = getPerfCriteria(ev.entity_type);
+    const criteria = getPerfCriteria(ev.entity_type, rolesByEval[ev.id]);
     const savedNotes = criteria.map(c => mineByEvalCriterion[ev.id+'|'+c]).find(r=>r&&r.notes)?.notes || "";
-    const icon = ev.entity_type === "تنفيذي" ? "👔" : (ev.entity_type === "لجنة" ? "🏛️" : "🧑‍💼");
+    const roleLabel = rolesByEval[ev.id] || ev.entity_type || "";
     return `<div style="border-radius:14px;overflow:hidden;box-shadow:0 4px 16px rgba(10,22,40,0.08);margin-bottom:18px;border:1px solid var(--gray1)">
       <div style="background:linear-gradient(135deg,var(--primary),var(--accent));padding:14px 16px;color:#fff">
-        <div style="font-weight:900;font-size:14px">${icon} ${ev.entity_name||""}</div>
-        <div style="font-size:11px;opacity:0.85;margin-top:2px">${ev.entity_type||""} · الفترة: ${ev.period||""}</div>
+        <div style="font-weight:900;font-size:14px">${ev.entity_name||""}</div>
+        <div style="font-size:11px;opacity:0.85;margin-top:2px">${roleLabel} · الفترة: ${ev.period||""}</div>
       </div>
       <div style="padding:16px;background:#fff">
         ${ev.auto_context_note ? `<div style="background:#FEF3E2;border-right:3px solid var(--gold);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11.5px;color:var(--dark);white-space:pre-line;line-height:1.7">${ev.auto_context_note}</div>` : ""}
