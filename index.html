@@ -195,6 +195,11 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 .ni-icon{font-size:16.5px;min-width:20px;text-align:center;opacity:0.85;}
 .ni-icon.ico{opacity:0.8;width:18px;height:18px;min-width:18px;color:var(--gray1);}
 .ni-text{font-size:12.5px;color:var(--gray1);flex:1;}
+/* Locked-but-visible nav items (package upsell) — dimmed and marked with a small lock icon,
+   distinct from a normal item, but still discoverable and clickable to see what it unlocks. */
+.nav-item.nav-locked{opacity:0.55;}
+.nav-item.nav-locked:hover{opacity:0.85;}
+.nav-item.nav-locked .nav-lock-badge{color:var(--gold2);flex-shrink:0;}
 .ni-badge{
   font-size:10px;font-weight:700;padding:2px 7px;
   border-radius:10px;min-width:18px;text-align:center;
@@ -2268,11 +2273,20 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 <!-- ══ RESTRICTED ACCESS PLACEHOLDER ══════ -->
 <div id="p-restricted" class="page content">
   <div style="display:flex;align-items:center;justify-content:center;min-height:60vh">
-    <div class="card" style="max-width:380px;text-align:center;padding:10px">
+    <div class="card" style="max-width:400px;text-align:center;padding:10px" id="restrictedCard">
       <div class="card-body">
-        <div style="font-size:44px;margin-bottom:10px"><span class="ico ico-shield" style="width:16px;height:16px"></span></div>
+        <div id="restrictedGenericIcon" style="margin-bottom:14px"><span class="ico ico-shield" style="width:32px;height:32px;color:var(--gray3)"></span></div>
         <div style="font-size:16px;font-weight:800;color:var(--dark);margin-bottom:6px" id="restrictedTitle">هذا القسم غير متاح</div>
-        <div style="font-size:12.5px;color:var(--gray3);line-height:1.8">صلاحيتك الحالية (<b id="restrictedRole">—</b>) لا تسمح بعرض محتوى هذا القسم.<br>تواصل مع مدير النظام إذا كنت تحتاج وصولًا إضافيًا.</div>
+        <div id="restrictedGenericBody" style="font-size:12.5px;color:var(--gray3);line-height:1.8">صلاحيتك الحالية (<b id="restrictedRole">—</b>) لا تسمح بعرض محتوى هذا القسم.<br>تواصل مع مدير النظام إذا كنت تحتاج وصولًا إضافيًا.</div>
+
+        <!-- Package-upgrade variant — swapped in instead of the generic message above when the
+             block reason is specifically "not part of your current package", not a role issue. -->
+        <div id="restrictedUpgradeBlock" style="display:none">
+          <div style="margin-bottom:10px"><span class="ico ico-lock" style="width:32px;height:32px;color:var(--gold)"></span></div>
+          <div style="font-size:16px;font-weight:800;color:var(--dark);margin-bottom:8px">هذي الميزة ضمن باقة <span id="restrictedPkgName" style="color:var(--gold)">فضية</span></div>
+          <div style="font-size:12.5px;color:var(--gray3);line-height:1.8;margin-bottom:16px" id="restrictedUpgradeDesc">إدارة المخاطر المؤسسية بشكل رقمي كامل — سجل حي، متابعة خطط المعالجة، وتنبيهات استباقية.</div>
+          <button class="btn btn-gold" style="width:100%" onclick="requestModuleUpgrade()" id="btnRequestUpgrade"><span class="ico-i ico-bolt"></span>اطلب تفعيل هذي الميزة</button>
+        </div>
       </div>
     </div>
   </div>
@@ -6757,10 +6771,18 @@ async function applyCompanyTypeVisibility(){
     }
     const moduleKey = MODULE_PAGE_MAP[pageId];
     if(moduleKey && !currentCompanyModules[moduleKey] && !isPlatformAdmin){
-      item.style.display = 'none';
+      // Locked, not hidden — the whole point of a package upsell is that people can see the
+      // feature exists. A completely invisible nav item can never turn into a sale.
+      item.style.display = '';
+      item.classList.add('nav-locked');
+      if(!item.querySelector('.nav-lock-badge')){
+        item.insertAdjacentHTML('beforeend', '<span class="ico nav-lock-badge ico-lock" style="width:11px;height:11px;margin-right:auto;opacity:0.75"></span>');
+      }
       return;
     }
     item.style.display = '';
+    item.classList.remove('nav-locked');
+    item.querySelector('.nav-lock-badge')?.remove();
   });
 }
 
@@ -19040,6 +19062,39 @@ const titles={
 };
 
 let viewingPlatformOverview = false;
+let pendingUpgradeModuleKey = null;
+
+/* Lightweight upgrade request — no self-service checkout exists yet, so this just gets a clear,
+   specific request in front of HWKM's platform team by email, who then activates it via the
+   existing "Manage Active Subscription" tool once payment is arranged. */
+async function requestModuleUpgrade(){
+  if(!pendingUpgradeModuleKey) return;
+  const moduleLabel = { risk_management: 'إدارة المخاطر (الباقة الفضية)', internal_audit: 'التدقيق الداخلي (الباقة الذهبية)' }[pendingUpgradeModuleKey] || pendingUpgradeModuleKey;
+  const btn = document.getElementById('btnRequestUpgrade');
+  if(btn){ btn.disabled = true; btn.textContent = 'جارِ الإرسال...'; }
+
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData?.user?.email || '—';
+  const requesterName = currentUserProfile ? (currentUserProfile.full_name || myEmail) : myEmail;
+  const companyName = document.getElementById('companySwitcher')?.selectedOptions?.[0]?.textContent?.trim() || currentCompanyId;
+
+  const { success, error } = await sendNotificationEmail(
+    'info@hwkm.net',
+    `طلب ترقية باقة — ${companyName}`,
+    `<div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px">
+      <h2>🔓 طلب تفعيل ميزة إضافية</h2>
+      <p><b>الشركة:</b> ${companyName} (ID: ${currentCompanyId})</p>
+      <p><b>الميزة المطلوبة:</b> ${moduleLabel}</p>
+      <p><b>مقدَّم من:</b> ${requesterName} (${myEmail})</p>
+    </div>`
+  );
+
+  if(btn){ btn.disabled = false; }
+  if(!success){ alert('تعذّر إرسال الطلب: ' + error); if(btn) btn.textContent = 'اطلب تفعيل هذي الميزة'; return; }
+  if(btn){ btn.innerHTML = '<span class="ico-i ico-check"></span>تم إرسال طلبك ✅'; btn.style.background = 'var(--green)'; }
+  setTimeout(() => alert('وصل طلبك لفريقنا — بنتواصل معك قريبًا لإتمام الترقية.'), 200);
+}
+
 let currentPageId = null;
 
 async function go(id, el){
@@ -19055,6 +19110,22 @@ async function go(id, el){
     const t0 = titles[id] ? titles[id][0] : id;
     document.getElementById('restrictedTitle').textContent = t0 + ' — غير متاح';
     document.getElementById('restrictedRole').textContent = role;
+
+    // Distinguish "not in your package" from an actual role restriction — only the former
+    // gets the upsell treatment; a real permission wall still shows the plain message.
+    const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
+    const moduleKey = MODULE_PAGE_MAP[id];
+    const isModuleBlock = moduleKey && !currentCompanyModules[moduleKey] && !isPlatformAdmin;
+    document.getElementById('restrictedGenericIcon').style.display = isModuleBlock ? 'none' : 'block';
+    document.getElementById('restrictedGenericBody').style.display = isModuleBlock ? 'none' : 'block';
+    document.getElementById('restrictedUpgradeBlock').style.display = isModuleBlock ? 'block' : 'none';
+    if(isModuleBlock){
+      pendingUpgradeModuleKey = moduleKey;
+      const pkgInfo = { risk_management: { name: 'فضية', desc: 'إدارة المخاطر المؤسسية بشكل رقمي كامل — سجل حي، متابعة خطط المعالجة، وتنبيهات استباقية.' },
+                        internal_audit: { name: 'ذهبية', desc: 'إدارة كاملة لخطة التدقيق الداخلي وتنفيذها ومتابعتها رقميًا، بدل ملفات إكسل متناثرة.' } }[moduleKey];
+      document.getElementById('restrictedPkgName').textContent = pkgInfo?.name || 'أعلى';
+      document.getElementById('restrictedUpgradeDesc').textContent = pkgInfo?.desc || '';
+    }
   } else {
     const pg=document.getElementById('p-'+id);
     if(pg) pg.classList.add('active');
