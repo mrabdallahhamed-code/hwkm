@@ -1703,42 +1703,41 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 
 <!-- ══ PERF ════════════════════════════════ -->
 <div id="p-perf" class="page content">
-  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
-    <span><span class="ico-i ico-ruler"></span>تقييم الأداء</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openPerfModal()">+ فتح تقييم جديد</button>
-  </div>
+  <!-- LIST VIEW: one card per evaluable person, split by board vs. senior executive management -->
+  <div id="perfListView">
+    <div class="sec-title"><span class="ico-i ico-ruler"></span>تقييم الأداء</div>
 
-  <!-- Board / nomination-committee review submission (visible to all board-level roles) -->
-  <div class="card" style="margin-bottom:18px" id="perfReviewCard">
-    <div class="card-head"><span class="card-title"><span class="ico-i ico-ballot"></span>تقييمات تحتاج تقييمك</span></div>
-    <div class="card-body" id="perfReviewBody" style="padding:14px">
-      <div style="text-align:center;color:var(--gray3);font-size:12px">جارِ التحميل...</div>
+    <div class="sec-title" style="margin-top:6px"><span class="ico-i ico-users"></span>تقييمات مجلس الإدارة</div>
+    <div id="perfBoardCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:28px">
+      <div style="text-align:center;color:var(--gray3);font-size:12px;grid-column:1/-1">جارِ التحميل...</div>
+    </div>
+
+    <div class="sec-title"><span class="ico-i ico-briefcase"></span>تقييمات الإدارة التنفيذية العليا</div>
+    <div id="perfExecCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px">
+      <div style="text-align:center;color:var(--gray3);font-size:12px;grid-column:1/-1">جارِ التحميل...</div>
     </div>
   </div>
 
-  <!-- Final results — visible to مدير النظام only -->
-  <div id="perfResultsSection" style="display:none">
-    <div class="sec-title"><span class="ico-i ico-users"></span>نسبة الحضور الفعلية (من سجلات الاجتماعات الحقيقية)</div>
-    <div class="card" style="margin-bottom:18px">
-      <div class="card-body" id="perfAttendanceWidget">
-        <div style="text-align:center;color:var(--gray3);font-size:12px">جارِ التحميل...</div>
-      </div>
-    </div>
+  <!-- DETAIL VIEW: replaces the list entirely while open — either the reviewer's own scoring
+       form, or (for authorized viewers) the finished results breakdown with PDF export. -->
+  <div id="perfDetailView" style="display:none">
+    <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px;margin-bottom:16px" onclick="closePerfDetail()"><span class="ico-i ico-refresh"></span>رجوع لقائمة التقييمات</button>
+    <div id="perfDetailBody"></div>
+  </div>
+</div>
 
-    <div class="sec-title"><span class="ico-i ico-ruler"></span>سجل تقييمات الأداء (النتائج النهائية والمفتوحة)</div>
-    <div id="perfResultsCards"></div>
-
-    <div class="sec-title" style="margin-top:20px"><span class="ico-i ico-clipboard"></span>كل التقييمات (جدول)</div>
-    <div class="card">
-      <div class="card-body" style="padding:0">
-        <table class="tbl">
-          <thead><tr><th>الجهة/الشخص</th><th>النوع</th><th>الفترة</th><th>الحالة</th><th>عدد المقيّمين</th><th>الدرجة النهائية</th><th>إجراء</th></tr></thead>
-          <tbody id="perfTbody">
-            <tr><td colspan="7" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
-          </tbody>
-        </table>
-      </div>
+<!-- Reviewer's own signed copy of their submitted evaluation -->
+<div class="modal-bg" id="m-perf-sign">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title"><span class="ico-i ico-signature"></span>توقيعك على تقييمك</div>
+    <p style="font-size:11.5px;color:var(--gray3);margin-bottom:6px">وقّع بإصبعك أو الماوس، ثم نزّل نسختك الموقّعة PDF.</p>
+    <div style="border:2px dashed var(--gray1);border-radius:10px;background:#fff;touch-action:none">
+      <canvas id="perfSigCanvas" width="440" height="150" style="width:100%;height:150px;cursor:crosshair;display:block"></canvas>
     </div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-ghost" style="flex:1" onclick="clearPerfSigPad()"><span class="ico-i ico-trash"></span>مسح</button>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-perf-sign')">إلغاء</button><button class="btn btn-gold" onclick="confirmPerfReviewSignature()"><span class="ico-i ico-inbox"></span>تنزيل النسخة الموقّعة (PDF)</button></div>
   </div>
 </div>
 
@@ -3907,19 +3906,6 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   </div>
 </div>
 
-<!-- Add performance evaluation modal -->
-<div class="modal-bg" id="m-perf">
-  <div class="modal">
-    <div class="modal-title" id="mpe-title"><span class="ico-i ico-ruler"></span>فتح تقييم جديد</div>
-    <input type="hidden" id="mpe-id" value="" />
-    <div class="fg"><label>الشخص المُقيَّم</label>
-      <select class="fs" id="mpe-entity-select"></select>
-    </div>
-    <div class="fg"><label>الفترة</label><input class="fi" id="mpe-period" placeholder="مثال: 2026" /></div>
-    <p style="font-size:11px;color:var(--gray3)">يُحدَّد بنك الأسئلة والمقيّمون تلقائيًا حسب دور الشخص الفعلي — بدون تدخل يدوي.</p>
-    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-perf')">إلغاء</button><button class="btn btn-gold" onclick="savePerf()"><span class="ico-i ico-check"></span>فتح التقييم</button></div>
-  </div>
-</div>
 
 </div><!-- /appWrapper -->
 
@@ -18065,148 +18051,109 @@ async function advanceServiceRequest(){
 let perfCache = [];
 const PERF_SCORE_LABELS = {1:"ضعيف",2:"مقبول",3:"جيد",4:"جيد جدًا",5:"ممتاز"};
 
-async function loadPerfAttendanceWidget(){
-  const box = document.getElementById("perfAttendanceWidget");
-  if(!box) return;
-  const pcts = await computeAttendancePercentages();
-  const tracked = pcts.filter(p => p.pct !== null);
-  if(tracked.length === 0){
-    box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px">لا توجد سجلات حضور مسجّلة بعد. سجّل الحضور من تفاصيل أي اجتماع مجلس.</div>';
-    return;
-  }
-  box.innerHTML = tracked.map(p => `<div class="comp-item"><div class="comp-head"><span class="comp-name">${p.name} <span style="font-size:10px;color:var(--gray3)">(${p.position||""})</span></span><span class="comp-pct">${p.pct}%</span></div><div class="comp-track"><div class="comp-fill" style="width:${p.pct}%"></div></div></div>`).join("");
-}
-
 const PERF_AUTO_CRITERIA = ["الانضباط والالتزام (آلي)", "نسبة الحضور الفعلية (آلي)", "نسبة المشاركة بالتصويت (آلي)"];
 
-async function loadPerf(){
-  const resultsSection = document.getElementById("perfResultsSection");
-  const isAdmin = await canSeePerfResults();
-  if(resultsSection) resultsSection.style.display = isAdmin ? "block" : "none";
-
-  loadPerfReviewSection();
-
-  if(!isAdmin) return; // Only nominations-committee members (or the chairman, if no such committee exists), or HWKM's own platform owner
-  loadPerfAttendanceWidget();
-  const tbody = document.getElementById("perfTbody");
-  const cardsWrap = document.getElementById("perfResultsCards");
-  if(!tbody) return;
-  const { data, error } = await sb.from("performance_evaluations").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
-  if(error){ tbody.innerHTML = errorRowHTML(7, error.message); return; }
-  if(!data || data.length===0){
-    tbody.innerHTML = emptyRowHTML(7, 'لا توجد بيانات بعد. اضغط "+ فتح تقييم جديد" للبدء.');
-    if(cardsWrap) cardsWrap.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">لا توجد تقييمات بعد.</div>';
-    return;
-  }
-  perfCache = data;
-
-  const ids = data.map(p=>p.id);
-  const { data: reviews } = await sb.from("performance_evaluation_reviews").select("*").in("evaluation_id", ids);
-  const reviewsByEval = {};
-  (reviews||[]).forEach(rv => {
-    if(!reviewsByEval[rv.evaluation_id]) reviewsByEval[rv.evaluation_id] = [];
-    reviewsByEval[rv.evaluation_id].push(rv);
-  });
-
-  // Resolve each evaluation's real role once, for the correct question bank in the bars below
-  const rolesByEval = {};
-  for(const p of data){ rolesByEval[p.id] = p.evaluated_email ? await getEvaluatedPersonRole(p.evaluated_email) : null; }
-
-  // Polished progress-bar cards (one per evaluation)
-  if(cardsWrap){
-    cardsWrap.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px;align-items:stretch">' + data.map(p => {
-      const revs = reviewsByEval[p.id] || [];
-      const uniqueReviewers = new Set(revs.map(r=>r.reviewer_email)).size;
-      const statusBadge = p.status === "مكتمل" ? '<span class="badge done">مكتمل</span>' : '<span class="badge pending">مفتوح للتقييم</span>';
-
-      const byCrit = {};
-      revs.forEach(r => {
-        const c = r.criterion || "عام";
-        if(!byCrit[c]) byCrit[c] = [];
-        byCrit[c].push(r.score||0);
-      });
-      const criteriaOrder = getPerfCriteria(p.entity_type, rolesByEval[p.id]);
-      const bars = criteriaOrder.filter(c=>byCrit[c]).map(c => {
-        const avg = byCrit[c].reduce((a,b)=>a+b,0)/byCrit[c].length;
-        const pct = Math.round((avg/5)*100);
-        return `<div class="comp-item"><div class="comp-head"><span class="comp-name">${c}</span><span class="comp-pct">${pct}%</span></div><div class="comp-track"><div class="comp-fill" style="width:${pct}%"></div></div></div>`;
-      }).join("");
-      const autoBars = PERF_AUTO_CRITERIA.filter(c=>byCrit[c]).map(c => {
-        const avg = byCrit[c].reduce((a,b)=>a+b,0)/byCrit[c].length;
-        const pct = Math.round((avg/5)*100);
-        return `<div class="comp-item"><div class="comp-head"><span class="comp-name"><span class="ico ico-bolt" style="width:12px;height:12px;color:var(--gold)"></span> ${c}</span><span class="comp-pct">${pct}%</span></div><div class="comp-track"><div class="comp-fill" style="width:${pct}%;background:var(--gold)"></div></div></div>`;
-      }).join("");
-      const autoSection = autoBars ? `<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--gray1)">
-        <div style="font-size:10px;font-weight:700;color:var(--gray3);margin-bottom:6px">مؤشرات محسوبة تلقائيًا من بيانات النظام الفعلية</div>
-        ${autoBars}
-      </div>` : "";
-
-      const closeBtn = p.status !== "مكتمل" && revs.length
-        ? `<button class="btn btn-gold" style="font-size:11px;padding:6px 14px;margin-top:10px;width:100%" onclick="closePerfEvaluation(${p.id})"><span class="ico-i ico-shield"></span>إغلاق واعتماد النتيجة النهائية</button>`
-        : "";
-
-      return `<div class="card" style="margin:0;display:flex;flex-direction:column">
-        <div class="card-head"><span class="card-title">${p.entity_name||""} <span style="font-size:11px;color:var(--gray3);font-weight:600">— ${p.period||""}</span></span>${statusBadge}</div>
-        <div class="card-body" style="display:flex;flex-direction:column;flex:1">
-          ${bars || '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا توجد تقييمات مسجّلة من الأعضاء بعد.</div>'}
-          ${autoSection}
-          <div style="font-size:11px;color:var(--gray3);margin-top:8px"><span class="ico-i ico-users"></span>عدد المقيّمين: ${uniqueReviewers}${p.score!=null ? " · الدرجة الإجمالية: "+Number(p.score).toFixed(1)+"/5 — "+(PERF_SCORE_LABELS[Math.round(p.score)]||"") : ""}</div>
-          <div style="margin-top:auto;padding-top:8px">${closeBtn}</div>
-        </div>
-      </div>`;
-    }).join("") + '</div>';
-  }
-
-  tbody.innerHTML = data.map(p => {
-    const revs = reviewsByEval[p.id] || [];
-    const uniqueReviewers = new Set(revs.map(r=>r.reviewer_email)).size;
-    const statusBadge = p.status === "مكتمل" ? '<span class="badge done">مكتمل</span>' : '<span class="badge pending">مفتوح للتقييم</span>';
-    const scoreDisplay = p.score!=null ? (Number(p.score).toFixed(1) + "/5 — " + (PERF_SCORE_LABELS[Math.round(p.score)]||"")) : "—";
-    return `<tr>
-      <td>${p.entity_name||""}</td><td>${rolesByEval[p.id]||p.entity_type||"—"}</td><td>${p.period||"—"}</td>
-      <td>${statusBadge}</td>
-      <td style="text-align:center">${uniqueReviewers}</td>
-      <td>${scoreDisplay}</td>
-      <td>${p.status!=="مكتمل" && revs.length ? `<button class="btn-xs primary" onclick="closePerfEvaluation(${p.id})"><span class="ico-i ico-shield"></span>إغلاق</button>` : ""}</td>
-    </tr>`;
-  }).join("");
-}
-
-async function openPerfModal(){
-  const sel = document.getElementById("mpe-entity-select");
-  sel.innerHTML = '<option value="">جارِ التحميل...</option>';
-  document.getElementById("mpe-period").value = "";
-  openM("m-perf");
-
-  if(currentCompanyType === "مؤسسة فردية"){
-    // Sole proprietorships only ever evaluate the executive — nothing else is even offered.
-    const { data: execs } = await sb.from("board_members").select("id,name,claimed_by_email").eq("company_id", currentCompanyId).eq("is_executive", true).not("claimed_by_email","is",null);
-    if(!execs || execs.length===0){
-      sel.innerHTML = '<option value="">لا يوجد رئيس تنفيذي مرتبط بحساب بعد</option>';
-      return;
-    }
-    sel.innerHTML = execs.map(e => `<option value="${e.claimed_by_email}">${e.name} — الرئيس التنفيذي</option>`).join("");
-    return;
-  }
-
+/* Board members eligible for evaluation — everyone with a linked account except executives
+   (they get their own section, sourced from the org structure instead — see below). */
+async function getEvaluableBoardMembers(){
   const people = await getPerfEligiblePeople();
-  if(people.length===0){
-    sel.innerHTML = '<option value="">لا يوجد أعضاء مرتبطين بحسابات بعد</option>';
-    return;
-  }
-  sel.innerHTML = people.map(p => `<option value="${p.email}">${p.name} — ${p.role}</option>`).join("");
+  return people.filter(p => p.role !== "تنفيذي");
 }
 
-async function savePerf(){
-  const evaluated_email = document.getElementById("mpe-entity-select").value;
-  if(!evaluated_email){ alert("الرجاء اختيار الشخص المُقيَّم"); return; }
-  const period = document.getElementById("mpe-period").value.trim();
+/* Senior executive management is tied to the actual org chart, not a flag on a board row:
+   الرئيس التنفيذي، نواب الرئيس (إن وُجدوا), المدير المالي. A position only becomes evaluable
+   once its named holder is matched to an actual linked account (by full name) — someone
+   listed in the org chart with no linked account yet simply can't be evaluated until they are. */
+async function getEvaluableExecutives(){
+  const { data: positions } = await sb.from("org_structure").select("position_title,holder_name")
+    .eq("company_id", currentCompanyId).not("holder_name","is",null)
+    .or("position_title.ilike.%رئيس تنفيذي%,position_title.ilike.%نائب الرئيس%,position_title.ilike.%نائب رئيس%,position_title.ilike.%مدير مالي%,position_title.ilike.%المدير المالي%");
+  const results = [];
+  for(const pos of (positions||[])){
+    const { data: profile } = await sb.from("user_profiles").select("email").eq("full_name", pos.holder_name).maybeSingle();
+    if(!profile || !profile.email) continue;
+    const { data: membership } = await sb.from("user_company_memberships").select("email").eq("company_id", currentCompanyId).eq("email", profile.email).maybeSingle();
+    if(!membership) continue;
+    results.push({ name: pos.holder_name, email: profile.email, role: "تنفيذي", position: pos.position_title });
+  }
+  return results;
+}
 
+/* Who reviews an executive: every linked board member (voting members) — executives don't
+   review each other or themselves. */
+async function getExecReviewerAudience(){
+  const boardPeople = await getEvaluableBoardMembers();
+  return boardPeople.map(p => p.email);
+}
+
+async function loadPerf(){
+  const isAdmin = await canSeePerfResults();
+  const [boardPeople, execPeople] = await Promise.all([getEvaluableBoardMembers(), getEvaluableExecutives()]);
+  const { data: allEvals } = await sb.from("performance_evaluations").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
+  perfCache = allEvals || [];
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+
+  const latestEvalFor = (email) => (perfCache).find(e => e.evaluated_email === email);
+
+  async function renderCard(person, isExec){
+    const ev = latestEvalFor(person.email);
+    let statusHTML, actionHTML = "";
+    if(!ev){
+      statusHTML = `<span style="font-size:11px;color:var(--gray3)">لا يوجد تقييم مفتوح حاليًا</span>`;
+      if(isAdmin) actionHTML = `<button class="btn-xs gold" style="width:100%;margin-top:10px" onclick="openNewPerfEvaluation('${person.email}')"><span class="ico-i ico-add"></span>فتح تقييم جديد</button>`;
+    } else if(ev.status === "مكتمل"){
+      const scoreLabel = ev.score!=null ? (Number(ev.score).toFixed(1)+"/5 — "+(PERF_SCORE_LABELS[Math.round(ev.score)]||"")) : "—";
+      statusHTML = isAdmin
+        ? `<div style="font-size:22px;font-weight:900;color:var(--primary);margin-top:4px">${scoreLabel}</div>`
+        : `<span class="badge done">التقييم مكتمل</span>`;
+      actionHTML = `<button class="btn-xs primary" style="width:100%;margin-top:10px" onclick="openPerfDetail('${person.email}',${isExec})"><span class="ico-i ico-search"></span>التفاصيل</button>`;
+    } else {
+      const iAmReviewer = myEmail && myEmail !== person.email;
+      const { data: mySubmitted } = await sb.from("performance_evaluation_reviews").select("id").eq("evaluation_id", ev.id).eq("reviewer_email", myEmail||"").limit(1);
+      const alreadyDone = mySubmitted && mySubmitted.length > 0;
+      statusHTML = `<span class="badge pending">مفتوح للتقييم</span>`;
+      if(isAdmin) actionHTML += `<button class="btn-xs primary" style="width:100%;margin-top:8px" onclick="openPerfDetail('${person.email}',${isExec})"><span class="ico-i ico-search"></span>متابعة النتائج</button>`;
+      if(iAmReviewer && myEmail !== person.email){
+        actionHTML += alreadyDone
+          ? `<div style="text-align:center;color:var(--green);font-size:11px;margin-top:8px"><span class="ico-i ico-check"></span>أرسلت تقييمك</div>`
+          : `<button class="btn-xs gold" style="width:100%;margin-top:8px" onclick="openPerfDetail('${person.email}',${isExec})"><span class="ico-i ico-signature"></span>ابدأ التقييم</button>`;
+      }
+    }
+    return `<div class="card" style="margin:0">
+      <div class="card-body" style="text-align:center">
+        <div style="width:44px;height:44px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;margin:0 auto 8px">${(person.name||"?").charAt(0)}</div>
+        <div style="font-weight:800;font-size:13px;color:var(--dark)">${person.name||""}</div>
+        <div style="font-size:10.5px;color:var(--gray3);margin-bottom:6px">${person.position || person.role || ""}</div>
+        ${statusHTML}
+        ${actionHTML}
+      </div>
+    </div>`;
+  }
+
+  const boardBox = document.getElementById("perfBoardCards");
+  if(boardBox){
+    boardBox.innerHTML = boardPeople.length ? (await Promise.all(boardPeople.map(p=>renderCard(p,false)))).join("")
+      : '<div style="text-align:center;color:var(--gray3);font-size:12px;grid-column:1/-1">لا يوجد أعضاء مرتبطين بحسابات بعد.</div>';
+  }
+  const execBox = document.getElementById("perfExecCards");
+  if(execBox){
+    execBox.innerHTML = execPeople.length ? (await Promise.all(execPeople.map(p=>renderCard(p,true)))).join("")
+      : '<div style="text-align:center;color:var(--gray3);font-size:12px;grid-column:1/-1">لا يوجد شاغلو مناصب تنفيذية عليا مرتبطين بحسابات بعد (الرئيس التنفيذي / نواب الرئيس / المدير المالي بالهيكل التنظيمي).</div>';
+  }
+}
+
+async function savePerfFor(evaluated_email){
   const { data: person } = await sb.from("board_members").select("name").eq("company_id", currentCompanyId).eq("claimed_by_email", evaluated_email).maybeSingle();
+  const { data: profile } = await sb.from("user_profiles").select("full_name").eq("email", evaluated_email).maybeSingle();
   const evaluated_role = await getEvaluatedPersonRole(evaluated_email);
-  const entity_type = evaluated_role === "تنفيذي" ? "تنفيذي" : "عضو مجلس"; // kept for legacy display/back-compat only
+  const entity_type = evaluated_role === "تنفيذي" ? "تنفيذي" : "عضو مجلس";
+  const period = String(new Date().getFullYear());
+  const entity_name = person?.name || profile?.full_name || evaluated_email;
 
-  const payload = { entity_name: person?.name || evaluated_email, entity_type, evaluated_email, period, status: "مفتوح للتقييم", company_id: currentCompanyId };
+  if(!confirm(`فتح تقييم أداء جديد لـ"${entity_name}" لعام ${period}؟`)) return;
+
+  const payload = { entity_name, entity_type, evaluated_email, period, status: "مفتوح للتقييم", company_id: currentCompanyId };
 
   if(evaluated_role === "تنفيذي"){
     const { data: reports } = await sb.from("ceo_monthly_reports").select("period_label,timeliness_score,submitted_day_of_month")
@@ -18216,23 +18163,17 @@ async function savePerf(){
       let interpretation;
       if(avg >= 90) interpretation = "التزام ممتاز بمواعيد رفع التقرير المالي والتشغيلي — مؤشر إيجابي على السيطرة الإدارية والإلمام بتفاصيل الشركة أولًا بأول.";
       else if(avg >= 75) interpretation = "التزام جيد بمواعيد رفع التقرير مع بعض التأخير غير المتكرر.";
-      else if(avg >= 50) interpretation = "تأخر ملحوظ ومتكرر برفع التقرير المالي والتشغيلي — قد يشير إلى ضعف بالسيطرة على الإدارات أو عدم إلمام كافٍ بتفاصيل الشركة أولًا بأول، ويستحق أن يُطرح مع الرئيس التنفيذي أثناء التقييم.";
-      else interpretation = "تأخر كبير ومتكرر برفع التقرير المالي والتشغيلي — مؤشر مقلق على ضعف السيطرة الإدارية والإلمام بتفاصيل الشركة، يستحق مناقشة مباشرة مع الرئيس التنفيذي أثناء هذا التقييم.";
+      else if(avg >= 50) interpretation = "تأخر ملحوظ ومتكرر برفع التقرير المالي والتشغيلي — قد يشير إلى ضعف بالسيطرة على الإدارات أو عدم إلمام كافٍ بتفاصيل الشركة أولًا بأول.";
+      else interpretation = "تأخر كبير ومتكرر برفع التقرير المالي والتشغيلي — مؤشر مقلق على ضعف السيطرة الإدارية.";
       payload.auto_context_note = `متوسط درجة الانضباط بمواعيد رفع التقرير (آخر ${reports.length} تقارير): ${avg.toFixed(0)}%\n${interpretation}`;
     }
   }
 
-  // Automatic, system-computed sub-scores — never a human vote. Extends the discipline score
-  // that already existed with two more objectively trackable dimensions: real attendance rate
-  // and real voting participation rate. Each becomes its own "النظام (تلقائي)" row so it enters
-  // the final average on equal footing with the human-scored criteria, not as a side note.
-  const autoScores = []; // { criterion, score, note }
+  const autoScores = [];
   if(evaluated_role === "عضو مجلس" || evaluated_role === "رئيس مجلس"){
     const { data: member } = await sb.from("board_members").select("*").eq("company_id", currentCompanyId).eq("claimed_by_email", evaluated_email).maybeSingle();
     if(member){
       const email = evaluated_email;
-
-      // 1) Response discipline (existing metric, unchanged)
       const { data: allRequests } = await sb.from("meeting_requests").select("id,response_deadline").eq("company_id", currentCompanyId).not("response_deadline","is",null);
       const reqIds = (allRequests||[]).map(r=>r.id);
       const { data: myResponses } = reqIds.length
@@ -18257,8 +18198,6 @@ async function savePerf(){
           note: `استجاب لـ${onTimeCount} من ${totalReq} طلبات اجتماع خلال المهلة المحددة. امتنع بدون مبرر واضح في ${unjustifiedAbstentions} من ${totalVotes} تصويتات.` });
       }
 
-      // 2) Real attendance rate across actual meetings, reusing the same computation used
-      // elsewhere in governance reports — matched by board_members.id, not email.
       const attendanceStats = await computeAttendancePercentages();
       const myAttendanceStat = attendanceStats.find(a => a.name === member.name && a.pct !== null);
       if(myAttendanceStat){
@@ -18267,7 +18206,6 @@ async function savePerf(){
           note: `نسبة الحضور الفعلية: ${myAttendanceStat.pct}% (${myAttendanceStat.present} من ${myAttendanceStat.total} اجتماعًا).` });
       }
 
-      // 3) Real decision-voting participation rate
       const { data: allDecisions } = await sb.from("board_decisions").select("id").eq("company_id", currentCompanyId);
       if(allDecisions && allDecisions.length > 0){
         const participationRate = totalVotes / allDecisions.length;
@@ -18285,14 +18223,136 @@ async function savePerf(){
       evaluation_id: newEval.id, reviewer_email: "system@hwkm.internal", reviewer_name: "النظام (تلقائي)",
       criterion: a.criterion, score: Math.round(a.score), notes: a.note, company_id: currentCompanyId
     })));
-    // Surface a human-readable summary too — reviewers see this as context while scoring, even
-    // though these particular dimensions are never something they vote on themselves.
     const summary = autoScores.map(a => `${a.criterion.replace(" (آلي)","")}: ${a.note}`).join("\n");
     await sb.from("performance_evaluations").update({ auto_context_note: summary }).eq("id", newEval.id);
   }
 
-  closeM("m-perf"); loadPerf();
+  loadPerf();
 }
+
+/* ══════════ DETAIL VIEW — swaps in for the whole card list while open ══════════ */
+let perfDetailContext = null; // { evaluatedEmail, isExec, evaluationId }
+
+async function openPerfDetail(evaluatedEmail, isExec){
+  document.getElementById("perfListView").style.display = "none";
+  document.getElementById("perfDetailView").style.display = "block";
+  const body = document.getElementById("perfDetailBody");
+  body.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:30px">جارِ التحميل...</div>';
+
+  const ev = perfCache.find(e => e.evaluated_email === evaluatedEmail);
+  if(!ev){ body.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px">لا يوجد تقييم.</div>'; return; }
+  perfDetailContext = { evaluatedEmail, isExec, evaluationId: ev.id };
+
+  const isAdmin = await canSeePerfResults();
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+  const isReviewer = myEmail && myEmail !== evaluatedEmail;
+
+  if(ev.status === "مكتمل" || (isAdmin && !isReviewer)){
+    await renderPerfResultsDetail(ev, isAdmin);
+  } else if(isReviewer){
+    await renderPerfReviewForm(ev);
+  } else {
+    body.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:30px">ما عندك صلاحية تشوف أو تقيّم هذا الشخص.</div>';
+  }
+}
+
+function closePerfDetail(){
+  document.getElementById("perfDetailView").style.display = "none";
+  document.getElementById("perfListView").style.display = "block";
+  perfDetailContext = null;
+  loadPerf();
+}
+
+/* Reviewer's own scoring form for one person — full questionnaire, locked forever once sent. */
+async function renderPerfReviewForm(ev){
+  const body = document.getElementById("perfDetailBody");
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+
+  const audience = ev.evaluated_email
+    ? (perfDetailContext.isExec ? await getExecReviewerAudience() : await getPerfReviewerAudience(ev.evaluated_email))
+    : [];
+  if(ev.evaluated_email && !audience.includes(myEmail)){
+    body.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:30px">ما أنت من ضمن المقيّمين المخصَّصين لهذا الشخص.</div>';
+    return;
+  }
+
+  const evaluated_role = ev.evaluated_email ? await getEvaluatedPersonRole(ev.evaluated_email) : null;
+  const criteria = getPerfCriteria(ev.entity_type, evaluated_role);
+  const { data: myReviews } = await sb.from("performance_evaluation_reviews").select("*").eq("evaluation_id", ev.id).eq("reviewer_email", myEmail||"");
+  const mineByCriterion = {};
+  (myReviews||[]).forEach(r => { mineByCriterion[r.criterion] = r; });
+  const alreadySubmitted = criteria.every(c => mineByCriterion[c]);
+  const savedNotes = criteria.map(c => mineByCriterion[c]).find(r=>r&&r.notes)?.notes || "";
+
+  body.innerHTML = `<div style="border-radius:14px;overflow:hidden;box-shadow:0 4px 16px rgba(10,22,40,0.08);border:1px solid var(--gray1);max-width:640px">
+    <div style="background:linear-gradient(135deg,var(--primary),var(--accent));padding:16px;color:#fff">
+      <div style="font-weight:900;font-size:15px">${ev.entity_name||""}</div>
+      <div style="font-size:11px;opacity:0.85;margin-top:2px">${evaluated_role||ev.entity_type||""} · الفترة: ${ev.period||""}</div>
+    </div>
+    <div style="padding:16px;background:#fff">
+      ${ev.auto_context_note ? `<div style="background:#FEF3E2;border-right:3px solid var(--gold);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11.5px;color:var(--dark);white-space:pre-line;line-height:1.7"><b>مؤشرات آلية من النظام (لا تُصوَّت عليها):</b>\n${ev.auto_context_note}</div>` : ""}
+      ${alreadySubmitted ? `<div style="background:#E8F8EF;border-radius:8px;padding:12px;text-align:center;color:var(--green);font-weight:700;font-size:12.5px;margin-bottom:14px"><span class="ico-i ico-check"></span>تم إرسال تقييمك — غير قابل للتعديل.</div>` : ""}
+      ${criteria.map((crit,idx) => {
+        const mine = mineByCriterion[crit];
+        return `<div class="perf-crit-row" data-eval="${ev.id}" data-criterion="${crit.replace(/"/g,'&quot;')}" data-selected="${mine?mine.score:''}" style="margin-bottom:${idx<criteria.length-1?'16px':'4px'};opacity:${alreadySubmitted?'0.6':'1'}">
+          <div style="font-size:12.5px;font-weight:800;color:var(--dark);margin-bottom:7px">${crit}</div>
+          <div style="display:flex;gap:0;border-radius:10px;overflow:hidden;border:1.5px solid var(--gray1)">
+            ${[1,2,3,4,5].map((s,i) => `<button type="button" ${alreadySubmitted?'disabled':''} class="perf-crit-btn" data-val="${s}" style="flex:1;background:${mine&&mine.score===s?'linear-gradient(135deg,var(--primary),var(--accent))':'#fff'};color:${mine&&mine.score===s?'#fff':'var(--dark)'};border:none;${i>0?'border-right:1px solid var(--gray1)':''};padding:9px 4px;font-size:11px;font-weight:700;cursor:${alreadySubmitted?'default':'pointer'};transition:all .15s" onclick="selectPerfCriterionScore(this,${s})">${s}<br><span style="font-size:9px;font-weight:600;opacity:0.9">${PERF_SCORE_LABELS[s]}</span></button>`).join('')}
+          </div>
+        </div>`;
+      }).join("")}
+      <textarea id="perf-review-notes-${ev.id}" ${alreadySubmitted?'disabled':''} placeholder="ملاحظاتك العامة (اختياري)" style="width:100%;border:1.5px solid var(--gray1);border-radius:10px;padding:10px;font-family:'Tajawal',sans-serif;font-size:12px;resize:none;margin-top:10px;background:var(--offwhite)" rows="2">${savedNotes}</textarea>
+      ${alreadySubmitted
+        ? `<button class="btn btn-gold" style="width:100%;margin-top:12px" onclick="openPerfSignModal()"><span class="ico-i ico-signature"></span>توقيع نسختي وتنزيلها PDF</button>`
+        : `<div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn-xs primary" onclick="submitPerfReview(${ev.id})"><span class="ico-i ico-save"></span>إرسال تقييمي لكل البنود (نهائي)</button></div>`}
+    </div>
+  </div>`;
+}
+
+/* Authorized-viewer results breakdown — human criteria, auto criteria, final average, and
+   (once every reviewer is in) the ability to close/certify the final score. */
+async function renderPerfResultsDetail(ev, isAdmin){
+  const body = document.getElementById("perfDetailBody");
+  const { data: revs } = await sb.from("performance_evaluation_reviews").select("*").eq("evaluation_id", ev.id);
+  const evaluated_role = ev.evaluated_email ? await getEvaluatedPersonRole(ev.evaluated_email) : null;
+  const criteria = getPerfCriteria(ev.entity_type, evaluated_role);
+  const uniqueReviewers = new Set((revs||[]).filter(r=>r.reviewer_email!=="system@hwkm.internal").map(r=>r.reviewer_email)).size;
+
+  const byCrit = {};
+  (revs||[]).forEach(r => { const c = r.criterion||"عام"; if(!byCrit[c]) byCrit[c]=[]; byCrit[c].push(r.score||0); });
+
+  const bars = criteria.filter(c=>byCrit[c]).map(c => {
+    const avg = byCrit[c].reduce((a,b)=>a+b,0)/byCrit[c].length;
+    const pct = Math.round((avg/5)*100);
+    return `<div class="comp-item"><div class="comp-head"><span class="comp-name">${c}</span><span class="comp-pct">${pct}%</span></div><div class="comp-track"><div class="comp-fill" style="width:${pct}%"></div></div></div>`;
+  }).join("");
+  const autoBars = PERF_AUTO_CRITERIA.filter(c=>byCrit[c]).map(c => {
+    const avg = byCrit[c].reduce((a,b)=>a+b,0)/byCrit[c].length;
+    const pct = Math.round((avg/5)*100);
+    return `<div class="comp-item"><div class="comp-head"><span class="comp-name"><span class="ico ico-bolt" style="width:12px;height:12px;color:var(--gold)"></span> ${c}</span><span class="comp-pct">${pct}%</span></div><div class="comp-track"><div class="comp-fill" style="width:${pct}%;background:var(--gold)"></div></div></div>`;
+  }).join("");
+
+  const closeBtn = isAdmin && ev.status !== "مكتمل" && revs && revs.length
+    ? `<button class="btn btn-gold" style="width:100%;margin-top:14px" onclick="closePerfEvaluation(${ev.id})"><span class="ico-i ico-shield"></span>إغلاق واعتماد النتيجة النهائية</button>`
+    : "";
+
+  body.innerHTML = `<div class="card" style="max-width:640px">
+    <div class="card-head"><span class="card-title">${ev.entity_name||""} <span style="font-size:11px;color:var(--gray3);font-weight:600">— ${ev.period||""}</span></span>${ev.status==="مكتمل"?'<span class="badge done">مكتمل</span>':'<span class="badge pending">مفتوح للتقييم</span>'}</div>
+    <div class="card-body">
+      ${bars || '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا توجد تقييمات مسجّلة من الأعضاء بعد.</div>'}
+      ${autoBars ? `<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--gray1)">
+        <div style="font-size:10px;font-weight:700;color:var(--gray3);margin-bottom:6px">مؤشرات محسوبة تلقائيًا من بيانات النظام الفعلية</div>
+        ${autoBars}
+      </div>` : ""}
+      <div style="font-size:11.5px;color:var(--gray3);margin-top:12px"><span class="ico-i ico-users"></span>عدد المقيّمين: ${uniqueReviewers}${ev.score!=null ? " · الدرجة النهائية: "+Number(ev.score).toFixed(1)+"/5 — "+(PERF_SCORE_LABELS[Math.round(ev.score)]||"") : ""}</div>
+      ${closeBtn}
+    </div>
+  </div>`;
+}
+
+
 
 async function closePerfEvaluation(id){
   const { data: revs, error } = await sb.from("performance_evaluation_reviews").select("*").eq("evaluation_id", id);
@@ -18302,8 +18362,143 @@ async function closePerfEvaluation(id){
   if(!confirm("سيتم اعتماد النتيجة النهائية ("+avg.toFixed(1)+"/5) وإغلاق هذا التقييم. متابعة؟")) return;
   const { error: updErr } = await sb.from("performance_evaluations").update({ score: avg, status: "مكتمل" }).eq("id", id);
   if(updErr){ alert("تعذّر الإغلاق: " + updErr.message); return; }
-  loadPerf();
+  alert("تم اعتماد النتيجة النهائية ✅");
+  closePerfDetail();
 }
+
+/* ══════════ Reviewer's signed copy of their own submitted scores ══════════ */
+let perfSigPadCtx = null, perfSigPadDrawing = false;
+
+function openPerfSignModal(){
+  openM("m-perf-sign");
+  setTimeout(initPerfSignaturePad, 50);
+}
+
+function initPerfSignaturePad(){
+  const canvas = document.getElementById("perfSigCanvas");
+  if(!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width; canvas.height = rect.height;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle = "#0D2447"; ctx.lineWidth = 2.5; ctx.lineCap = "round"; ctx.lineJoin = "round";
+  perfSigPadCtx = ctx;
+  const getPos = (e) => { const r = canvas.getBoundingClientRect(); const p = e.touches ? e.touches[0] : e; return { x: p.clientX - r.left, y: p.clientY - r.top }; };
+  const start = (e) => { e.preventDefault(); perfSigPadDrawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+  const move = (e) => { if(!perfSigPadDrawing) return; e.preventDefault(); const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+  const end = () => { perfSigPadDrawing = false; };
+  canvas.onmousedown = start; canvas.onmousemove = move; canvas.onmouseup = end; canvas.onmouseleave = end;
+  canvas.ontouchstart = start; canvas.ontouchmove = move; canvas.ontouchend = end;
+}
+
+function clearPerfSigPad(){
+  if(!perfSigPadCtx) return;
+  const canvas = document.getElementById("perfSigCanvas");
+  perfSigPadCtx.clearRect(0,0,canvas.width,canvas.height);
+}
+
+function isPerfSigPadEmpty(){
+  const canvas = document.getElementById("perfSigCanvas");
+  if(!canvas) return true;
+  const ctx = canvas.getContext("2d");
+  const data = ctx.getImageData(0,0,canvas.width,canvas.height).data;
+  for(let i=3; i<data.length; i+=4){ if(data[i] !== 0) return false; }
+  return true;
+}
+
+/* Wraps Arabic (RTL) text within maxWidth, returning the number of lines drawn — used so the
+   criterion label never overruns into the score column on longer questionnaire items. */
+function wrapRTLText(ctx, text, x, y, maxWidth, lineHeight){
+  const words = text.split(" ");
+  let line = "", lines = [];
+  for(const w of words){
+    const test = line ? line + " " + w : w;
+    if(ctx.measureText(test).width > maxWidth && line){ lines.push(line); line = w; }
+    else line = test;
+  }
+  if(line) lines.push(line);
+  lines.forEach((l,i) => ctx.fillText(l, x, y + i*lineHeight));
+  return lines.length;
+}
+
+async function confirmPerfReviewSignature(){
+  if(isPerfSigPadEmpty()){ alert("الرجاء رسم توقيعك أولًا قبل التأكيد"); return; }
+  if(!perfDetailContext){ alert("تعذّر تحميل بيانات التقييم"); return; }
+
+  const ev = perfCache.find(e => e.id === perfDetailContext.evaluationId);
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+  const reviewer_name = currentUserProfile ? (currentUserProfile.full_name || myEmail) : myEmail;
+  const evaluated_role = ev.evaluated_email ? await getEvaluatedPersonRole(ev.evaluated_email) : null;
+  const criteria = getPerfCriteria(ev.entity_type, evaluated_role);
+  const { data: myReviews } = await sb.from("performance_evaluation_reviews").select("*").eq("evaluation_id", ev.id).eq("reviewer_email", myEmail||"");
+  const byCriterion = {};
+  (myReviews||[]).forEach(r => { byCriterion[r.criterion] = r; });
+
+  const scale = 2;
+  const W = 595 * scale, H = 842 * scale;
+  const canvas = document.createElement("canvas");
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(0,0,W,H);
+  ctx.direction = "rtl"; ctx.textAlign = "center";
+  const CX = W/2, RM = W - 45*scale, LM = 45*scale;
+
+  ctx.font = `bold ${18*scale}px Tajawal, Arial`; ctx.fillStyle = "#0D2447";
+  ctx.fillText("تقييم أداء — نسخة الموقّع", CX, 50*scale);
+
+  ctx.textAlign = "right"; ctx.font = `bold ${13*scale}px Tajawal, Arial`;
+  let y = 90*scale;
+  ctx.fillText(`الشخص المُقيَّم: ${ev.entity_name||""}`, RM, y); y += 24*scale;
+  ctx.font = `${11.5*scale}px Tajawal, Arial`;
+  ctx.fillText(`الفترة: ${ev.period||""}`, RM, y); y += 20*scale;
+  ctx.fillText(`المقيِّم: ${reviewer_name}`, RM, y); y += 34*scale;
+
+  ctx.font = `bold ${11.5*scale}px Tajawal, Arial`;
+  for(const crit of criteria){
+    const r = byCriterion[crit];
+    if(!r) continue;
+    if(y > H - 140*scale){ break; } // keep room for signature block; overflow criteria simply omitted from the printed page
+    ctx.fillStyle = "#0D2447";
+    ctx.font = `${11*scale}px Tajawal, Arial`;
+    wrapRTLText(ctx, crit, RM, y, RM-LM, 15*scale);
+    const lines = Math.ceil(ctx.measureText(crit).width / (RM-LM)) || 1;
+    ctx.textAlign = "left"; ctx.font = `bold ${12*scale}px Tajawal, Arial`; ctx.fillStyle = "#B8972A";
+    ctx.fillText(`${r.score}/5 — ${PERF_SCORE_LABELS[r.score]||""}`, LM, y);
+    ctx.textAlign = "right";
+    y += 22*scale;
+  }
+
+  y += 20*scale;
+  ctx.textAlign = "right"; ctx.font = `bold ${12*scale}px Tajawal, Arial`; ctx.fillStyle = "#0D2447";
+  ctx.fillText("توقيع المقيّم:", RM, y);
+  const sigCanvas = document.getElementById("perfSigCanvas");
+  ctx.drawImage(sigCanvas, LM, y - 10*scale, 180*scale, 60*scale);
+
+  const pngData = canvas.toDataURL("image/png");
+  const { PDFDocument } = PDFLib;
+  const pdfDoc = await PDFDocument.create();
+  const pngBytes = await (await fetch(pngData)).arrayBuffer();
+  const pngImage = await pdfDoc.embedPng(pngBytes);
+  const page = pdfDoc.addPage([595, 842]);
+  page.drawImage(pngImage, { x: 0, y: 0, width: 595, height: 842 });
+  const finalBytes = await pdfDoc.save();
+  const blob = new Blob([finalBytes], { type: "application/pdf" });
+
+  const safeName = (ev.entity_name||"تقييم").replace(/[\\/:*?"<>|]/g,"_");
+  await uploadBlobToStorage(blob, "perf-review-signatures", `تقييم-${safeName}-${reviewer_name}-${Date.now()}.pdf`);
+
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = `تقييم-موقّع-${safeName}.pdf`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(blobUrl), 5000);
+
+  closeM("m-perf-sign");
+  alert("تم تنزيل نسختك الموقّعة بنجاح ✅");
+}
+
 
 /* Determines a board member's actual evaluation role from real data — chairman via their
    user_company_memberships role, executive via board_members.is_executive, else a regular
@@ -18402,94 +18597,6 @@ function getPerfCriteria(entityType, personRole){
   return PERF_CRITERIA_MEMBER;
 }
 
-/* Board members & nomination-committee members submit their own rating here, item by item */
-async function loadPerfReviewSection(){
-  const box = document.getElementById("perfReviewBody");
-  if(!box) return;
-  const role = getCurrentRole();
-  if(role === 'مساهم'){ box.innerHTML = ""; return; }
-
-  const { data: userData } = await sb.auth.getUser();
-  const myEmail = userData && userData.user ? userData.user.email : null;
-
-  const { data: allOpenEvals, error } = await sb.from("performance_evaluations")
-    .select("*").eq("company_id", currentCompanyId).eq("status", "مفتوح للتقييم").order("id",{ascending:false});
-  if(error){ box.innerHTML = '<div style="color:var(--red);font-size:12px">تعذّر التحميل: '+error.message+'</div>'; return; }
-
-  // Never show someone their own evaluation, and only show evaluations this person is
-  // actually part of the auto-assigned reviewer audience for (peers only, self excluded) —
-  // legacy rows saved before evaluated_email existed fall back to "everyone eligible" so they
-  // don't just silently vanish.
-  const openEvals = [];
-  for(const ev of (allOpenEvals||[])){
-    if(ev.evaluated_email && ev.evaluated_email === myEmail) continue;
-    if(ev.evaluated_email){
-      const audience = await getPerfReviewerAudience(ev.evaluated_email);
-      if(!audience.includes(myEmail)) continue;
-    }
-    openEvals.push(ev);
-  }
-  if(openEvals.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px">لا توجد تقييمات مفتوحة تخصّك حاليًا.</div>'; return; }
-
-  const ids = openEvals.map(e=>e.id);
-  const { data: myReviews } = await sb.from("performance_evaluation_reviews").select("*").in("evaluation_id", ids).eq("reviewer_email", myEmail||"");
-  const mineByEvalCriterion = {};
-  (myReviews||[]).forEach(r => { mineByEvalCriterion[r.evaluation_id+'|'+r.criterion] = r; });
-
-  // Resolve each evaluation's real role once (drives which question bank renders)
-  const rolesByEval = {};
-  for(const ev of openEvals){ rolesByEval[ev.id] = ev.evaluated_email ? await getEvaluatedPersonRole(ev.evaluated_email) : null; }
-
-  // Multiple people open at once (e.g. evaluating a full 5-member board) would otherwise stack
-  // as five full-length forms on one page. Instead: a compact tab strip — one name per person,
-  // a "done" checkmark once submitted — with only the active person's full questionnaire shown
-  // below it. Scales the same whether there are 2 people or 12.
-  perfActivePersonId = perfActivePersonId && openEvals.some(e=>e.id===perfActivePersonId) ? perfActivePersonId : openEvals[0].id;
-
-  const isSubmitted = (ev) => getPerfCriteria(ev.entity_type, rolesByEval[ev.id]).every(c => mineByEvalCriterion[ev.id+'|'+c]);
-
-  const tabs = openEvals.length > 1 ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--gray1)">
-    ${openEvals.map(ev => {
-      const active = ev.id === perfActivePersonId;
-      const done = isSubmitted(ev);
-      return `<button type="button" onclick="perfActivePersonId=${ev.id};loadPerfReviewSection()" style="padding:7px 14px;border-radius:20px;border:1.5px solid ${active?'var(--primary)':'var(--gray1)'};background:${active?'var(--primary)':'#fff'};color:${active?'#fff':'var(--dark)'};font-size:11.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px">
-        ${done ? `<span class="ico" style="width:12px;height:12px;color:${active?'#fff':'var(--green)'}" class="ico ico-check"></span>` : ""}${ev.entity_name||""}
-      </button>`;
-    }).join("")}
-  </div>` : "";
-
-  const ev = openEvals.find(e=>e.id===perfActivePersonId);
-  const criteria = getPerfCriteria(ev.entity_type, rolesByEval[ev.id]);
-  const savedNotes = criteria.map(c => mineByEvalCriterion[ev.id+'|'+c]).find(r=>r&&r.notes)?.notes || "";
-  const roleLabel = rolesByEval[ev.id] || ev.entity_type || "";
-  const alreadySubmitted = isSubmitted(ev);
-
-  box.innerHTML = tabs + `<div style="border-radius:14px;overflow:hidden;box-shadow:0 4px 16px rgba(10,22,40,0.08);border:1px solid var(--gray1)">
-      <div style="background:linear-gradient(135deg,var(--primary),var(--accent));padding:14px 16px;color:#fff">
-        <div style="font-weight:900;font-size:14px">${ev.entity_name||""}</div>
-        <div style="font-size:11px;opacity:0.85;margin-top:2px">${roleLabel} · الفترة: ${ev.period||""}</div>
-      </div>
-      <div style="padding:16px;background:#fff">
-        ${ev.auto_context_note ? `<div style="background:#FEF3E2;border-right:3px solid var(--gold);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11.5px;color:var(--dark);white-space:pre-line;line-height:1.7"><b>مؤشرات آلية من النظام (لا تُصوَّت عليها):</b>\n${ev.auto_context_note}</div>` : ""}
-        ${alreadySubmitted ? `<div style="background:#E8F8EF;border-radius:8px;padding:12px;text-align:center;color:var(--green);font-weight:700;font-size:12.5px;margin-bottom:6px"><span class="ico-i ico-check"></span>تم إرسال تقييمك لهذا الشخص — غير قابل للتعديل بعد الإرسال.</div>` : ""}
-        ${criteria.map((crit,idx) => {
-          const mine = mineByEvalCriterion[ev.id+'|'+crit];
-          return `<div class="perf-crit-row" data-eval="${ev.id}" data-criterion="${crit.replace(/"/g,'&quot;')}" data-selected="${mine?mine.score:''}" style="margin-bottom:${idx<criteria.length-1?'16px':'4px'};opacity:${alreadySubmitted?'0.6':'1'}">
-            <div style="font-size:12.5px;font-weight:800;color:var(--dark);margin-bottom:7px">${crit}</div>
-            <div style="display:flex;gap:0;border-radius:10px;overflow:hidden;border:1.5px solid var(--gray1)">
-              ${[1,2,3,4,5].map((s,i) => `<button type="button" ${alreadySubmitted?'disabled':''} class="perf-crit-btn" data-val="${s}" style="flex:1;background:${mine&&mine.score===s?'linear-gradient(135deg,var(--primary),var(--accent))':'#fff'};color:${mine&&mine.score===s?'#fff':'var(--dark)'};border:none;${i>0?'border-right:1px solid var(--gray1)':''};padding:9px 4px;font-size:11px;font-weight:700;cursor:${alreadySubmitted?'default':'pointer'};transition:all .15s" onclick="selectPerfCriterionScore(this,${s})">${s}<br><span style="font-size:9px;font-weight:600;opacity:0.9">${PERF_SCORE_LABELS[s]}</span></button>`).join('')}
-            </div>
-          </div>`;
-        }).join("")}
-        <textarea id="perf-review-notes-${ev.id}" ${alreadySubmitted?'disabled':''} placeholder="ملاحظاتك العامة (اختياري)" style="width:100%;border:1.5px solid var(--gray1);border-radius:10px;padding:10px;font-family:'Tajawal',sans-serif;font-size:12px;resize:none;margin-top:10px;background:var(--offwhite)" rows="2">${savedNotes}</textarea>
-        ${alreadySubmitted ? "" : `<div style="display:flex;justify-content:flex-end;margin-top:10px">
-          <button class="btn-xs primary" onclick="submitPerfReview(${ev.id})"><span class="ico-i ico-save"></span>إرسال تقييمي لكل البنود (نهائي)</button>
-        </div>`}
-      </div>
-    </div>`;
-}
-let perfActivePersonId = null;
-
 function selectPerfCriterionScore(btn, val){
   const row = btn.closest(".perf-crit-row");
   row.dataset.selected = val;
@@ -18510,7 +18617,7 @@ async function submitPerfReview(evaluationId){
   // after seeing others' scores (or simply reconsidering) is exactly the opening for favoritism
   // this lock exists to close.
   const { data: existing } = await sb.from("performance_evaluation_reviews").select("id").eq("evaluation_id", evaluationId).eq("reviewer_email", myEmail).limit(1);
-  if(existing && existing.length){ alert("سبق أن أرسلت تقييمك لهذا الشخص — غير قابل للتعديل."); loadPerfReviewSection(); return; }
+  if(existing && existing.length){ alert("سبق أن أرسلت تقييمك لهذا الشخص — غير قابل للتعديل."); if(perfDetailContext) renderPerfReviewForm({id:evaluationId, ...perfCache.find(e=>e.id===evaluationId)}); return; }
 
   const reviewer_name = currentUserProfile ? (currentUserProfile.full_name || myEmail) : myEmail;
   const notesEl = document.getElementById("perf-review-notes-"+evaluationId);
@@ -18530,7 +18637,8 @@ async function submitPerfReview(evaluationId){
 
   const { error } = await sb.from("performance_evaluation_reviews").insert(payloads);
   if(error){ alert("تعذّر حفظ تقييمك: " + error.message); return; }
-  loadPerfReviewSection();
+  const ev = perfCache.find(e=>e.id===evaluationId);
+  if(ev) renderPerfReviewForm(ev);
 }
 
 const titles={
