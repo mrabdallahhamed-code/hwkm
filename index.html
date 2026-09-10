@@ -1707,9 +1707,11 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   <div id="perfListView">
     <div class="sec-title"><span class="ico-i ico-ruler"></span>تقييم الأداء</div>
 
-    <div class="sec-title" style="margin-top:6px"><span class="ico-i ico-users"></span>تقييمات مجلس الإدارة</div>
-    <div id="perfBoardCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:28px">
-      <div style="text-align:center;color:var(--gray3);font-size:12px;grid-column:1/-1">جارِ التحميل...</div>
+    <div id="perfBoardSection">
+      <div class="sec-title" style="margin-top:6px"><span class="ico-i ico-users"></span><span id="perfBoardSectionTitle">تقييمات مجلس الإدارة</span></div>
+      <div id="perfBoardCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:28px">
+        <div style="text-align:center;color:var(--gray3);font-size:12px;grid-column:1/-1">جارِ التحميل...</div>
+      </div>
     </div>
 
     <div class="sec-title"><span class="ico-i ico-briefcase"></span>تقييمات الإدارة التنفيذية العليا</div>
@@ -18061,22 +18063,40 @@ async function getEvaluableBoardMembers(){
 }
 
 /* Senior executive management is tied to the actual org chart, not a flag on a board row:
-   الرئيس التنفيذي، نواب الرئيس (إن وُجدوا), المدير المالي. A position only becomes evaluable
-   once its named holder is matched to an actual linked account (by full name) — someone
-   listed in the org chart with no linked account yet simply can't be evaluated until they are. */
+   الرئيس التنفيذي، نواب الرئيس (إن وُجدوا), المدير المالي. Two independent signals, either one
+   is enough: (1) the org-chart holder's name matches a real linked account, or (2) the account
+   itself carries a membership role whose text already says "رئيس تنفيذي" / "نائب الرئيس" /
+   "مدير مالي" (e.g. a custom role set from إدارة الفريق). Filtering happens in plain JS rather
+   than a server-side OR-filter string, so a mismatched pattern can never silently take down the
+   whole query — worst case one signal contributes nothing, it never throws. */
 async function getEvaluableExecutives(){
-  const { data: positions } = await sb.from("org_structure").select("position_title,holder_name")
-    .eq("company_id", currentCompanyId).not("holder_name","is",null)
-    .or("position_title.ilike.%رئيس تنفيذي%,position_title.ilike.%نائب الرئيس%,position_title.ilike.%نائب رئيس%,position_title.ilike.%مدير مالي%,position_title.ilike.%المدير المالي%");
-  const results = [];
-  for(const pos of (positions||[])){
-    const { data: profile } = await sb.from("user_profiles").select("email").eq("full_name", pos.holder_name).maybeSingle();
-    if(!profile || !profile.email) continue;
-    const { data: membership } = await sb.from("user_company_memberships").select("email").eq("company_id", currentCompanyId).eq("email", profile.email).maybeSingle();
-    if(!membership) continue;
-    results.push({ name: pos.holder_name, email: profile.email, role: "تنفيذي", position: pos.position_title });
-  }
-  return results;
+  const EXEC_PATTERNS = ["تنفيذي","نائب الرئيس","نائب رئيس","مدير مالي","المدير المالي"];
+  const results = new Map(); // keyed by email — de-dupes if both signals agree on the same person
+
+  try {
+    const { data: allMemberships } = await sb.from("user_company_memberships").select("email,role").eq("company_id", currentCompanyId);
+    const roleMatches = (allMemberships||[]).filter(m => EXEC_PATTERNS.some(p => (m.role||"").includes(p)));
+    for(const m of roleMatches){
+      const { data: profile } = await sb.from("user_profiles").select("full_name").eq("email", m.email).maybeSingle();
+      results.set(m.email, { name: profile?.full_name || m.email, email: m.email, role: "تنفيذي", position: m.role });
+    }
+  } catch(e){ console.error("exec role-signal failed", e); }
+
+  try {
+    const { data: positions } = await sb.from("org_structure").select("position_title,holder_name").eq("company_id", currentCompanyId);
+    const execPositions = (positions||[]).filter(p => p.holder_name && EXEC_PATTERNS.some(pat => (p.position_title||"").includes(pat)));
+    for(const pos of execPositions){
+      const holderName = pos.holder_name.trim();
+      const { data: profile } = await sb.from("user_profiles").select("email").ilike("full_name", holderName).maybeSingle();
+      if(!profile || !profile.email) continue;
+      if(results.has(profile.email)) continue;
+      const { data: membership } = await sb.from("user_company_memberships").select("email").eq("company_id", currentCompanyId).eq("email", profile.email).maybeSingle();
+      if(!membership) continue;
+      results.set(profile.email, { name: holderName, email: profile.email, role: "تنفيذي", position: pos.position_title });
+    }
+  } catch(e){ console.error("exec org-structure-signal failed", e); }
+
+  return Array.from(results.values());
 }
 
 /* Who reviews an executive: every linked board member (voting members) — executives don't
@@ -18086,13 +18106,37 @@ async function getExecReviewerAudience(){
   return boardPeople.map(p => p.email);
 }
 
+/* Opening a new evaluation cycle is an operational task (مدير النظام runs the platform), kept
+   separate from *seeing results* (a confidentiality-restricted set) — someone can administer
+   the cycle without being entitled to read peers' scores themselves. */
+async function canManagePerfCycles(){
+  if(currentUserProfile && currentUserProfile.is_platform_admin === true) return true;
+  if(getCurrentRole() === "مدير النظام") return true;
+  return await canSeePerfResults();
+}
+
 async function loadPerf(){
   const isAdmin = await canSeePerfResults();
-  const [boardPeople, execPeople] = await Promise.all([getEvaluableBoardMembers(), getEvaluableExecutives()]);
+  const canManage = await canManagePerfCycles();
+  const [boardResult, execResult] = await Promise.allSettled([getEvaluableBoardMembers(), getEvaluableExecutives()]);
+  const boardPeople = boardResult.status === "fulfilled" ? boardResult.value : [];
+  const execPeople = execResult.status === "fulfilled" ? execResult.value : [];
+  if(boardResult.status === "rejected") console.error("board list failed", boardResult.reason);
+  if(execResult.status === "rejected") console.error("exec list failed", execResult.reason);
+
   const { data: allEvals } = await sb.from("performance_evaluations").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
   perfCache = allEvals || [];
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
+
+  // Sole proprietorships have no board at all — only the executive section applies, and its
+  // heading needn't say "مجلس" for a structure that has none. Everyone else gets the
+  // company-appropriate body name (مجلس الإدارة / مجلس المديرين) instead of a hardcoded label.
+  const isSoleProp = currentCompanyType === "مؤسسة فردية";
+  const boardSectionTitle = document.getElementById("perfBoardSectionTitle");
+  const boardSection = document.getElementById("perfBoardSection");
+  if(boardSection) boardSection.style.display = isSoleProp ? "none" : "block";
+  if(boardSectionTitle) boardSectionTitle.textContent = `تقييمات ${getGovernanceBodyLabel()}`;
 
   const latestEvalFor = (email) => (perfCache).find(e => e.evaluated_email === email);
 
@@ -18100,8 +18144,9 @@ async function loadPerf(){
     const ev = latestEvalFor(person.email);
     let statusHTML, actionHTML = "";
     if(!ev){
+
       statusHTML = `<span style="font-size:11px;color:var(--gray3)">لا يوجد تقييم مفتوح حاليًا</span>`;
-      if(isAdmin) actionHTML = `<button class="btn-xs gold" style="width:100%;margin-top:10px" onclick="openNewPerfEvaluation('${person.email}')"><span class="ico-i ico-add"></span>فتح تقييم جديد</button>`;
+      if(canManage) actionHTML = `<button class="btn-xs gold" style="width:100%;margin-top:10px" onclick="openNewPerfEvaluation('${person.email}')"><span class="ico-i ico-add"></span>فتح تقييم جديد</button>`;
     } else if(ev.status === "مكتمل"){
       const scoreLabel = ev.score!=null ? (Number(ev.score).toFixed(1)+"/5 — "+(PERF_SCORE_LABELS[Math.round(ev.score)]||"")) : "—";
       statusHTML = isAdmin
@@ -18500,28 +18545,42 @@ async function confirmPerfReviewSignature(){
 }
 
 
-/* Determines a board member's actual evaluation role from real data — chairman via their
-   user_company_memberships role, executive via board_members.is_executive, else a regular
-   member. This is what actually picks the question bank and the auto-assigned reviewer
-   audience; it is never typed by hand. */
+/* Determines a person's actual evaluation role from real data — chairman via their
+   user_company_memberships role, executive via a match against the org chart's senior
+   positions (see getEvaluableExecutives), else a regular member. This is what actually picks
+   the question bank and the auto-assigned reviewer audience; it is never typed by hand. */
 async function getEvaluatedPersonRole(email){
   if(!email) return "عضو مجلس";
   const { data: membership } = await sb.from("user_company_memberships").select("role").eq("company_id", currentCompanyId).eq("email", email).maybeSingle();
   if(membership && membership.role === "رئيس مجلس") return "رئيس مجلس";
-  const { data: bm } = await sb.from("board_members").select("is_executive").eq("company_id", currentCompanyId).eq("claimed_by_email", email).maybeSingle();
-  if(bm && bm.is_executive) return "تنفيذي";
+  const execs = await getEvaluableExecutives();
+  if(execs.some(e => e.email === email)) return "تنفيذي";
   return "عضو مجلس";
 }
 
-/* Everyone eligible to be evaluated (has a linked account) plus their real role — powers both
-   the "من نقيّم" picker and, per person, who else should automatically review them. */
+/* Everyone eligible to be evaluated as a board-level person: sourced from
+   user_company_memberships directly — the authoritative record of "has a real account with
+   a governance role" — not from board_members.claimed_by_email, which is a separate optional
+   identity-claim step someone can skip entirely while still having a perfectly working
+   account. board_members is only consulted afterward, purely to get a nicer display name. */
 async function getPerfEligiblePeople(){
-  const { data: members } = await sb.from("board_members").select("id,name,claimed_by_email,is_executive").eq("company_id", currentCompanyId).not("claimed_by_email","is",null);
-  const { data: chairMembership } = await sb.from("user_company_memberships").select("email").eq("company_id", currentCompanyId).eq("role","رئيس مجلس").maybeSingle();
-  const chairEmail = chairMembership ? chairMembership.email : null;
-  return (members||[]).map(m => ({
-    id: m.id, name: m.name, email: m.claimed_by_email,
-    role: m.claimed_by_email && m.claimed_by_email === chairEmail ? "رئيس مجلس" : (m.is_executive ? "تنفيذي" : "عضو مجلس"),
+  const boardRoles = ["رئيس مجلس","سكرتير مجلس","سكرتير المجلس","عضو مجلس","عضو مجلس وعضو مساهم"];
+  const { data: memberships } = await sb.from("user_company_memberships").select("email,role").eq("company_id", currentCompanyId).in("role", boardRoles);
+  if(!memberships || memberships.length===0) return [];
+
+  const emails = memberships.map(m=>m.email);
+  const [{ data: profiles }, { data: bmRows }] = await Promise.all([
+    sb.from("user_profiles").select("email,full_name").in("email", emails),
+    sb.from("board_members").select("name,claimed_by_email").eq("company_id", currentCompanyId).in("claimed_by_email", emails)
+  ]);
+  const nameByEmail = {};
+  (bmRows||[]).forEach(b => { nameByEmail[b.claimed_by_email] = b.name; });
+  (profiles||[]).forEach(p => { if(!nameByEmail[p.email]) nameByEmail[p.email] = p.full_name; });
+
+  return memberships.map(m => ({
+    email: m.email,
+    name: nameByEmail[m.email] || m.email,
+    role: m.role === "رئيس مجلس" ? "رئيس مجلس" : "عضو مجلس",
   }));
 }
 
@@ -18543,6 +18602,15 @@ async function canSeePerfResults(){
   const { data: nomCommittee } = await sb.from("user_company_memberships").select("role").eq("company_id", currentCompanyId).in("role",["رئيس لجنة الترشيحات","عضو لجنة الترشيحات"]);
   if(nomCommittee && nomCommittee.length > 0) return ["رئيس لجنة الترشيحات","عضو لجنة الترشيحات"].includes(role);
   return role === "رئيس مجلس";
+}
+
+/* Opening a new evaluation cycle is an administrative action (deciding WHEN to run a review),
+   separate from SEEING confidential peer results — مدير النظام runs the platform day-to-day
+   and should be able to kick off a cycle even on a company where they're not on the
+   nominations committee and won't see the outcome themselves. */
+async function canManagePerfEvaluations(){
+  if(getCurrentRole() === "مدير النظام") return true;
+  return canSeePerfResults();
 }
 
 const PERF_CRITERIA_MEMBER = [
