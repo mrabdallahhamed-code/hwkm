@@ -15119,10 +15119,10 @@ async function renderCharterApprovalStatus(committeeId){
 }
 
 function refreshApprovalButtonLabels(){
-  const label = "📤 طلب موافقة من " + getGovernanceBodyLabel();
+  const label = "اعتماد " + getGovernanceBodyLabel();
   ["approvalBtnStructure","approvalBtnMatrix","approvalBtnCharter"].forEach(id => {
     const btn = document.getElementById(id);
-    if(btn) btn.textContent = label;
+    if(btn) btn.innerHTML = `<span class="ico-i ico-upload"></span>${label}`;
   });
 }
 
