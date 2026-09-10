@@ -6626,8 +6626,8 @@ async function saveCompany(){
 
 /* Company-type-aware navigation: sole proprietorships have no board/shareholders, so
    board/committee/AGM-related pages are irrelevant and get hidden from the sidebar. */
-const SOLE_PROP_HIDDEN_PAGES = ['meetings','committees','agm','voting','members','appoint','shareholders'];
-const LLC_HIDDEN_PAGES = ['committees'];
+const SOLE_PROP_HIDDEN_PAGES = ['meetings','committees','agm','voting','members','appoint','shareholders','announcements'];
+const LLC_HIDDEN_PAGES = ['committees','announcements'];
 let currentCompanyModules = { internal_audit: false, risk_management: false };
 let currentCompanyTrialEndsAt = null;
 const MODULE_PAGE_MAP = { audit: 'internal_audit', risks: 'risk_management' };
@@ -6671,7 +6671,7 @@ async function applyCompanyTypeVisibility(){
   const isSoleProp = currentCompanyType === "مؤسسة فردية";
   const isLLCType = currentCompanyType === "ذات مسؤولية محدودة";
   const navAnnouncements = document.getElementById("navAnnouncements");
-  if(navAnnouncements) navAnnouncements.style.display = (currentCompanyType !== "مؤسسة فردية") ? "flex" : "none";
+  if(navAnnouncements) navAnnouncements.style.display = (currentCompanyType !== "مؤسسة فردية" && currentCompanyType !== "ذات مسؤولية محدودة") ? "flex" : "none";
   setText("shareholdersNavLabel", isLLCType ? "سجل الشركاء" : "سجل المساهمين");
   setText("shareholdersPageTitle", isLLCType ? "📇 سجل الشركاء" : "📇 سجل المساهمين");
   const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
