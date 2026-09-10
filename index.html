@@ -3534,17 +3534,26 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   <div class="modal">
     <div class="modal-title" id="mas-title-h"><span class="ico-i ico-check"></span>تفعيل الاشتراك</div>
     <input type="hidden" id="mas-company-id" value="" />
+    <div class="fg">
+      <label>الباقة</label>
+      <div style="display:flex;gap:8px" id="mas-package-selector">
+        <button type="button" class="btn-xs" data-pkg="أساسية" style="flex:1;padding:10px 4px" onclick="selectSubPackage('mas','أساسية')">🥉 أساسية</button>
+        <button type="button" class="btn-xs" data-pkg="فضية" style="flex:1;padding:10px 4px" onclick="selectSubPackage('mas','فضية')">🥈 فضية</button>
+        <button type="button" class="btn-xs" data-pkg="ذهبية" style="flex:1;padding:10px 4px" onclick="selectSubPackage('mas','ذهبية')">🥇 ذهبية</button>
+      </div>
+    </div>
+    <p style="font-size:10.5px;color:var(--gray3);margin:-6px 0 10px">أساسية: الحوكمة فقط. فضية: + إدارة المخاطر. ذهبية: + التدقيق الداخلي. تقدر تخصّص الوحدات يدويًا تحت لو احتجت مزيجًا مختلفًا.</p>
     <div class="fg" style="display:flex;align-items:center;gap:8px;background:var(--offwhite);padding:10px 12px;border-radius:8px;opacity:0.7">
       <input type="checkbox" checked disabled style="width:16px;height:16px" />
       <label style="margin:0;font-size:12px"><span class="ico-i ico-package"></span>الحوكمة والاجتماعات (أساسية دائمًا)</label>
     </div>
     <div class="fg" style="display:flex;align-items:center;gap:8px;background:var(--offwhite);padding:10px 12px;border-radius:8px">
-      <input type="checkbox" id="mas-audit" style="width:16px;height:16px" />
-      <label for="mas-audit" style="margin:0;font-size:12px;cursor:pointer"><span class="ico-i ico-package"></span>المراجعة الداخلية</label>
+      <input type="checkbox" id="mas-risk" style="width:16px;height:16px" onchange="clearSubPackageSelection('mas')" />
+      <label for="mas-risk" style="margin:0;font-size:12px;cursor:pointer"><span class="ico-i ico-package"></span>إدارة المخاطر</label>
     </div>
     <div class="fg" style="display:flex;align-items:center;gap:8px;background:var(--offwhite);padding:10px 12px;border-radius:8px">
-      <input type="checkbox" id="mas-risk" style="width:16px;height:16px" />
-      <label for="mas-risk" style="margin:0;font-size:12px;cursor:pointer"><span class="ico-i ico-package"></span>إدارة المخاطر</label>
+      <input type="checkbox" id="mas-audit" style="width:16px;height:16px" onchange="clearSubPackageSelection('mas')" />
+      <label for="mas-audit" style="margin:0;font-size:12px;cursor:pointer"><span class="ico-i ico-package"></span>المراجعة الداخلية</label>
     </div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-activate-sub')">إلغاء</button><button class="btn btn-gold" onclick="activateSubscription()"><span class="ico-i ico-check"></span>تفعيل الاشتراك</button></div>
   </div>
@@ -3554,17 +3563,26 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   <div class="modal">
     <div class="modal-title"><span class="ico-i ico-check"></span>الموافقة على طلب إدراج شركة</div>
     <input type="hidden" id="apc-request-id" value="" />
+    <div class="fg">
+      <label>الباقة</label>
+      <div style="display:flex;gap:8px" id="apc-package-selector">
+        <button type="button" class="btn-xs" data-pkg="أساسية" style="flex:1;padding:10px 4px" onclick="selectSubPackage('apc','أساسية')">🥉 أساسية</button>
+        <button type="button" class="btn-xs" data-pkg="فضية" style="flex:1;padding:10px 4px" onclick="selectSubPackage('apc','فضية')">🥈 فضية</button>
+        <button type="button" class="btn-xs" data-pkg="ذهبية" style="flex:1;padding:10px 4px" onclick="selectSubPackage('apc','ذهبية')">🥇 ذهبية</button>
+      </div>
+    </div>
+    <p style="font-size:10.5px;color:var(--gray3);margin:-6px 0 10px">أساسية: الحوكمة فقط. فضية: + إدارة المخاطر. ذهبية: + التدقيق الداخلي.</p>
     <div class="fg" style="display:flex;align-items:center;gap:8px;background:var(--offwhite);padding:10px 12px;border-radius:8px;opacity:0.7">
       <input type="checkbox" checked disabled style="width:16px;height:16px" />
       <label style="margin:0;font-size:12px"><span class="ico-i ico-package"></span>الحوكمة والاجتماعات (الباقة الأساسية — تُفعّل دائمًا)</label>
     </div>
     <div class="fg" style="display:flex;align-items:center;gap:8px;background:var(--offwhite);padding:10px 12px;border-radius:8px">
-      <input type="checkbox" id="apc-audit" style="width:16px;height:16px" />
-      <label for="apc-audit" style="margin:0;font-size:12px;cursor:pointer"><span class="ico-i ico-package"></span>المراجعة الداخلية</label>
+      <input type="checkbox" id="apc-risk" style="width:16px;height:16px" onchange="clearSubPackageSelection('apc')" />
+      <label for="apc-risk" style="margin:0;font-size:12px;cursor:pointer"><span class="ico-i ico-package"></span>إدارة المخاطر</label>
     </div>
     <div class="fg" style="display:flex;align-items:center;gap:8px;background:var(--offwhite);padding:10px 12px;border-radius:8px">
-      <input type="checkbox" id="apc-risk" style="width:16px;height:16px" />
-      <label for="apc-risk" style="margin:0;font-size:12px;cursor:pointer"><span class="ico-i ico-package"></span>إدارة المخاطر</label>
+      <input type="checkbox" id="apc-audit" style="width:16px;height:16px" onchange="clearSubPackageSelection('apc')" />
+      <label for="apc-audit" style="margin:0;font-size:12px;cursor:pointer"><span class="ico-i ico-package"></span>المراجعة الداخلية</label>
     </div>
     <div class="fg" style="display:flex;align-items:center;gap:8px;background:#FEF3E2;padding:10px 12px;border-radius:8px;margin-top:10px">
       <input type="checkbox" id="apc-trial" style="width:16px;height:16px" checked onchange="document.getElementById('apc-trial-days-row').style.display=this.checked?'flex':'none'" />
@@ -6417,6 +6435,31 @@ function openActivateSubModal(companyId, companyName){
   document.getElementById("mas-audit").checked = false;
   document.getElementById("mas-risk").checked = false;
   openM("m-activate-sub");
+}
+
+/* Package selector — a thin naming/pricing layer over the same raw module checkboxes that
+   already gate access everywhere else. Selecting a package just sets those checkboxes for you;
+   nothing about the underlying enforcement mechanism changes, so custom combos remain possible
+   by ticking the boxes directly (which also visually clears the package selection, since it no
+   longer matches a named tier exactly). */
+const SUB_PACKAGES = { "أساسية": { risk:false, audit:false }, "فضية": { risk:true, audit:false }, "ذهبية": { risk:true, audit:true } };
+
+function selectSubPackage(prefix, pkg){
+  const cfg = SUB_PACKAGES[pkg];
+  document.getElementById(`${prefix}-risk`).checked = cfg.risk;
+  document.getElementById(`${prefix}-audit`).checked = cfg.audit;
+  document.querySelectorAll(`#${prefix}-package-selector [data-pkg]`).forEach(btn => {
+    const selected = btn.dataset.pkg === pkg;
+    btn.style.background = selected ? "var(--gold)" : "var(--gray1)";
+    btn.style.color = selected ? "#fff" : "var(--dark)";
+    btn.style.fontWeight = selected ? "800" : "600";
+  });
+}
+
+function clearSubPackageSelection(prefix){
+  document.querySelectorAll(`#${prefix}-package-selector [data-pkg]`).forEach(btn => {
+    btn.style.background = "var(--gray1)"; btn.style.color = "var(--dark)"; btn.style.fontWeight = "600";
+  });
 }
 
 async function activateSubscription(){
