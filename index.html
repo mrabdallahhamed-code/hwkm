@@ -517,6 +517,22 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .modal-foot{display:flex;gap:10px;justify-content:flex-end;margin-top:22px;padding-top:16px;border-top:1px solid var(--gray1);}
 
+/* ── Small "pick one" dropdown for consolidated action buttons (e.g. export ▾ Excel/PDF) ── */
+.dd-wrap{position:relative;display:inline-block;}
+.dd-menu{
+  display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:150;
+  background:#fff;border-radius:8px;min-width:150px;
+  box-shadow:0 8px 26px rgba(10,22,40,0.18);border:1px solid var(--gray1);
+  overflow:hidden;padding:5px;
+}
+.dd-menu.open{display:block;}
+.dd-menu button{
+  width:100%;text-align:right;background:none;border:none;cursor:pointer;
+  padding:9px 12px;font-family:'Tajawal',sans-serif;font-size:12.5px;font-weight:600;
+  color:var(--dark);border-radius:5px;display:flex;align-items:center;gap:8px;
+}
+.dd-menu button:hover{background:var(--offwhite);}
+
 /* ── FULL-PAGE TAKEOVER (used for AGM detail — a real page, not a small popup) ── */
 .modal-bg.fullpage{align-items:stretch;justify-content:stretch;background:var(--offwhite);backdrop-filter:none}
 .modal-bg.fullpage .modal{width:100%;max-width:100%;height:100%;max-height:100%;border-radius:0;
@@ -1186,7 +1202,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openMeetingPlanSetupModal()">+ إعداد الخطة</button>
     </div>
   </div>
-  <p class="modal-section-hint" style="margin:-8px 0 4px">تخطيط أولي غير ملزم — لتحديد موعد فعلي ومُلزم للأعضاء، استخدم "+ طلب اجتماع" بالأعلى.</p>
+
   <div class="plan-strip" id="meetingPlansStrip">
     <div style="color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div>
   </div>
@@ -1472,9 +1488,15 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openTransferModal()"><span class="ico-i ico-refresh"></span>نقل ملكية</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px;color:var(--red)" onclick="deleteAllShareholders()"><span class="ico-i ico-trash"></span>حذف الكل</button>
-      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openPdfImportModal()"><span class="ico-i ico-document"></span>استيراد من PDF</button>
-      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="downloadShareholdersTemplate()"><span class="ico-i ico-inbox"></span>تحميل نموذج الإدخال</button>
-      <label class="btn btn-ghost" style="font-size:11px;padding:6px 14px;cursor:pointer"><span class="ico-i ico-upload"></span>استيراد البيانات<input type="file" accept=".xlsx" style="display:none" onchange="handleShareholdersExcelUpload(this)"></label>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="downloadShareholdersTemplate()"><span class="ico-i ico-inbox"></span>مسودة الإدخال</button>
+      <div class="dd-wrap">
+        <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="toggleDD('shImportDD')"><span class="ico-i ico-upload"></span>استيراد ▾</button>
+        <div class="dd-menu" id="shImportDD">
+          <button onclick="document.getElementById('shExcelImportInput').click()">Excel</button>
+          <button onclick="openPdfImportModal()">PDF</button>
+        </div>
+        <input type="file" id="shExcelImportInput" accept=".xlsx" style="display:none" onchange="handleShareholdersExcelUpload(this)">
+      </div>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportShareholdersList()"><span class="ico-i ico-inbox"></span>تصدير Excel</button>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openNewShareholderModal()">+ إضافة مساهم</button>
     </div>
@@ -1516,7 +1538,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     <span><span class="ico-i ico-dashboard"></span>التقرير المالي والتشغيلي</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" id="indicatorsPdfBtn" style="font-size:11px;padding:6px 14px;display:none" onclick="exportIndicatorsPDF()"><span class="ico-i ico-print"></span>تحميل تقرير PDF</button>
-      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="downloadIndicatorsTemplate()"><span class="ico-i ico-inbox"></span>تحميل نموذج الإدخال</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="downloadIndicatorsTemplate()"><span class="ico-i ico-inbox"></span>مسودة الإدخال</button>
       <label class="btn btn-gold" style="font-size:11px;padding:6px 14px;cursor:pointer"><span class="ico-i ico-upload"></span>استيراد البيانات<input type="file" accept=".xlsx" style="display:none" onchange="handleIndicatorsUpload(this)"></label>
     </div>
   </div>
@@ -1618,7 +1640,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportPositionsList()"><span class="ico-i ico-inbox"></span>تصدير Excel</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="generateBaseStructure()"><span class="ico-i ico-building"></span>إنشاء الهيكل</button>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mst-id').value='';document.getElementById('mst-title-h').textContent='🌳 إضافة منصب في الهيكل التنظيمي';document.getElementById('mst-leadership').checked=true;document.getElementById('mst-is-body').checked=false;toggleBodyFields();document.getElementById('mst-delete-btn').style.display='none';populateParentPositionSelect();openM('m-structure')">+ إضافة منصب</button>
-      <button class="btn" id="approvalBtnStructure" style="background:var(--gold);color:#fff;font-size:11px;padding:6px 14px" onclick="requestBoardApproval('structure')"><span class="ico-i ico-upload"></span>طلب موافقة من المجلس</button>
+      <button class="btn" id="approvalBtnStructure" style="background:var(--gold);color:#fff;font-size:11px;padding:6px 14px" onclick="requestBoardApproval('structure')"><span class="ico-i ico-upload"></span>اعتماد المجلس</button>
     </div>
   </div>
   <div id="structureApprovalStatus" style="margin-bottom:14px"></div>
@@ -1635,19 +1657,29 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 </div>
 
 <div id="p-permissions" class="page content">
-  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
     <span><span class="ico-i ico-key"></span>مصفوفة الصلاحيات</span>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="generatePermissionsReport()"><span class="ico-i ico-print"></span>تحميل تقرير PDF</button>
-      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportPermissionsMatrix()"><span class="ico-i ico-inbox"></span>تصدير Excel</button>
-      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openPermHoldersManager()"><span class="ico-i ico-edit"></span>تعديل الجهات</button>
-      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openPermItemsManager()"><span class="ico-i ico-edit"></span>تعديل البنود</button>
-      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="downloadPermMatrixTemplate()"><span class="ico-i ico-inbox"></span>تحميل نموذج Excel</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div class="dd-wrap">
+        <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="toggleDD('permExportDD')"><span class="ico-i ico-inbox"></span>تصدير ▾</button>
+        <div class="dd-menu" id="permExportDD">
+          <button onclick="exportPermissionsMatrix()"><span class="ico ico-document" style="width:14px;height:14px"></span>Excel</button>
+          <button onclick="generatePermissionsReport()"><span class="ico ico-document" style="width:14px;height:14px"></span>PDF</button>
+        </div>
+      </div>
+      <div class="dd-wrap">
+        <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="toggleDD('permEditDD')"><span class="ico-i ico-edit"></span>تعديل ▾</button>
+        <div class="dd-menu" id="permEditDD">
+          <button onclick="openPermHoldersManager()">الجهات</button>
+          <button onclick="openPermItemsManager()">البنود</button>
+        </div>
+      </div>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="downloadPermMatrixTemplate()"><span class="ico-i ico-inbox"></span>مسودة الإدخال</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="triggerPermMatrixImport()"><span class="ico-i ico-upload"></span>استيراد من Excel</button>
       <input type="file" id="permMatrixImportFile" accept=".xlsx" style="display:none" onchange="importPermMatrixFromExcel(this)"/>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openPermItemModal()">+ إضافة بند</button>
-      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openWorkflowTemplateModal('matrix')"><span class="ico-i ico-settings"></span>إعداد تسلسل التوقيع</button>
-      <button class="btn" id="approvalBtnMatrix" style="background:var(--gold);color:#fff;font-size:11px;padding:6px 14px" onclick="startGovernanceApproval('matrix', null)"><span class="ico-i ico-upload"></span>بدء دورة الاعتماد والتوقيع</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openWorkflowTemplateModal('matrix')"><span class="ico-i ico-settings"></span>مسار الاعتماد والتوقيع</button>
+      <button class="btn" id="approvalBtnMatrix" style="background:var(--gold);color:#fff;font-size:11px;padding:6px 14px" onclick="startGovernanceApproval('matrix', null)"><span class="ico-i ico-upload"></span>اعتماد المجلس</button>
     </div>
   </div>
   <div id="matrixApprovalStatus" style="margin-bottom:14px"></div>
@@ -1843,7 +1875,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
       <span><span class="ico-i ico-dashboard"></span>تقييم فعالية الحوكمة</span>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openNewGovAssessment()">+ تقييم جديد</button>
     </div>
-    <p style="font-size:12px;color:var(--gray3);margin-bottom:16px">تقييم نضج ممارسات الحوكمة عبر ٨ محاور و٣٢ معيارًا.</p>
+
     <div class="card">
       <div class="card-body" style="padding:0">
         <table class="tbl">
@@ -3247,7 +3279,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     </div>
     <div id="mplan-items-list"></div>
     <button type="button" class="btn btn-ghost" style="width:100%;margin-bottom:10px" onclick="addPlanItemRow()">+ إضافة اجتماع</button>
-    <p style="font-size:10.5px;color:var(--gray3)">خطة أولية بتواريخ تقريبية — حوّلها لاجتماع فعلي لاحقًا.</p>
+
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-meeting-plan')">إلغاء</button><button class="btn btn-gold" onclick="saveMeetingPlan()"><span class="ico-i ico-save"></span>حفظ الخطة</button></div>
   </div>
 </div>
@@ -5300,7 +5332,7 @@ function renderUserCard(m){
           <div style="display:flex;justify-content:space-between"><span>رقم الجوال</span><span style="color:var(--dark);font-weight:600">${u.phone_number||"—"}</span></div>
         </div>
         ${u.id ? `<button style="width:100%;background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:8px;padding:6px;font-size:11px;font-weight:600;cursor:pointer;margin-bottom:8px" onclick="openEditProfileModal(${u.id})"><span class="ico-i ico-edit"></span>تعديل البيانات</button>` : ""}
-        <button style="width:100%;background:#EAF0F8;color:var(--primary);border:none;border-radius:8px;padding:6px;font-size:11px;font-weight:700;cursor:pointer;margin-bottom:8px" onclick="openUserPermissionOverridesModal('${(m.email||'').replace(/'/g,"")}','${(u.full_name||m.email||'').replace(/'/g,"")}', currentCompanyId)"><span class="ico-i ico-wrench"></span>صلاحيات مخصّصة${isCustomRole?' (مطلوبة لهذا المسمى)':''}</button>
+        <button style="width:100%;background:#EAF0F8;color:var(--primary);border:none;border-radius:8px;padding:6px;font-size:11px;font-weight:700;cursor:pointer;margin-bottom:8px" onclick="openUserPermissionOverridesModal('${(m.email||'').replace(/'/g,"")}','${(u.full_name||m.email||'').replace(/'/g,"")}', currentCompanyId)"><span class="ico-i ico-wrench"></span>صلاحيات مخصّصة</button>
         <button style="width:100%;background:#FDF5DC;color:var(--gold);border:none;border-radius:8px;padding:6px;font-size:11px;font-weight:700;cursor:pointer;margin-bottom:8px" onclick="openPolicyCategoryRestrictionModal(${m.id},'${(m.email||'').replace(/'/g,"")}','${(u.full_name||m.email||'').replace(/'/g,"")}')"><span class="ico-i ico-clipboard"></span>تقييد فئة السياسات</button>
 
         <div style="margin-top:auto">
@@ -5311,7 +5343,7 @@ function renderUserCard(m){
             <option value="__custom__"><span class="ico-i ico-tag"></span>مسمى مخصّص (لجنة أخرى)...</option>
           </select>
           ${isCustomRole ? `<p style="font-size:9.5px;color:var(--gray3);margin:-2px 0 8px">مسمى مخصّص — حدد صفحاته من "🔧 صلاحيات مخصّصة" فوق.</p>` : ""}
-          ${isMe ? "" : `<button style="width:100%;background:#FDE8E8;color:var(--red);border:none;border-radius:8px;padding:8px;font-size:11.5px;font-weight:600;cursor:pointer" onclick="deleteUserProfile(${m.id},'${(u.full_name||m.email||"").replace(/'/g,"")}')"><span class="ico-i ico-trash"></span>إزالة من هذه الشركة</button>`}
+          ${isMe ? "" : `<button style="width:100%;background:#FDE8E8;color:var(--red);border:none;border-radius:8px;padding:8px;font-size:11.5px;font-weight:600;cursor:pointer" onclick="deleteUserProfile(${m.id},'${(u.full_name||m.email||"").replace(/'/g,"")}')"><span class="ico-i ico-trash"></span>حذف</button>`}
         </div>
       </div>
     </div>`;
@@ -7322,6 +7354,16 @@ async function deleteMeeting(id){
 const AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
 
 /* ══════════ NOTIFICATIONS (live-computed, no stored table — always fresh) ══════════ */
+/* Generic "pick one" dropdown — reused for every consolidated export/edit button across the
+   platform instead of one page having its own bespoke toggle logic. Closes on outside click. */
+function toggleDD(id){
+  document.querySelectorAll('.dd-menu.open').forEach(m => { if(m.id !== id) m.classList.remove('open'); });
+  document.getElementById(id).classList.toggle('open');
+}
+document.addEventListener('click', function(e){
+  if(!e.target.closest('.dd-wrap')) document.querySelectorAll('.dd-menu.open').forEach(m => m.classList.remove('open'));
+});
+
 function toggleNotifPanel(){
   const panel = document.getElementById("notifPanel");
   if(!panel) return;
@@ -11482,10 +11524,10 @@ async function loadPolicyReviewSection(){
   if(role === 'مساهم'){ card.style.display = "none"; return; }
   card.style.display = "block";
   const bodyLabel = getGovernanceBodyLabel();
-  setText("policyReviewTitle", `🗳️ سياسات تحتاج رأي ${bodyLabel}`);
+  setText("policyReviewTitle", `سياسات تتطلب اعتماد المجلس`);
 
   const pending = policiesCache.filter(p => p.status === "مرفوعة لمجلس الإدارة");
-  if(pending.length===0){ box.innerHTML = `<div style="text-align:center;color:var(--gray3);font-size:12px;line-height:1.8">لا توجد سياسات بانتظار رأي ${bodyLabel} حاليًا.<br>خانة كتابة الملاحظة تظهر هنا فقط بعد نقل السياسة لمرحلة "${displayStageLabel("مرفوعة لمجلس الإدارة")}" (زر "⏩ نقل إلى" بكل بطاقة سياسة فوق).</div>`; return; }
+  if(pending.length===0){ box.innerHTML = `<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">لا توجد سياسات بانتظار اعتماد المجلس.</div>`; return; }
 
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
