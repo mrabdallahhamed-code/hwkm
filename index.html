@@ -1127,6 +1127,10 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 
 <!-- ══ DASHBOARD ══════════════════════════ -->
 <div id="p-dashboard" class="page active content">
+  <!-- Proactive governance alerts — surfaces what the system already tracks instead of leaving
+       it as passive data someone has to go dig for. Only rendered when there's something to say. -->
+  <div id="govAlertsPanel" style="display:none;margin-bottom:20px"></div>
+
   <div class="kpi-grid">
     <div class="kpi blue" style="cursor:pointer" onclick="go('meetings',null)"><div class="kpi-stripe"></div><div class="kpi-label">اجتماعات هذا الربع</div><div class="kpi-val" id="kpi-meetings-q">—</div><div class="kpi-foot" id="kpi-meetings-q-foot">جارِ التحميل...</div><div class="kpi-icon"><span class="ico ico-calendar" style="width:16px;height:16px"></span></div></div>
     <div class="kpi gold" style="cursor:pointer" onclick="go('signing',null)"><div class="kpi-stripe"></div><div class="kpi-label">محاضر معتمدة</div><div class="kpi-val" id="kpi-minutes">—</div><div class="kpi-foot" id="kpi-minutes-foot">جارِ التحميل...</div><div class="kpi-icon"><span class="ico ico-document" style="width:16px;height:16px"></span></div></div>
@@ -7547,7 +7551,93 @@ function renderDashAuditStatus(items){
   `;
 }
 
+/* ══════════ PROACTIVE GOVERNANCE ALERTS ══════════
+   Everything here is already tracked somewhere in the platform — this doesn't compute anything
+   new, it just refuses to leave it as passive data someone has to remember to go dig for.
+   Performance/attendance items are only ever included for viewers who canSeePerfResults() —
+   the panel is shared infrastructure, but it never leaks a confidentiality-restricted signal
+   to someone who wouldn't otherwise be allowed to see it. */
+async function computeGovernanceAlerts(){
+  const alerts = [];
+  const govBodyLabel = getGovernanceBodyLabel();
+
+  // 1) Performance trending down or stuck low across evaluation cycles
+  if(await canSeePerfResults()){
+    const { data: completed } = await sb.from("performance_evaluations").select("*")
+      .eq("company_id", currentCompanyId).eq("status","مكتمل").not("evaluated_email","is",null).order("period",{ascending:true});
+    const byPerson = {};
+    (completed||[]).forEach(e => { if(!byPerson[e.evaluated_email]) byPerson[e.evaluated_email]=[]; byPerson[e.evaluated_email].push(e); });
+    for(const email in byPerson){
+      const evals = byPerson[email];
+      if(evals.length < 2) continue;
+      const scores = evals.map(e=>Number(e.score)||0);
+      const last = scores[scores.length-1];
+      const isDeclining = scores.every((s,i) => i===0 || s <= scores[i-1]) && scores[0] > last;
+      const isConsistentlyLow = scores.slice(-Math.min(3,scores.length)).every(s => s < 3);
+      if(isDeclining || isConsistentlyLow){
+        alerts.push({
+          severity: "high",
+          text: `أداء "${evals[evals.length-1].entity_name}" ${isConsistentlyLow?'منخفض باستمرار':'في تراجع'} عبر ${evals.length} دورات تقييم — يستاهل نقاش لجنة الترشيحات${govBodyLabel==='مجلس الإدارة'?' أو رئيس المجلس':''}.`,
+          page: "perf"
+        });
+      }
+    }
+
+    // 2) Real attendance rate below a healthy threshold
+    try {
+      const attendance = await computeAttendancePercentages();
+      attendance.filter(a => a.pct !== null && a.pct < 60).forEach(a => {
+        alerts.push({ severity: "medium", text: `نسبة حضور "${a.name}" الفعلية ${a.pct}% فقط — أقل من الحد الصحي المعتاد (60%).`, page: "perf" });
+      });
+    } catch(e){ console.error("attendance alert check failed", e); }
+  }
+
+  // 3) Policies stuck in an approval cycle past the company's own configured deadline
+  try {
+    const deadlineDays = Number(currentCompanyPolicyDeadlineDays ?? 14);
+    const { data: allApprovals } = await sb.from("governance_approvals").select("*").eq("company_id", currentCompanyId).not("status","eq","مكتملة").not("status","eq","مرفوضة");
+    const stuck = (allApprovals||[]).filter(a => (a.document_type||"").startsWith("policy_") && Math.floor((Date.now()-new Date(a.created_at).getTime())/86400000) > deadlineDays);
+    if(stuck.length){
+      alerts.push({ severity: "medium", text: `${stuck.length} ${stuck.length===1?'سياسة متأخرة':'سياسات متأخرة'} عن مهلة الاعتماد المحددة (${deadlineDays} يوم) — بانتظار خطوة من أحد الموقّعين.`, page: "governance" });
+    }
+  } catch(e){ console.error("policy deadline alert check failed", e); }
+
+  // 4) High-impact risks that are still just "مراقبة" (i.e., no active treatment yet)
+  try {
+    const { data: risks } = await sb.from("risks").select("*").eq("company_id", currentCompanyId).eq("impact","عالٍ").eq("status","مراقبة");
+    if(risks && risks.length){
+      alerts.push({ severity: "high", text: `${risks.length} ${risks.length===1?'خطر عالي التأثير':'مخاطر عالية التأثير'} لسا بمرحلة "مراقبة" فقط — بلا خطة معالجة نشطة بعد.`, page: "risks" });
+    }
+  } catch(e){ console.error("risk alert check failed", e); }
+
+  return alerts;
+}
+
+async function renderGovAlertsPanel(){
+  const panel = document.getElementById("govAlertsPanel");
+  if(!panel) return;
+  const alerts = await computeGovernanceAlerts();
+  if(alerts.length === 0){ panel.style.display = "none"; return; }
+
+  const sorted = [...alerts.filter(a=>a.severity==="high"), ...alerts.filter(a=>a.severity==="medium")];
+
+  panel.style.display = "block";
+  panel.innerHTML = `<div class="card" style="border-right:4px solid var(--gold);margin:0">
+    <div class="card-body">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span class="ico ico-bolt" style="width:18px;height:18px;color:var(--gold)"></span>
+        <span style="font-weight:900;font-size:14px;color:var(--dark)">تنبيهات تستاهل انتباهكم (${alerts.length})</span>
+      </div>
+      ${sorted.map((a,i) => `<div onclick="go('${a.page}',null)" style="cursor:pointer;display:flex;align-items:flex-start;gap:9px;padding:9px 10px;background:${a.severity==='high'?'#FBEAEA':'#FEF3E2'};border-radius:8px;margin-bottom:7px">
+        <span class="ico ico-${a.severity==='high'?'warning':'clock'}" style="width:15px;height:15px;color:${a.severity==='high'?'var(--red)':'var(--gold)'};flex-shrink:0;margin-top:2px"></span>
+        <span style="font-size:12px;color:var(--dark);line-height:1.6">${a.text}</span>
+      </div>`).join("")}
+    </div>
+  </div>`;
+}
+
 async function loadDashboard(){
+  renderGovAlertsPanel(); // fire independently — a slow/failed alert check must never block the rest of the dashboard
   const [meetingsRes, risksRes, complianceRes, membersRes, committeesRes, signingRes, policiesRes, auditRes, govAssessRes] = await Promise.all([
     sb.from("meetings").select("*").eq("company_id", currentCompanyId),
     sb.from("risks").select("*").eq("company_id", currentCompanyId),
