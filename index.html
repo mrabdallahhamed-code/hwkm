@@ -18077,15 +18077,16 @@ async function loadPerfAttendanceWidget(){
   box.innerHTML = tracked.map(p => `<div class="comp-item"><div class="comp-head"><span class="comp-name">${p.name} <span style="font-size:10px;color:var(--gray3)">(${p.position||""})</span></span><span class="comp-pct">${p.pct}%</span></div><div class="comp-track"><div class="comp-fill" style="width:${p.pct}%"></div></div></div>`).join("");
 }
 
+const PERF_AUTO_CRITERIA = ["الانضباط والالتزام (آلي)", "نسبة الحضور الفعلية (آلي)", "نسبة المشاركة بالتصويت (آلي)"];
+
 async function loadPerf(){
   const resultsSection = document.getElementById("perfResultsSection");
-  const allowedRoles = await getPerfResultsAllowedRoles();
-  const isAdmin = allowedRoles.includes(getCurrentRole());
+  const isAdmin = await canSeePerfResults();
   if(resultsSection) resultsSection.style.display = isAdmin ? "block" : "none";
 
   loadPerfReviewSection();
 
-  if(!isAdmin) return; // Only nominations-committee members (or the chairman, if no such committee exists) see results
+  if(!isAdmin) return; // Only nominations-committee members (or the chairman, if no such committee exists), or HWKM's own platform owner
   loadPerfAttendanceWidget();
   const tbody = document.getElementById("perfTbody");
   const cardsWrap = document.getElementById("perfResultsCards");
@@ -18130,6 +18131,15 @@ async function loadPerf(){
         const pct = Math.round((avg/5)*100);
         return `<div class="comp-item"><div class="comp-head"><span class="comp-name">${c}</span><span class="comp-pct">${pct}%</span></div><div class="comp-track"><div class="comp-fill" style="width:${pct}%"></div></div></div>`;
       }).join("");
+      const autoBars = PERF_AUTO_CRITERIA.filter(c=>byCrit[c]).map(c => {
+        const avg = byCrit[c].reduce((a,b)=>a+b,0)/byCrit[c].length;
+        const pct = Math.round((avg/5)*100);
+        return `<div class="comp-item"><div class="comp-head"><span class="comp-name"><span class="ico ico-bolt" style="width:12px;height:12px;color:var(--gold)"></span> ${c}</span><span class="comp-pct">${pct}%</span></div><div class="comp-track"><div class="comp-fill" style="width:${pct}%;background:var(--gold)"></div></div></div>`;
+      }).join("");
+      const autoSection = autoBars ? `<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--gray1)">
+        <div style="font-size:10px;font-weight:700;color:var(--gray3);margin-bottom:6px">مؤشرات محسوبة تلقائيًا من بيانات النظام الفعلية</div>
+        ${autoBars}
+      </div>` : "";
 
       const closeBtn = p.status !== "مكتمل" && revs.length
         ? `<button class="btn btn-gold" style="font-size:11px;padding:6px 14px;margin-top:10px;width:100%" onclick="closePerfEvaluation(${p.id})"><span class="ico-i ico-shield"></span>إغلاق واعتماد النتيجة النهائية</button>`
@@ -18139,6 +18149,7 @@ async function loadPerf(){
         <div class="card-head"><span class="card-title">${p.entity_name||""} <span style="font-size:11px;color:var(--gray3);font-weight:600">— ${p.period||""}</span></span>${statusBadge}</div>
         <div class="card-body" style="display:flex;flex-direction:column;flex:1">
           ${bars || '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا توجد تقييمات مسجّلة من الأعضاء بعد.</div>'}
+          ${autoSection}
           <div style="font-size:11px;color:var(--gray3);margin-top:8px"><span class="ico-i ico-users"></span>عدد المقيّمين: ${uniqueReviewers}${p.score!=null ? " · الدرجة الإجمالية: "+Number(p.score).toFixed(1)+"/5 — "+(PERF_SCORE_LABELS[Math.round(p.score)]||"") : ""}</div>
           <div style="margin-top:auto;padding-top:8px">${closeBtn}</div>
         </div>
@@ -18274,6 +18285,10 @@ async function savePerf(){
       evaluation_id: newEval.id, reviewer_email: "system@hwkm.internal", reviewer_name: "النظام (تلقائي)",
       criterion: a.criterion, score: Math.round(a.score), notes: a.note, company_id: currentCompanyId
     })));
+    // Surface a human-readable summary too — reviewers see this as context while scoring, even
+    // though these particular dimensions are never something they vote on themselves.
+    const summary = autoScores.map(a => `${a.criterion.replace(" (آلي)","")}: ${a.note}`).join("\n");
+    await sb.from("performance_evaluations").update({ auto_context_note: summary }).eq("id", newEval.id);
   }
 
   closeM("m-perf"); loadPerf();
@@ -18322,14 +18337,17 @@ async function getPerfReviewerAudience(evaluatedEmail){
   return people.filter(p => p.email !== evaluatedEmail).map(p => p.email);
 }
 
-/* Results visibility: nominations-committee members if that committee actually has anyone in
-   it, otherwise the board chairman only — never a broader "any governance admin" set. Sole
-   proprietorships have no board, so it collapses to "the owner" (مدير النظام) by definition. */
-async function getPerfResultsAllowedRoles(){
-  if(currentCompanyType === "مؤسسة فردية") return ["مدير النظام"];
+/* Results visibility: HWKM's own platform owner always sees everything (support/oversight
+   across every client company). Otherwise: nomination-committee members if that committee
+   actually has anyone in it, else the board chairman only — never a broader "any governance
+   admin" set. Sole proprietorships have no board, so it collapses to "the owner" by definition. */
+async function canSeePerfResults(){
+  if(currentUserProfile && currentUserProfile.is_platform_admin === true) return true;
+  const role = getCurrentRole();
+  if(currentCompanyType === "مؤسسة فردية") return role === "مدير النظام";
   const { data: nomCommittee } = await sb.from("user_company_memberships").select("role").eq("company_id", currentCompanyId).in("role",["رئيس لجنة الترشيحات","عضو لجنة الترشيحات"]);
-  if(nomCommittee && nomCommittee.length > 0) return ["رئيس لجنة الترشيحات","عضو لجنة الترشيحات"];
-  return ["رئيس مجلس"];
+  if(nomCommittee && nomCommittee.length > 0) return ["رئيس لجنة الترشيحات","عضو لجنة الترشيحات"].includes(role);
+  return role === "رئيس مجلس";
 }
 
 const PERF_CRITERIA_MEMBER = [
@@ -18422,34 +18440,55 @@ async function loadPerfReviewSection(){
   const rolesByEval = {};
   for(const ev of openEvals){ rolesByEval[ev.id] = ev.evaluated_email ? await getEvaluatedPersonRole(ev.evaluated_email) : null; }
 
-  box.innerHTML = openEvals.map(ev => {
-    const criteria = getPerfCriteria(ev.entity_type, rolesByEval[ev.id]);
-    const savedNotes = criteria.map(c => mineByEvalCriterion[ev.id+'|'+c]).find(r=>r&&r.notes)?.notes || "";
-    const roleLabel = rolesByEval[ev.id] || ev.entity_type || "";
-    return `<div style="border-radius:14px;overflow:hidden;box-shadow:0 4px 16px rgba(10,22,40,0.08);margin-bottom:18px;border:1px solid var(--gray1)">
+  // Multiple people open at once (e.g. evaluating a full 5-member board) would otherwise stack
+  // as five full-length forms on one page. Instead: a compact tab strip — one name per person,
+  // a "done" checkmark once submitted — with only the active person's full questionnaire shown
+  // below it. Scales the same whether there are 2 people or 12.
+  perfActivePersonId = perfActivePersonId && openEvals.some(e=>e.id===perfActivePersonId) ? perfActivePersonId : openEvals[0].id;
+
+  const isSubmitted = (ev) => getPerfCriteria(ev.entity_type, rolesByEval[ev.id]).every(c => mineByEvalCriterion[ev.id+'|'+c]);
+
+  const tabs = openEvals.length > 1 ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--gray1)">
+    ${openEvals.map(ev => {
+      const active = ev.id === perfActivePersonId;
+      const done = isSubmitted(ev);
+      return `<button type="button" onclick="perfActivePersonId=${ev.id};loadPerfReviewSection()" style="padding:7px 14px;border-radius:20px;border:1.5px solid ${active?'var(--primary)':'var(--gray1)'};background:${active?'var(--primary)':'#fff'};color:${active?'#fff':'var(--dark)'};font-size:11.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px">
+        ${done ? `<span class="ico" style="width:12px;height:12px;color:${active?'#fff':'var(--green)'}" class="ico ico-check"></span>` : ""}${ev.entity_name||""}
+      </button>`;
+    }).join("")}
+  </div>` : "";
+
+  const ev = openEvals.find(e=>e.id===perfActivePersonId);
+  const criteria = getPerfCriteria(ev.entity_type, rolesByEval[ev.id]);
+  const savedNotes = criteria.map(c => mineByEvalCriterion[ev.id+'|'+c]).find(r=>r&&r.notes)?.notes || "";
+  const roleLabel = rolesByEval[ev.id] || ev.entity_type || "";
+  const alreadySubmitted = isSubmitted(ev);
+
+  box.innerHTML = tabs + `<div style="border-radius:14px;overflow:hidden;box-shadow:0 4px 16px rgba(10,22,40,0.08);border:1px solid var(--gray1)">
       <div style="background:linear-gradient(135deg,var(--primary),var(--accent));padding:14px 16px;color:#fff">
         <div style="font-weight:900;font-size:14px">${ev.entity_name||""}</div>
         <div style="font-size:11px;opacity:0.85;margin-top:2px">${roleLabel} · الفترة: ${ev.period||""}</div>
       </div>
       <div style="padding:16px;background:#fff">
-        ${ev.auto_context_note ? `<div style="background:#FEF3E2;border-right:3px solid var(--gold);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11.5px;color:var(--dark);white-space:pre-line;line-height:1.7">${ev.auto_context_note}</div>` : ""}
+        ${ev.auto_context_note ? `<div style="background:#FEF3E2;border-right:3px solid var(--gold);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11.5px;color:var(--dark);white-space:pre-line;line-height:1.7"><b>مؤشرات آلية من النظام (لا تُصوَّت عليها):</b>\n${ev.auto_context_note}</div>` : ""}
+        ${alreadySubmitted ? `<div style="background:#E8F8EF;border-radius:8px;padding:12px;text-align:center;color:var(--green);font-weight:700;font-size:12.5px;margin-bottom:6px"><span class="ico-i ico-check"></span>تم إرسال تقييمك لهذا الشخص — غير قابل للتعديل بعد الإرسال.</div>` : ""}
         ${criteria.map((crit,idx) => {
           const mine = mineByEvalCriterion[ev.id+'|'+crit];
-          return `<div class="perf-crit-row" data-eval="${ev.id}" data-criterion="${crit.replace(/"/g,'&quot;')}" data-selected="${mine?mine.score:''}" style="margin-bottom:${idx<criteria.length-1?'16px':'4px'}">
+          return `<div class="perf-crit-row" data-eval="${ev.id}" data-criterion="${crit.replace(/"/g,'&quot;')}" data-selected="${mine?mine.score:''}" style="margin-bottom:${idx<criteria.length-1?'16px':'4px'};opacity:${alreadySubmitted?'0.6':'1'}">
             <div style="font-size:12.5px;font-weight:800;color:var(--dark);margin-bottom:7px">${crit}</div>
             <div style="display:flex;gap:0;border-radius:10px;overflow:hidden;border:1.5px solid var(--gray1)">
-              ${[1,2,3,4,5].map((s,i) => `<button type="button" class="perf-crit-btn" data-val="${s}" style="flex:1;background:${mine&&mine.score===s?'linear-gradient(135deg,var(--primary),var(--accent))':'#fff'};color:${mine&&mine.score===s?'#fff':'var(--dark)'};border:none;${i>0?'border-right:1px solid var(--gray1)':''};padding:9px 4px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s" onclick="selectPerfCriterionScore(this,${s})">${s}<br><span style="font-size:9px;font-weight:600;opacity:0.9">${PERF_SCORE_LABELS[s]}</span></button>`).join('')}
+              ${[1,2,3,4,5].map((s,i) => `<button type="button" ${alreadySubmitted?'disabled':''} class="perf-crit-btn" data-val="${s}" style="flex:1;background:${mine&&mine.score===s?'linear-gradient(135deg,var(--primary),var(--accent))':'#fff'};color:${mine&&mine.score===s?'#fff':'var(--dark)'};border:none;${i>0?'border-right:1px solid var(--gray1)':''};padding:9px 4px;font-size:11px;font-weight:700;cursor:${alreadySubmitted?'default':'pointer'};transition:all .15s" onclick="selectPerfCriterionScore(this,${s})">${s}<br><span style="font-size:9px;font-weight:600;opacity:0.9">${PERF_SCORE_LABELS[s]}</span></button>`).join('')}
             </div>
           </div>`;
         }).join("")}
-        <textarea id="perf-review-notes-${ev.id}" placeholder="ملاحظاتك العامة (اختياري)" style="width:100%;border:1.5px solid var(--gray1);border-radius:10px;padding:10px;font-family:'Tajawal',sans-serif;font-size:12px;resize:none;margin-top:10px;background:var(--offwhite)" rows="2">${savedNotes}</textarea>
-        <div style="display:flex;justify-content:flex-end;margin-top:10px">
-          <button class="btn-xs primary" onclick="submitPerfReview(${ev.id})"><span class="ico-i ico-save"></span>حفظ تقييمي لكل البنود</button>
-        </div>
+        <textarea id="perf-review-notes-${ev.id}" ${alreadySubmitted?'disabled':''} placeholder="ملاحظاتك العامة (اختياري)" style="width:100%;border:1.5px solid var(--gray1);border-radius:10px;padding:10px;font-family:'Tajawal',sans-serif;font-size:12px;resize:none;margin-top:10px;background:var(--offwhite)" rows="2">${savedNotes}</textarea>
+        ${alreadySubmitted ? "" : `<div style="display:flex;justify-content:flex-end;margin-top:10px">
+          <button class="btn-xs primary" onclick="submitPerfReview(${ev.id})"><span class="ico-i ico-save"></span>إرسال تقييمي لكل البنود (نهائي)</button>
+        </div>`}
       </div>
     </div>`;
-  }).join("");
 }
+let perfActivePersonId = null;
 
 function selectPerfCriterionScore(btn, val){
   const row = btn.closest(".perf-crit-row");
@@ -18465,6 +18504,14 @@ async function submitPerfReview(evaluationId){
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
   if(!myEmail){ alert("تعذّر تحديد هويتك، الرجاء تسجيل الدخول من جديد"); return; }
+
+  // Locked once submitted — checked here too, not just hidden in the UI, so this can't be
+  // bypassed by calling the function directly. Intentional: a reviewer who could keep revising
+  // after seeing others' scores (or simply reconsidering) is exactly the opening for favoritism
+  // this lock exists to close.
+  const { data: existing } = await sb.from("performance_evaluation_reviews").select("id").eq("evaluation_id", evaluationId).eq("reviewer_email", myEmail).limit(1);
+  if(existing && existing.length){ alert("سبق أن أرسلت تقييمك لهذا الشخص — غير قابل للتعديل."); loadPerfReviewSection(); return; }
+
   const reviewer_name = currentUserProfile ? (currentUserProfile.full_name || myEmail) : myEmail;
   const notesEl = document.getElementById("perf-review-notes-"+evaluationId);
   const notes = notesEl ? notesEl.value.trim() : "";
@@ -18473,14 +18520,14 @@ async function submitPerfReview(evaluationId){
   const payloads = [];
   for(const row of rows){
     const val = row.dataset.selected;
-    if(!val){ alert("الرجاء اختيار تقييم لكل البنود قبل الحفظ"); return; }
+    if(!val){ alert("الرجاء اختيار تقييم لكل البنود قبل الإرسال"); return; }
     payloads.push({
       evaluation_id: evaluationId, reviewer_email: myEmail, reviewer_name,
       criterion: row.dataset.criterion, score: Number(val), notes, company_id: currentCompanyId
     });
   }
+  if(!confirm("بعد الإرسال ما تقدر تعدّل تقييمك لهذا الشخص. متابعة؟")) return;
 
-  await sb.from("performance_evaluation_reviews").delete().eq("evaluation_id", evaluationId).eq("reviewer_email", myEmail);
   const { error } = await sb.from("performance_evaluation_reviews").insert(payloads);
   if(error){ alert("تعذّر حفظ تقييمك: " + error.message); return; }
   loadPerfReviewSection();
