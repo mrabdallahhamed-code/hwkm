@@ -1705,7 +1705,11 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 <div id="p-perf" class="page content">
   <!-- LIST VIEW: one card per evaluable person, split by board vs. senior executive management -->
   <div id="perfListView">
-    <div class="sec-title"><span class="ico-i ico-ruler"></span>تقييم الأداء</div>
+    <div class="sec-title" style="justify-content:space-between">
+      <span><span class="ico-i ico-ruler"></span>تقييم الأداء</span>
+      <button class="btn btn-ghost" id="btnManualPerfAdd" style="font-size:11px;padding:6px 14px;display:none" onclick="openManualPerfPicker()"><span class="ico-i ico-add"></span>إضافة تقييم يدويًا</button>
+    </div>
+    <p style="font-size:10.5px;color:var(--gray3);margin:-10px 0 16px">الأعضاء وكبار التنفيذيين يظهرون هنا تلقائيًا من الهيكل والصلاحيات. ما ظهر أحد تتوقعه؟ استخدم "إضافة تقييم يدويًا" فوق.</p>
 
     <div id="perfBoardSection">
       <div class="sec-title" style="margin-top:6px"><span class="ico-i ico-users"></span><span id="perfBoardSectionTitle">تقييمات مجلس الإدارة</span></div>
@@ -1725,6 +1729,24 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   <div id="perfDetailView" style="display:none">
     <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px;margin-bottom:16px" onclick="closePerfDetail()"><span class="ico-i ico-refresh"></span>رجوع لقائمة التقييمات</button>
     <div id="perfDetailBody"></div>
+  </div>
+</div>
+
+<!-- Manual fallback: pick anyone with an account directly, bypassing automatic org-chart /
+     role-text matching — for when someone who should be evaluable doesn't surface on their own. -->
+<div class="modal-bg" id="m-perf-manual">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title"><span class="ico-i ico-add"></span>إضافة تقييم يدويًا</div>
+    <div class="fg"><label>الشخص</label><select class="fs" id="pm-person"></select></div>
+    <div class="fg"><label>يُقيَّم كـ</label>
+      <select class="fs" id="pm-role">
+        <option value="رئيس مجلس">رئيس المجلس</option>
+        <option value="عضو مجلس" selected>عضو مجلس</option>
+        <option value="تنفيذي">تنفيذي (رئيس تنفيذي / نائب / مدير مالي...)</option>
+      </select>
+    </div>
+    <p style="font-size:11px;color:var(--gray3)">استخدم هذا فقط لو الشخص ما ظهر تلقائيًا — يحدد بنك الأسئلة المناسب حسب اختيارك هنا.</p>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-perf-manual')">إلغاء</button><button class="btn btn-gold" onclick="confirmManualPerfAdd()"><span class="ico-i ico-check"></span>فتح التقييم</button></div>
   </div>
 </div>
 
@@ -6604,7 +6626,7 @@ async function saveCompany(){
 
 /* Company-type-aware navigation: sole proprietorships have no board/shareholders, so
    board/committee/AGM-related pages are irrelevant and get hidden from the sidebar. */
-const SOLE_PROP_HIDDEN_PAGES = ['meetings','committees','agm','voting','members','appoint','perf','shareholders'];
+const SOLE_PROP_HIDDEN_PAGES = ['meetings','committees','agm','voting','members','appoint','shareholders'];
 const LLC_HIDDEN_PAGES = ['committees'];
 let currentCompanyModules = { internal_audit: false, risk_management: false };
 let currentCompanyTrialEndsAt = null;
@@ -11774,16 +11796,18 @@ async function loadPolicyApprovalStatus(policyId, containerId){
   const current = (approvals||[])[0];
   if(!current){ box.innerHTML = ""; return; }
   if(current.status === "مكتملة" || current.status === "مرفوضة"){
-    box.innerHTML = `<span style="font-size:10.5px;color:${current.status==='مكتملة'?'var(--green)':'var(--red)'};cursor:pointer;text-decoration:underline" onclick="openGovernanceApprovalModal(${current.id})">${current.status}</span>`;
+    const isDone = current.status === "مكتملة";
+    box.innerHTML = `<span onclick="openGovernanceApprovalModal(${current.id})" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;font-weight:700;padding:6px 12px;border-radius:20px;background:${isDone?'#E8F8EF':'#FBEAEA'};color:${isDone?'var(--green)':'var(--red)'};border:1.5px solid ${isDone?'var(--green)':'var(--red)'}"><span class="ico ico-${isDone?'check':'xcircle'}" style="width:13px;height:13px"></span>${current.status}</span>`;
     return;
   }
   const deadlineDays = Number(currentCompanyPolicyDeadlineDays ?? 14);
   const daysPassed = Math.floor((Date.now() - new Date(current.created_at).getTime()) / 86400000);
   const daysLeft = deadlineDays - daysPassed;
-  const deadlineNote = daysLeft >= 0
-    ? `<span style="font-size:10px;color:var(--gray3)">— متبقٍ ${daysLeft} يوم</span>`
-    : `<span style="font-size:10px;color:var(--red);font-weight:700">— متأخرة ${Math.abs(daysLeft)} يوم</span>`;
-  box.innerHTML = `<span style="font-size:10.5px;color:var(--gold);cursor:pointer;text-decoration:underline" onclick="openGovernanceApprovalModal(${current.id})"><span class="ico-i ico-dot"></span>${current.status}</span> ${deadlineNote}`;
+  const isLate = daysLeft < 0;
+  const deadlineNote = isLate
+    ? `<span style="font-size:10.5px;color:var(--red);font-weight:800">متأخرة ${Math.abs(daysLeft)} يوم</span>`
+    : `<span style="font-size:10.5px;color:var(--gray3)">متبقٍ ${daysLeft} يوم</span>`;
+  box.innerHTML = `<span onclick="openGovernanceApprovalModal(${current.id})" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;font-weight:800;padding:6px 12px;border-radius:20px;background:#FEF3E2;color:var(--gold);border:1.5px solid var(--gold)"><span class="ico ico-dot" style="width:11px;height:11px"></span>${current.status}</span> ${deadlineNote}`;
 }
 
 async function savePolicy(){
@@ -18133,6 +18157,8 @@ async function loadPerf(){
   // heading needn't say "مجلس" for a structure that has none. Everyone else gets the
   // company-appropriate body name (مجلس الإدارة / مجلس المديرين) instead of a hardcoded label.
   const isSoleProp = currentCompanyType === "مؤسسة فردية";
+  const manualBtn = document.getElementById("btnManualPerfAdd");
+  if(manualBtn) manualBtn.style.display = canManage ? "inline-block" : "none";
   const boardSectionTitle = document.getElementById("perfBoardSectionTitle");
   const boardSection = document.getElementById("perfBoardSection");
   if(boardSection) boardSection.style.display = isSoleProp ? "none" : "block";
@@ -18188,10 +18214,47 @@ async function loadPerf(){
   }
 }
 
-async function savePerfFor(evaluated_email){
+/* Resolves an EXISTING evaluation's real role for question-bank purposes. Trusts the stored
+   entity_type first for "تنفيذي" specifically — the one classification a manual add can set
+   that fresh auto-detection might not reproduce (that mismatch is exactly why manual add
+   exists) — and only calls live auto-detection to distinguish رئيس مجلس from عضو مجلس. */
+async function resolveEvalRole(ev){
+  if(ev.entity_type === "تنفيذي") return "تنفيذي";
+  return ev.evaluated_email ? await getEvaluatedPersonRole(ev.evaluated_email) : null;
+}
+
+async function openNewPerfEvaluation(evaluated_email){
+  await savePerfFor(evaluated_email);
+}
+
+/* Manual fallback — lists literally everyone with an account on this company, regardless of
+   role, for when automatic matching (org chart / role-text) doesn't surface someone who should
+   be evaluable. The admin explicitly picks their evaluation role here instead. */
+async function openManualPerfPicker(){
+  const sel = document.getElementById("pm-person");
+  sel.innerHTML = '<option value="">جارِ التحميل...</option>';
+  openM("m-perf-manual");
+
+  const { data: memberships } = await sb.from("user_company_memberships").select("email,role").eq("company_id", currentCompanyId);
+  if(!memberships || memberships.length===0){ sel.innerHTML = '<option value="">لا يوجد أعضاء بهذه الشركة</option>'; return; }
+  const emails = memberships.map(m=>m.email);
+  const { data: profiles } = await sb.from("user_profiles").select("email,full_name").in("email", emails);
+  const nameByEmail = {}; (profiles||[]).forEach(p=>{ nameByEmail[p.email]=p.full_name; });
+  sel.innerHTML = memberships.map(m => `<option value="${m.email}">${nameByEmail[m.email]||m.email} — ${m.role}</option>`).join("");
+}
+
+async function confirmManualPerfAdd(){
+  const email = document.getElementById("pm-person").value;
+  const role = document.getElementById("pm-role").value;
+  if(!email){ alert("الرجاء اختيار شخص"); return; }
+  closeM("m-perf-manual");
+  await savePerfFor(email, role);
+}
+
+async function savePerfFor(evaluated_email, manualRole){
   const { data: person } = await sb.from("board_members").select("name").eq("company_id", currentCompanyId).eq("claimed_by_email", evaluated_email).maybeSingle();
   const { data: profile } = await sb.from("user_profiles").select("full_name").eq("email", evaluated_email).maybeSingle();
-  const evaluated_role = await getEvaluatedPersonRole(evaluated_email);
+  const evaluated_role = manualRole || await getEvaluatedPersonRole(evaluated_email);
   const entity_type = evaluated_role === "تنفيذي" ? "تنفيذي" : "عضو مجلس";
   const period = String(new Date().getFullYear());
   const entity_name = person?.name || profile?.full_name || evaluated_email;
@@ -18323,7 +18386,7 @@ async function renderPerfReviewForm(ev){
     return;
   }
 
-  const evaluated_role = ev.evaluated_email ? await getEvaluatedPersonRole(ev.evaluated_email) : null;
+  const evaluated_role = await resolveEvalRole(ev);
   const criteria = getPerfCriteria(ev.entity_type, evaluated_role);
   const { data: myReviews } = await sb.from("performance_evaluation_reviews").select("*").eq("evaluation_id", ev.id).eq("reviewer_email", myEmail||"");
   const mineByCriterion = {};
@@ -18361,7 +18424,7 @@ async function renderPerfReviewForm(ev){
 async function renderPerfResultsDetail(ev, isAdmin){
   const body = document.getElementById("perfDetailBody");
   const { data: revs } = await sb.from("performance_evaluation_reviews").select("*").eq("evaluation_id", ev.id);
-  const evaluated_role = ev.evaluated_email ? await getEvaluatedPersonRole(ev.evaluated_email) : null;
+  const evaluated_role = await resolveEvalRole(ev);
   const criteria = getPerfCriteria(ev.entity_type, evaluated_role);
   const uniqueReviewers = new Set((revs||[]).filter(r=>r.reviewer_email!=="system@hwkm.internal").map(r=>r.reviewer_email)).size;
 
@@ -18474,7 +18537,7 @@ async function confirmPerfReviewSignature(){
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
   const reviewer_name = currentUserProfile ? (currentUserProfile.full_name || myEmail) : myEmail;
-  const evaluated_role = ev.evaluated_email ? await getEvaluatedPersonRole(ev.evaluated_email) : null;
+  const evaluated_role = await resolveEvalRole(ev);
   const criteria = getPerfCriteria(ev.entity_type, evaluated_role);
   const { data: myReviews } = await sb.from("performance_evaluation_reviews").select("*").eq("evaluation_id", ev.id).eq("reviewer_email", myEmail||"");
   const byCriterion = {};
