@@ -1018,7 +1018,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   <div class="nav-group">
     <div class="nav-group-label">الرئيسية</div>
     <div class="nav-item active" onclick="go('dashboard',this)">
-      <span class="ni-icon"><span class="ico ico-dashboard" style="width:16px;height:16px"></span></span><span class="ni-text">لوحة التحكم</span>
+      <span class="ni-icon ico ico-dashboard"></span><span class="ni-text">لوحة التحكم</span>
     </div>
   </div>
 
@@ -1708,6 +1708,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     <div class="sec-title" style="justify-content:space-between">
       <span><span class="ico-i ico-ruler"></span>تقييم الأداء</span>
       <button class="btn btn-ghost" id="btnManualPerfAdd" style="font-size:11px;padding:6px 14px;display:none" onclick="openManualPerfPicker()"><span class="ico-i ico-add"></span>إضافة تقييم يدويًا</button>
+      <button class="btn btn-ghost" id="btnManagePerfCriteria" style="font-size:11px;padding:6px 14px;display:none" onclick="openPerfCriteriaManager()"><span class="ico-i ico-clipboard"></span>إدارة بنود التقييم</button>
     </div>
     <p style="font-size:10.5px;color:var(--gray3);margin:-10px 0 16px">الأعضاء وكبار التنفيذيين يظهرون هنا تلقائيًا من الهيكل والصلاحيات. ما ظهر أحد تتوقعه؟ استخدم "إضافة تقييم يدويًا" فوق.</p>
 
@@ -1734,6 +1735,27 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 
 <!-- Manual fallback: pick anyone with an account directly, bypassing automatic org-chart /
      role-text matching — for when someone who should be evaluable doesn't surface on their own. -->
+<!-- Company-editable evaluation criteria — add/remove items per role bank, no code change needed -->
+<div class="modal-bg" id="m-perf-criteria">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-title"><span class="ico-i ico-clipboard"></span>إدارة بنود التقييم</div>
+    <div class="fg"><label>الفئة</label>
+      <select class="fs" id="pc-role-select" onchange="renderPerfCriteriaList()">
+        <option value="رئيس مجلس">رئيس المجلس</option>
+        <option value="عضو مجلس" selected>عضو مجلس</option>
+        <option value="تنفيذي">تنفيذي (رئيس تنفيذي / نائب / مدير مالي...)</option>
+      </select>
+    </div>
+    <div id="pc-list" style="max-height:280px;overflow-y:auto;margin-bottom:10px"></div>
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <input class="fi" id="pc-new-item" placeholder="نص البند الجديد..." style="flex:1;margin:0"/>
+      <button class="btn-xs gold" style="white-space:nowrap" onclick="addPerfCriterion()">+ إضافة</button>
+    </div>
+    <button class="btn btn-ghost" style="width:100%;font-size:11px" onclick="resetPerfCriteriaToDefault()">إرجاع القائمة الافتراضية لهذي الفئة</button>
+    <div class="modal-foot"><button class="btn btn-gold" onclick="closeM('m-perf-criteria')">تم</button></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-perf-manual">
   <div class="modal" style="max-width:420px">
     <div class="modal-title"><span class="ico-i ico-add"></span>إضافة تقييم يدويًا</div>
@@ -18142,6 +18164,9 @@ async function canManagePerfCycles(){
 async function loadPerf(){
   const isAdmin = await canSeePerfResults();
   const canManage = await canManagePerfCycles();
+  await loadPerfCriteriaCache();
+  const manageCriteriaBtn = document.getElementById("btnManagePerfCriteria");
+  if(manageCriteriaBtn) manageCriteriaBtn.style.display = canManage ? "inline-block" : "none";
   const [boardResult, execResult] = await Promise.allSettled([getEvaluableBoardMembers(), getEvaluableExecutives()]);
   const boardPeople = boardResult.status === "fulfilled" ? boardResult.value : [];
   const execPeople = execResult.status === "fulfilled" ? execResult.value : [];
@@ -18386,7 +18411,10 @@ async function renderPerfReviewForm(ev){
   const audience = ev.evaluated_email
     ? (perfDetailContext.isExec ? await getExecReviewerAudience() : await getPerfReviewerAudience(ev.evaluated_email))
     : [];
-  if(ev.evaluated_email && !audience.includes(myEmail)){
+  const isPlatformOwner = currentUserProfile && currentUserProfile.is_platform_admin === true;
+  // HWKM's own platform owner isn't excluded here the way a random outsider would be — full
+  // access means full access, including trying the reviewer flow itself when they choose to.
+  if(ev.evaluated_email && !isPlatformOwner && !audience.includes(myEmail)){
     body.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:30px">ما أنت من ضمن المقيّمين المخصَّصين لهذا الشخص.</div>';
     return;
   }
@@ -18451,6 +18479,11 @@ async function renderPerfResultsDetail(ev, isAdmin){
     ? `<button class="btn btn-gold" style="width:100%;margin-top:14px" onclick="closePerfEvaluation(${ev.id})"><span class="ico-i ico-shield"></span>إغلاق واعتماد النتيجة النهائية</button>`
     : "";
 
+  const isPlatformOwner = currentUserProfile && currentUserProfile.is_platform_admin === true;
+  const joinAsReviewerBtn = isPlatformOwner && ev.status !== "مكتمل"
+    ? `<button class="btn btn-ghost" style="width:100%;margin-top:10px" onclick="renderPerfReviewForm(perfCache.find(e=>e.id===${ev.id}))"><span class="ico-i ico-signature"></span>أضف تقييمك أيضًا</button>`
+    : "";
+
   body.innerHTML = `<div class="card" style="max-width:640px">
     <div class="card-head"><span class="card-title">${ev.entity_name||""} <span style="font-size:11px;color:var(--gray3);font-weight:600">— ${ev.period||""}</span></span>${ev.status==="مكتمل"?'<span class="badge done">مكتمل</span>':'<span class="badge pending">مفتوح للتقييم</span>'}</div>
     <div class="card-body">
@@ -18460,6 +18493,7 @@ async function renderPerfResultsDetail(ev, isAdmin){
         ${autoBars}
       </div>` : ""}
       <div style="font-size:11.5px;color:var(--gray3);margin-top:12px"><span class="ico-i ico-users"></span>عدد المقيّمين: ${uniqueReviewers}${ev.score!=null ? " · الدرجة النهائية: "+Number(ev.score).toFixed(1)+"/5 — "+(PERF_SCORE_LABELS[Math.round(ev.score)]||"") : ""}</div>
+      ${joinAsReviewerBtn}
       ${closeBtn}
     </div>
   </div>`;
@@ -18724,13 +18758,85 @@ const PERF_CRITERIA_EXEC = [
 // Which bank applies depends on the person's actual role, not a free-typed "type" — see
 // getEvaluatedPersonRole(). entityType is kept only as a fallback for legacy rows saved before
 // this change (their evaluated_email is null, so we can't re-derive the role from data).
-function getPerfCriteria(entityType, personRole){
-  if(personRole === "رئيس مجلس") return PERF_CRITERIA_CHAIRMAN;
-  if(personRole === "تنفيذي") return PERF_CRITERIA_EXEC;
-  if(personRole === "عضو مجلس") return PERF_CRITERIA_MEMBER;
-  // Legacy fallback by entity_type for evaluations saved before role-based banks existed
-  if(entityType === "تنفيذي") return PERF_CRITERIA_EXEC;
+//
+// Companies can add/remove items themselves (see openPerfCriteriaManager) without any code
+// change on our side — perfCriteriaCache holds whatever they've customized, loaded once per
+// visit to the page; getPerfCriteria() only falls back to these hardcoded defaults for a role
+// a company has never touched, so every existing evaluation keeps working unchanged.
+let perfCriteriaCache = null; // { 'رئيس مجلس': [...] | null, 'عضو مجلس': [...] | null, 'تنفيذي': [...] | null }
+
+async function loadPerfCriteriaCache(){
+  const { data } = await sb.from("performance_criteria").select("*").eq("company_id", currentCompanyId).order("sort_order",{ascending:true});
+  perfCriteriaCache = { "رئيس مجلس": null, "عضو مجلس": null, "تنفيذي": null };
+  (data||[]).forEach(row => {
+    if(!(row.role_type in perfCriteriaCache)) return;
+    if(!perfCriteriaCache[row.role_type]) perfCriteriaCache[row.role_type] = [];
+    perfCriteriaCache[row.role_type].push(row.criterion_text);
+  });
+}
+
+function getPerfDefaultCriteria(roleKey){
+  if(roleKey === "رئيس مجلس") return PERF_CRITERIA_CHAIRMAN;
+  if(roleKey === "تنفيذي") return PERF_CRITERIA_EXEC;
   return PERF_CRITERIA_MEMBER;
+}
+
+function getPerfCriteria(entityType, personRole){
+  const roleKey = ["رئيس مجلس","تنفيذي","عضو مجلس"].includes(personRole) ? personRole : (entityType === "تنفيذي" ? "تنفيذي" : "عضو مجلس");
+  if(perfCriteriaCache && perfCriteriaCache[roleKey] && perfCriteriaCache[roleKey].length) return perfCriteriaCache[roleKey];
+  return getPerfDefaultCriteria(roleKey);
+}
+
+/* ══════════ Admin management of the criteria banks themselves ══════════ */
+async function openPerfCriteriaManager(){
+  if(!perfCriteriaCache) await loadPerfCriteriaCache();
+  openM("m-perf-criteria");
+  document.getElementById("pc-role-select").value = "عضو مجلس";
+  renderPerfCriteriaList();
+}
+
+function renderPerfCriteriaList(){
+  const role = document.getElementById("pc-role-select").value;
+  const list = getPerfCriteria(role === "تنفيذي" ? "تنفيذي" : null, role);
+  const box = document.getElementById("pc-list");
+  box.innerHTML = list.map((c,i) => `<div style="display:flex;align-items:center;gap:8px;padding:9px 10px;background:var(--offwhite);border-radius:6px;margin-bottom:6px">
+    <span style="flex:1;font-size:12px;color:var(--dark)">${i+1}. ${c}</span>
+    <button onclick="deletePerfCriterion(${i})" style="background:none;border:none;cursor:pointer;padding:4px" title="حذف هذا البند"><span class="ico ico-trash" style="width:14px;height:14px;color:var(--red)"></span></button>
+  </div>`).join("") || '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا توجد بنود بهذه القائمة.</div>';
+}
+
+async function persistPerfCriteria(role, items){
+  await sb.from("performance_criteria").delete().eq("company_id", currentCompanyId).eq("role_type", role);
+  if(items.length){
+    const { error } = await sb.from("performance_criteria").insert(items.map((text,i) => ({ company_id: currentCompanyId, role_type: role, criterion_text: text, sort_order: i })));
+    if(error){ alert("تعذّر الحفظ: " + error.message); return false; }
+  }
+  await loadPerfCriteriaCache();
+  return true;
+}
+
+async function addPerfCriterion(){
+  const role = document.getElementById("pc-role-select").value;
+  const input = document.getElementById("pc-new-item");
+  const text = input.value.trim();
+  if(!text) return;
+  const current = getPerfCriteria(role === "تنفيذي" ? "تنفيذي" : null, role);
+  const ok = await persistPerfCriteria(role, [...current, text]);
+  if(ok){ input.value = ""; renderPerfCriteriaList(); }
+}
+
+async function deletePerfCriterion(index){
+  if(!confirm("حذف هذا البند من قائمة التقييم؟ هذا يؤثر على أي تقييم يفتح لاحقًا بهذه الفئة.")) return;
+  const role = document.getElementById("pc-role-select").value;
+  const current = getPerfCriteria(role === "تنفيذي" ? "تنفيذي" : null, role);
+  const ok = await persistPerfCriteria(role, current.filter((_,i)=>i!==index));
+  if(ok) renderPerfCriteriaList();
+}
+
+function resetPerfCriteriaToDefault(){
+  const role = document.getElementById("pc-role-select").value;
+  if(!confirm("رجّع القائمة الافتراضية لهذي الفئة؟ يلغي أي تخصيص سابق لها.")) return;
+  persistPerfCriteria(role, []).then(ok => { if(ok) renderPerfCriteriaList(); });
 }
 
 function selectPerfCriterionScore(btn, val){
