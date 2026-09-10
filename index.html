@@ -246,6 +246,10 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 .page-title{font-size:17.5px;font-weight:800;color:var(--dark);}
 .page-sub{font-size:11.5px;color:var(--gray3);margin-top:2px;}
 .tb-right{display:flex;align-items:center;gap:10px;}
+.topbar .btn-ghost{color:#1F4E86;}
+.topbar .btn-ghost:hover{background:var(--gray2);color:#173F6E;}
+.topbar .menu-btn{color:#1F4E86;}
+.topbar .notif-btn{color:#1F4E86;}
 .btn{
   padding:10px 22px;border-radius:4px;
   font-family:'Tajawal',sans-serif;font-size:13px;font-weight:700;letter-spacing:.2px;
@@ -715,14 +719,14 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 
 /* ── STATS BAR ── */
 .stats-bar{
-  background:var(--primary);border-radius:12px;padding:14px 20px;
+  background:linear-gradient(135deg,#173F6E,#1F4E86);border-radius:12px;padding:14px 20px;
   display:flex;gap:0;margin-bottom:20px;
   box-shadow:0 4px 16px rgba(15,33,56,0.2);
 }
 .sb-item{flex:1;text-align:center;padding:0 12px;border-left:1px solid rgba(255,255,255,0.15);}
 .sb-item:last-child{border:none;}
-.sb-val{font-size:22px;font-weight:900;color:var(--gold3);}
-.sb-lbl{font-size:10px;color:rgba(255,255,255,0.65);margin-top:2px;}
+.sb-val{font-size:24px;font-weight:900;color:var(--gold3);}
+.sb-lbl{font-size:11px;color:rgba(255,255,255,0.7);margin-top:3px;}
 
 /* ── RESPONSIVE ── */
 @media(max-width:900px){
@@ -3121,7 +3125,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
               <input class="fi" id="agmView-newtopic" placeholder="نص بند جديد..." style="flex:1">
               <button class="btn btn-gold" style="font-size:11px;padding:8px 14px;white-space:nowrap" onclick="addAGMTopic()">+ إضافة بند</button>
             </div>
-            <p class="modal-section-hint" style="margin-top:6px;margin-bottom:0">هذه البنود تظهر تلقائيًا بصفحة التصويت فقط أثناء الفترة المحددة أعلاه، وتختفي تلقائيًا بعد موعد نهاية التصويت.</p>
+            <p class="modal-section-hint" style="margin-top:6px;margin-bottom:0">تظهر بصفحة التصويت فقط خلال الفترة المحددة أعلاه.</p>
           </div>
         </div>
 
@@ -3164,7 +3168,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
         <div id="agmView-announcementsSection" class="modal-section accent-primary" style="display:none">
           <div class="modal-section-head"><span class="ico-i ico-megaphone"></span>إعلانات هيئة السوق المالية</div>
           <div class="modal-section-body">
-            <p class="modal-section-hint">تولّد مسودة PDF جاهزة بالصياغة الرسمية المطلوبة — ترسلها لموظف تداول المختص لاعتمادها ونشرها؛ منصتنا لا تنشر مباشرة على تداول.</p>
+            <p class="modal-section-hint">تولّد مسودة PDF رسمية جاهزة — الإرسال لتداول يتم من خارج المنصة.</p>
             <div style="display:flex;flex-direction:column;gap:6px">
               <button class="btn-xs primary" onclick="openTadawulAnnouncementForm('دعوة')"><span class="ico-i ico-send"></span>توليد إعلان الدعوة للجمعية</button>
               <button class="btn-xs primary" onclick="openTadawulAnnouncementForm('نتائج')"><span class="ico-i ico-dashboard"></span>توليد إعلان نتائج الجمعية</button>
@@ -3213,7 +3217,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
       </div>
       <p style="font-size:10.5px;color:var(--gray3);margin-top:4px">جدول الأعمال يتكوّن تلقائيًا من: "ترحيب رئيس المجلس"، ثم البنود اللي تضيفها هنا (أو تُضاف لاحقًا)، ثم "شكر الأعضاء وإنهاء الاجتماع" — بدون ما تحتاج تكتب هالبندين بنفسك.</p>
     </div>
-    <p style="font-size:11px;color:var(--gray3)">بعد الإرسال، يظهر الطلب لأعضاء المجلس (أو أعضاء اللجنة المحددة) ليوافقوا على الموعد أو يقترحوا موعدًا بديلًا، ويصلهم إيميل تلقائي بالطلب. عند إجماع الكل على الموافقة، يتحول تلقائيًا لاجتماع مؤكد وتُولَّد دعوته تلقائيًا.</p>
+    <p style="font-size:11px;color:var(--gray3)">يحتاج موافقة الأعضاء على الموعد، ثم يتحوّل تلقائيًا لاجتماع مؤكد.</p>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-meeting-request')">إلغاء</button><button class="btn btn-gold" onclick="submitMeetingRequest()"><span class="ico-i ico-send"></span>إرسال الطلب</button></div>
   </div>
 </div>
@@ -3354,7 +3358,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     <div class="modal-title"><span class="ico-i ico-document"></span>استيراد سجل المساهمين من PDF</div>
     <div id="pdfImportStep1">
       <div class="fg"><label>اختر ملف PDF</label><input type="file" accept=".pdf" class="fi" id="pdfImportFile" onchange="handlePdfFileSelect(this)"></div>
-      <p style="font-size:11px;color:var(--gray3)">سيحاول النظام قراءة الأسماء والأرقام تلقائيًا من الملف، وتقدر تراجع وتصحح كل صف قبل التأكيد النهائي.</p>
+      <p style="font-size:11px;color:var(--gray3)">يقرأ النظام البيانات تلقائيًا، وتقدر تراجعها قبل التأكيد.</p>
       <div id="pdfImportLoading" style="display:none;text-align:center;color:var(--gray3);font-size:12px;padding:20px">⏳ جارِ قراءة الملف...</div>
     </div>
     <div id="pdfImportStep2" style="display:none">
@@ -3644,7 +3648,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 <div class="modal-bg" id="m-disclosure-form">
   <div class="modal" style="max-width:680px">
     <div class="modal-title"><span class="ico-i ico-clipboard"></span>نموذج الإفصاح — عضوية مجلس الإدارة</div>
-    <p style="font-size:11px;color:var(--gray3);margin-bottom:14px">يُملأ من قبل العضو المرشح/المعين، ويُرفع للنظام الإلكتروني الذي تحدده هيئة السوق المالية قبل ٣ أيام عمل على الأقل من انعقاد الجمعية العامة.</p>
+    <p style="font-size:11px;color:var(--gray3);margin-bottom:14px">يُملأ من العضو المرشّح، ويُرفع قبل ٣ أيام عمل من الجمعية العامة.</p>
 
     <div class="sec-title" style="font-size:12.5px">٢. صفة العضوية وطريقة التعيين</div>
     <div class="row2">
@@ -3727,7 +3731,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 <div class="modal-bg" id="m-create-test-user">
   <div class="modal" style="max-width:420px">
     <div class="modal-title"><span class="ico-i ico-wrench"></span>إنشاء مستخدم تجريبي</div>
-    <p style="font-size:11px;color:var(--gray3);margin-bottom:12px">لفريقكم الداخلي فقط — إيميل وهمي، بدون أي تأكيد بريد أو OTP أو ربط نفاذ. الحساب يشتغل فورًا بنفس كلمة المرور اللي تحددها.</p>
+    <p style="font-size:11px;color:var(--gray3);margin-bottom:12px">لفريقكم الداخلي فقط — بدون تأكيد بريد أو OTP.</p>
     <div class="fg"><label>الاسم</label><input class="fi" id="ctu-name" placeholder="مثال: أحمد (تجريبي)"/></div>
     <div class="fg"><label>الإيميل (وهمي، أي صيغة)</label><input class="fi" id="ctu-email" placeholder="ahmed.test@hwkm.internal"/></div>
     <div class="fg"><label>كلمة المرور</label>
@@ -3768,7 +3772,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
         </select>
         <input class="fi" id="mi-role-custom" placeholder="اكتب اسم اللجنة/الدور، مثال: رئيس لجنة المخاطر" style="display:none;margin-top:6px"/>
       </div>
-      <p style="font-size:11px;color:var(--gray3)">بعد التوليد، شارك الرابط أو الرمز مع الشخص — لما يسجّل حساب جديد ويدخله، ينضم مباشرة لشركتك بالدور المحدد. لو اخترت مسمى مخصّص، افتح "🔧 صلاحيات مخصّصة" على بطاقته بعد انضمامه لتحديد أي صفحات يشوفها بالضبط.</p>
+      <p style="font-size:11px;color:var(--gray3)">شارك الرابط مع الشخص — عند التسجيل، ينضم مباشرة بالدور المحدد.</p>
       <button class="btn btn-gold" style="width:100%" onclick="generateInvite()"><span class="ico-i ico-check"></span>توليد رابط الدعوة</button>
     </div>
     <div id="mi-existing-form" style="display:none">
@@ -3783,7 +3787,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
         </select>
         <input class="fi" id="mi-existing-role-custom" placeholder="اكتب اسم اللجنة/الدور، مثال: عضو لجنة الحوكمة" style="display:none;margin-top:6px"/>
       </div>
-      <p style="font-size:11px;color:var(--gray3)">استخدم هذا لو الشخص عنده حساب مسجّل مسبقًا بالمنصة (بشركة ثانية أو بدون شركة)، وتبي تربطه بشركتك مباشرة بدون ما يسجّل من جديد.</p>
+      <p style="font-size:11px;color:var(--gray3)">لربط شخص لديه حساب موجود بالمنصة بشركتك مباشرة.</p>
       <button class="btn btn-gold" style="width:100%" onclick="linkExistingAccount()"><span class="ico-i ico-check"></span>ربط الحساب بشركتي</button>
     </div>
     <div id="mi-result" style="display:none">
@@ -3878,7 +3882,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     <div class="fg"><label>الجهة/الشخص المُقيَّم</label><input class="fi" id="mpe-entity" placeholder="مثال: فلاح السبيعي / مجلس الإدارة" /></div>
     <div class="fg"><label>النوع</label><select class="fs" id="mpe-type"><option>عضو مجلس</option><option>المجلس ككل</option><option>لجنة</option><option>تنفيذي</option></select></div>
     <div class="fg"><label>الفترة</label><input class="fi" id="mpe-period" placeholder="مثال: 2026" /></div>
-    <p style="font-size:11px;color:var(--gray3)">بعد الحفظ، هذا التقييم يفتح تلقائيًا لأعضاء المجلس ولجنة الترشيحات لتسجيل تقييمهم. النتيجة النهائية تظهر لمدير النظام فقط.</p>
+    <p style="font-size:11px;color:var(--gray3)">يفتح تلقائيًا لأعضاء المجلس ولجنة الترشيحات، والنتيجة لمدير النظام فقط.</p>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-perf')">إلغاء</button><button class="btn btn-gold" onclick="savePerf()"><span class="ico-i ico-check"></span>فتح التقييم</button></div>
   </div>
 </div>
@@ -5294,7 +5298,7 @@ function renderUserCard(m){
           <div style="display:flex;justify-content:space-between"><span>رقم الهوية</span><span style="color:var(--dark);font-weight:600">${u.national_id||"—"}</span></div>
           <div style="display:flex;justify-content:space-between"><span>رقم الجوال</span><span style="color:var(--dark);font-weight:600">${u.phone_number||"—"}</span></div>
         </div>
-        ${u.id ? `<button style="width:100%;background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:8px;padding:6px;font-size:11px;font-weight:600;cursor:pointer;margin-bottom:8px" onclick="openEditProfileModal(${u.id})"><span class="ico-i ico-edit"></span>تعديل البيانات (الجوال والهوية)</button>` : ""}
+        ${u.id ? `<button style="width:100%;background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:8px;padding:6px;font-size:11px;font-weight:600;cursor:pointer;margin-bottom:8px" onclick="openEditProfileModal(${u.id})"><span class="ico-i ico-edit"></span>تعديل البيانات</button>` : ""}
         <button style="width:100%;background:#EAF0F8;color:var(--primary);border:none;border-radius:8px;padding:6px;font-size:11px;font-weight:700;cursor:pointer;margin-bottom:8px" onclick="openUserPermissionOverridesModal('${(m.email||'').replace(/'/g,"")}','${(u.full_name||m.email||'').replace(/'/g,"")}', currentCompanyId)"><span class="ico-i ico-wrench"></span>صلاحيات مخصّصة${isCustomRole?' (مطلوبة لهذا المسمى)':''}</button>
         <button style="width:100%;background:#FDF5DC;color:var(--gold);border:none;border-radius:8px;padding:6px;font-size:11px;font-weight:700;cursor:pointer;margin-bottom:8px" onclick="openPolicyCategoryRestrictionModal(${m.id},'${(m.email||'').replace(/'/g,"")}','${(u.full_name||m.email||'').replace(/'/g,"")}')"><span class="ico-i ico-clipboard"></span>تقييد فئة السياسات</button>
 
@@ -8060,7 +8064,7 @@ async function renderFinalMinutesBox(m){
   const box = document.getElementById("mdView-minutesFile");
   if(!box) return;
   if(!m.signing_doc_id){
-    box.innerHTML = `<p class="modal-section-hint" style="margin-bottom:10px">لسا ما تولّد محضر هذا الاجتماع. بمجرد ما ينتهي وقت الاجتماع، يتولّد المحضر تلقائيًا (بالحضور الفعلي والقرارات ونتائج التصويت) ويُربط تلقائيًا بمستند توقيع — أو ولّده يدويًا الآن.</p>
+    box.innerHTML = `<p class="modal-section-hint" style="margin-bottom:10px">المحضر يتولّد تلقائيًا بعد انتهاء الاجتماع، أو ولّده يدويًا الآن.</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-gold" style="font-size:11px;padding:8px 16px" onclick="generateMeetingMinutesDoc(${m.id})"><span class="ico-i ico-edit"></span>تحميل مسودة الآن</button>
         <button class="btn btn-outline" style="font-size:11px;padding:8px 16px" onclick="linkMeetingToSigningDoc(${m.id})"><span class="ico-i ico-link"></span>ربط بمستند توقيع آخر يدويًا</button>
@@ -19701,7 +19705,7 @@ async function openDisclosureForm(){
     disclosureDraft.survey_answers = previous.survey_answers || {};
     toggleDisclosureNominator();
   } else {
-    banner.textContent = 'يُملأ من قبل العضو المرشح/المعين، ويُرفع للنظام الإلكتروني الذي تحدده هيئة السوق المالية قبل ٣ أيام عمل على الأقل من انعقاد الجمعية العامة.';
+    banner.textContent = 'يُملأ من العضو المرشّح، ويُرفع قبل ٣ أيام عمل من الجمعية العامة.';
     if(currentUserProfile){
       document.getElementById("df-fullname").value = currentUserProfile.full_name || "";
       document.getElementById("df-nid").value = currentUserProfile.national_id || "";
