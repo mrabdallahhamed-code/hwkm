@@ -231,8 +231,8 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 .topbar{
   position:fixed;top:0;right:var(--sidebar-w);
   left:0;height:var(--topbar-h);
-  background:linear-gradient(180deg,#F3F7FB 0%,#EDF2F8 100%);
-  border-bottom:1px solid #DCE6F0;
+  background:linear-gradient(180deg,#E3EBF4 0%,#D6E2EF 100%);
+  border-bottom:1px solid #C3D4E6;
   display:flex;align-items:center;justify-content:space-between;
   padding:0 28px;z-index:100;
   box-shadow:0 2px 14px rgba(15,33,56,0.08);
@@ -246,10 +246,11 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 .page-title{font-size:17.5px;font-weight:800;color:var(--dark);}
 .page-sub{font-size:11.5px;color:var(--gray3);margin-top:2px;}
 .tb-right{display:flex;align-items:center;gap:10px;}
-.topbar .btn-ghost{color:#1F4E86;}
-.topbar .btn-ghost:hover{background:var(--gray2);color:#173F6E;}
+.topbar .btn-ghost{background:#E4EDF7;color:#1F4E86;}
+.topbar .btn-ghost:hover{background:#D3E2F2;color:#173F6E;}
 .topbar .menu-btn{color:#1F4E86;}
-.topbar .notif-btn{color:#1F4E86;}
+.topbar .notif-btn{background:#E4EDF7;color:#1F4E86;}
+.topbar .notif-btn:hover{background:#D3E2F2;}
 .btn{
   padding:10px 22px;border-radius:4px;
   font-family:'Tajawal',sans-serif;font-size:13px;font-weight:700;letter-spacing:.2px;
@@ -967,7 +968,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
       <p><b>٦. حقوقكم</b><br>يحق لكم الوصول لبياناتكم (عبر زر "تصدير بياناتي")، طلب تصحيحها، أو طلب حذفها وفق سياسة الاحتفاظ بالبيانات والالتزامات النظامية المعمول بها.</p>
       <p><b>٧. الاحتفاظ بالبيانات</b><br>نحتفظ ببياناتكم طوال مدة اشتراككم، ولمدة إضافية بعد الإلغاء حسب ما تقتضيه الالتزامات النظامية، ما لم تطلبوا الحذف المبكر وفق الأنظمة المعمول بها.</p>
       <p><b>٨. التواصل</b><br>لأي استفسار متعلق بخصوصية بياناتكم، تواصلوا معنا عبر زر "🆘 الدعم" داخل المنصة.</p>
-      <p style="color:var(--gray3);font-size:11px;margin-top:16px">آخر تحديث: أغسطس ٢٠٢٦. هذه السياسة جزء مكمّل لاتفاقية الاشتراك الموقّعة، ولا تُغني عنها.</p>
+      <p style="color:var(--gray3);font-size:11px;margin-top:16px">آخر تحديث: أغسطس ٢٠٢٦ — جزء مكمّل لاتفاقية الاشتراك.</p>
     </div>
     <div class="modal-foot"><button class="btn btn-gold" style="width:100%" onclick="closeM('m-privacy-policy')">إغلاق</button></div>
   </div>
@@ -1223,7 +1224,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 <!-- ══ RISKS ══════════════════════════════ -->
 <div id="p-risks" class="page content">
   <div class="sec-title"><span class="ico-i ico-warning"></span>خدمات إدارة المخاطر</div>
-  <p style="font-size:12px;color:var(--gray3);margin-bottom:14px">اطلب تقييم مخاطر من فريقنا، وتابع تحليله ومصفوفته الحرارية حتى استلام التقرير النهائي.</p>
+  <p style="font-size:12px;color:var(--gray3);margin-bottom:14px">اطلب تقييم مخاطر من فريقنا، وتابع حالته حتى التقرير النهائي.</p>
 
   <div id="riskServicesGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:24px">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
@@ -1519,7 +1520,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
       <label class="btn btn-gold" style="font-size:11px;padding:6px 14px;cursor:pointer"><span class="ico-i ico-upload"></span>استيراد البيانات<input type="file" accept=".xlsx" style="display:none" onchange="handleIndicatorsUpload(this)"></label>
     </div>
   </div>
-  <p style="font-size:12px;color:var(--gray3);margin-bottom:16px">نموذج شامل من ٢٠ قسمًا (الأداء المالي، المبيعات، التشغيل، المشاريع، الموارد البشرية، وغيرها) — نزّله، أرسله للرئيس التنفيذي أو مديري الإدارات لتعبئته، ثم استورده هنا.</p>
+  <p style="font-size:12px;color:var(--gray3);margin-bottom:16px">نزّل النموذج (٢٠ قسمًا)، عبّه، ثم استورده هنا.</p>
 
   <div id="indicatorsReport">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:30px">لا توجد بيانات مستوردة بعد. نزّل النموذج وابدأ.</div>
@@ -1615,7 +1616,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     <span><span class="ico-i ico-tree"></span>دليل المناصب التنظيمية</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportPositionsList()"><span class="ico-i ico-inbox"></span>تصدير Excel</button>
-      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="generateBaseStructure()"><span class="ico-i ico-building"></span>إنشاء هيكل تنظيمي مقترح</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="generateBaseStructure()"><span class="ico-i ico-building"></span>إنشاء الهيكل</button>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mst-id').value='';document.getElementById('mst-title-h').textContent='🌳 إضافة منصب في الهيكل التنظيمي';document.getElementById('mst-leadership').checked=true;document.getElementById('mst-is-body').checked=false;toggleBodyFields();document.getElementById('mst-delete-btn').style.display='none';populateParentPositionSelect();openM('m-structure')">+ إضافة منصب</button>
       <button class="btn" id="approvalBtnStructure" style="background:var(--gold);color:#fff;font-size:11px;padding:6px 14px" onclick="requestBoardApproval('structure')"><span class="ico-i ico-upload"></span>طلب موافقة من المجلس</button>
     </div>
@@ -1787,7 +1788,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 </div>
 <div id="p-audit" class="page content">
   <div class="sec-title"><span class="ico-i ico-search"></span>خدمات المراجعة الداخلية</div>
-  <p style="font-size:12px;color:var(--gray3);margin-bottom:14px">اطلب خدمة مراجعة من فريقنا، وتابع حالتها خطوة بخطوة حتى استلام التقرير النهائي.</p>
+  <p style="font-size:12px;color:var(--gray3);margin-bottom:14px">اطلب خدمة مراجعة من فريقنا، وتابع حالتها حتى التقرير النهائي.</p>
 
   <div id="auditServicesGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:24px">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
@@ -1842,7 +1843,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
       <span><span class="ico-i ico-dashboard"></span>تقييم فعالية الحوكمة</span>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openNewGovAssessment()">+ تقييم جديد</button>
     </div>
-    <p style="font-size:12px;color:var(--gray3);margin-bottom:16px">تقييم شامل لنضج ممارسات الحوكمة عبر ٨ محاور و٣٢ معيارًا، من مستوى ١ (ابتدائي) إلى ٥ (رائد).</p>
+    <p style="font-size:12px;color:var(--gray3);margin-bottom:16px">تقييم نضج ممارسات الحوكمة عبر ٨ محاور و٣٢ معيارًا.</p>
     <div class="card">
       <div class="card-body" style="padding:0">
         <table class="tbl">
@@ -2242,7 +2243,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   <div class="sec-title" style="font-size:14px"><span class="ico-i ico-user"></span>فريق المنصة (صلاحيات محدودة بتخصص)</div>
   <div class="card" style="margin-bottom:16px">
     <div class="card-body">
-      <p style="font-size:11.5px;color:var(--gray3);margin-bottom:10px">عيّن موظفًا (لازم يكون مسجّل حساب بالمنصة أصلاً) بتخصص محدد — يشوف صلاحية كاملة بتخصصه على كل الشركات، واطّلاع فقط بالحوكمة (إلا موظف الحوكمة، له كل شي).</p>
+      <p style="font-size:11.5px;color:var(--gray3);margin-bottom:10px">عيّن موظفًا بتخصص محدد — صلاحية كاملة بتخصصه على كل الشركات.</p>
       <div class="row2">
         <div class="fg"><label>البريد الإلكتروني</label><input class="fi" id="pts-email" placeholder="employee@email.com"/></div>
         <div class="fg"><label>التخصص</label>
@@ -2459,7 +2460,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
         <div class="fg"><label style="font-size:11px">نوع الجمعية</label><select class="fs" id="mt-agm-type"><option>عادية</option><option>غير عادية</option></select></div>
         <div class="fg"><label style="font-size:11px">رقم الدعوة</label><select class="fs" id="mt-call-number"><option value="1">الاجتماع الأول</option><option value="2">الاجتماع الثاني</option><option value="3">الاجتماع الثالث</option></select></div>
       </div>
-      <p style="font-size:10.5px;color:var(--gray3)">النصاب المطلوب يُحسب تلقائيًا حسب نوع الجمعية ورقم الدعوة، طبقًا لنظام الشركات.</p>
+      <p style="font-size:10.5px;color:var(--gray3)">النصاب يُحسب تلقائيًا حسب نوع الجمعية، وفق نظام الشركات.</p>
     </div>
     <div style="background:var(--offwhite);border-radius:10px;padding:10px;margin-bottom:10px">
       <label style="font-size:11px;font-weight:800;color:var(--primary)"><span class="ico-i ico-clipboard"></span>بنود جدول الأعمال</label>
@@ -2468,7 +2469,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
         <input class="fi" id="mt-new-topic" placeholder="نص بند جديد..." style="flex:1;margin:0">
         <button type="button" class="btn btn-ghost" style="font-size:11px;padding:8px 14px;white-space:nowrap" onclick="addNewMeetingTopic()">+ إضافة</button>
       </div>
-      <p style="font-size:10.5px;color:var(--gray3);margin-top:4px" id="mt-topics-hint">هذي البنود تنعكس تلقائيًا على المحضر — وللجمعية العامة تحديدًا، تُقفل عن التعديل لو تبقّى أقل من ١٠ أيام على الموعد.</p>
+      <p style="font-size:10.5px;color:var(--gray3);margin-top:4px" id="mt-topics-hint">تنعكس تلقائيًا على المحضر — تُقفل قبل ١٠ أيام من الجمعية.</p>
     </div>
     <div class="fg"><label>الوثائق الداعمة (اختياري)</label><input type="file" class="fi" id="mt-file" /></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-meeting')">إلغاء</button><button class="btn btn-gold" onclick="saveMeeting()"><span class="ico-i ico-check"></span>حفظ الاجتماع</button></div>
@@ -2482,7 +2483,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     <input type="hidden" id="cm-member-id" value="" />
     <p style="font-size:12px;color:var(--gray3);margin-bottom:10px">اربط <b id="cm-member-name"></b> بحساب دخول موجود بفريقكم — بعد الربط يقدر يصوّت على قرارات المجلس/اللجان، ويُحسب ضمن الحضور والنصاب.</p>
     <div class="fg"><label>حساب الدخول</label><select class="fs" id="cm-email-select"><option value="">— اختر —</option></select></div>
-    <p style="font-size:10.5px;color:var(--gray3)">ما لقيت الحساب؟ تأكد إن الشخص انضم لفريقكم أولاً من صفحة "إدارة الفريق".</p>
+    <p style="font-size:10.5px;color:var(--gray3)">ما لقيت الحساب؟ تأكد من انضمامه أولاً من "إدارة الفريق".</p>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-claim-member')">إلغاء</button><button class="btn btn-gold" onclick="confirmClaimMember()"><span class="ico-i ico-link"></span>ربط الآن</button></div>
   </div>
 </div>
@@ -2502,7 +2503,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     <div id="bt-new-members"></div>
     <button type="button" class="btn btn-ghost" style="width:100%;margin-bottom:10px" onclick="addNewTermMemberRow()">+ إضافة عضو جديد</button>
 
-    <p style="font-size:10.5px;color:var(--gray3)">عند الاعتماد: تُنهى عضوية غير المستمرين تلقائيًا، ويُنشأ العضو الجديد بالسجل، وتتولّد مسودة إعلان "تعيين عضو مجلس إدارة" لكل عضو جديد جاهزة للمراجعة والرفع لتداول.</p>
+    <p style="font-size:10.5px;color:var(--gray3)">عند الاعتماد: تُحدَّث العضوية تلقائيًا، وتتولّد مسودة إعلان لكل عضو جديد.</p>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-board-term')">إلغاء</button><button class="btn btn-gold" onclick="saveBoardTerm()"><span class="ico-i ico-check"></span>اعتماد دورة المجلس الجديدة</button></div>
   </div>
 </div>
@@ -2643,7 +2644,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     <div class="fg"><label>أوقّع بصفتي</label>
       <select class="fs" id="official-sign-role"></select>
     </div>
-    <p style="font-size:11px;color:var(--gray3);margin-bottom:6px">وقّع بإصبعك أو الماوس — سيندمج توقيعك بمكانه الصحيح على المستند نفسه فورًا.</p>
+    <p style="font-size:11px;color:var(--gray3);margin-bottom:6px">وقّع بإصبعك أو الماوس.</p>
     <div style="border:2px dashed var(--gray1);border-radius:10px;background:#fff;touch-action:none">
       <canvas id="officialSigCanvas" width="440" height="150" style="width:100%;height:150px;cursor:crosshair;display:block"></canvas>
     </div>
@@ -2660,7 +2661,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 <div class="modal-bg" id="m-policy-workflow-picker">
   <div class="modal" style="max-width:420px">
     <div class="modal-title"><span class="ico-i ico-settings"></span>إعداد تسلسلات اعتماد السياسات</div>
-    <p style="font-size:11.5px;color:var(--gray3);margin-bottom:12px">كل فئة سياسة لها تسلسل اعتماد مستقل بالكامل — رتّب المناصب بالترتيب اللي تحتاجه (مثال: مدير الموارد البشرية ← الرئيس التنفيذي ← مجلس الإدارة)، واختر أي فئة تبي تعدّلها:</p>
+    <p style="font-size:11.5px;color:var(--gray3);margin-bottom:12px">رتّب المناصب بالترتيب المطلوب لكل فئة سياسة:</p>
     <div id="policyWorkflowCategoryList"></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-policy-workflow-picker')">إغلاق</button></div>
   </div>
@@ -2670,7 +2671,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 <div class="modal-bg" id="m-policy-deadline">
   <div class="modal" style="max-width:360px">
     <div class="modal-title">⏳ مهلة كل مرحلة اعتماد</div>
-    <p style="font-size:11.5px;color:var(--gray3);margin-bottom:12px">عدد الأيام المسموح بها لكل خطوة بدورة الاعتماد قبل ما تُحتسب متأخرة — كل شركة تقدر تحدده حسب سياستها الداخلية.</p>
+    <p style="font-size:11.5px;color:var(--gray3);margin-bottom:12px">عدد الأيام المسموح بها لكل خطوة قبل احتسابها متأخرة.</p>
     <div class="fg"><label>عدد الأيام</label><input type="number" class="fi" id="mpd-days" min="1" value="14"/></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-policy-deadline')">إلغاء</button><button class="btn btn-gold" onclick="savePolicyDeadlineSettings()"><span class="ico-i ico-check"></span>حفظ</button></div>
   </div>
@@ -2681,7 +2682,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   <div class="modal" style="max-width:420px">
     <div class="modal-title"><span class="ico-i ico-clipboard"></span>تقييد فئة السياسات — <span id="pcr-name"></span></div>
     <input type="hidden" id="pcr-membership-id" value=""/>
-    <p style="font-size:11.5px;color:var(--gray3);margin-bottom:12px">حدّد الفئات اللي يقدر هذا العضو يشوفها بصفحة السياسات فقط — أي فئة ما تحددها ما تظهر له إطلاقًا. اتركها كلها فاضية عشان يشوف كل الفئات بدون قيد.</p>
+    <p style="font-size:11.5px;color:var(--gray3);margin-bottom:12px">حدّد الفئات المسموحة له — اتركها فاضية ليشوف الكل.</p>
     <div id="pcr-category-list"></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-policy-category-restriction')">إلغاء</button><button class="btn btn-gold" onclick="savePolicyCategoryRestriction()"><span class="ico-i ico-check"></span>حفظ القيد</button></div>
   </div>
@@ -2690,7 +2691,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 <div class="modal-bg" id="m-workflow-template">
   <div class="modal" style="max-width:520px">
     <div class="modal-title" id="wft-title"><span class="ico-i ico-settings"></span>إعداد تسلسل التوقيع</div>
-    <p style="font-size:11.5px;color:var(--gray3);margin-bottom:10px">حدد المناصب اللي لازم توقّع على هذا النوع من الوثائق، **بالترتيب** — ما أحد يقدر يوقّع قبل دوره.</p>
+    <p style="font-size:11.5px;color:var(--gray3);margin-bottom:10px">حدد المناصب اللي توقّع بالترتيب — كل واحد بدوره.</p>
     <div id="wft-roles-list" style="margin-bottom:10px"></div>
     <div style="display:flex;gap:6px;margin-bottom:14px">
       <input class="fi" id="wft-new-role" placeholder="مثال: مدير إدارة الحوكمة" style="flex:1;margin:0">
@@ -2727,7 +2728,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   <div class="modal" style="max-width:520px">
     <div class="modal-title"><span class="ico-i ico-idcard"></span>بطاقة تصويت المساهم — التوقيع</div>
     <div id="voteCardPreview" style="background:var(--offwhite);border-radius:10px;padding:14px;margin-bottom:12px;font-size:12px;line-height:1.9"></div>
-    <p style="font-size:11.5px;color:var(--gray3);margin-bottom:6px">وقّع بإصبعك أو الماوس لتأكيد صحة تصويتك، ثم نزّل بطاقتك موقّعة كملف PDF.</p>
+    <p style="font-size:11.5px;color:var(--gray3);margin-bottom:6px">وقّع بإصبعك أو الماوس، ثم نزّل بطاقتك PDF.</p>
     <div style="border:2px dashed var(--gray1);border-radius:10px;background:#fff;touch-action:none">
       <canvas id="voteSigCanvas" width="460" height="150" style="width:100%;height:150px;cursor:crosshair;display:block"></canvas>
     </div>
@@ -3215,7 +3216,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
         <input class="fi" id="mtr-new-topic" placeholder="نص بند جديد..." style="flex:1;margin:0">
         <button type="button" class="btn btn-ghost" style="font-size:11px;padding:8px 14px;white-space:nowrap" onclick="addNewRequestTopic()">+ إضافة</button>
       </div>
-      <p style="font-size:10.5px;color:var(--gray3);margin-top:4px">جدول الأعمال يتكوّن تلقائيًا من: "ترحيب رئيس المجلس"، ثم البنود اللي تضيفها هنا (أو تُضاف لاحقًا)، ثم "شكر الأعضاء وإنهاء الاجتماع" — بدون ما تحتاج تكتب هالبندين بنفسك.</p>
+      <p style="font-size:10.5px;color:var(--gray3);margin-top:4px">جدول الأعمال يتكوّن تلقائيًا — البنود الافتتاحية والختامية مُضافة تلقائيًا.</p>
     </div>
     <p style="font-size:11px;color:var(--gray3)">يحتاج موافقة الأعضاء على الموعد، ثم يتحوّل تلقائيًا لاجتماع مؤكد.</p>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-meeting-request')">إلغاء</button><button class="btn btn-gold" onclick="submitMeetingRequest()"><span class="ico-i ico-send"></span>إرسال الطلب</button></div>
@@ -3246,7 +3247,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     </div>
     <div id="mplan-items-list"></div>
     <button type="button" class="btn btn-ghost" style="width:100%;margin-bottom:10px" onclick="addPlanItemRow()">+ إضافة اجتماع</button>
-    <p style="font-size:10.5px;color:var(--gray3)">هذي خطة أولية غير ملزمة بتواريخ تقريبية — ما تنشئ اجتماعًا فعليًا. استخدم "🔄 تحويل لاجتماع" لاحقًا لما يقترب الموعد الفعلي.</p>
+    <p style="font-size:10.5px;color:var(--gray3)">خطة أولية بتواريخ تقريبية — حوّلها لاجتماع فعلي لاحقًا.</p>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-meeting-plan')">إلغاء</button><button class="btn btn-gold" onclick="saveMeetingPlan()"><span class="ico-i ico-save"></span>حفظ الخطة</button></div>
   </div>
 </div>
@@ -3318,7 +3319,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
       </select>
     </div>
     <div class="fg"><label>تفاصيل الطلب</label><textarea class="fta" id="mcr-details" rows="3" placeholder="وصف الاستشارة المطلوبة..."></textarea></div>
-    <p style="font-size:11px;color:var(--gray3)">بعد الإرسال، يظهر الطلب لمدير النظام لتقديم عرض سعر، ثم يُحال إليك للموافقة أو الرفض.</p>
+    <p style="font-size:11px;color:var(--gray3)">يظهر الطلب لمدير النظام لتقديم عرض سعر للموافقة عليه.</p>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-consult-request')">إلغاء</button><button class="btn btn-gold" onclick="submitConsultRequest()"><span class="ico-i ico-send"></span>إرسال الطلب</button></div>
   </div>
 </div>
@@ -3560,7 +3561,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
         <div style="font-size:26px"><span class="ico ico-check" style="width:16px;height:16px"></span></div>
         <div style="font-size:13px;font-weight:700;color:var(--green);margin-top:4px">التحقق بخطوتين مفعّل على حسابك</div>
       </div>
-      <p style="font-size:11.5px;color:var(--gray3)">في كل مرة تسجّل دخول، بيُطلب منك إدخال رمز من تطبيق المصادقة بعد كلمة المرور.</p>
+      <p style="font-size:11.5px;color:var(--gray3)">يُطلب رمز من تطبيق المصادقة بعد كلمة المرور.</p>
       <button class="btn" style="width:100%;background:#FDE8E8;color:var(--red)" onclick="disableMfa()">إلغاء التفعيل</button>
     </div>
 
@@ -3573,7 +3574,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     </div>
 
     <div id="secSetupStart" style="display:none">
-      <p style="font-size:12px;color:var(--gray3);margin-bottom:12px">حماية إضافية لحسابك — يُطلب منك رمز من جوالك بعد كلمة المرور عند كل تسجيل دخول.</p>
+      <p style="font-size:12px;color:var(--gray3);margin-bottom:12px">حماية إضافية — رمز من جوالك بعد كلمة المرور.</p>
       <button class="btn btn-gold" style="width:100%" onclick="startMfaEnroll()"><span class="ico-i ico-lock"></span>تفعيل التحقق بخطوتين</button>
     </div>
 
@@ -3704,7 +3705,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 <div class="modal-bg" id="m-user-permission-overrides">
   <div class="modal" style="max-width:480px">
     <div class="modal-title" id="upo-title"><span class="ico-i ico-wrench"></span>صلاحيات مخصّصة</div>
-    <p style="font-size:11.5px;color:var(--gray3);margin-bottom:10px">هذي فوق الدور الأساسي — أي تحديد هنا يتغلّب عليه لهذا الشخص بس، بأي وقت تقدر ترجّعه لـ"افتراضي".</p>
+    <p style="font-size:11.5px;color:var(--gray3);margin-bottom:10px">يتغلّب على الدور الأساسي لهذا الشخص بس — رجّعه لـ"افتراضي" بأي وقت.</p>
     <div style="background:var(--offwhite);border-radius:8px;padding:10px;margin-bottom:12px">
       <div style="font-size:11.5px;font-weight:800;color:var(--dark);margin-bottom:6px"><span class="ico-i ico-shield"></span>تقييد سريع — اختر الصفحات المسموحة بس، والباقي يُقفل تلقائيًا</div>
       <div id="upo-quick-restrict-list" style="max-height:180px;overflow-y:auto;margin-bottom:8px"></div>
@@ -3718,7 +3719,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 <div class="modal-bg" id="m-listed-shareholder-link">
   <div class="modal">
     <div class="modal-title"><span class="ico-i ico-link"></span>رابط تسجيل المساهمين</div>
-    <p style="font-size:12px;color:var(--gray3);margin-bottom:10px">رابط ثابت دائم — أرسله لكل المساهمين (بريد جماعي، رسالة دعوة الجمعية...). أي عدد منهم يقدر يسجّل بنفس الرابط، ويصير حسابه "قيد المراجعة" لين تعتمده من القسم أدناه.</p>
+    <p style="font-size:12px;color:var(--gray3);margin-bottom:10px">رابط ثابت — أرسله لكل المساهمين، وحساباتهم تنتظر اعتمادك أدناه.</p>
     <div style="background:var(--offwhite);border-radius:8px;padding:10px;font-size:11.5px;word-break:break-all;margin-bottom:10px" id="listedShareholderLinkText"></div>
     <button class="btn btn-gold" style="width:100%" onclick="copyListedShareholderLink()"><span class="ico-i ico-clipboard"></span>نسخ الرابط</button>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-listed-shareholder-link')">إغلاق</button></div>
@@ -5309,7 +5310,7 @@ function renderUserCard(m){
             ${roles.map(r=>`<option value="${r}" ${m.role===r?"selected":""}>${ROLE_STYLE[r].icon} ${roleDisplayLabelFor(r)}</option>`).join("")}
             <option value="__custom__"><span class="ico-i ico-tag"></span>مسمى مخصّص (لجنة أخرى)...</option>
           </select>
-          ${isCustomRole ? `<p style="font-size:9.5px;color:var(--gray3);margin:-2px 0 8px">مسمى مخصّص — استخدم "🔧 صلاحيات مخصّصة" فوق لتحديد أي صفحات يشوفها بالضبط.</p>` : ""}
+          ${isCustomRole ? `<p style="font-size:9.5px;color:var(--gray3);margin:-2px 0 8px">مسمى مخصّص — حدد صفحاته من "🔧 صلاحيات مخصّصة" فوق.</p>` : ""}
           ${isMe ? "" : `<button style="width:100%;background:#FDE8E8;color:var(--red);border:none;border-radius:8px;padding:8px;font-size:11.5px;font-weight:600;cursor:pointer" onclick="deleteUserProfile(${m.id},'${(u.full_name||m.email||"").replace(/'/g,"")}')"><span class="ico-i ico-trash"></span>إزالة من هذه الشركة</button>`}
         </div>
       </div>
@@ -15701,7 +15702,7 @@ async function generateBaseStructure(){
 
   let rows = [];
   if(type === "مؤسسة فردية"){
-    if(!confirm('سيُضاف هيكل مبدئي: المالك ← المدير العام ← الإدارات الرئيسية (المالية، الموارد البشرية، التشغيل، المبيعات). يمكنك حذف أو تعديل أي منصب بعدها حسب واقع مؤسستك الفعلي. أي عنصر قديم بنفس الاسم سيُستبدل تلقائيًا. متابعة؟')) return;
+    if(!confirm('سيُضاف: المالك ← المدير العام ← الإدارات الرئيسية. تقدر تعدّله بعدها. متابعة؟')) return;
     rows = [
       { position_title: "المالك", parent_position: "", level: 1, is_body: false, is_leadership: true },
       { position_title: "المدير العام / التنفيذي", parent_position: "المالك", level: 4, is_body: false, is_leadership: true },
@@ -15711,7 +15712,7 @@ async function generateBaseStructure(){
       { position_title: "إدارة المبيعات والتسويق", parent_position: "المدير العام / التنفيذي", level: 5, is_body: false, is_leadership: true }
     ];
   } else if(type === "ذات مسؤولية محدودة"){
-    if(!confirm('سيُضاف: جمعية الشركاء ← مجلس المديرين ← الرئيس التنفيذي ← الإدارات الرئيسية (المالية، الموارد البشرية، التشغيل، المبيعات). يمكنك حذف أو تعديل أي منصب بعدها حسب واقع شركتك الفعلي. أي عنصر قديم بنفس الاسم سيُستبدل تلقائيًا. متابعة؟')) return;
+    if(!confirm('سيُضاف: جمعية الشركاء ← مجلس المديرين ← الرئيس التنفيذي ← الإدارات الرئيسية. تقدر تعدّله بعدها. متابعة؟')) return;
     rows = [
       { position_title: "جمعية الشركاء", parent_position: "", level: 1, is_body: true },
       { position_title: "مجلس المديرين", parent_position: "جمعية الشركاء", level: 2, is_body: true },
@@ -15723,7 +15724,7 @@ async function generateBaseStructure(){
     ];
   } else {
     // مساهمة مدرجة / مساهمة غير مدرجة (default)
-    if(!confirm('سيُضاف: الجمعية العامة ← مجلس الإدارة (وتحته: اللجان المنبثقة، رئيس مجلس الإدارة ← الرئيس التنفيذي، وأمين سر المجلس) ← الإدارات الرئيسية تحت الرئيس التنفيذي (المالية، الموارد البشرية، التشغيل، المبيعات، التسويق وخدمة العملاء، الإدارة القانونية). يمكنك حذف أو تعديل أي منصب بعدها حسب واقع شركتك الفعلي. أي عنصر قديم بنفس الاسم سيُستبدل تلقائيًا. متابعة؟')) return;
+    if(!confirm('سيُضاف: الجمعية العامة ← مجلس الإدارة ← الرئيس التنفيذي ← الإدارات الرئيسية. تقدر تعدّله بعدها. متابعة؟')) return;
     rows = [
       { position_title: "الجمعية العامة", parent_position: "", level: 1, is_body: true },
       { position_title: "مجلس الإدارة", parent_position: "الجمعية العامة", level: 2, is_body: true },
@@ -15752,8 +15753,8 @@ async function generateBaseStructure(){
 
   const payload = rows.map(r => ({ ...r, company_id: currentCompanyId }));
   const { error } = await sb.from("org_structure").insert(payload);
-  if(error){ alert("تعذّر إنشاء الهيكل المقترح: " + error.message); return; }
-  alert("تم إنشاء الهيكل المقترح ✅ — أضف بقية المناصب (نواب الرئيس، المدراء...) وتأكد كل واحد يتبع للجهة الصحيحة.");
+  if(error){ alert("تعذّر إنشاء الهيكل: " + error.message); return; }
+  alert("تم إنشاء الهيكل ✅ — أضف بقية المناصب وتأكد كل واحد يتبع للجهة الصحيحة.");
   loadStructure();
 }
 
@@ -15786,31 +15787,46 @@ function renderOrgTree(rows){
 
   function box(s, depth){
     const small = depth > 0;
-    const pad = small ? "8px 12px" : "10px 20px";
+    const pad = small ? "8px 14px" : "10px 20px";
     const fs = small ? "11px" : "13px";
     if(s.is_body){
-      return `<div onclick="editStructure(${s.id})" style="cursor:pointer;display:inline-block;background:#fff;color:var(--primary);border:2px solid var(--gold);border-radius:10px;padding:${pad};font-size:${fs};font-weight:800;box-shadow:0 2px 8px rgba(180,146,63,0.2);min-width:120px;white-space:nowrap;text-align:center" title="اضغط للتعديل أو الحذف">
-        🏛️ ${s.position_title||""}
+      return `<div onclick="editStructure(${s.id})" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;background:#fff;color:var(--primary);border:2px solid var(--gold);border-radius:6px;padding:${pad};font-size:${fs};font-weight:800;min-width:130px;white-space:nowrap;text-align:center;justify-content:center" title="اضغط للتعديل أو الحذف">
+        <span class="ico ico-columns" style="width:14px;height:14px;flex-shrink:0"></span>${s.position_title||""}
       </div>`;
     }
-    return `<div onclick="editStructure(${s.id})" style="cursor:pointer;display:inline-block;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;border-radius:10px;padding:${pad};font-size:${fs};font-weight:800;box-shadow:0 2px 8px rgba(15,33,56,0.25);min-width:120px;white-space:nowrap;text-align:center" title="اضغط للتعديل أو الحذف">
+    return `<div onclick="editStructure(${s.id})" style="cursor:pointer;display:inline-block;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;border-radius:6px;padding:${pad};font-size:${fs};font-weight:800;min-width:130px;white-space:nowrap;text-align:center" title="اضغط للتعديل أو الحذف">
       ${s.position_title||""}
     </div>`;
   }
 
-  // Each node renders as its OWN column: its box on top, then (if it has children) a short
-  // connector line and a horizontal row containing each child's own column. Because every
-  // child is a self-contained column, siblings naturally line up side-by-side while each
-  // one's own subordinates stay directly beneath it — a real branching org chart, not a
-  // flat "everyone at this generation in one row" list.
+  // Real org-chart connectors: a single stem drops from the parent to a horizontal bus line
+  // spanning exactly the width of its children, then a stem drops from that bus to each child
+  // — the standard CSS "family tree" trick (half-border on first/last child), not just siblings
+  // floating in a row with no line tying them to each other or to the parent above them.
   function renderNode(s, depth){
     const kids = childrenOf[s.position_title] || [];
     let html = `<div style="display:flex;flex-direction:column;align-items:center">`;
     html += box(s, depth);
     if(kids.length){
-      html += `<div style="width:2px;height:20px;background:var(--gray2)"></div>`;
-      html += `<div style="display:flex;flex-direction:row;align-items:flex-start;gap:20px">`;
-      kids.forEach(k => { html += `<div style="display:flex;flex-direction:column;align-items:center">${renderNode(k, depth+1)}</div>`; });
+      html += `<div style="width:2px;height:18px;background:var(--gray2)"></div>`;
+      html += `<div style="display:flex;flex-direction:row;align-items:flex-start">`;
+      kids.forEach((k, i) => {
+        const isFirst = i === 0, isLast = i === kids.length-1, isOnly = kids.length === 1;
+        // The bus line is split into two halves per child; because the page is RTL, the first
+        // markup half renders on the right and the second on the left. A child only draws the
+        // half reaching toward a sibling that actually exists on that side — the outermost
+        // child's outer half stays blank instead of trailing off past the last sibling.
+        const rightHalf = (isOnly || isFirst) ? "transparent" : "var(--gray2)";
+        const leftHalf = (isOnly || isLast) ? "transparent" : "var(--gray2)";
+        html += `<div style="flex:1;padding:0 16px;position:relative;display:flex;flex-direction:column;align-items:center">
+          <div style="position:absolute;top:0;right:0;left:0;height:2px;display:flex">
+            <div style="flex:1;background:${rightHalf}"></div>
+            <div style="flex:1;background:${leftHalf}"></div>
+          </div>
+          <div style="width:2px;height:16px;background:var(--gray2)"></div>
+          ${renderNode(k, depth+1)}
+        </div>`;
+      });
       html += `</div>`;
     }
     html += `</div>`;
@@ -15818,7 +15834,7 @@ function renderOrgTree(rows){
   }
 
   if(roots.length===0) return '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">تعذّر رسم الهيكل — تحقق من ربط "يتبع لـ" لكل منصب.</div>';
-  return `<div style="display:flex;justify-content:center;gap:40px;align-items:flex-start">${roots.map(r => renderNode(r, 0)).join("")}</div>`;
+  return `<div style="display:flex;justify-content:center;gap:50px;align-items:flex-start">${roots.map(r => renderNode(r, 0)).join("")}</div>`;
 }
 
 function autoToggleLeadership(){
