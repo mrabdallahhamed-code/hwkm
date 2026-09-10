@@ -3631,7 +3631,12 @@ body{font-family:'Tajawal',sans-serif;background:var(--offwhite);color:var(--dar
   <div class="modal" style="max-width:480px">
     <div class="modal-title" id="upo-title">🔧 صلاحيات مخصّصة</div>
     <p style="font-size:11.5px;color:var(--gray3);margin-bottom:10px">هذي فوق الدور الأساسي — أي تحديد هنا يتغلّب عليه لهذا الشخص بس، بأي وقت تقدر ترجّعه لـ"افتراضي".</p>
-    <div id="upo-list" style="max-height:50vh;overflow-y:auto"></div>
+    <div style="background:var(--offwhite);border-radius:8px;padding:10px;margin-bottom:12px">
+      <div style="font-size:11.5px;font-weight:800;color:var(--dark);margin-bottom:6px">🔒 تقييد سريع — اختر الصفحات المسموحة بس، والباقي يُقفل تلقائيًا</div>
+      <div id="upo-quick-restrict-list" style="max-height:180px;overflow-y:auto;margin-bottom:8px"></div>
+      <button class="btn-xs gold" style="width:100%" onclick="applyQuickRestrict()">تطبيق التقييد على القائمة أدناه</button>
+    </div>
+    <div id="upo-list" style="max-height:40vh;overflow-y:auto"></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-user-permission-overrides')">إلغاء</button><button class="btn btn-gold" onclick="saveUserPermissionOverrides()">✅ حفظ</button></div>
   </div>
 </div>
@@ -5082,6 +5087,28 @@ function renderUserPermissionOverridesList(){
       </select>
     </div>`;
   }).join("");
+
+  const quickBox = document.getElementById("upo-quick-restrict-list");
+  if(quickBox){
+    quickBox.innerHTML = pageIds.map(pageId => {
+      const label = (titles[pageId] && titles[pageId][0]) || PLATFORM_LEVEL_PAGE_TITLES[pageId] || pageId;
+      const currentlyAllowed = permOverrideDraft[pageId] === 'view' || permOverrideDraft[pageId] === 'edit';
+      return `<label style="display:flex;align-items:center;gap:7px;padding:4px 0;font-size:12px;cursor:pointer">
+        <input type="checkbox" data-qr-page="${pageId}" ${currentlyAllowed?'checked':''} style="accent-color:var(--gold);width:14px;height:14px;flex-shrink:0"/>
+        ${label}
+      </label>`;
+    }).join("");
+  }
+}
+
+function applyQuickRestrict(){
+  const pageIds = permOverrideDraftScope === null ? PLATFORM_LEVEL_PAGE_IDS : ALL_PAGE_IDS_FOR_OVERRIDES;
+  const allowed = new Set([...document.querySelectorAll("#upo-quick-restrict-list [data-qr-page]:checked")].map(cb => cb.dataset.qrPage));
+  pageIds.forEach(pageId => {
+    permOverrideDraft[pageId] = allowed.has(pageId) ? 'view' : 'none';
+  });
+  renderUserPermissionOverridesList();
+  alert(`تم تقييد الوصول لـ${allowed.size} صفحة فقط. اضغط "✅ حفظ" بالأسفل عشان يصير فعليًا — أو عدّل أي صفحة يدويًا بالقائمة تحت لو تبي "تعديل كامل" بدل "عرض فقط".`);
 }
 
 async function saveUserPermissionOverrides(){
@@ -14438,6 +14465,12 @@ async function openGovernanceApprovalModal(approvalId){
   const myEmail = userData?.user?.email;
   const myVote = (votes||[]).find(v => v.voter_email === myEmail);
   const isMatrix = approval.document_type === "matrix";
+  // The role that actually gates action buttons below — must match the step's required role
+  // exactly (or be مدير النظام, who can unblock a stuck cycle). Sequence position alone isn't
+  // enough: without this, anyone who simply opens the modal could act on someone else's step.
+  const myMembership = userMemberships.find(m => m.company_id === currentCompanyId);
+  const myRawRole = myMembership ? myMembership.role : (getCurrentRole()||"");
+  const canActAsRole = (stepRole) => myRawRole === stepRole || myRawRole === "مدير النظام";
 
   document.getElementById("ga-title").textContent = `دورة اعتماد — ${isMatrix?'مصفوفة الصلاحيات':'سياسة'}`;
   const body = document.getElementById("ga-body");
@@ -14477,7 +14510,7 @@ async function openGovernanceApprovalModal(approvalId){
     template.ordered_roles.forEach((role, i) => {
       const step = approvalSteps.find(s => s.role === role);
       const prevApproved = i === 0 || approvalSteps.some(s => s.role === template.ordered_roles[i-1] && s.decision === "موافقة");
-      const isMyTurn = !step && prevApproved && approval.status === "قيد الاعتماد";
+      const isMyTurn = !step && prevApproved && approval.status === "قيد الاعتماد" && canActAsRole(role);
       html += `<div style="display:flex;align-items:center;gap:10px;background:var(--offwhite);border-radius:8px;padding:10px;margin-bottom:6px">
         <span style="background:${step?(step.decision==='موافقة'?'var(--green)':'var(--red)'):isMyTurn?'var(--gold)':'var(--gray2)'};color:#fff;font-weight:800;font-size:11px;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</span>
         <div style="flex:1">
@@ -14501,7 +14534,7 @@ async function openGovernanceApprovalModal(approvalId){
     template.ordered_roles.forEach((role, i) => {
       const sig = (sigs||[]).find(s => s.role === role);
       const prevSigned = i === 0 || (sigs||[]).some(s => s.role === template.ordered_roles[i-1]);
-      const isMyTurn = !sig && prevSigned;
+      const isMyTurn = !sig && prevSigned && canActAsRole(role);
       const daysWaiting = (!sig && prevSigned) ? Math.floor((Date.now() - new Date((sigs||[]).find(s=>s.role===template.ordered_roles[i-1])?.signed_at || approval.created_at).getTime())/86400000) : 0;
       html += `<div style="display:flex;align-items:center;gap:10px;background:var(--offwhite);border-radius:8px;padding:10px;margin-bottom:6px">
         <span style="background:${sig?'var(--green)':isMyTurn?'var(--gold)':'var(--gray2)'};color:#fff;font-weight:800;font-size:11px;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</span>
@@ -14530,6 +14563,12 @@ async function openGovernanceApprovalModal(approvalId){
 async function castGovernanceApprovalStep(approvalId, role, decision){
   const { data: userData } = await sb.auth.getUser();
   const email = userData?.user?.email;
+  const myMembership = userMemberships.find(m => m.company_id === currentCompanyId);
+  const myRawRole = myMembership ? myMembership.role : "";
+  if(myRawRole !== role && myRawRole !== "مدير النظام"){
+    alert(`هذي الخطوة مخصّصة لمنصب "${role}" — دورك الحالي "${myRawRole||"غير محدد"}" ما يملك صلاحية اعتمادها.`);
+    return;
+  }
   const { error } = await sb.from("governance_signatures").insert([{
     approval_id: approvalId, role, order_position: -1, phase: "اعتماد", decision,
     signer_name: currentUserProfile?currentUserProfile.full_name:email, signer_email: email, signed_at: new Date().toISOString()
@@ -14653,6 +14692,13 @@ async function confirmGovernanceSignature(){
     return;
   }
   if(signedRoles.includes(currentGovSignRole)){ alert("هذا المنصب وقّع مسبقًا"); return; }
+
+  const myMembership = userMemberships.find(m => m.company_id === currentCompanyId);
+  const myRawRole = myMembership ? myMembership.role : "";
+  if(myRawRole !== currentGovSignRole && myRawRole !== "مدير النظام"){
+    alert(`هذا التوقيع مخصّص لمنصب "${currentGovSignRole}" — دورك الحالي "${myRawRole||"غير محدد"}" ما يملك صلاحية توقيعه.`);
+    return;
+  }
 
   const { data: userData } = await sb.auth.getUser();
   const email = userData?.user?.email;
