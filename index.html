@@ -18180,12 +18180,13 @@ async function loadPerf(){
         : `<span class="badge done">التقييم مكتمل</span>`;
       actionHTML = `<button class="btn-xs primary" style="width:100%;margin-top:10px" onclick="openPerfDetail('${person.email}',${isExec})"><span class="ico-i ico-search"></span>التفاصيل</button>`;
     } else {
-      const iAmReviewer = myEmail && myEmail !== person.email;
+      const isPlatformOwner = currentUserProfile && currentUserProfile.is_platform_admin === true;
+      const iAmReviewer = !isPlatformOwner && myEmail && myEmail !== person.email;
       const { data: mySubmitted } = await sb.from("performance_evaluation_reviews").select("id").eq("evaluation_id", ev.id).eq("reviewer_email", myEmail||"").limit(1);
       const alreadyDone = mySubmitted && mySubmitted.length > 0;
       statusHTML = `<span class="badge pending">مفتوح للتقييم</span>`;
       if(isAdmin) actionHTML += `<button class="btn-xs primary" style="width:100%;margin-top:8px" onclick="openPerfDetail('${person.email}',${isExec})"><span class="ico-i ico-search"></span>متابعة النتائج</button>`;
-      if(iAmReviewer && myEmail !== person.email){
+      if(iAmReviewer){
         actionHTML += alreadyDone
           ? `<div style="text-align:center;color:var(--green);font-size:11px;margin-top:8px"><span class="ico-i ico-check"></span>أرسلت تقييمك</div>`
           : `<button class="btn-xs gold" style="width:100%;margin-top:8px" onclick="openPerfDetail('${person.email}',${isExec})"><span class="ico-i ico-signature"></span>ابدأ التقييم</button>`;
@@ -18354,9 +18355,13 @@ async function openPerfDetail(evaluatedEmail, isExec){
   const isAdmin = await canSeePerfResults();
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
-  const isReviewer = myEmail && myEmail !== evaluatedEmail;
+  // HWKM's own platform owner is never a genuine peer reviewer — they should always land on
+  // the results view, complete or not, and never get funneled into a scoring form they were
+  // never meant to fill out (they're not in anyone's reviewer audience to begin with).
+  const isPlatformOwner = currentUserProfile && currentUserProfile.is_platform_admin === true;
+  const isReviewer = !isPlatformOwner && myEmail && myEmail !== evaluatedEmail;
 
-  if(ev.status === "مكتمل" || (isAdmin && !isReviewer)){
+  if(ev.status === "مكتمل" || isPlatformOwner || (isAdmin && !isReviewer)){
     await renderPerfResultsDetail(ev, isAdmin);
   } else if(isReviewer){
     await renderPerfReviewForm(ev);
