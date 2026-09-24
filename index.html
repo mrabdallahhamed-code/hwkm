@@ -6428,7 +6428,8 @@ async function openEditCompanyModal(){
 const COMPANY_REQUEST_STATUS_STYLE = {
   "قيد المراجعة": { bg:"var(--offwhite)", color:"var(--gray3)" },
   "معتمد": { bg:"#E8F8EF", color:"var(--green)" },
-  "مرفوض": { bg:"#FDE8E8", color:"var(--red)" }
+  "مرفوض": { bg:"#FDE8E8", color:"var(--red)" },
+  "تجربة تلقائية": { bg:"#FEF3E2", color:"var(--gold)" }
 };
 
 async function loadCompanyRequestPage(){
@@ -6453,8 +6454,8 @@ async function loadCompanyRequestPage(){
   box.innerHTML = `
     <div style="text-align:center;margin-bottom:16px">
       <div style="font-size:36px"><span class="ico ico-new" style="width:16px;height:16px"></span></div>
-      <div style="font-size:15px;font-weight:800;color:var(--dark);margin-top:6px">طلب إدراج شركتك بالمنصة</div>
-      <div style="font-size:12px;color:var(--gray3);margin-top:4px">عبِّ بيانات شركتك، وبعد موافقة مالك المنصة ستصبح أنت مدير النظام لها.</div>
+      <div style="font-size:15px;font-weight:800;color:var(--dark);margin-top:6px">أدرج شركتك بالمنصة</div>
+      <div style="font-size:12px;color:var(--gray3);margin-top:4px">عبِّ بيانات شركتك — تقدر تبدأ تجربتك المجانية فورًا بضغطة زر، بدون انتظار.</div>
     </div>
     ${rejectedNotice}
     <div class="fg"><label>اسم الشركة</label><input class="fi" id="cr-name" placeholder="مثال: شركة النخبة القابضة"/></div>
@@ -6473,8 +6474,76 @@ async function loadCompanyRequestPage(){
       <div class="fg"><label>جوال المسؤول</label><input class="fi" id="cr-resp-phone" value="${currentUserProfile.phone_number||''}"/></div>
       <div class="fg"><label>إيميل المسؤول</label><input type="email" class="fi" id="cr-resp-email" value="${currentUserProfile.email||''}"/></div>
     </div>
-    <button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="submitCompanyRequest()"><span class="ico-i ico-send"></span>إرسال الطلب</button>
+
+    <button class="btn btn-gold" style="width:100%;margin-top:10px;font-size:13.5px;padding:13px" onclick="startInstantTrial()"><span class="ico-i ico-bolt"></span>ابدأ تجربتك المجانية الآن (14 يوم، فورًا)</button>
+    <p style="font-size:10.5px;color:var(--gray3);text-align:center;margin-top:6px">كل الوحدات مفتوحة أثناء التجربة — بلا حاجة لبطاقة دفع أو موافقة مسبقة.</p>
+
+    <div style="display:flex;align-items:center;gap:10px;margin:16px 0">
+      <div style="flex:1;height:1px;background:var(--gray1)"></div>
+      <span style="font-size:11px;color:var(--gray3)">أو</span>
+      <div style="flex:1;height:1px;background:var(--gray1)"></div>
+    </div>
+    <button class="btn btn-ghost" style="width:100%" onclick="submitCompanyRequest()"><span class="ico-i ico-send"></span>تواصل معنا لاشتراك مدفوع مباشرة (بدون تجربة)</button>
   `;
+}
+
+/* Self-serve trial — creates the company and grants full access immediately, with no admin
+   in the loop. Manual review stays meaningful at the point real money changes hands (paid
+   conversion); gatekeeping the free trial itself was pure friction with no matching benefit.
+   A company_requests row is still logged (status "تجربة تلقائية") purely for visibility — the
+   platform-owner dashboard's trial list and conversion-rate stat already read from real
+   companies.trial_ends_at, so nothing else downstream needs to change to pick this up. */
+async function startInstantTrial(){
+  const company_name = document.getElementById("cr-name").value.trim();
+  if(!company_name){ alert("الرجاء إدخال اسم الشركة"); return; }
+  const company_type = document.getElementById("cr-type").value;
+  const cr_number = document.getElementById("cr-cr-number").value.trim();
+  const cr_date = document.getElementById("cr-cr-date").value || null;
+  const responsible_person = document.getElementById("cr-resp-name").value.trim();
+  const responsible_phone = document.getElementById("cr-resp-phone").value.trim();
+  const responsible_email = document.getElementById("cr-resp-email").value.trim();
+
+  const btn = event.target.closest("button");
+  if(btn){ btn.disabled = true; btn.innerHTML = '<span class="ico-i ico-refresh"></span>جارِ إنشاء شركتك...'; }
+
+  const { data: userData } = await sb.auth.getUser();
+  const sessionEmail = userData && userData.user ? userData.user.email : currentUserProfile.email;
+  const trial_ends_at = new Date(Date.now() + 14*86400000).toISOString();
+
+  const { data: newCompany, error: cErr } = await sb.from("companies").insert([{
+    name: company_name, company_type, cr_number, cr_date,
+    responsible_person, responsible_phone, responsible_email,
+    module_internal_audit: true, module_risk_management: true, trial_ends_at
+  }]).select().single();
+  if(cErr){ alert("تعذّر إنشاء الشركة: " + cErr.message); if(btn){ btn.disabled=false; btn.innerHTML='<span class="ico-i ico-bolt"></span>ابدأ تجربتك المجانية الآن (14 يوم، فورًا)'; } return; }
+
+  const { error: uErr } = await sb.from("user_profiles").update({ company_id: newCompany.id, role: "مدير النظام" }).eq("email", sessionEmail);
+  if(uErr){ alert("تم إنشاء الشركة لكن تعذّر ربط حسابك بها: " + uErr.message); return; }
+  await sb.from("user_company_memberships").upsert(
+    [{ email: sessionEmail, company_id: newCompany.id, role: "مدير النظام" }], { onConflict: 'email,company_id' }
+  );
+
+  // Logged for admin visibility only — no approval step is waiting on this row.
+  await sb.from("company_requests").insert([{
+    requested_by_email: sessionEmail, requested_by_name: currentUserProfile.full_name,
+    company_name, company_type, cr_number, cr_date, responsible_person, responsible_phone, responsible_email,
+    status: "تجربة تلقائية", company_id: newCompany.id, reviewed_at: new Date().toISOString()
+  }]);
+
+  const { data: admins } = await sb.from("user_profiles").select("email").eq("is_platform_admin", true);
+  if(admins && admins.length){
+    const subject = `تجربة مجانية جديدة بدأت: ${company_name}`;
+    const html = `<div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px">
+      <h2 style="color:#1A3A6B">تجربة مجانية تلقائية بدأت الآن</h2>
+      <p><b>الشركة:</b> ${company_name} (${company_type})</p>
+      <p><b>المسؤول:</b> ${currentUserProfile.full_name||sessionEmail} (${sessionEmail})</p>
+      <p>لا يوجد إجراء مطلوب منك — هذا إشعار فقط. التجربة مفعَّلة تلقائيًا لمدة 14 يومًا.</p>
+    </div>`;
+    for(const a of admins){ sendNotificationEmail(a.email, subject, html); }
+  }
+
+  alert("تم إنشاء شركتك وتفعيل تجربتك المجانية 🎉 — راح تدخل منصتك الآن مباشرة.");
+  location.reload();
 }
 
 async function submitCompanyRequest(){
