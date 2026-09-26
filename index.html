@@ -1096,6 +1096,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
         <div class="nav-item" onclick="go('members',this)"><span class="ni-icon ico ico-users"></span><span class="ni-text">أعضاء المجلس</span></div>
         <div class="nav-item" onclick="go('appoint',this)"><span class="ni-icon ico ico-add"></span><span class="ni-text">طلب تعيين عضو</span></div>
         <div class="nav-item" onclick="go('indicators',this)"><span class="ni-icon ico ico-dashboard"></span><span class="ni-text">التقرير المالي والتشغيلي</span></div>
+        <div class="nav-item" onclick="go('decisiontracking',this)"><span class="ni-icon ico ico-check"></span><span class="ni-text">متابعة القرارات</span><span class="ni-badge red" id="decisionOverdueBadge" style="display:none"></span></div>
       </div>
 
       <div class="nav-subgroup-header" id="grp-generalassembly" onclick="event.stopPropagation();toggleNavGroup('generalassembly')">
@@ -1633,6 +1634,44 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 
   <div id="indicatorsReport">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:30px">لا توجد بيانات مستوردة بعد. نزّل النموذج وابدأ.</div>
+  </div>
+</div>
+
+<div id="p-decisiontracking" class="page content">
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <span><span class="ico-i ico-check"></span>متابعة القرارات</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <select class="fs" id="dt-status-filter" style="margin:0;width:130px;font-size:12px;padding:8px 10px" onchange="renderDecisionTrackingList()">
+        <option value="">كل الحالات</option>
+        <option value="لم يبدأ">لم يبدأ</option>
+        <option value="قيد التنفيذ">قيد التنفيذ</option>
+        <option value="منجز">منجز</option>
+        <option value="متأخر">متأخرة فقط</option>
+      </select>
+      <select class="fs" id="dt-responsible-filter" style="margin:0;width:160px;font-size:12px;padding:8px 10px" onchange="renderDecisionTrackingList()">
+        <option value="">كل المسؤولين</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="kpi-grid" id="dtStatsGrid" style="margin-bottom:20px">
+    <div style="text-align:center;color:var(--gray3);font-size:12px;grid-column:1/-1">جارِ التحميل...</div>
+  </div>
+
+  <div id="decisionTrackingList" style="display:flex;flex-direction:column;gap:12px">
+    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
+  </div>
+</div>
+
+<!-- Assign responsible person + target date for a decision -->
+<div class="modal-bg" id="m-decision-assign">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title"><span class="ico-i ico-check"></span>تحديد المسؤول والموعد</div>
+    <input type="hidden" id="da-decision-id" value=""/>
+    <div class="fg"><label>نص القرار</label><p id="da-decision-text" style="font-size:12.5px;color:var(--dark);background:var(--offwhite);padding:10px;border-radius:8px"></p></div>
+    <div class="fg"><label>المسؤول عن التنفيذ</label><select class="fs" id="da-responsible"></select></div>
+    <div class="fg"><label>الموعد المستهدف</label><input type="date" class="fi" id="da-target-date"/></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-decision-assign')">إلغاء</button><button class="btn btn-gold" onclick="saveDecisionAssignment()"><span class="ico-i ico-check"></span>حفظ</button></div>
   </div>
 </div>
 
@@ -5845,6 +5884,7 @@ function reloadCurrentPageData(){
   if(id==='govassess'){ document.getElementById('govassessListView').style.display='block'; document.getElementById('govassessFormView').style.display='none'; loadGovAssessments(); }
   if(id==='consultants') loadConsultantsPage();
   if(id==='perf') loadPerf();
+  if(id==='decisiontracking') loadDecisionTracking();
   if(id==='appoint'){ loadAppointRequests(); loadReviewSection(); }
   if(id==='reports') loadReportsPage();
   if(id==='archive') loadArchive();
@@ -8003,6 +8043,15 @@ async function computeGovernanceAlerts(){
       alerts.push({ severity: "high", text: `${risks.length} ${risks.length===1?'خطر عالي التأثير':'مخاطر عالية التأثير'} لسا بمرحلة "مراقبة" فقط — بلا خطة معالجة نشطة بعد.`, page: "risks" });
     }
   } catch(e){ console.error("risk alert check failed", e); }
+
+  // 5) Board decisions past their target date with no completion yet
+  try {
+    const { data: decisions } = await sb.from("board_decisions").select("*").eq("company_id", currentCompanyId).not("target_date","is",null).not("status","eq","منجز");
+    const overdue = (decisions||[]).filter(d => new Date(d.target_date) < new Date(new Date().toDateString()));
+    if(overdue.length){
+      alerts.push({ severity: "high", text: `${overdue.length} ${overdue.length===1?'قرار مجلس متأخر':'قرارات مجلس متأخرة'} عن موعد التنفيذ المستهدف.`, page: "decisiontracking" });
+    }
+  } catch(e){ console.error("decision tracking alert check failed", e); }
 
   return alerts;
 }
@@ -18583,7 +18632,7 @@ async function advanceServiceRequest(){
 let perfCache = [];
 const PERF_SCORE_LABELS = {1:"ضعيف",2:"مقبول",3:"جيد",4:"جيد جدًا",5:"ممتاز"};
 
-const PERF_AUTO_CRITERIA = ["الانضباط والالتزام (آلي)", "نسبة الحضور الفعلية (آلي)", "نسبة المشاركة بالتصويت (آلي)"];
+const PERF_AUTO_CRITERIA = ["الانضباط والالتزام (آلي)", "نسبة الحضور الفعلية (آلي)", "نسبة المشاركة بالتصويت (آلي)", "نسبة إنجاز القرارات الموكلة (آلي)"];
 
 /* Board members eligible for evaluation — everyone with a linked account except executives
    (they get their own section, sourced from the org structure instead — see below). */
@@ -18643,6 +18692,142 @@ async function canManagePerfCycles(){
   if(currentUserProfile && currentUserProfile.is_platform_admin === true) return true;
   if(getCurrentRole() === "مدير النظام") return true;
   return await canSeePerfResults();
+}
+
+/* ══════════ DECISION TRACKING (متابعة القرارات) ══════════
+   Decisions themselves are still recorded exactly as before, inside each meeting — this page
+   never creates a decision, it only adds accountability on top of ones that already exist:
+   who owns getting it done, by when, and whether that's actually happening. Overdue ones feed
+   the dashboard's proactive alerts, and completion becomes one more automatic input to
+   performance evaluation — nobody has to remember to chase this by hand. */
+let decisionTrackingCache = [];
+let decisionTrackingPeople = [];
+
+function canManageDecisions(){
+  const role = getCurrentRole();
+  return role === "مدير النظام" || role === "سكرتير المجلس";
+}
+
+function computeDecisionStatus(d){
+  if(d.status === "منجز") return "منجز";
+  if(d.target_date && new Date(d.target_date) < new Date(new Date().toDateString())) return "متأخر";
+  return d.status || "لم يبدأ";
+}
+
+async function loadDecisionTracking(){
+  const [{ data: decisions }, { data: meetings }, people] = await Promise.all([
+    sb.from("board_decisions").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false}),
+    sb.from("meetings").select("id,meeting_date,meeting_type").eq("company_id", currentCompanyId),
+    getEvaluableBoardMembers()
+  ]);
+  decisionTrackingPeople = people;
+  const meetingById = {}; (meetings||[]).forEach(m => { meetingById[m.id] = m; });
+  decisionTrackingCache = (decisions||[]).map(d => ({ ...d, _meeting: meetingById[d.meeting_id] }));
+
+  const respFilter = document.getElementById("dt-responsible-filter");
+  if(respFilter){
+    const current = respFilter.value;
+    respFilter.innerHTML = '<option value="">كل المسؤولين</option>' + people.map(p => `<option value="${p.email}">${p.name}</option>`).join("");
+    respFilter.value = current;
+  }
+
+  const total = decisionTrackingCache.length;
+  const completed = decisionTrackingCache.filter(d => computeDecisionStatus(d) === "منجز").length;
+  const overdue = decisionTrackingCache.filter(d => computeDecisionStatus(d) === "متأخر").length;
+  const rate = total ? Math.round(completed/total*100) : 0;
+  const statsGrid = document.getElementById("dtStatsGrid");
+  if(statsGrid){
+    statsGrid.innerHTML = `
+      <div class="kpi blue"><div class="kpi-label">إجمالي القرارات</div><div class="kpi-val">${total}</div></div>
+      <div class="kpi green"><div class="kpi-label">منجزة</div><div class="kpi-val">${completed}</div></div>
+      <div class="kpi red"><div class="kpi-label">متأخرة</div><div class="kpi-val">${overdue}</div></div>
+      <div class="kpi gold"><div class="kpi-label">نسبة الإنجاز</div><div class="kpi-val">${rate}%</div></div>`;
+  }
+
+  const navBadge = document.getElementById("decisionOverdueBadge");
+  if(navBadge){ navBadge.style.display = overdue > 0 ? "inline-flex" : "none"; navBadge.textContent = overdue; }
+
+  renderDecisionTrackingList();
+}
+
+function renderDecisionTrackingList(){
+  const box = document.getElementById("decisionTrackingList");
+  if(!box) return;
+  const statusFilter = document.getElementById("dt-status-filter")?.value || "";
+  const respFilterVal = document.getElementById("dt-responsible-filter")?.value || "";
+
+  const filtered = decisionTrackingCache.filter(d => {
+    const actualStatus = computeDecisionStatus(d);
+    if(statusFilter && actualStatus !== statusFilter) return false;
+    if(respFilterVal && d.responsible_email !== respFilterVal) return false;
+    return true;
+  });
+
+  if(filtered.length === 0){
+    box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">لا توجد قرارات مطابقة.</div>';
+    return;
+  }
+
+  const canManage = canManageDecisions();
+  box.innerHTML = filtered.map(d => {
+    const actualStatus = computeDecisionStatus(d);
+    const statusColors = { "لم يبدأ": ["#F1F1F1","var(--gray3)"], "قيد التنفيذ": ["#FEF3E2","var(--gold)"], "منجز": ["#E8F8EF","var(--green)"], "متأخر": ["#FBEAEA","var(--red)"] };
+    const [bg,fg] = statusColors[actualStatus] || statusColors["لم يبدأ"];
+    const meetingLabel = d._meeting ? `${d._meeting.meeting_type||"اجتماع"} — ${d._meeting.meeting_date||""}` : "—";
+    const isResponsible = currentUserProfile && d.responsible_email === currentUserProfile.email;
+
+    return `<div class="card" style="margin:0">
+      <div class="card-body">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px">
+          <div style="font-size:13px;font-weight:700;color:var(--dark);flex:1">${d.decision_text||""}</div>
+          <span style="font-size:10.5px;font-weight:800;padding:4px 10px;border-radius:20px;background:${bg};color:${fg};white-space:nowrap">${actualStatus}</span>
+        </div>
+        <div style="font-size:11px;color:var(--gray3);margin-bottom:10px">من: ${meetingLabel}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:14px;font-size:11.5px;color:var(--gray3);margin-bottom:10px">
+          <span><span class="ico-i ico-user"></span>المسؤول: ${d.responsible_email ? (decisionTrackingPeople.find(p=>p.email===d.responsible_email)?.name || d.responsible_email) : "غير محدَّد"}</span>
+          <span><span class="ico-i ico-calendar"></span>الموعد: ${d.target_date || "غير محدَّد"}</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${canManage ? `<button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer" onclick="openDecisionAssignModal(${d.id})"><span class="ico-i ico-edit"></span>تحديد المسؤول/الموعد</button>` : ""}
+          ${(canManage || isResponsible) && actualStatus !== "منجز" ? `
+            <button class="btn-xs" style="background:#FEF3E2;color:var(--gold);border:none;border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer" onclick="updateDecisionStatus(${d.id},'قيد التنفيذ')">قيد التنفيذ</button>
+            <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer" onclick="updateDecisionStatus(${d.id},'منجز')"><span class="ico-i ico-check"></span>تحديد كمنجز</button>
+          ` : ""}
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+async function openDecisionAssignModal(decisionId){
+  const d = decisionTrackingCache.find(x => x.id === decisionId);
+  if(!d) return;
+  document.getElementById("da-decision-id").value = decisionId;
+  document.getElementById("da-decision-text").textContent = d.decision_text||"";
+  document.getElementById("da-target-date").value = d.target_date||"";
+
+  const people = await getEvaluableBoardMembers();
+  const sel = document.getElementById("da-responsible");
+  sel.innerHTML = '<option value="">— اختر —</option>' + people.map(p => `<option value="${p.email}" ${p.email===d.responsible_email?'selected':''}>${p.name}</option>`).join("");
+  openM("m-decision-assign");
+}
+
+async function saveDecisionAssignment(){
+  const id = Number(document.getElementById("da-decision-id").value);
+  const responsible_email = document.getElementById("da-responsible").value || null;
+  const target_date = document.getElementById("da-target-date").value || null;
+  const { error } = await sb.from("board_decisions").update({ responsible_email, target_date }).eq("id", id);
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  closeM("m-decision-assign");
+  loadDecisionTracking();
+}
+
+async function updateDecisionStatus(id, newStatus){
+  const payload = { status: newStatus };
+  if(newStatus === "منجز") payload.completed_at = new Date().toISOString();
+  const { error } = await sb.from("board_decisions").update(payload).eq("id", id);
+  if(error){ alert("تعذّر التحديث: " + error.message); return; }
+  loadDecisionTracking();
 }
 
 async function loadPerf(){
@@ -18829,6 +19014,17 @@ async function savePerfFor(evaluated_email, manualRole){
         const participationRate = totalVotes / allDecisions.length;
         autoScores.push({ criterion: "نسبة المشاركة بالتصويت (آلي)", score: 1 + Math.min(1,participationRate)*4,
           note: `شارك بالتصويت على ${totalVotes} من ${allDecisions.length} قرارًا مطروحًا.` });
+      }
+
+      // New: real execution rate for decisions this person was assigned as responsible for —
+      // an entirely automatic input, matching the same "system decides, no human vote" rule
+      // applied to attendance and voting participation above.
+      const { data: assignedDecisions } = await sb.from("board_decisions").select("status,target_date").eq("company_id", currentCompanyId).eq("responsible_email", email);
+      if(assignedDecisions && assignedDecisions.length > 0){
+        const doneOnTime = assignedDecisions.filter(d => d.status === "منجز").length;
+        const completionRate = doneOnTime / assignedDecisions.length;
+        autoScores.push({ criterion: "نسبة إنجاز القرارات الموكلة (آلي)", score: 1 + completionRate*4,
+          note: `أنجز ${doneOnTime} من ${assignedDecisions.length} قرارًا مُوكَلًا إليه.` });
       }
     }
   }
@@ -19493,6 +19689,7 @@ async function go(id, el){
   if(id==='govassess'){ document.getElementById('govassessListView').style.display='block'; document.getElementById('govassessFormView').style.display='none'; loadGovAssessments(); }
   if(id==='consultants') loadConsultantsPage();
   if(id==='perf') loadPerf();
+  if(id==='decisiontracking') loadDecisionTracking();
   if(id==='appoint'){ loadAppointRequests(); loadReviewSection(); }
   if(id==='reports') loadReportsPage();
   if(id==='archive') loadArchive();
