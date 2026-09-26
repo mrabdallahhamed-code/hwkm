@@ -1089,21 +1089,21 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     <div class="nav-group-children" id="grp-meetingsvoting-children">
 
       <div class="nav-subgroup-header" id="grp-boardmeetings" onclick="event.stopPropagation();toggleNavGroup('boardmeetings')">
-        <span class="ico ico-chevron"></span><span class="ni-icon ico ico-calendar"></span><span class="ni-text">اجتماعات المجلس</span>
+        <span class="ico ico-chevron"></span><span class="ni-icon ico ico-calendar"></span><span class="ni-text" id="boardMeetingsGroupLabel">اجتماعات المجلس</span>
       </div>
       <div class="nav-subgroup-children" id="grp-boardmeetings-children">
         <div class="nav-item" onclick="go('meetings',this)"><span class="ni-icon ico ico-calendar"></span><span class="ni-text">جدول الاجتماعات</span></div>
-        <div class="nav-item" onclick="go('members',this)"><span class="ni-icon ico ico-users"></span><span class="ni-text">أعضاء المجلس</span></div>
+        <div class="nav-item" onclick="go('members',this)"><span class="ni-icon ico ico-users"></span><span class="ni-text" id="membersNavLabel">أعضاء المجلس</span></div>
         <div class="nav-item" onclick="go('appoint',this)"><span class="ni-icon ico ico-add"></span><span class="ni-text">طلب تعيين عضو</span></div>
         <div class="nav-item" onclick="go('indicators',this)"><span class="ni-icon ico ico-dashboard"></span><span class="ni-text">التقرير المالي والتشغيلي</span></div>
         <div class="nav-item" onclick="go('decisiontracking',this)"><span class="ni-icon ico ico-check"></span><span class="ni-text">متابعة القرارات</span><span class="ni-badge red" id="decisionOverdueBadge" style="display:none"></span></div>
       </div>
 
       <div class="nav-subgroup-header" id="grp-generalassembly" onclick="event.stopPropagation();toggleNavGroup('generalassembly')">
-        <span class="ico ico-chevron"></span><span class="ni-icon ico ico-handshake"></span><span class="ni-text">الجمعية العامة</span>
+        <span class="ico ico-chevron"></span><span class="ni-icon ico ico-handshake"></span><span class="ni-text" id="generalAssemblyGroupLabel">الجمعية العامة</span>
       </div>
       <div class="nav-subgroup-children" id="grp-generalassembly-children">
-        <div class="nav-item" onclick="go('agm',this)"><span class="ni-icon ico ico-handshake"></span><span class="ni-text">الجمعيات العامة</span></div>
+        <div class="nav-item" onclick="go('agm',this)"><span class="ni-icon ico ico-handshake"></span><span class="ni-text" id="agmNavLabel">الجمعيات العامة</span></div>
         <div class="nav-item" id="navAnnouncements" style="display:none" onclick="go('announcements',this)"><span class="ni-icon ico ico-megaphone"></span><span class="ni-text">الإعلانات (تداول)</span></div>
         <div class="nav-item" onclick="go('shareholders',this)"><span class="ni-icon ico ico-idcard"></span><span class="ni-text" id="shareholdersNavLabel">سجل المساهمين</span></div>
       </div>
@@ -1309,7 +1309,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 <!-- ══ MEMBERS ════════════════════════════ -->
 <div id="p-members" class="page content">
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
-    <span><span class="ico-i ico-users"></span>أعضاء مجلس الإدارة</span>
+    <span><span class="ico-i ico-users"></span><span id="membersPageTitle">أعضاء مجلس الإدارة</span></span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportMembers()"><span class="ico-i ico-inbox"></span>تصدير Excel</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openDisclosureForm()"><span class="ico-i ico-clipboard"></span>نموذج الإفصاح</button>
@@ -1494,7 +1494,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 
   <div id="agmAdminBlock">
     <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span><span class="ico-i ico-handshake"></span>الجمعيات العامة</span>
+      <span><span class="ico-i ico-handshake"></span><span id="agmPageTitle">الجمعيات العامة</span></span>
       <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mt-type').value='الجمعية العامة';toggleVotingDatesFields();convertingPlanItemId=null;newMeetingTopics=[];renderNewMeetingTopics();openM('m-meeting')">+ جمعية عامة جديدة</button>
     </div>
 
@@ -4042,6 +4042,16 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
         <option>مؤسسة فردية</option>
       </select>
     </div>
+    <div class="fg" id="mco-llc-fields" style="display:none;background:var(--offwhite);border-radius:8px;padding:10px 12px">
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;margin-bottom:8px">
+        <input type="checkbox" id="mco-llc-single-manager" style="width:14px;height:14px"/>
+        الشركة يديرها مدير واحد فقط (بلا مجلس مديرين)
+      </label>
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;margin:0">
+        <input type="checkbox" id="mco-llc-single-owner" style="width:14px;height:14px"/>
+        الشركة مملوكة لشخص واحد فقط (شركة الشخص الواحد)
+      </label>
+    </div>
     <div class="row2">
       <div class="fg"><label>رقم السجل التجاري</label><input class="fi" id="mco-cr-number" placeholder="مثال: 1010XXXXXX" /></div>
       <div class="fg"><label>تاريخ السجل</label><input type="date" class="fi" id="mco-cr-date"/></div>
@@ -5067,6 +5077,9 @@ async function applyRolePermissions(){
 }
 
 let currentCompanyType = null;
+let currentCompanyLLCSingleManager = false;
+const LLC_SINGLE_MANAGER_HIDDEN_PAGES = ['meetings','members','appoint','indicators','decisiontracking'];
+
 function isPageAllowed(pageId, role){
   // A per-user override always wins, before any role-based logic runs — this is what makes
   // the "add/remove access for this one person" promise actually true, not just a role tweak.
@@ -5098,6 +5111,7 @@ function isPageAllowed(pageId, role){
   if(role === 'مساهم') return SHAREHOLDER_PAGES.includes(pageId);
   if(currentCompanyType === 'مؤسسة فردية' && SOLE_PROP_HIDDEN_PAGES.includes(pageId)) return false;
   if(currentCompanyType === 'ذات مسؤولية محدودة' && LLC_HIDDEN_PAGES.includes(pageId)) return false;
+  if(currentCompanyLLCSingleManager && LLC_SINGLE_MANAGER_HIDDEN_PAGES.includes(pageId)) return false;
   if(MODULE_PAGE_MAP[pageId] && !currentCompanyModules[MODULE_PAGE_MAP[pageId]] && !isPlatformAdmin) return false;
   return true;
 }
@@ -6414,6 +6428,8 @@ function toggleShareNominalField(){
   const type = document.getElementById("mco-type").value;
   const box = document.getElementById("mco-nominal-field");
   if(box) box.style.display = (type==="مساهمة مدرجة" || type==="مساهمة غير مدرجة") ? "block" : "none";
+  const llcBox = document.getElementById("mco-llc-fields");
+  if(llcBox) llcBox.style.display = (type === "ذات مسؤولية محدودة") ? "block" : "none";
 }
 
 function resetCompanyForm(){
@@ -6430,6 +6446,8 @@ function resetCompanyForm(){
   document.getElementById("mco-capital").value = "";
   document.getElementById("mco-shares").value = "";
   document.getElementById("mco-nominal").value = "";
+  document.getElementById("mco-llc-single-manager").checked = false;
+  document.getElementById("mco-llc-single-owner").checked = false;
   toggleShareNominalField();
 }
 
@@ -6458,6 +6476,8 @@ async function openEditCompanyModal(){
   document.getElementById("mco-shares").value = c.total_shares ?? "";
   document.getElementById("mco-nominal").value = c.share_nominal_value ?? "";
   document.getElementById("mco-seal-position").value = c.seal_position || "أسفل يمين الصفحة";
+  document.getElementById("mco-llc-single-manager").checked = !!c.llc_single_manager;
+  document.getElementById("mco-llc-single-owner").checked = !!c.llc_single_owner;
   document.getElementById("mco-letterhead-current").innerHTML = c.letterhead_url ? `✅ مرفوعة حاليًا — <a href="${c.letterhead_url}" target="_blank">عرض</a> (ارفع ملف جديد لاستبدالها)` : "لم تُرفع بعد";
   document.getElementById("mco-seal-current").innerHTML = c.seal_url ? `✅ مرفوع حاليًا — <a href="${c.seal_url}" target="_blank">عرض</a> (ارفع ملف جديد لاستبداله)` : "لم يُرفع بعد";
   toggleShareNominalField();
@@ -7028,13 +7048,15 @@ async function saveCompany(){
   const total_shares = document.getElementById("mco-shares").value ? Number(document.getElementById("mco-shares").value) : null;
   const share_nominal_value = document.getElementById("mco-nominal").value ? Number(document.getElementById("mco-nominal").value) : null;
   const seal_position = document.getElementById("mco-seal-position").value;
+  const llc_single_manager = document.getElementById("mco-llc-single-manager").checked;
+  const llc_single_owner = document.getElementById("mco-llc-single-owner").checked;
 
   const letterheadInput = document.getElementById("mco-letterhead");
   const sealInput = document.getElementById("mco-seal");
   const letterhead_url = (letterheadInput.files && letterheadInput.files[0]) ? await uploadFile(letterheadInput, "company-branding") : undefined;
   const seal_url = (sealInput.files && sealInput.files[0]) ? await uploadFile(sealInput, "company-branding") : undefined;
 
-  const payload = { name, company_type, cr_number, cr_date, business_activity, company_size, responsible_person, responsible_phone, responsible_email, total_capital, total_shares, share_nominal_value, seal_position };
+  const payload = { name, company_type, cr_number, cr_date, business_activity, company_size, responsible_person, responsible_phone, responsible_email, total_capital, total_shares, share_nominal_value, seal_position, llc_single_manager, llc_single_owner };
   if(letterhead_url !== undefined) payload.letterhead_url = letterhead_url;
   if(seal_url !== undefined) payload.seal_url = seal_url;
 
@@ -7089,7 +7111,7 @@ function refreshCompanyTypeVisibility(){
 
 async function applyCompanyTypeVisibility(){
   if(!currentCompanyId) return;
-  const { data: c } = await sb.from("companies").select("company_type,module_internal_audit,module_risk_management,trial_ends_at").eq("id", currentCompanyId).single();
+  const { data: c } = await sb.from("companies").select("company_type,module_internal_audit,module_risk_management,trial_ends_at,llc_single_manager,llc_single_owner").eq("id", currentCompanyId).single();
   currentCompanyType = c ? c.company_type : null;
   const inTrial = !!(c && c.trial_ends_at && new Date(c.trial_ends_at) > new Date());
   currentCompanyTrialEndsAt = inTrial ? c.trial_ends_at : null;
@@ -7100,6 +7122,33 @@ async function applyCompanyTypeVisibility(){
   renderTrialBanner();
   const isSoleProp = currentCompanyType === "مؤسسة فردية";
   const isLLCType = currentCompanyType === "ذات مسؤولية محدودة";
+  const isLLCSingleManager = isLLCType && !!c?.llc_single_manager;
+  currentCompanyLLCSingleManager = isLLCSingleManager;
+  const isLLCSingleOwner = isLLCType && !!c?.llc_single_owner;
+
+  // "أعضاء المجلس" everywhere it appears as a page/nav label should say whichever body this
+  // company actually has (مجلس الإدارة / مجلس المديرين) — getGovernanceBodyLabel() is already
+  // the single source of truth for that name across the rest of the platform.
+  const bodyLabel = getGovernanceBodyLabel();
+  setText("membersPageTitle", `أعضاء ${bodyLabel}`);
+  setText("membersNavLabel", `أعضاء ${bodyLabel}`);
+
+  // A single-manager LLC has no one to hold a "board meeting" with — the entire اجتماعات
+  // المجلس subgroup (schedule, members, appointments, reports, decision tracking) stops being
+  // a meaningful concept for them, not just relabeled but hidden outright.
+  const boardMeetingsHeader = document.getElementById("grp-boardmeetings");
+  const boardMeetingsChildren = document.getElementById("grp-boardmeetings-children");
+  if(boardMeetingsHeader) boardMeetingsHeader.style.display = isLLCSingleManager ? "none" : "flex";
+  if(boardMeetingsChildren) boardMeetingsChildren.style.display = isLLCSingleManager && boardMeetingsChildren.classList.contains("collapsed") ? "none" : (isLLCSingleManager ? "none" : "");
+
+  // A single-owner LLC still legally holds "general assembly" powers — they just always
+  // belong to the same one person, so what would normally be assembly resolutions are simply
+  // that owner's decisions. Relabeling (not hiding) keeps the same page and data model working
+  // exactly as before; only the language changes to match reality.
+  setText("generalAssemblyGroupLabel", isLLCSingleOwner ? "قرارات المالك" : "الجمعية العامة");
+  setText("agmNavLabel", isLLCSingleOwner ? "قرارات المالك" : "الجمعيات العامة");
+  setText("agmPageTitle", isLLCSingleOwner ? "قرارات المالك" : "الجمعيات العامة");
+
   const navAnnouncements = document.getElementById("navAnnouncements");
   if(navAnnouncements) navAnnouncements.style.display = (currentCompanyType !== "مؤسسة فردية" && currentCompanyType !== "ذات مسؤولية محدودة") ? "flex" : "none";
   setText("shareholdersNavLabel", isLLCType ? "سجل الشركاء" : "سجل المساهمين");
@@ -7113,6 +7162,10 @@ async function applyCompanyTypeVisibility(){
       return;
     }
     if(isLLCType && LLC_HIDDEN_PAGES.includes(pageId)){
+      item.style.display = 'none';
+      return;
+    }
+    if(currentCompanyLLCSingleManager && LLC_SINGLE_MANAGER_HIDDEN_PAGES.includes(pageId)){
       item.style.display = 'none';
       return;
     }
