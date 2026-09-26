@@ -1647,7 +1647,8 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     <span><span class="ico-i ico-signature"></span>سجل قرارات المدير</span>
     <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openSimpleDecisionModal('manager')">+ توثيق قرار جديد</button>
   </div>
-  <p style="font-size:11px;color:var(--gray3);margin:-10px 0 16px">توثيق مباشر لقرارات المدير الواحد — بلا حاجة لاجتماع أو تصويت.</p>
+  <p style="font-size:11px;color:var(--gray3);margin:-10px 0 16px">توثيق ومتابعة قرارات المدير الواحد — بلا حاجة لاجتماع أو تصويت.</p>
+  <div class="kpi-grid" id="managerDecisionsStats" style="margin-bottom:18px"></div>
   <div id="managerDecisionsList" style="display:flex;flex-direction:column;gap:12px">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
   </div>
@@ -1671,6 +1672,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     <input type="hidden" id="sd-context" value=""/>
     <div class="fg"><label>نص القرار</label><textarea class="fta" id="sd-text" rows="4" placeholder="اكتب نص القرار بوضوح..."></textarea></div>
     <div class="fg"><label>التاريخ</label><input type="date" class="fi" id="sd-date"/></div>
+    <div class="fg" id="sd-target-date-row" style="display:none"><label>الموعد المستهدف للتنفيذ (اختياري)</label><input type="date" class="fi" id="sd-target-date"/></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-simple-decision')">إلغاء</button><button class="btn btn-gold" onclick="saveSimpleDecision()"><span class="ico-i ico-check"></span>حفظ</button></div>
   </div>
 </div>
@@ -5143,7 +5145,7 @@ let currentCompanyType = null;
 let currentCompanyLLCSingleManager = false;
 let currentCompanyLLCSingleOwner = false;
 const LLC_SINGLE_MANAGER_HIDDEN_PAGES = ['meetings','members','appoint','indicators','decisiontracking'];
-const LLC_SINGLE_OWNER_HIDDEN_PAGES = ['agm'];
+const LLC_SINGLE_OWNER_HIDDEN_PAGES = ['agm','voting'];
 
 function isPageAllowed(pageId, role){
   // A per-user override always wins, before any role-based logic runs — this is what makes
@@ -6035,7 +6037,14 @@ function applyReportTypeAdaptation(){
   const isLLC = type === "ذات مسؤولية محدودة";
 
   let pageTitle, subTitle, boardWord;
-  if(isSoleProp){ pageTitle = "📈 التقرير السنوي"; subTitle = "التقرير السنوي"; boardWord = "المالك"; }
+  if(isSoleProp || (isLLC && currentCompanyLLCSingleOwner)){
+    // A single-owner LLC is, for reporting purposes, exactly the sole-proprietorship case —
+    // one annual company report, no board-of-managers framing to keep up.
+    pageTitle = "📈 التقرير السنوي"; subTitle = "التقرير السنوي"; boardWord = "المالك";
+  }
+  else if(isLLC && currentCompanyLLCSingleManager){
+    pageTitle = "📈 تقرير المدير السنوي"; subTitle = "تقرير المدير السنوي"; boardWord = "المدير";
+  }
   else if(isLLC){ pageTitle = "📈 تقرير مجلس المديرين السنوي"; subTitle = "تقرير مجلس المديرين السنوي"; boardWord = "مجلس المديرين"; }
   else { pageTitle = "📈 تقرير مجلس الإدارة السنوي (حسب المادة 90 من لائحة حوكمة الشركات)"; subTitle = "تقرير مجلس الإدارة السنوي"; boardWord = "مجلس الإدارة"; }
 
@@ -7275,6 +7284,10 @@ async function applyCompanyTypeVisibility(){
       item.style.display = 'none';
       return;
     }
+    if(currentCompanyLLCSingleOwner && LLC_SINGLE_OWNER_HIDDEN_PAGES.includes(pageId)){
+      item.style.display = 'none';
+      return;
+    }
     const moduleKey = MODULE_PAGE_MAP[pageId];
     if(moduleKey && !currentCompanyModules[moduleKey] && !isPlatformAdmin){
       // Locked, not hidden — the whole point of a package upsell is that people can see the
@@ -8211,6 +8224,17 @@ async function computeGovernanceAlerts(){
       alerts.push({ severity: "high", text: `${overdue.length} ${overdue.length===1?'قرار مجلس متأخر':'قرارات مجلس متأخرة'} عن موعد التنفيذ المستهدف.`, page: "decisiontracking" });
     }
   } catch(e){ console.error("decision tracking alert check failed", e); }
+
+  // 6) Manager decisions (single-manager LLC) past their own target date, unfinished
+  if(currentCompanyLLCSingleManager){
+    try {
+      const { data: mgrDecisions } = await sb.from("simple_decisions").select("*").eq("company_id", currentCompanyId).eq("context","manager").not("target_date","is",null).not("status","eq","منجز");
+      const overdueMgr = (mgrDecisions||[]).filter(d => new Date(d.target_date) < new Date(new Date().toDateString()));
+      if(overdueMgr.length){
+        alerts.push({ severity: "high", text: `${overdueMgr.length} ${overdueMgr.length===1?'قرار مدير متأخر':'قرارات مدير متأخرة'} عن موعد التنفيذ المستهدف.`, page: "managerdecisions" });
+      }
+    } catch(e){ console.error("manager decision alert check failed", e); }
+  }
 
   return alerts;
 }
@@ -12106,8 +12130,18 @@ async function loadPolicies(){
 function getPolicyCategoriesForCompany(){
   const operational = ["سياسات الموارد البشرية", "السياسات المالية", "سياسة المشتريات", "سياسة المبيعات وخدمة العملاء"];
   if(currentCompanyType === "مؤسسة فردية") return [...operational, "لوائح داخلية"];
-  // ذات مسؤولية محدودة uses "المجلس"/"اللجان" as generic labels via getGovernanceBodyLabel()
-  // display-swap elsewhere, so the underlying category values stay the same for all company types.
+
+  // A single-manager/single-owner LLC has no assembly, board, or committees to write policies
+  // for — showing those categories anyway is exactly the kind of "does this platform even fit
+  // my company?" moment that makes a self-serve client walk away. Each flag strips only the
+  // category it makes meaningless, independently of the other.
+  if(currentCompanyType === "ذات مسؤولية محدودة"){
+    const cats = [];
+    if(!currentCompanyLLCSingleOwner) cats.push("سياسات الجمعية العامة");
+    if(!currentCompanyLLCSingleManager) cats.push("سياسات ولوائح المجلس", "سياسات ولوائح اللجان");
+    return [...cats, ...operational, "لوائح داخلية"];
+  }
+
   return ["سياسات الجمعية العامة", "سياسات ولوائح المجلس", "سياسات ولوائح اللجان", ...operational, "لوائح داخلية"];
 }
 
@@ -18882,7 +18916,26 @@ let simpleDecisionsCache = { manager: [], owner: [] };
 async function loadSimpleDecisions(context){
   const { data } = await sb.from("simple_decisions").select("*").eq("company_id", currentCompanyId).eq("context", context).order("decision_date",{ascending:false});
   simpleDecisionsCache[context] = data || [];
+  if(context === "manager"){
+    const list = simpleDecisionsCache.manager;
+    const statsBox = document.getElementById("managerDecisionsStats");
+    if(statsBox){
+      const total = list.length;
+      const done = list.filter(d => computeSimpleDecisionStatus(d) === "منجز").length;
+      const overdue = list.filter(d => computeSimpleDecisionStatus(d) === "متأخر").length;
+      statsBox.innerHTML = `
+        <div class="kpi blue"><div class="kpi-label">إجمالي القرارات</div><div class="kpi-val">${total}</div></div>
+        <div class="kpi green"><div class="kpi-label">منجزة</div><div class="kpi-val">${done}</div></div>
+        <div class="kpi red"><div class="kpi-label">متأخرة</div><div class="kpi-val">${overdue}</div></div>`;
+    }
+  }
   renderSimpleDecisionsList(context);
+}
+
+function computeSimpleDecisionStatus(d){
+  if(d.status === "منجز") return "منجز";
+  if(d.target_date && new Date(d.target_date) < new Date(new Date().toDateString())) return "متأخر";
+  return d.status || "لم يبدأ";
 }
 
 function renderSimpleDecisionsList(context){
@@ -18891,24 +18944,46 @@ function renderSimpleDecisionsList(context){
   const list = simpleDecisionsCache[context];
   if(!list.length){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">لا توجد قرارات موثَّقة بعد.</div>'; return; }
 
-  box.innerHTML = list.map(d => `<div class="card" style="margin:0">
+  const statusColors = { "لم يبدأ": ["#F1F1F1","var(--gray3)"], "قيد التنفيذ": ["#FEF3E2","var(--gold)"], "منجز": ["#E8F8EF","var(--green)"], "متأخر": ["#FBEAEA","var(--red)"] };
+
+  box.innerHTML = list.map(d => {
+    const showTracking = context === "manager";
+    const actualStatus = showTracking ? computeSimpleDecisionStatus(d) : null;
+    const [bg,fg] = actualStatus ? (statusColors[actualStatus]||statusColors["لم يبدأ"]) : [null,null];
+    return `<div class="card" style="margin:0">
     <div class="card-body">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px">
         <div style="font-size:13px;font-weight:700;color:var(--dark);flex:1">${d.decision_text}</div>
-        ${d.signed_at ? '<span class="badge done"><span class="ico-i ico-check"></span>موقَّع</span>' : '<span class="badge pending">غير موقَّع</span>'}
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          ${showTracking ? `<span style="font-size:10.5px;font-weight:800;padding:4px 10px;border-radius:20px;background:${bg};color:${fg};white-space:nowrap">${actualStatus}</span>` : ""}
+          ${d.signed_at ? '<span class="badge done"><span class="ico-i ico-check"></span>موقَّع</span>' : '<span class="badge pending">غير موقَّع</span>'}
+        </div>
       </div>
-      <div style="font-size:11px;color:var(--gray3);margin-bottom:${d.signed_at?'0':'10px'}">التاريخ: ${d.decision_date}</div>
+      <div style="font-size:11px;color:var(--gray3);margin-bottom:8px">التاريخ: ${d.decision_date}${showTracking && d.target_date ? ` · الموعد المستهدف: ${d.target_date}` : ""}</div>
       ${d.signed_at ? `<div style="font-size:11px;color:var(--gray3);margin-top:4px">وقّعه: ${d.signed_by_name||''} — ${new Date(d.signed_at).toLocaleDateString('ar-SA')}</div>
         ${d.signature_image ? `<img src="${d.signature_image}" style="height:44px;margin-top:6px;border-top:1px solid var(--gray1);padding-top:6px"/>` : ''}`
         : `<button class="btn-xs gold" onclick="openSimpleDecisionSignModal(${d.id})"><span class="ico-i ico-signature"></span>توقيع القرار</button>`}
+      ${showTracking && actualStatus !== "منجز" ? `<div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn-xs" style="background:#FEF3E2;color:var(--gold);border:none;border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer" onclick="updateSimpleDecisionStatus(${d.id},'قيد التنفيذ')">قيد التنفيذ</button>
+          <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer" onclick="updateSimpleDecisionStatus(${d.id},'منجز')"><span class="ico-i ico-check"></span>تحديد كمنجز</button>
+        </div>` : ""}
     </div>
-  </div>`).join("");
+  </div>`;
+  }).join("");
+}
+
+async function updateSimpleDecisionStatus(id, newStatus){
+  const { error } = await sb.from("simple_decisions").update({ status: newStatus }).eq("id", id);
+  if(error){ alert("تعذّر التحديث: " + error.message); return; }
+  loadSimpleDecisions("manager");
 }
 
 function openSimpleDecisionModal(context){
   document.getElementById("sd-context").value = context;
   document.getElementById("sd-text").value = "";
   document.getElementById("sd-date").value = new Date().toISOString().slice(0,10);
+  document.getElementById("sd-target-date").value = "";
+  document.getElementById("sd-target-date-row").style.display = context === "manager" ? "block" : "none";
   document.getElementById("sd-title").innerHTML = `<span class="ico-i ico-signature"></span>توثيق قرار ${context==='manager'?'مدير':'مالك'} جديد`;
   openM("m-simple-decision");
 }
@@ -18917,8 +18992,11 @@ async function saveSimpleDecision(){
   const context = document.getElementById("sd-context").value;
   const decision_text = document.getElementById("sd-text").value.trim();
   const decision_date = document.getElementById("sd-date").value;
+  const target_date = context === "manager" ? (document.getElementById("sd-target-date").value || null) : null;
   if(!decision_text){ alert("الرجاء كتابة نص القرار"); return; }
-  const { error } = await sb.from("simple_decisions").insert([{ company_id: currentCompanyId, context, decision_text, decision_date }]);
+  const payload = { company_id: currentCompanyId, context, decision_text, decision_date };
+  if(context === "manager"){ payload.target_date = target_date; payload.status = "لم يبدأ"; }
+  const { error } = await sb.from("simple_decisions").insert([payload]);
   if(error){ alert("تعذّر الحفظ: " + error.message); return; }
   closeM("m-simple-decision");
   loadSimpleDecisions(context);
@@ -19116,15 +19194,16 @@ async function loadPerf(){
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
 
-  // Sole proprietorships have no board at all — only the executive section applies, and its
-  // heading needn't say "مجلس" for a structure that has none. Everyone else gets the
-  // company-appropriate body name (مجلس الإدارة / مجلس المديرين) instead of a hardcoded label.
+  // Sole proprietorships and single-manager LLCs have no board at all — only the executive
+  // section applies, and its heading needn't say "مجلس" for a structure that has none.
+  // Everyone else gets the company-appropriate body name instead of a hardcoded label.
   const isSoleProp = currentCompanyType === "مؤسسة فردية";
+  const hideBoardEval = isSoleProp || currentCompanyLLCSingleManager;
   const manualBtn = document.getElementById("btnManualPerfAdd");
   if(manualBtn) manualBtn.style.display = canManage ? "inline-block" : "none";
   const boardSectionTitle = document.getElementById("perfBoardSectionTitle");
   const boardSection = document.getElementById("perfBoardSection");
-  if(boardSection) boardSection.style.display = isSoleProp ? "none" : "block";
+  if(boardSection) boardSection.style.display = hideBoardEval ? "none" : "block";
   if(boardSectionTitle) boardSectionTitle.textContent = `تقييمات ${getGovernanceBodyLabel()}`;
 
   const latestEvalFor = (email) => (perfCache).find(e => e.evaluated_email === email);
