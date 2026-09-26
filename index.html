@@ -3719,6 +3719,16 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
       <input type="checkbox" id="apc-trial" style="width:16px;height:16px" checked onchange="document.getElementById('apc-trial-days-row').style.display=this.checked?'flex':'none'" />
       <label for="apc-trial" style="margin:0;font-size:12px;font-weight:700;cursor:pointer"><span class="ico-i ico-package"></span>منح فترة تجربة مجانية (كل الوحدات مفتوحة مؤقتًا)</label>
     </div>
+    <div class="fg" id="apc-llc-fields" style="display:none;background:var(--offwhite);border-radius:8px;padding:10px 12px">
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;margin-bottom:8px">
+        <input type="checkbox" id="apc-llc-single-manager" style="width:14px;height:14px"/>
+        الشركة يديرها مدير واحد فقط (بلا مجلس مديرين)
+      </label>
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;margin:0">
+        <input type="checkbox" id="apc-llc-single-owner" style="width:14px;height:14px"/>
+        الشركة مملوكة لشخص واحد فقط (شركة الشخص الواحد)
+      </label>
+    </div>
     <div class="fg" id="apc-trial-days-row" style="display:flex;align-items:center;gap:8px">
       <label style="margin:0;font-size:12px;white-space:nowrap">عدد أيام التجربة:</label>
       <input type="number" class="fi" id="apc-trial-days" value="14" style="margin:0" />
@@ -6520,10 +6530,20 @@ async function loadCompanyRequestPage(){
     ${rejectedNotice}
     <div class="fg"><label>اسم الشركة</label><input class="fi" id="cr-name" placeholder="مثال: شركة النخبة القابضة"/></div>
     <div class="fg"><label>نوع الشركة</label>
-      <select class="fs" id="cr-type">
+      <select class="fs" id="cr-type" onchange="toggleCrLLCFields()">
         <option>مساهمة مدرجة</option><option>مساهمة غير مدرجة</option>
         <option>ذات مسؤولية محدودة</option><option>مؤسسة فردية</option>
       </select>
+    </div>
+    <div class="fg" id="cr-llc-fields" style="display:none;background:var(--offwhite);border-radius:8px;padding:10px 12px">
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;margin-bottom:8px">
+        <input type="checkbox" id="cr-llc-single-manager" style="width:14px;height:14px"/>
+        الشركة يديرها مدير واحد فقط (بلا مجلس مديرين)
+      </label>
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;margin:0">
+        <input type="checkbox" id="cr-llc-single-owner" style="width:14px;height:14px"/>
+        الشركة مملوكة لشخص واحد فقط (شركة الشخص الواحد)
+      </label>
     </div>
     <div class="row2">
       <div class="fg"><label>رقم السجل التجاري</label><input class="fi" id="cr-cr-number"/></div>
@@ -6553,6 +6573,11 @@ async function loadCompanyRequestPage(){
    A company_requests row is still logged (status "تجربة تلقائية") purely for visibility — the
    platform-owner dashboard's trial list and conversion-rate stat already read from real
    companies.trial_ends_at, so nothing else downstream needs to change to pick this up. */
+function toggleCrLLCFields(){
+  const box = document.getElementById("cr-llc-fields");
+  if(box) box.style.display = document.getElementById("cr-type").value === "ذات مسؤولية محدودة" ? "block" : "none";
+}
+
 async function startInstantTrial(){
   const company_name = document.getElementById("cr-name").value.trim();
   if(!company_name){ alert("الرجاء إدخال اسم الشركة"); return; }
@@ -6562,6 +6587,8 @@ async function startInstantTrial(){
   const responsible_person = document.getElementById("cr-resp-name").value.trim();
   const responsible_phone = document.getElementById("cr-resp-phone").value.trim();
   const responsible_email = document.getElementById("cr-resp-email").value.trim();
+  const llc_single_manager = document.getElementById("cr-llc-single-manager").checked;
+  const llc_single_owner = document.getElementById("cr-llc-single-owner").checked;
 
   const btn = event.target.closest("button");
   if(btn){ btn.disabled = true; btn.innerHTML = '<span class="ico-i ico-refresh"></span>جارِ إنشاء شركتك...'; }
@@ -6573,7 +6600,8 @@ async function startInstantTrial(){
   const { data: newCompany, error: cErr } = await sb.from("companies").insert([{
     name: company_name, company_type, cr_number, cr_date,
     responsible_person, responsible_phone, responsible_email,
-    module_internal_audit: true, module_risk_management: true, trial_ends_at
+    module_internal_audit: true, module_risk_management: true, trial_ends_at,
+    llc_single_manager, llc_single_owner
   }]).select().single();
   if(cErr){ alert("تعذّر إنشاء الشركة: " + cErr.message); if(btn){ btn.disabled=false; btn.innerHTML='<span class="ico-i ico-bolt"></span>ابدأ تجربتك المجانية الآن (14 يوم، فورًا)'; } return; }
 
@@ -6927,7 +6955,7 @@ async function loadCompanyRequestsReview(){
   }
 }
 
-function openApproveCompanyModal(requestId){
+async function openApproveCompanyModal(requestId){
   document.getElementById("apc-request-id").value = requestId;
   document.getElementById("apc-audit").checked = false;
   document.getElementById("apc-risk").checked = false;
@@ -6935,6 +6963,13 @@ function openApproveCompanyModal(requestId){
   document.getElementById("apc-trial").checked = true;
   document.getElementById("apc-trial-days").value = "14";
   document.getElementById("apc-trial-days-row").style.display = "flex";
+  document.getElementById("apc-llc-single-manager").checked = false;
+  document.getElementById("apc-llc-single-owner").checked = false;
+
+  const { data: req } = await sb.from("company_requests").select("company_type").eq("id", requestId).maybeSingle();
+  const llcBox = document.getElementById("apc-llc-fields");
+  if(llcBox) llcBox.style.display = (req?.company_type === "ذات مسؤولية محدودة") ? "block" : "none";
+
   openM("m-approve-company");
 }
 
@@ -6969,10 +7004,13 @@ async function approveCompanyRequest(requestId){
     return;
   }
 
+  const llc_single_manager = document.getElementById("apc-llc-single-manager").checked;
+  const llc_single_owner = document.getElementById("apc-llc-single-owner").checked;
   const { data: newCompany, error: cErr } = await sb.from("companies").insert([{
     name: r.company_name, company_type: r.company_type, cr_number: r.cr_number, cr_date: r.cr_date,
     responsible_person: r.responsible_person, responsible_phone: r.responsible_phone, responsible_email: r.responsible_email,
     module_internal_audit, module_risk_management, trial_ends_at,
+    llc_single_manager, llc_single_owner,
     converted_to_paid_at: (payment_confirmed && !isTrial) ? new Date().toISOString() : null
   }]).select().single();
   if(cErr){ alert("تعذّر إنشاء الشركة: " + cErr.message); return; }
