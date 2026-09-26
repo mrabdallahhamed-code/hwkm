@@ -1749,7 +1749,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportPoliciesList()"><span class="ico-i ico-inbox"></span>تصدير Excel</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openPolicyDeadlineSettingsModal()">⏳ مهلة كل مرحلة</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openPolicyWorkflowPicker()"><span class="ico-i ico-settings"></span>إعداد تسلسلات التوقيع</button>
-      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mp-id').value='';document.getElementById('mp-title-h').textContent='🏛️ إضافة سياسة جديدة';document.getElementById('mp-name').value='';document.getElementById('mp-type').value='';document.getElementById('mp-submission').value=new Date().toISOString().slice(0,10);document.getElementById('mp-target-approval').value='';document.getElementById('mp-approval-wrap').style.display='none';document.getElementById('mp-approval').value='';document.getElementById('mp-review').value='';document.getElementById('mp-approval-level').value='مجلس الإدارة';populatePolicyCategorySelect();openM('m-policy')">+ إضافة سياسة</button>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mp-id').value='';document.getElementById('mp-title-h').textContent='🏛️ إضافة سياسة جديدة';document.getElementById('mp-name').value='';document.getElementById('mp-type').value='';document.getElementById('mp-submission').value=new Date().toISOString().slice(0,10);document.getElementById('mp-target-approval').value='';document.getElementById('mp-approval-wrap').style.display='none';document.getElementById('mp-approval').value='';document.getElementById('mp-review').value='';populateApprovalLevelSelect('مجلس الإدارة');populatePolicyCategorySelect();openM('m-policy')">+ إضافة سياسة</button>
     </div>
   </div>
   <div style="background:linear-gradient(135deg,var(--primary),var(--primary2));border-radius:14px;padding:16px 18px;margin-bottom:18px;box-shadow:0 6px 20px rgba(15,33,56,0.18)">
@@ -6056,65 +6056,51 @@ function applyReportTypeAdaptation(){
   const type = currentCompanyType;
   const isSoleProp = type === "مؤسسة فردية";
   const isLLC = type === "ذات مسؤولية محدودة";
+  const isLLCSingleManager = isLLC && currentCompanyLLCSingleManager;
+  const isLLCSingleOwner = isLLC && currentCompanyLLCSingleOwner;
+  const noBoard = isSoleProp || isLLCSingleManager || isLLCSingleOwner; // no board / council of managers to report on at all
 
   let pageTitle, subTitle, boardWord;
-  if(isSoleProp || (isLLC && currentCompanyLLCSingleOwner)){
+  if(isSoleProp || isLLCSingleOwner){
     // A single-owner LLC is, for reporting purposes, exactly the sole-proprietorship case —
     // one annual company report, no board-of-managers framing to keep up.
     pageTitle = "📈 التقرير السنوي"; subTitle = "التقرير السنوي"; boardWord = "المالك";
   }
-  else if(isLLC && currentCompanyLLCSingleManager){
-    pageTitle = "📈 تقرير المدير السنوي"; subTitle = "تقرير المدير السنوي"; boardWord = "المدير";
-  }
+  else if(isLLCSingleManager){ pageTitle = "📈 تقرير المدير السنوي"; subTitle = "تقرير المدير السنوي"; boardWord = "المدير"; }
   else if(isLLC){ pageTitle = "📈 تقرير مجلس المديرين السنوي"; subTitle = "تقرير مجلس المديرين السنوي"; boardWord = "مجلس المديرين"; }
   else { pageTitle = "📈 تقرير مجلس الإدارة السنوي (حسب المادة 90 من لائحة حوكمة الشركات)"; subTitle = "تقرير مجلس الإدارة السنوي"; boardWord = "مجلس الإدارة"; }
 
   setText("reportsPageTitle", pageTitle);
   setText("reportSubTitle", subTitle);
 
-  // Single-owner LLC: the whole 15-item CMA-style template assumes a board that doesn't exist
-  // here. Hide what genuinely has no equivalent (board composition, other directorships,
-  // committees, the now-redundant related-party item), relabel what does apply once stripped
-  // of board-specific language, and let the existing renumbering pass close the gaps.
-  ["sec-board-composition","sec-other-directorships","sec-committees","sec-related-party"].forEach(id => {
+  // CMA-specific sections — never applicable outside joint-stock companies (unchanged from
+  // before). Board/council-specific sections — hidden wherever there is genuinely no such body
+  // (sole prop, single-manager LLC, single-owner LLC), not just for sole proprietorships alone.
+  ["sec-compliance", "sec-share-registry"].forEach(id => {
     const el = document.getElementById(id);
-    if(el) el.style.display = (isLLC && currentCompanyLLCSingleOwner) ? "none" : "";
+    if(el) el.style.display = (isSoleProp || isLLC) ? "none" : "";
   });
-  if(isLLC && currentCompanyLLCSingleOwner){
+  ["sec-board-composition", "sec-other-directorships", "sec-committees", "sec-related-party"].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.style.display = noBoard ? "none" : "";
+  });
+  // Internal control and declarations always stay VISIBLE (never hidden) — every entity, board
+  // or not, still has internal controls worth reporting on and still makes a formal declaration;
+  // only the wording of who is making it changes below.
+
+  if(noBoard){
     setText("rep-title-1", "أولاً: تأسيس الشركة");
     setText("rep-title-5", "أولاً: مكافآت الإدارة التنفيذية");
     setText("rep-title-7", "أولاً: نتائج المراجعة السنوية للرقابة الداخلية");
     setText("rep-title-11", "أولاً: الأعمال والعقود مع أطراف ذات علاقة");
-    setText("rep-title-15", "أولاً: إقرارات المالك");
+    setText("rep-title-15", `أولاً: إقرارات ${boardWord}`);
   } else {
     setText("rep-title-1", "أولاً: ما طُبّق من أحكام لائحة حوكمة الشركات وما لم يُطبّق وأسبابه");
-    setText("rep-title-5", "أولاً: مكافآت أعضاء مجلس الإدارة والإدارة التنفيذية");
+    setText("rep-title-5", `أولاً: مكافآت أعضاء ${boardWord} والإدارة التنفيذية`);
     setText("rep-title-7", "أولاً: نتائج المراجعة السنوية للرقابة الداخلية ورأي لجنة المراجعة");
     setText("rep-title-11", "أولاً: القروض على الشركة");
-    setText("rep-title-15", "أولاً: إقرارات مجلس الإدارة");
+    setText("rep-title-15", `أولاً: إقرارات ${boardWord}`);
   }
-  renumberVisibleReportSections();
-
-  // Sections that only make sense with a real board and/or CMA-regulated shareholder registry —
-  // hidden entirely for sole proprietorships (no board at all), and the CMA-specific compliance
-  // + share-registry sections hidden for anything that isn't a joint-stock company.
-  const hideForNonJointStock = ["sec-compliance", "sec-share-registry"];
-  const hideForSoleProp = ["sec-board-composition", "sec-other-directorships", "sec-committees", "sec-internal-control", "sec-declarations"];
-
-  hideForNonJointStock.forEach(id => {
-    const el = document.getElementById(id);
-    if(el) el.style.display = (isSoleProp || isLLC) ? "none" : "";
-  });
-  hideForSoleProp.forEach(id => {
-    const el = document.getElementById(id);
-    if(el) el.style.display = isSoleProp ? "none" : "";
-  });
-
-  // Re-word section titles that mention "مجلس الإدارة" specifically, for LLCs / sole props.
-  const remunerationTitle = isSoleProp ? "خامساً: مكافأة المالك والإدارة التنفيذية" : `خامساً: مكافآت أعضاء ${boardWord} والإدارة التنفيذية`;
-  const relabel = { "rep-title-2": `ثانياً: تكوين ${boardWord} وتصنيف الأعضاء`, "rep-title-5": remunerationTitle, "rep-title-12": "ثاني عشر: طلبات الشركة لسجل المساهمين", "rep-title-13": `ثالث عشر: الأعمال والعقود مع أطراف ذات علاقة بـ${isSoleProp?"المالك":"أعضاء "+boardWord}`, "rep-title-15": `خامس عشر: إقرارات ${boardWord}` };
-  Object.entries(relabel).forEach(([id, text]) => setText(id, text));
-
   renumberVisibleReportSections();
 }
 
@@ -12497,6 +12483,35 @@ function populatePolicyCategorySelect(selected){
   }
 }
 
+// Same principle as the category list: a company with no board and no general assembly has
+// nothing for "تحتاج اعتماد مجلس الإدارة" / "تحتاج اعتماد الجمعية العامة" to actually mean —
+// offering them anyway invites picking an approval level that maps to nobody real.
+function getApprovalLevelsForCompany(){
+  const noBoard = currentCompanyType === "مؤسسة فردية" || currentCompanyLLCSingleManager || currentCompanyLLCSingleOwner;
+  if(noBoard){
+    const approverWord = (currentCompanyType === "مؤسسة فردية" || currentCompanyLLCSingleOwner) ? "المالك" : "المدير";
+    return [
+      { value: "داخلية", label: "داخلية — الحوكمة والرئيس التنفيذي فقط" },
+      { value: "مجلس الإدارة", label: `تحتاج اعتماد ${approverWord}` },
+    ];
+  }
+  return [
+    { value: "داخلية", label: "داخلية — الحوكمة والرئيس التنفيذي فقط" },
+    { value: "مجلس الإدارة", label: `تحتاج اعتماد ${getGovernanceBodyLabel()}` },
+    { value: "جمعية عامة", label: "تحتاج اعتماد الجمعية العامة" },
+  ];
+}
+
+function populateApprovalLevelSelect(selected){
+  const sel = document.getElementById("mp-approval-level");
+  if(!sel) return;
+  const levels = getApprovalLevelsForCompany();
+  sel.innerHTML = levels.map(l => `<option value="${l.value}" ${l.value===selected?"selected":""}>${l.label}</option>`).join("");
+  if(selected && !levels.some(l=>l.value===selected)){
+    sel.insertAdjacentHTML("beforeend", `<option value="${selected}" selected>${selected}</option>`);
+  }
+}
+
 function editPolicy(id){
   const p = policiesCache.find(x => x.id === id);
   if(!p) return;
@@ -12516,7 +12531,7 @@ function editPolicy(id){
   document.getElementById("mp-review").value = p.review_date || "";
   document.getElementById("mp-status").value = p.status || "مسودة";
   populatePolicyCategorySelect(p.category || "لوائح داخلية");
-  document.getElementById("mp-approval-level").value = p.approval_level || "مجلس الإدارة";
+  populateApprovalLevelSelect(p.approval_level || "مجلس الإدارة");
   openM("m-policy");
 }
 
@@ -15196,11 +15211,17 @@ async function uploadBlobToStorage(blob, folder, filename){
    proprietorship (single owner, no board at all) or an LLC (managers' board, not "الإدارة"). */
 function getGovernanceBodyLabel(){
   if(currentCompanyType === "مؤسسة فردية") return "المالك";
-  if(currentCompanyType === "ذات مسؤولية محدودة") return "مجلس المديرين";
+  if(currentCompanyType === "ذات مسؤولية محدودة"){
+    if(currentCompanyLLCSingleOwner) return "المالك";
+    if(currentCompanyLLCSingleManager) return "المدير";
+    return "مجلس المديرين";
+  }
   return "مجلس الإدارة";
 }
 function getGovernanceMemberLabel(){
-  return currentCompanyType === "مؤسسة فردية" ? "المالك" : `أعضاء ${getGovernanceBodyLabel()}`;
+  if(currentCompanyType === "مؤسسة فردية" || currentCompanyLLCSingleOwner) return "المالك";
+  if(currentCompanyLLCSingleManager) return "المدير";
+  return `أعضاء ${getGovernanceBodyLabel()}`;
 }
 // Swaps the literal "مجلس الإدارة" substring for the company-appropriate label wherever a
 // stage name or generated sentence is actually DISPLAYED — internal comparisons/status values
@@ -17581,11 +17602,12 @@ function maturityColor(score){
 // that was never expected to exist in the first place).
 async function getGovAssessApplicableAxes(){
   const isSoleProp = currentCompanyType === "مؤسسة فردية";
+  const noBoard = isSoleProp || currentCompanyLLCSingleManager || currentCompanyLLCSingleOwner;
   const { data: committees } = await sb.from("committees").select("id").eq("company_id", currentCompanyId).limit(1);
   const hasCommittees = !!(committees && committees.length);
   return GOVERNANCE_AXES.filter(axis => {
-    if(isSoleProp && axis.key === "axis_board") return false;
-    if(isSoleProp && axis.key === "axis_committees") return false;
+    if(noBoard && axis.key === "axis_board") return false;
+    if(noBoard && axis.key === "axis_committees") return false;
     if(!hasCommittees && axis.key === "axis_committees") return false;
     return true;
   }).map(axis => ({ ...axis, title: displayStageLabel(axis.title) }));
