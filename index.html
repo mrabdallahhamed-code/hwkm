@@ -2175,7 +2175,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
           </div>
 
           <div id="sec-compliance">
-            <div class="rep-sec-title">أولاً: ما طُبّق من أحكام لائحة حوكمة الشركات وما لم يُطبّق وأسبابه</div>
+            <div class="rep-sec-title" id="rep-title-1">أولاً: ما طُبّق من أحكام لائحة حوكمة الشركات وما لم يُطبّق وأسبابه</div>
             <div id="field-compliance_statement"></div>
           </div>
 
@@ -2201,7 +2201,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
           <div id="field-penalties"></div>
 
           <div id="sec-internal-control">
-            <div class="rep-sec-title">سابعاً: نتائج المراجعة السنوية للرقابة الداخلية ورأي لجنة المراجعة</div>
+            <div class="rep-sec-title" id="rep-title-7">سابعاً: نتائج المراجعة السنوية للرقابة الداخلية ورأي لجنة المراجعة</div>
             <div id="field-internal_control"></div>
           </div>
 
@@ -2215,16 +2215,20 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
           <div class="rep-sec-title">عاشراً: الشركات التابعة</div>
           <div id="field-subsidiaries"></div>
 
-          <div class="rep-sec-title">حادي عشر: القروض على الشركة</div>
-          <div id="field-loans"></div>
+          <div id="sec-loans">
+            <div class="rep-sec-title" id="rep-title-11">حادي عشر: القروض على الشركة</div>
+            <div id="field-loans"></div>
+          </div>
 
           <div id="sec-share-registry">
             <div class="rep-sec-title" id="rep-title-12">ثاني عشر: طلبات الشركة لسجل المساهمين</div>
             <div id="field-share_registry_requests"></div>
           </div>
 
-          <div class="rep-sec-title" id="rep-title-13">ثالث عشر: الأعمال والعقود مع أطراف ذات علاقة بأعضاء المجلس</div>
-          <div id="field-related_party_contracts"></div>
+          <div id="sec-related-party">
+            <div class="rep-sec-title" id="rep-title-13">ثالث عشر: الأعمال والعقود مع أطراف ذات علاقة بأعضاء المجلس</div>
+            <div id="field-related_party_contracts"></div>
+          </div>
 
           <div class="rep-sec-title">رابع عشر: توزيعات الأرباح</div>
           <div id="field-dividends"></div>
@@ -6003,8 +6007,25 @@ const REPORT_MANUAL_FIELDS = [
   { key:'declarations', placeholder:'إقرارات مجلس الإدارة...', default:'يقر مجلس الإدارة بأن سجلات الحسابات أُعدت بالشكل الصحيح، وأن نظام الرقابة الداخلية أُعد على أسس سليمة ونُفذ بفاعلية، وأنه لا يوجد أي شك يُذكر في قدرة الشركة على مواصلة نشاطها.' }
 ];
 
+// For a single-owner LLC there is no board — a few fields' placeholder/default text hard-codes
+// "مجلس الإدارة" language that would otherwise get saved verbatim into the report unedited
+// (declarations especially: its default is a full sentence someone could submit as-is,
+// literally attributing a declaration to a board that doesn't exist).
+function getReportFieldTextForEntity(f){
+  if(currentCompanyType === "ذات مسؤولية محدودة" && currentCompanyLLCSingleOwner){
+    const overrides = {
+      remuneration: { placeholder: 'إفصاح عن مكافآت الإدارة التنفيذية، وسياسة تحديدها...' },
+      internal_control: { placeholder: 'نتائج المراجعة السنوية لفعالية إجراءات الرقابة الداخلية...' },
+      declarations: { placeholder: 'إقرارات المالك...', default: 'يقر المالك بأن سجلات الحسابات أُعدت بالشكل الصحيح، وأن نظام الرقابة الداخلية أُعد على أسس سليمة ونُفذ بفاعلية، وأنه لا يوجد أي شك يُذكر في قدرة الشركة على مواصلة نشاطها.' },
+    };
+    if(overrides[f.key]) return { ...f, ...overrides[f.key] };
+  }
+  return f;
+}
+
 function renderReportManualFields(year, savedValues){
-  REPORT_MANUAL_FIELDS.forEach(f => {
+  REPORT_MANUAL_FIELDS.forEach(f0 => {
+    const f = getReportFieldTextForEntity(f0);
     const box = document.getElementById("field-"+f.key);
     if(!box) return;
     const val = savedValues[f.key] != null ? savedValues[f.key] : (f.default || "");
@@ -6050,6 +6071,29 @@ function applyReportTypeAdaptation(){
 
   setText("reportsPageTitle", pageTitle);
   setText("reportSubTitle", subTitle);
+
+  // Single-owner LLC: the whole 15-item CMA-style template assumes a board that doesn't exist
+  // here. Hide what genuinely has no equivalent (board composition, other directorships,
+  // committees, the now-redundant related-party item), relabel what does apply once stripped
+  // of board-specific language, and let the existing renumbering pass close the gaps.
+  ["sec-board-composition","sec-other-directorships","sec-committees","sec-related-party"].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.style.display = (isLLC && currentCompanyLLCSingleOwner) ? "none" : "";
+  });
+  if(isLLC && currentCompanyLLCSingleOwner){
+    setText("rep-title-1", "أولاً: تأسيس الشركة");
+    setText("rep-title-5", "أولاً: مكافآت الإدارة التنفيذية");
+    setText("rep-title-7", "أولاً: نتائج المراجعة السنوية للرقابة الداخلية");
+    setText("rep-title-11", "أولاً: الأعمال والعقود مع أطراف ذات علاقة");
+    setText("rep-title-15", "أولاً: إقرارات المالك");
+  } else {
+    setText("rep-title-1", "أولاً: ما طُبّق من أحكام لائحة حوكمة الشركات وما لم يُطبّق وأسبابه");
+    setText("rep-title-5", "أولاً: مكافآت أعضاء مجلس الإدارة والإدارة التنفيذية");
+    setText("rep-title-7", "أولاً: نتائج المراجعة السنوية للرقابة الداخلية ورأي لجنة المراجعة");
+    setText("rep-title-11", "أولاً: القروض على الشركة");
+    setText("rep-title-15", "أولاً: إقرارات مجلس الإدارة");
+  }
+  renumberVisibleReportSections();
 
   // Sections that only make sense with a real board and/or CMA-regulated shareholder registry —
   // hidden entirely for sole proprietorships (no board at all), and the CMA-specific compliance
@@ -7266,8 +7310,9 @@ async function applyCompanyTypeVisibility(){
 
   const navAnnouncements = document.getElementById("navAnnouncements");
   if(navAnnouncements) navAnnouncements.style.display = (currentCompanyType !== "مؤسسة فردية" && currentCompanyType !== "ذات مسؤولية محدودة") ? "flex" : "none";
-  setText("shareholdersNavLabel", isLLCType ? "سجل الشركاء" : "سجل المساهمين");
-  setText("shareholdersPageTitle", isLLCType ? "📇 سجل الشركاء" : "📇 سجل المساهمين");
+  const shareholdersLabel = currentCompanyLLCSingleOwner ? "سجل الملكية" : (isLLCType ? "سجل الشركاء" : "سجل المساهمين");
+  setText("shareholdersNavLabel", shareholdersLabel);
+  setText("shareholdersPageTitle", `📇 ${shareholdersLabel}`);
   const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
   document.querySelectorAll('.nav-item').forEach(item => {
     const pageId = item.getAttribute('onclick')?.match(/go\('([a-z]+)'/)?.[1];
@@ -12280,7 +12325,8 @@ async function loadPolicyReviewSection(){
   const box = document.getElementById("policyReviewBody");
   if(!box || !card) return;
   const role = getCurrentRole();
-  if(role === 'مساهم'){ card.style.display = "none"; return; }
+  const hasNoBoard = currentCompanyType === "مؤسسة فردية" || currentCompanyLLCSingleManager || currentCompanyLLCSingleOwner;
+  if(role === 'مساهم' || hasNoBoard){ card.style.display = "none"; return; }
   card.style.display = "block";
   const bodyLabel = getGovernanceBodyLabel();
   setText("policyReviewTitle", `سياسات تتطلب اعتماد المجلس`);
@@ -16500,8 +16546,9 @@ function normalizeImportedDate(raw){
 }
 
 async function generateBaseStructure(){
-  const { data: company } = await sb.from("companies").select("company_type").eq("id", currentCompanyId).single();
+  const { data: company } = await sb.from("companies").select("company_type,llc_single_manager,llc_single_owner").eq("id", currentCompanyId).single();
   const type = company ? company.company_type : "مساهمة غير مدرجة";
+  const isLLCSingleOwner = type === "ذات مسؤولية محدودة" && !!company?.llc_single_owner;
 
   let rows = [];
   if(type === "مؤسسة فردية"){
@@ -16513,6 +16560,19 @@ async function generateBaseStructure(){
       { position_title: "إدارة الموارد البشرية", parent_position: "المدير العام / التنفيذي", level: 5, is_body: false, is_leadership: true },
       { position_title: "إدارة التشغيل", parent_position: "المدير العام / التنفيذي", level: 5, is_body: false, is_leadership: true },
       { position_title: "إدارة المبيعات والتسويق", parent_position: "المدير العام / التنفيذي", level: 5, is_body: false, is_leadership: true }
+    ];
+  } else if(isLLCSingleOwner){
+    // A single-person LLC has no partners' assembly and no council of managers to route through
+    // — it's structurally the same shape as a sole proprietorship (owner, then CEO, then
+    // departments), just under a different legal form.
+    if(!confirm('سيُضاف: المالك ← المدير التنفيذي ← الإدارات الرئيسية. تقدر تعدّله بعدها. متابعة؟')) return;
+    rows = [
+      { position_title: "المالك", parent_position: "", level: 1, is_body: false, is_leadership: true },
+      { position_title: "المدير التنفيذي", parent_position: "المالك", level: 4, is_body: false, is_leadership: true },
+      { position_title: "الإدارة المالية", parent_position: "المدير التنفيذي", level: 5, is_body: false, is_leadership: true },
+      { position_title: "إدارة الموارد البشرية", parent_position: "المدير التنفيذي", level: 5, is_body: false, is_leadership: true },
+      { position_title: "إدارة التشغيل", parent_position: "المدير التنفيذي", level: 5, is_body: false, is_leadership: true },
+      { position_title: "إدارة المبيعات والتسويق", parent_position: "المدير التنفيذي", level: 5, is_body: false, is_leadership: true }
     ];
   } else if(type === "ذات مسؤولية محدودة"){
     if(!confirm('سيُضاف: جمعية الشركاء ← مجلس المديرين ← الرئيس التنفيذي ← الإدارات الرئيسية. تقدر تعدّله بعدها. متابعة؟')) return;
