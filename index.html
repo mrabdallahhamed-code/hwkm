@@ -1092,20 +1092,22 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
         <span class="ico ico-chevron"></span><span class="ni-icon ico ico-calendar"></span><span class="ni-text" id="boardMeetingsGroupLabel">اجتماعات المجلس</span>
       </div>
       <div class="nav-subgroup-children" id="grp-boardmeetings-children">
-        <div class="nav-item" onclick="go('meetings',this)"><span class="ni-icon ico ico-calendar"></span><span class="ni-text">جدول الاجتماعات</span></div>
-        <div class="nav-item" onclick="go('members',this)"><span class="ni-icon ico ico-users"></span><span class="ni-text" id="membersNavLabel">أعضاء المجلس</span></div>
-        <div class="nav-item" onclick="go('appoint',this)"><span class="ni-icon ico ico-add"></span><span class="ni-text">طلب تعيين عضو</span></div>
-        <div class="nav-item" onclick="go('indicators',this)"><span class="ni-icon ico ico-dashboard"></span><span class="ni-text">التقرير المالي والتشغيلي</span></div>
-        <div class="nav-item" onclick="go('decisiontracking',this)"><span class="ni-icon ico ico-check"></span><span class="ni-text">متابعة القرارات</span><span class="ni-badge red" id="decisionOverdueBadge" style="display:none"></span></div>
+        <div class="nav-item" id="navMeetingsOld" onclick="go('meetings',this)"><span class="ni-icon ico ico-calendar"></span><span class="ni-text">جدول الاجتماعات</span></div>
+        <div class="nav-item" id="navMembersOld" onclick="go('members',this)"><span class="ni-icon ico ico-users"></span><span class="ni-text" id="membersNavLabel">أعضاء المجلس</span></div>
+        <div class="nav-item" id="navAppointOld" onclick="go('appoint',this)"><span class="ni-icon ico ico-add"></span><span class="ni-text">طلب تعيين عضو</span></div>
+        <div class="nav-item" id="navIndicatorsOld" onclick="go('indicators',this)"><span class="ni-icon ico ico-dashboard"></span><span class="ni-text">التقرير المالي والتشغيلي</span></div>
+        <div class="nav-item" id="navDecisionTrackingOld" onclick="go('decisiontracking',this)"><span class="ni-icon ico ico-check"></span><span class="ni-text">متابعة القرارات</span><span class="ni-badge red" id="decisionOverdueBadge" style="display:none"></span></div>
+        <div class="nav-item" id="navManagerDecisions" style="display:none" onclick="go('managerdecisions',this)"><span class="ni-icon ico ico-signature"></span><span class="ni-text">سجل قرارات المدير</span></div>
       </div>
 
       <div class="nav-subgroup-header" id="grp-generalassembly" onclick="event.stopPropagation();toggleNavGroup('generalassembly')">
         <span class="ico ico-chevron"></span><span class="ni-icon ico ico-handshake"></span><span class="ni-text" id="generalAssemblyGroupLabel">الجمعية العامة</span>
       </div>
       <div class="nav-subgroup-children" id="grp-generalassembly-children">
-        <div class="nav-item" onclick="go('agm',this)"><span class="ni-icon ico ico-handshake"></span><span class="ni-text" id="agmNavLabel">الجمعيات العامة</span></div>
+        <div class="nav-item" id="navAgmOld" onclick="go('agm',this)"><span class="ni-icon ico ico-handshake"></span><span class="ni-text" id="agmNavLabel">الجمعيات العامة</span></div>
         <div class="nav-item" id="navAnnouncements" style="display:none" onclick="go('announcements',this)"><span class="ni-icon ico ico-megaphone"></span><span class="ni-text">الإعلانات (تداول)</span></div>
         <div class="nav-item" onclick="go('shareholders',this)"><span class="ni-icon ico ico-idcard"></span><span class="ni-text" id="shareholdersNavLabel">سجل المساهمين</span></div>
+        <div class="nav-item" id="navOwnerDecisions" style="display:none" onclick="go('ownerdecisions',this)"><span class="ni-icon ico ico-signature"></span><span class="ni-text">قرارات المالك</span></div>
       </div>
 
       <div class="nav-item" onclick="go('committees',this)"><span class="ni-icon ico ico-clipboard"></span><span class="ni-text">اللجان</span></div>
@@ -1634,6 +1636,57 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 
   <div id="indicatorsReport">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:30px">لا توجد بيانات مستوردة بعد. نزّل النموذج وابدأ.</div>
+  </div>
+</div>
+
+<!-- Simplified decision logs for single-manager / single-owner LLCs — no meetings, no
+     voting, no quorum: just a decision documented and signed, matching how these actually
+     work in practice for one person deciding alone. -->
+<div id="p-managerdecisions" class="page content">
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span><span class="ico-i ico-signature"></span>سجل قرارات المدير</span>
+    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openSimpleDecisionModal('manager')">+ توثيق قرار جديد</button>
+  </div>
+  <p style="font-size:11px;color:var(--gray3);margin:-10px 0 16px">توثيق مباشر لقرارات المدير الواحد — بلا حاجة لاجتماع أو تصويت.</p>
+  <div id="managerDecisionsList" style="display:flex;flex-direction:column;gap:12px">
+    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
+  </div>
+</div>
+
+<div id="p-ownerdecisions" class="page content">
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span><span class="ico-i ico-signature"></span>قرارات المالك</span>
+    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openSimpleDecisionModal('owner')">+ توثيق قرار جديد</button>
+  </div>
+  <p style="font-size:11px;color:var(--gray3);margin:-10px 0 16px">توثيق مباشر لقرارات المالك الواحد — بلا حاجة لجمعية أو تصويت أو نصاب.</p>
+  <div id="ownerDecisionsList" style="display:flex;flex-direction:column;gap:12px">
+    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
+  </div>
+</div>
+
+<!-- Add a new simple decision (shared by both contexts) -->
+<div class="modal-bg" id="m-simple-decision">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title" id="sd-title"><span class="ico-i ico-signature"></span>توثيق قرار جديد</div>
+    <input type="hidden" id="sd-context" value=""/>
+    <div class="fg"><label>نص القرار</label><textarea class="fta" id="sd-text" rows="4" placeholder="اكتب نص القرار بوضوح..."></textarea></div>
+    <div class="fg"><label>التاريخ</label><input type="date" class="fi" id="sd-date"/></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-simple-decision')">إلغاء</button><button class="btn btn-gold" onclick="saveSimpleDecision()"><span class="ico-i ico-check"></span>حفظ</button></div>
+  </div>
+</div>
+
+<!-- Sign a documented decision -->
+<div class="modal-bg" id="m-simple-decision-sign">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title"><span class="ico-i ico-signature"></span>توقيع القرار</div>
+    <input type="hidden" id="sds-decision-id" value=""/>
+    <p id="sds-decision-text" style="font-size:12.5px;color:var(--dark);background:var(--offwhite);padding:10px;border-radius:8px;margin-bottom:12px"></p>
+    <div class="fg"><label>الاسم</label><input class="fi" id="sds-name" value=""/></div>
+    <div style="border:2px dashed var(--gray1);border-radius:10px;background:#fff;touch-action:none">
+      <canvas id="simpleDecisionSigCanvas" width="380" height="140" style="width:100%;height:140px;cursor:crosshair;display:block"></canvas>
+    </div>
+    <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="clearSimpleDecisionSigPad()"><span class="ico-i ico-trash"></span>مسح</button>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-simple-decision-sign')">إلغاء</button><button class="btn btn-gold" onclick="confirmSimpleDecisionSignature()"><span class="ico-i ico-check"></span>تأكيد التوقيع</button></div>
   </div>
 </div>
 
@@ -5088,7 +5141,9 @@ async function applyRolePermissions(){
 
 let currentCompanyType = null;
 let currentCompanyLLCSingleManager = false;
+let currentCompanyLLCSingleOwner = false;
 const LLC_SINGLE_MANAGER_HIDDEN_PAGES = ['meetings','members','appoint','indicators','decisiontracking'];
+const LLC_SINGLE_OWNER_HIDDEN_PAGES = ['agm'];
 
 function isPageAllowed(pageId, role){
   // A per-user override always wins, before any role-based logic runs — this is what makes
@@ -5122,6 +5177,9 @@ function isPageAllowed(pageId, role){
   if(currentCompanyType === 'مؤسسة فردية' && SOLE_PROP_HIDDEN_PAGES.includes(pageId)) return false;
   if(currentCompanyType === 'ذات مسؤولية محدودة' && LLC_HIDDEN_PAGES.includes(pageId)) return false;
   if(currentCompanyLLCSingleManager && LLC_SINGLE_MANAGER_HIDDEN_PAGES.includes(pageId)) return false;
+  if(currentCompanyLLCSingleOwner && LLC_SINGLE_OWNER_HIDDEN_PAGES.includes(pageId)) return false;
+  if(pageId === 'managerdecisions' && !currentCompanyLLCSingleManager) return false;
+  if(pageId === 'ownerdecisions' && !currentCompanyLLCSingleOwner) return false;
   if(MODULE_PAGE_MAP[pageId] && !currentCompanyModules[MODULE_PAGE_MAP[pageId]] && !isPlatformAdmin) return false;
   return true;
 }
@@ -5909,6 +5967,8 @@ function reloadCurrentPageData(){
   if(id==='consultants') loadConsultantsPage();
   if(id==='perf') loadPerf();
   if(id==='decisiontracking') loadDecisionTracking();
+  if(id==='managerdecisions') loadSimpleDecisions('manager');
+  if(id==='ownerdecisions') loadSimpleDecisions('owner');
   if(id==='appoint'){ loadAppointRequests(); loadReviewSection(); }
   if(id==='reports') loadReportsPage();
   if(id==='archive') loadArchive();
@@ -7163,6 +7223,7 @@ async function applyCompanyTypeVisibility(){
   const isLLCSingleManager = isLLCType && !!c?.llc_single_manager;
   currentCompanyLLCSingleManager = isLLCSingleManager;
   const isLLCSingleOwner = isLLCType && !!c?.llc_single_owner;
+  currentCompanyLLCSingleOwner = isLLCSingleOwner;
 
   // "أعضاء المجلس" everywhere it appears as a page/nav label should say whichever body this
   // company actually has (مجلس الإدارة / مجلس المديرين) — getGovernanceBodyLabel() is already
@@ -7171,18 +7232,25 @@ async function applyCompanyTypeVisibility(){
   setText("membersPageTitle", `أعضاء ${bodyLabel}`);
   setText("membersNavLabel", `أعضاء ${bodyLabel}`);
 
-  // A single-manager LLC has no one to hold a "board meeting" with — the entire اجتماعات
-  // المجلس subgroup (schedule, members, appointments, reports, decision tracking) stops being
-  // a meaningful concept for them, not just relabeled but hidden outright.
+  // A single-manager LLC has no one to hold a "board meeting" with — swap the whole meeting/
+  // members/appointment/report machinery for the one simple decision log that actually fits.
   const boardMeetingsHeader = document.getElementById("grp-boardmeetings");
-  const boardMeetingsChildren = document.getElementById("grp-boardmeetings-children");
-  if(boardMeetingsHeader) boardMeetingsHeader.style.display = isLLCSingleManager ? "none" : "flex";
-  if(boardMeetingsChildren) boardMeetingsChildren.style.display = isLLCSingleManager && boardMeetingsChildren.classList.contains("collapsed") ? "none" : (isLLCSingleManager ? "none" : "");
+  ["navMeetingsOld","navMembersOld","navAppointOld","navIndicatorsOld","navDecisionTrackingOld"].forEach(elId => {
+    const el = document.getElementById(elId);
+    if(el) el.style.display = isLLCSingleManager ? "none" : "";
+  });
+  const managerDecisionsNav = document.getElementById("navManagerDecisions");
+  if(managerDecisionsNav) managerDecisionsNav.style.display = isLLCSingleManager ? "" : "none";
+  setText("boardMeetingsGroupLabel", isLLCSingleManager ? "قرارات الإدارة" : "اجتماعات المجلس");
+  if(boardMeetingsHeader) boardMeetingsHeader.style.display = "flex"; // header itself always stays — just its one child changes
 
   // A single-owner LLC still legally holds "general assembly" powers — they just always
-  // belong to the same one person, so what would normally be assembly resolutions are simply
-  // that owner's decisions. Relabeling (not hiding) keeps the same page and data model working
-  // exactly as before; only the language changes to match reality.
+  // belong to the same one person, so what would normally be assembly resolutions become that
+  // owner's simply-documented decisions instead of a dressed-up assembly with one attendee.
+  const ownerDecisionsNav = document.getElementById("navOwnerDecisions");
+  const agmOldNav = document.getElementById("navAgmOld");
+  if(ownerDecisionsNav) ownerDecisionsNav.style.display = isLLCSingleOwner ? "" : "none";
+  if(agmOldNav) agmOldNav.style.display = isLLCSingleOwner ? "none" : "";
   setText("generalAssemblyGroupLabel", isLLCSingleOwner ? "قرارات المالك" : "الجمعية العامة");
   setText("agmNavLabel", isLLCSingleOwner ? "قرارات المالك" : "الجمعيات العامة");
   setText("agmPageTitle", isLLCSingleOwner ? "قرارات المالك" : "الجمعيات العامة");
@@ -18805,6 +18873,116 @@ function computeDecisionStatus(d){
   return d.status || "لم يبدأ";
 }
 
+/* ══════════ SIMPLE DECISIONS (single-manager / single-owner LLC) ══════════
+   Deliberately minimal: a decision is text + a date + an optional signature, with none of the
+   meeting/quorum/voting machinery — because for exactly one decision-maker, that machinery has
+   no one to coordinate with in the first place. */
+let simpleDecisionsCache = { manager: [], owner: [] };
+
+async function loadSimpleDecisions(context){
+  const { data } = await sb.from("simple_decisions").select("*").eq("company_id", currentCompanyId).eq("context", context).order("decision_date",{ascending:false});
+  simpleDecisionsCache[context] = data || [];
+  renderSimpleDecisionsList(context);
+}
+
+function renderSimpleDecisionsList(context){
+  const box = document.getElementById(context === "manager" ? "managerDecisionsList" : "ownerDecisionsList");
+  if(!box) return;
+  const list = simpleDecisionsCache[context];
+  if(!list.length){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">لا توجد قرارات موثَّقة بعد.</div>'; return; }
+
+  box.innerHTML = list.map(d => `<div class="card" style="margin:0">
+    <div class="card-body">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px">
+        <div style="font-size:13px;font-weight:700;color:var(--dark);flex:1">${d.decision_text}</div>
+        ${d.signed_at ? '<span class="badge done"><span class="ico-i ico-check"></span>موقَّع</span>' : '<span class="badge pending">غير موقَّع</span>'}
+      </div>
+      <div style="font-size:11px;color:var(--gray3);margin-bottom:${d.signed_at?'0':'10px'}">التاريخ: ${d.decision_date}</div>
+      ${d.signed_at ? `<div style="font-size:11px;color:var(--gray3);margin-top:4px">وقّعه: ${d.signed_by_name||''} — ${new Date(d.signed_at).toLocaleDateString('ar-SA')}</div>
+        ${d.signature_image ? `<img src="${d.signature_image}" style="height:44px;margin-top:6px;border-top:1px solid var(--gray1);padding-top:6px"/>` : ''}`
+        : `<button class="btn-xs gold" onclick="openSimpleDecisionSignModal(${d.id})"><span class="ico-i ico-signature"></span>توقيع القرار</button>`}
+    </div>
+  </div>`).join("");
+}
+
+function openSimpleDecisionModal(context){
+  document.getElementById("sd-context").value = context;
+  document.getElementById("sd-text").value = "";
+  document.getElementById("sd-date").value = new Date().toISOString().slice(0,10);
+  document.getElementById("sd-title").innerHTML = `<span class="ico-i ico-signature"></span>توثيق قرار ${context==='manager'?'مدير':'مالك'} جديد`;
+  openM("m-simple-decision");
+}
+
+async function saveSimpleDecision(){
+  const context = document.getElementById("sd-context").value;
+  const decision_text = document.getElementById("sd-text").value.trim();
+  const decision_date = document.getElementById("sd-date").value;
+  if(!decision_text){ alert("الرجاء كتابة نص القرار"); return; }
+  const { error } = await sb.from("simple_decisions").insert([{ company_id: currentCompanyId, context, decision_text, decision_date }]);
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  closeM("m-simple-decision");
+  loadSimpleDecisions(context);
+}
+
+let simpleDecisionSigContext = null, simpleDecisionSigCtx = null, simpleDecisionSigDrawing = false;
+
+function openSimpleDecisionSignModal(decisionId){
+  const context = document.getElementById("p-managerdecisions").classList.contains("active") ? "manager" : "owner";
+  simpleDecisionSigContext = context;
+  const d = simpleDecisionsCache[context].find(x => x.id === decisionId);
+  if(!d) return;
+  document.getElementById("sds-decision-id").value = decisionId;
+  document.getElementById("sds-decision-text").textContent = d.decision_text;
+  document.getElementById("sds-name").value = currentUserProfile ? (currentUserProfile.full_name||"") : "";
+  openM("m-simple-decision-sign");
+  setTimeout(initSimpleDecisionSigPad, 50);
+}
+
+function initSimpleDecisionSigPad(){
+  const canvas = document.getElementById("simpleDecisionSigCanvas");
+  if(!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width; canvas.height = rect.height;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle = "#0D2447"; ctx.lineWidth = 2.5; ctx.lineCap = "round"; ctx.lineJoin = "round";
+  simpleDecisionSigCtx = ctx;
+  const getPos = (e) => { const r = canvas.getBoundingClientRect(); const p = e.touches ? e.touches[0] : e; return { x: p.clientX - r.left, y: p.clientY - r.top }; };
+  const start = (e) => { e.preventDefault(); simpleDecisionSigDrawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+  const move = (e) => { if(!simpleDecisionSigDrawing) return; e.preventDefault(); const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+  const end = () => { simpleDecisionSigDrawing = false; };
+  canvas.onmousedown = start; canvas.onmousemove = move; canvas.onmouseup = end; canvas.onmouseleave = end;
+  canvas.ontouchstart = start; canvas.ontouchmove = move; canvas.ontouchend = end;
+}
+
+function clearSimpleDecisionSigPad(){
+  if(!simpleDecisionSigCtx) return;
+  const canvas = document.getElementById("simpleDecisionSigCanvas");
+  simpleDecisionSigCtx.clearRect(0,0,canvas.width,canvas.height);
+}
+
+function isSimpleDecisionSigPadEmpty(){
+  const canvas = document.getElementById("simpleDecisionSigCanvas");
+  if(!canvas) return true;
+  const ctx = canvas.getContext("2d");
+  const data = ctx.getImageData(0,0,canvas.width,canvas.height).data;
+  for(let i=3; i<data.length; i+=4){ if(data[i] !== 0) return false; }
+  return true;
+}
+
+async function confirmSimpleDecisionSignature(){
+  if(isSimpleDecisionSigPadEmpty()){ alert("الرجاء رسم التوقيع أولًا"); return; }
+  const id = Number(document.getElementById("sds-decision-id").value);
+  const signed_by_name = document.getElementById("sds-name").value.trim();
+  if(!signed_by_name){ alert("الرجاء إدخال الاسم"); return; }
+  const canvas = document.getElementById("simpleDecisionSigCanvas");
+  const signature_image = canvas.toDataURL("image/png");
+  const { error } = await sb.from("simple_decisions").update({ signed_by_name, signature_image, signed_at: new Date().toISOString() }).eq("id", id);
+  if(error){ alert("تعذّر حفظ التوقيع: " + error.message); return; }
+  closeM("m-simple-decision-sign");
+  loadSimpleDecisions(simpleDecisionSigContext);
+}
+
 async function loadDecisionTracking(){
   const [{ data: decisions }, { data: meetings }, people] = await Promise.all([
     sb.from("board_decisions").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false}),
@@ -19781,6 +19959,8 @@ async function go(id, el){
   if(id==='consultants') loadConsultantsPage();
   if(id==='perf') loadPerf();
   if(id==='decisiontracking') loadDecisionTracking();
+  if(id==='managerdecisions') loadSimpleDecisions('manager');
+  if(id==='ownerdecisions') loadSimpleDecisions('owner');
   if(id==='appoint'){ loadAppointRequests(); loadReviewSection(); }
   if(id==='reports') loadReportsPage();
   if(id==='archive') loadArchive();
