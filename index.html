@@ -924,8 +924,13 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
       <input type="file" class="fi" id="listedProofFile" accept="image/*,.pdf" />
     </div>
     <div class="login-field" id="signupInviteField" style="display:none">
-      <label>رمز الدعوة (اختياري — إن كنت مدعوًا للانضمام لشركة موجودة)</label>
+      <label>رمز الدعوة (اختياري — إن كنت مدعوًا برابط شخصي لشركة موجودة)</label>
       <input class="fi" id="signupInviteCode" placeholder="مثال: A1B2C3D4" />
+    </div>
+    <div class="login-field" id="signupCompanyCodeField" style="display:none">
+      <label>كود الشركة (اختياري — لو أعطاك مدير النظام كوداً لتنضم لشركتكم)</label>
+      <input class="fi" id="signupCompanyCode" placeholder="مثال: HWK-7F2K" />
+      <p style="font-size:10px;color:var(--gray3);margin-top:4px">يُرسَل طلب انضمام يحتاج موافقة مدير النظام — ما يربطك تلقائيًا.</p>
     </div>
     <div class="login-field">
       <label>البريد الإلكتروني</label>
@@ -2459,6 +2464,22 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     </div>
   </div>
 
+  <div class="card" id="companyJoinCodeCard" style="margin-bottom:16px">
+    <div class="card-head"><span class="card-title"><span class="ico-i ico-key"></span>كود شركتكم للانضمام</span></div>
+    <div class="card-body">
+      <p style="font-size:11px;color:var(--gray3);margin-bottom:10px">أعطِ هذا الكود لموظفي شركتكم — يسجّلون حساباً ويكتبونه، ويصلك طلب انضمام تعتمده أنت بالدور المناسب. مختلف عن رابط الدعوة الشخصي، وما يربط أحداً تلقائياً.</p>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div id="companyJoinCodeDisplay" style="flex:1;font-size:18px;font-weight:900;color:var(--primary);background:var(--offwhite);padding:10px 14px;border-radius:8px;letter-spacing:1px">جارِ التحميل...</div>
+        <button class="btn-xs primary" onclick="copyCompanyJoinCode()"><span class="ico-i ico-clipboard"></span>نسخ</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="companyJoinRequestsCard" style="margin-bottom:16px;display:none">
+    <div class="card-head"><span class="card-title"><span class="ico-i ico-add"></span>طلبات انضمام بكود الشركة</span></div>
+    <div class="card-body" id="companyJoinRequestsList"></div>
+  </div>
+
   <div class="card" id="pendingShareholderVerificationsCard" style="margin-bottom:16px;display:none">
     <div class="card-head"><span class="card-title"><span class="ico-i ico-search"></span>طلبات تحقق مساهمين معلّقة</span></div>
     <div class="card-body" id="pendingShareholderVerificationsList"></div>
@@ -2572,6 +2593,27 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
         </div>
       </div>
       <button class="btn btn-gold" style="width:100%" onclick="assignPlatformTeamModule()"><span class="ico-i ico-check"></span>تعيين التخصص</button>
+    </div>
+  </div>
+
+  <div class="sec-title" style="font-size:14px"><span class="ico-i ico-link"></span>ربط إيميلات بشركة مباشرة (مالك المنصة)</div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-body">
+      <p style="font-size:11.5px;color:var(--gray3);margin-bottom:10px">يربط الإيميلات بالشركة فوراً بدون طلب أو موافقة — لمن سجّل حسابه أصلاً، ولمن لم يسجّل بعد يُفعَّل تلقائياً أول ما يُنشئ حساباً بنفس الإيميل.</p>
+      <div class="row2">
+        <div class="fg"><label>الشركة</label><select class="fs" id="pbl-company"></select></div>
+        <div class="fg"><label>الدور</label>
+          <select class="fs" id="pbl-role">
+            <option>رئيس مجلس</option><option>سكرتير المجلس</option>
+            <option>رئيس لجنة الترشيحات</option><option>عضو لجنة الترشيحات</option>
+            <option>رئيس لجنة مراجعة</option><option>عضو لجنة مراجعة</option>
+            <option selected>عضو مجلس</option><option>عضو مجلس وعضو مساهم</option><option>مساهم</option><option>مدير النظام</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg"><label>الإيميلات (كل إيميل بسطر)</label><textarea class="fta" id="pbl-emails" rows="5" placeholder="person1@email.com&#10;person2@email.com"></textarea></div>
+      <button class="btn btn-gold" style="width:100%" onclick="platformBulkLink()"><span class="ico-i ico-check"></span>ربط الكل بالشركة</button>
+      <div id="pbl-result" style="font-size:11.5px;color:var(--gray3);margin-top:10px;white-space:pre-line"></div>
     </div>
   </div>
   <div class="card" style="margin-bottom:20px">
@@ -4687,6 +4729,7 @@ function toggleAuthMode(){
   document.getElementById("signupNationalIdField").style.display = authMode === "signup" ? "block" : "none";
   document.getElementById("signupPhoneField").style.display = authMode === "signup" ? "block" : "none";
   document.getElementById("signupInviteField").style.display = authMode === "signup" ? "block" : "none";
+  document.getElementById("signupCompanyCodeField").style.display = authMode === "signup" ? "block" : "none";
   document.getElementById("passwordlessLoginOptions").style.display = authMode === "login" ? "block" : "none";
   if(authMode === "signup"){
     toggleShareholderFields();
@@ -4952,6 +4995,19 @@ async function handleAuth(){
       }
     }
 
+    // A company join code is a *request*, never an automatic membership — unlike the per-person
+    // invite link above, the same code is shared with every employee, so anyone who got hold of
+    // it must still be approved by that company's own مدير النظام before they get any access.
+    let pendingJoinRequest = null;
+    if(!inviteCompanyId){
+      const companyCode = document.getElementById("signupCompanyCode").value.trim();
+      if(companyCode){
+        const { data: codeCompany } = await sb.from("companies").select("id,name").eq("join_code", companyCode).maybeSingle();
+        if(codeCompany){ pendingJoinRequest = codeCompany; }
+        else { showLoginMsg("تنبيه: كود الشركة غير صحيح — سيُنشأ حسابك بدون طلب انضمام.", false); }
+      }
+    }
+
     // No invite code (or it didn't match)? Fall back to matching the national ID against real
     // company records — board members and the shareholders registry, across ALL companies (a
     // person can legitimately sit on more than one board, or hold shares in several companies).
@@ -4982,6 +5038,15 @@ async function handleAuth(){
     const profilePayload = { email, account_type, full_name, national_id, phone_number, shares_count };
     if(inviteCompanyId){ profilePayload.company_id = inviteCompanyId; profilePayload.role = inviteRole; }
 
+    // Pre-staged by the platform owner's bulk-link tool before this person ever signed up —
+    // the membership row already exists under their email, it just needs this new account to
+    // pick it up as its primary company now that one exists.
+    let preLinkedMembership = null;
+    if(!profilePayload.company_id){
+      const { data: preLinked } = await sb.from("user_company_memberships").select("company_id,role").eq("email", email).limit(1).maybeSingle();
+      if(preLinked){ preLinkedMembership = preLinked; profilePayload.company_id = preLinked.company_id; profilePayload.role = preLinked.role; }
+    }
+
     const { error: profileError } = await sb.from("user_profiles").insert([profilePayload]);
     if(profileError){
       const isDuplicate = profileError.message && (profileError.message.includes("duplicate") || profileError.message.includes("unique"));
@@ -5008,7 +5073,16 @@ async function handleAuth(){
       await sb.from(rec.table).update({ claimed_by_email: email }).eq("id", rec.id);
     }
 
-    showLoginMsg(inviteCompanyId ? (memberships.length > 1 ? `تم إنشاء الحساب وربطه تلقائيًا بـ${memberships.length} شركات ✅ يمكنك تسجيل الدخول الآن.` : "تم إنشاء الحساب وربطه بشركتك تلقائيًا ✅ يمكنك تسجيل الدخول الآن.") : "تم إنشاء الحساب. يمكنك تسجيل الدخول الآن (أو تحقق من بريدك للتفعيل)", true);
+    if(pendingJoinRequest){
+      await sb.from("company_join_requests").insert([{
+        company_id: pendingJoinRequest.id, requester_email: email, requester_name: full_name, suggested_role: null
+      }]);
+    }
+
+    showLoginMsg(
+      inviteCompanyId ? (memberships.length > 1 ? `تم إنشاء الحساب وربطه تلقائيًا بـ${memberships.length} شركات ✅ يمكنك تسجيل الدخول الآن.` : "تم إنشاء الحساب وربطه بشركتك تلقائيًا ✅ يمكنك تسجيل الدخول الآن.")
+      : pendingJoinRequest ? `تم إنشاء الحساب، وأُرسل طلب انضمامك لشركة "${pendingJoinRequest.name}" — بانتظار موافقة مدير النظام. يمكنك تسجيل الدخول الآن، وستصل لشركتك بعد الموافقة.`
+      : "تم إنشاء الحساب. يمكنك تسجيل الدخول الآن (أو تحقق من بريدك للتفعيل)", true);
     authMode = "login";
     document.getElementById("loginBtn").textContent = "تسجيل الدخول";
     document.getElementById("signupTypeField").style.display = "none";
@@ -5016,6 +5090,7 @@ async function handleAuth(){
     document.getElementById("signupNationalIdField").style.display = "none";
     document.getElementById("signupPhoneField").style.display = "none";
     document.getElementById("signupInviteField").style.display = "none";
+    document.getElementById("signupCompanyCodeField").style.display = "none";
     document.getElementById("signupSharesField").style.display = "none";
   }
 }
@@ -5438,6 +5513,85 @@ function copyInviteLink(){
   navigator.clipboard?.writeText(el.value).then(()=>alert("تم نسخ الرابط ✅")).catch(()=>{});
 }
 
+/* ══════════ COMPANY JOIN CODE (كود الشركة) ══════════
+   Deliberately NOT a self-serve auto-join like the per-person invite link above — the same
+   code is shared with every employee, so anyone holding it only gets to REQUEST joining; the
+   company's own مدير النظام still has to pick their role and approve before they get in. This
+   is what keeps a code that's shared company-wide from being as risky as the public CR number
+   would have been. */
+async function loadCompanyJoinCode(){
+  const box = document.getElementById("companyJoinCodeDisplay");
+  if(!box || !currentCompanyId) return;
+  const { data: c } = await sb.from("companies").select("join_code").eq("id", currentCompanyId).maybeSingle();
+  let code = c ? c.join_code : null;
+  if(!code){
+    code = "HWK-" + randomInviteCode().slice(0,4);
+    const { error } = await sb.from("companies").update({ join_code: code }).eq("id", currentCompanyId);
+    if(error){ box.textContent = "تعذّر توليد الكود"; return; }
+  }
+  box.textContent = code;
+}
+
+function copyCompanyJoinCode(){
+  const text = document.getElementById("companyJoinCodeDisplay").textContent.trim();
+  if(!text || text === "جارِ التحميل...") return;
+  navigator.clipboard.writeText(text);
+  alert("تم نسخ كود الشركة ✅");
+}
+
+async function loadCompanyJoinRequests(){
+  const card = document.getElementById("companyJoinRequestsCard");
+  const list = document.getElementById("companyJoinRequestsList");
+  if(!card || !list || !currentCompanyId) return;
+  const { data } = await sb.from("company_join_requests").select("*").eq("company_id", currentCompanyId).eq("status","قيد المراجعة").order("id",{ascending:false});
+  if(!data || !data.length){ card.style.display = "none"; return; }
+  card.style.display = "block";
+  list.innerHTML = data.map(r => `<div style="border-bottom:1px solid var(--gray1);padding:10px 0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+    <div>
+      <div style="font-size:12.5px;font-weight:700;color:var(--dark)">${r.requester_name||r.requester_email}</div>
+      <div style="font-size:10.5px;color:var(--gray3)">${r.requester_email} — ${new Date(r.created_at).toLocaleDateString('ar-SA')}</div>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <select class="fs" id="cjr-role-${r.id}" style="margin:0;font-size:11.5px;padding:6px 8px;width:150px">
+        <option>رئيس مجلس</option><option>سكرتير المجلس</option>
+        <option>رئيس لجنة الترشيحات</option><option>عضو لجنة الترشيحات</option>
+        <option>رئيس لجنة مراجعة</option><option>عضو لجنة مراجعة</option>
+        <option selected>عضو مجلس</option><option>عضو مجلس وعضو مساهم</option><option>مساهم</option>
+      </select>
+      <button class="btn-xs primary" onclick="approveJoinRequest(${r.id})"><span class="ico-i ico-check"></span>موافقة</button>
+      <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer" onclick="rejectJoinRequest(${r.id})">رفض</button>
+    </div>
+  </div>`).join("");
+}
+
+async function approveJoinRequest(id){
+  const { data: req } = await sb.from("company_join_requests").select("*").eq("id", id).single();
+  if(!req){ alert("تعذّر تحميل الطلب"); return; }
+  const role = document.getElementById("cjr-role-"+id).value;
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+
+  const { error: memErr } = await sb.from("user_company_memberships").insert([{ email: req.requester_email, company_id: currentCompanyId, role }]);
+  if(memErr){ alert("تعذّرت الموافقة: " + memErr.message); return; }
+  // Only set this as the account's primary company/role if they don't already have one from
+  // elsewhere — a person who joined another company first keeps that as their default.
+  const { data: prof } = await sb.from("user_profiles").select("company_id").eq("email", req.requester_email).maybeSingle();
+  if(prof && !prof.company_id){ await sb.from("user_profiles").update({ company_id: currentCompanyId, role }).eq("email", req.requester_email); }
+
+  await sb.from("company_join_requests").update({ status: "معتمد", reviewed_by: myEmail, reviewed_at: new Date().toISOString() }).eq("id", id);
+  logActivity("موافقة", "طلب انضمام", req.requester_name||req.requester_email, `بدور "${role}"`);
+  loadCompanyJoinRequests();
+  loadUsers();
+}
+
+async function rejectJoinRequest(id){
+  if(!confirm("رفض طلب الانضمام هذا؟")) return;
+  const { data: userData } = await sb.auth.getUser();
+  const myEmail = userData && userData.user ? userData.user.email : null;
+  await sb.from("company_join_requests").update({ status: "مرفوض", reviewed_by: myEmail, reviewed_at: new Date().toISOString() }).eq("id", id);
+  loadCompanyJoinRequests();
+}
+
 async function loadPendingInvites(){
   const card = document.getElementById("pendingInvitesCard");
   const box = document.getElementById("pendingInvitesList");
@@ -5719,6 +5873,8 @@ let usersPageCache = { memberships: [], profileByEmail: {}, roles: [], isSolePro
 
 async function loadUsers(){
   loadPendingInvites();
+  if(getCurrentRole() === "مدير النظام"){ loadCompanyJoinCode(); loadCompanyJoinRequests(); }
+  else { const jc = document.getElementById("companyJoinCodeCard"); if(jc) jc.style.display = "none"; }
   const linkBtn = document.getElementById("btnListedShareholderLink");
   if(linkBtn) linkBtn.style.display = (currentCompanyType === "مساهمة مدرجة") ? "inline-block" : "none";
   if(currentCompanyType === "مساهمة مدرجة") loadPendingShareholderVerifications();
@@ -6907,10 +7063,47 @@ async function loadPlatformTeam(){
   </tr>`).join("");
 }
 
+/* ══════════ PLATFORM-OWNER BULK LINK (ربط إيميلات بشركة مباشرة) ══════════
+   Unlike the company join-code above (a request a company's own admin must approve), this is
+   the platform owner acting directly — no approval step, because the platform owner already
+   has standing access to every company. Emails that haven't signed up yet still get a
+   membership row now; the matching signup-time check (see handleAuth) picks it up the moment
+   that account is actually created, instead of leaving them company-less. */
+async function loadPlatformBulkLinkCompanies(){
+  const sel = document.getElementById("pbl-company");
+  if(!sel) return;
+  const { data } = await sb.from("companies").select("id,name").order("name",{ascending:true});
+  sel.innerHTML = (data||[]).map(c => `<option value="${c.id}">${c.name}</option>`).join("");
+}
+
+async function platformBulkLink(){
+  const companyId = Number(document.getElementById("pbl-company").value);
+  const role = document.getElementById("pbl-role").value;
+  const emails = document.getElementById("pbl-emails").value.split("\\n").map(e => e.trim()).filter(Boolean);
+  const resultBox = document.getElementById("pbl-result");
+  if(!companyId){ alert("اختر الشركة"); return; }
+  if(!emails.length){ alert("أدخل إيميلاً واحداً على الأقل"); return; }
+
+  const results = [];
+  for(const email of emails){
+    const { data: existingMem } = await sb.from("user_company_memberships").select("id").eq("email", email).eq("company_id", companyId).maybeSingle();
+    if(existingMem){ results.push(`${email} — مرتبط أصلاً بهذي الشركة`); continue; }
+    const { error } = await sb.from("user_company_memberships").insert([{ email, company_id: companyId, role }]);
+    if(error){ results.push(`${email} — تعذّر: ${error.message}`); continue; }
+    const { data: prof } = await sb.from("user_profiles").select("company_id").eq("email", email).maybeSingle();
+    if(prof && !prof.company_id){ await sb.from("user_profiles").update({ company_id: companyId, role }).eq("email", email); results.push(`${email} — ربط فوري ✅ (حساب موجود)`); }
+    else if(!prof){ results.push(`${email} — جاهز، سيُربط تلقائيًا أول ما يسجّل حساباً بهذا الإيميل`); }
+    else { results.push(`${email} — أُضيف بدوره هنا، بقي حسابه الأساسي كما هو بشركة أخرى`); }
+  }
+  resultBox.textContent = results.join("\\n");
+  document.getElementById("pbl-emails").value = "";
+}
+
 async function loadPlatformUsers(){
   const tbody = document.getElementById("platformUsersTbody");
   if(!tbody) return;
   loadPlatformTeam();
+  loadPlatformBulkLinkCompanies();
   const [{ data: memberships, error }, { data: companies }, { data: profiles }] = await Promise.all([
     sb.from("user_company_memberships").select("*").order("company_id",{ascending:true}),
     sb.from("companies").select("id,name"),
