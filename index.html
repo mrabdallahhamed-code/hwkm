@@ -884,8 +884,9 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
       <div class="login-field" id="signupTypeField" style="display:none;margin-bottom:12px">
         <label>نوع الحساب</label>
         <select class="fs" id="signupAccountType" style="width:100%;padding:10px 12px;border-radius:6px;border:1.5px solid var(--gray1);font-family:'Tajawal',sans-serif;font-size:13px" onchange="toggleShareholderFields()">
-          <option value="عضو">عضو مجلس / موظف</option>
           <option value="مساهم">مساهم</option>
+          <option value="عضو مجلس">عضو مجلس</option>
+          <option value="موظف">موظف</option>
         </select>
       </div>
       <div class="login-field" id="signupNameField" style="display:none;margin-bottom:12px">
@@ -895,10 +896,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     </div>
     <div class="login-field" id="signupNationalIdField" style="display:none">
       <label>رقم الهوية</label>
-      <div style="display:flex;gap:6px">
-        <input class="fi" id="signupNationalId" placeholder="مثال: 1XXXXXXXXX" style="flex:1;margin:0"/>
-        <button type="button" class="btn-xs primary" style="white-space:nowrap" onclick="startNafathVerification()"><span class="ico-i ico-lock"></span>تحقق عبر نفاذ</button>
-      </div>
+      <input class="fi" id="signupNationalId" placeholder="مثال: 1XXXXXXXXX" style="margin:0"/>
       <div id="nafathStatus" style="font-size:11px;margin-top:6px"></div>
     </div>
     <div class="login-field" id="signupPhoneField" style="display:none">
@@ -924,13 +922,12 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
       <input type="file" class="fi" id="listedProofFile" accept="image/*,.pdf" />
     </div>
     <div class="login-field" id="signupInviteField" style="display:none">
-      <label>رمز الدعوة (اختياري — إن كنت مدعوًا برابط شخصي لشركة موجودة)</label>
+      <label>رمز الدعوة (اختياري)</label>
       <input class="fi" id="signupInviteCode" placeholder="مثال: A1B2C3D4" />
     </div>
     <div class="login-field" id="signupCompanyCodeField" style="display:none">
-      <label>كود الشركة (اختياري — لو أعطاك مدير النظام كوداً لتنضم لشركتكم)</label>
+      <label>كود الشركة (اختياري)</label>
       <input class="fi" id="signupCompanyCode" placeholder="مثال: HWK-7F2K" />
-      <p style="font-size:10px;color:var(--gray3);margin-top:4px">يُرسَل طلب انضمام يحتاج موافقة مدير النظام — ما يربطك تلقائيًا.</p>
     </div>
     <div class="login-field">
       <label>البريد الإلكتروني</label>
@@ -958,7 +955,6 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
         <span style="font-size:11px;color:var(--gray3)">أو</span>
         <div style="flex:1;height:1px;background:var(--gray1)"></div>
       </div>
-      <button type="button" class="login-btn" style="background:#fff;color:var(--primary);border:1.5px solid var(--primary);margin-bottom:8px" onclick="openM('m-nafath-login')"><span class="ico-i ico-lock"></span>دخول عبر نفاذ</button>
       <button type="button" class="login-btn" style="background:#fff;color:var(--dark);border:1.5px solid var(--gray1)" onclick="openM('m-otp-login')"><span class="ico-i ico-phone"></span>دخول برمز OTP</button>
     </div>
 
@@ -5546,22 +5542,40 @@ async function loadCompanyJoinRequests(){
   const { data } = await sb.from("company_join_requests").select("*").eq("company_id", currentCompanyId).eq("status","قيد المراجعة").order("id",{ascending:false});
   if(!data || !data.length){ card.style.display = "none"; return; }
   card.style.display = "block";
-  list.innerHTML = data.map(r => `<div style="border-bottom:1px solid var(--gray1);padding:10px 0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-    <div>
-      <div style="font-size:12.5px;font-weight:700;color:var(--dark)">${r.requester_name||r.requester_email}</div>
-      <div style="font-size:10.5px;color:var(--gray3)">${r.requester_email} — ${new Date(r.created_at).toLocaleDateString('ar-SA')}</div>
+  const { data: unclaimed } = await sb.from("shareholders").select("id,name,shares_count").eq("company_id", currentCompanyId).is("claimed_by_email", null).order("name",{ascending:true});
+  const shOpts = (unclaimed||[]).map(s => `<option value="${s.id}">${s.name} — ${s.shares_count||0} سهم</option>`).join("");
+
+  list.innerHTML = data.map(r => `<div style="border-bottom:1px solid var(--gray1);padding:10px 0">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+      <div>
+        <div style="font-size:12.5px;font-weight:700;color:var(--dark)">${r.requester_name||r.requester_email}</div>
+        <div style="font-size:10.5px;color:var(--gray3)">${r.requester_email} — ${new Date(r.created_at).toLocaleDateString('ar-SA')}</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <select class="fs" id="cjr-role-${r.id}" style="margin:0;font-size:11.5px;padding:6px 8px;width:150px" onchange="toggleCjrShareholderLink(${r.id})">
+          <option>رئيس مجلس</option><option>سكرتير المجلس</option>
+          <option>رئيس لجنة الترشيحات</option><option>عضو لجنة الترشيحات</option>
+          <option>رئيس لجنة مراجعة</option><option>عضو لجنة مراجعة</option>
+          <option selected>عضو مجلس</option><option>عضو مجلس وعضو مساهم</option><option>مساهم</option>
+        </select>
+        <button class="btn-xs primary" onclick="approveJoinRequest(${r.id})"><span class="ico-i ico-check"></span>موافقة</button>
+        <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer" onclick="rejectJoinRequest(${r.id})">رفض</button>
+      </div>
     </div>
-    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-      <select class="fs" id="cjr-role-${r.id}" style="margin:0;font-size:11.5px;padding:6px 8px;width:150px">
-        <option>رئيس مجلس</option><option>سكرتير المجلس</option>
-        <option>رئيس لجنة الترشيحات</option><option>عضو لجنة الترشيحات</option>
-        <option>رئيس لجنة مراجعة</option><option>عضو لجنة مراجعة</option>
-        <option selected>عضو مجلس</option><option>عضو مجلس وعضو مساهم</option><option>مساهم</option>
+    <div id="cjr-sh-wrap-${r.id}" style="display:none;background:var(--offwhite);border-radius:8px;padding:8px 10px">
+      <label style="font-size:10.5px;color:var(--gray3);display:block;margin-bottom:4px">اربطه بسجل مساهم (أسهمه وصوته بالجمعية يصيران تابعين لحسابه)</label>
+      <select class="fs" id="cjr-sh-${r.id}" style="margin:0;font-size:11.5px;padding:6px 8px;width:100%">
+        <option value="">— بلا ربط بسجل مساهم —</option>
+        ${shOpts}
       </select>
-      <button class="btn-xs primary" onclick="approveJoinRequest(${r.id})"><span class="ico-i ico-check"></span>موافقة</button>
-      <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer" onclick="rejectJoinRequest(${r.id})">رفض</button>
     </div>
   </div>`).join("");
+}
+
+function toggleCjrShareholderLink(id){
+  const role = document.getElementById("cjr-role-"+id).value;
+  const wrap = document.getElementById("cjr-sh-wrap-"+id);
+  if(wrap) wrap.style.display = (role === "مساهم" || role === "عضو مجلس وعضو مساهم") ? "block" : "none";
 }
 
 async function approveJoinRequest(id){
@@ -5577,6 +5591,15 @@ async function approveJoinRequest(id){
   // elsewhere — a person who joined another company first keeps that as their default.
   const { data: prof } = await sb.from("user_profiles").select("company_id").eq("email", req.requester_email).maybeSingle();
   if(prof && !prof.company_id){ await sb.from("user_profiles").update({ company_id: currentCompanyId, role }).eq("email", req.requester_email); }
+
+  // If this person was approved as (or alongside) a shareholder and the admin picked which
+  // registry row they actually are, claim it now — otherwise their account would have access
+  // but no connection to their real share count or AGM voting weight.
+  const shSel = document.getElementById("cjr-sh-"+id);
+  const shareholderId = shSel ? shSel.value : "";
+  if(shareholderId){
+    await sb.from("shareholders").update({ claimed_by_email: req.requester_email }).eq("id", shareholderId);
+  }
 
   await sb.from("company_join_requests").update({ status: "معتمد", reviewed_by: myEmail, reviewed_at: new Date().toISOString() }).eq("id", id);
   logActivity("موافقة", "طلب انضمام", req.requester_name||req.requester_email, `بدور "${role}"`);
@@ -7115,12 +7138,54 @@ async function loadPlatformUsers(){
   const companyNameById = {}; (companies||[]).forEach(c=>{ companyNameById[c.id]=c.name; });
   const nameByEmail = {}; (profiles||[]).forEach(p=>{ nameByEmail[p.email]=p.full_name; });
 
-  tbody.innerHTML = memberships.map(m => `<tr>
+  platformMembershipsCache = memberships;
+  tbody.innerHTML = memberships.map(m => `<tr id="pm-row-${m.id}">
     <td>${nameByEmail[m.email]||"—"}</td>
     <td style="font-size:11px">${m.email}</td>
     <td>${companyNameById[m.company_id]||"—"}</td>
-    <td>${ROLE_STYLE[m.role]?.icon||""} ${m.role||"—"}</td>
+    <td>
+      <span id="pm-role-view-${m.id}">${ROLE_STYLE[m.role]?.icon||""} ${m.role||"—"}</span>
+      <span id="pm-role-edit-${m.id}" style="display:none">
+        <select class="fs" id="pm-role-sel-${m.id}" style="margin:0;font-size:11px;padding:4px 6px;width:160px">
+          <option>رئيس مجلس</option><option>سكرتير المجلس</option>
+          <option>رئيس لجنة الترشيحات</option><option>عضو لجنة الترشيحات</option>
+          <option>رئيس لجنة مراجعة</option><option>عضو لجنة مراجعة</option>
+          <option>عضو مجلس</option><option>عضو مجلس وعضو مساهم</option><option>مساهم</option><option>موظف</option><option>مدير النظام</option>
+        </select>
+        <button class="btn-xs primary" style="padding:4px 8px" onclick="savePlatformMembershipRole(${m.id})"><span class="ico-i ico-check"></span></button>
+        <button class="btn-xs" style="background:var(--offwhite);border:1px solid var(--gray1);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer" onclick="cancelPlatformMembershipEdit(${m.id})">إلغاء</button>
+      </span>
+      <button class="btn-xs" id="pm-role-btn-${m.id}" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:11px;padding:2px 6px" onclick="editPlatformMembershipRole(${m.id})"><span class="ico-i ico-edit"></span>تعديل</button>
+    </td>
   </tr>`).join("");
+}
+
+let platformMembershipsCache = [];
+function editPlatformMembershipRole(id){
+  const m = platformMembershipsCache.find(x => x.id === id);
+  if(!m) return;
+  document.getElementById("pm-role-view-"+id).style.display = "none";
+  document.getElementById("pm-role-btn-"+id).style.display = "none";
+  document.getElementById("pm-role-edit-"+id).style.display = "inline-flex";
+  document.getElementById("pm-role-sel-"+id).value = m.role || "عضو مجلس";
+}
+function cancelPlatformMembershipEdit(id){
+  document.getElementById("pm-role-view-"+id).style.display = "inline";
+  document.getElementById("pm-role-btn-"+id).style.display = "inline-block";
+  document.getElementById("pm-role-edit-"+id).style.display = "none";
+}
+async function savePlatformMembershipRole(id){
+  const newRole = document.getElementById("pm-role-sel-"+id).value;
+  const { error } = await sb.from("user_company_memberships").update({ role: newRole }).eq("id", id);
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  const m = platformMembershipsCache.find(x => x.id === id);
+  if(m){
+    m.role = newRole;
+    // Keep the profile's primary role in sync only if this was their primary company.
+    const { data: prof } = await sb.from("user_profiles").select("company_id").eq("email", m.email).maybeSingle();
+    if(prof && prof.company_id === m.company_id){ await sb.from("user_profiles").update({ role: newRole }).eq("email", m.email); }
+  }
+  loadPlatformUsers();
 }
 
 async function loadPlatformActivity(){
