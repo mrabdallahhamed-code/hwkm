@@ -1764,6 +1764,20 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   </div>
 </div>
 
+<div class="modal-bg" id="m-delete-company">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-title" style="color:var(--red)"><span class="ico-i ico-trash"></span>حذف شركة نهائياً</div>
+    <input type="hidden" id="dc-id" value=""/>
+    <div style="font-size:15px;font-weight:800;color:var(--dark)" id="dc-name"></div>
+    <div style="font-size:11px;color:var(--gray3);margin:3px 0 10px" id="dc-meta"></div>
+    <div id="dc-counts" style="font-size:11.5px;background:var(--offwhite);border-radius:8px;padding:9px 12px;margin-bottom:12px;line-height:1.8"></div>
+    <p style="font-size:11.5px;color:var(--red);line-height:1.8;margin-bottom:10px">يُحذف كل ما يخصها: الأعضاء، الاجتماعات، السياسات، المستندات، التقييمات... ولا يمكن التراجع. حسابات المستخدمين نفسها لا تُحذف.</p>
+    <div class="fg"><label>للتأكيد اكتب: حذف</label><input class="fi" id="dc-confirm" autocomplete="off"/></div>
+    <div id="dc-error" style="display:none;background:#FBEAEA;color:var(--red);border-radius:8px;padding:9px 12px;font-size:11.5px;line-height:1.7;white-space:pre-wrap;word-break:break-word;user-select:text;margin-bottom:10px"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-delete-company')">إلغاء</button><button class="btn" id="dc-btn" style="background:var(--red);color:#fff" onclick="confirmDeleteCompany()"><span class="ico-i ico-trash"></span>حذف نهائي</button></div>
+  </div>
+</div>
+
 <!-- Assign responsible person + target date for a decision -->
 <div class="modal-bg" id="m-decision-assign">
   <div class="modal" style="max-width:420px">
@@ -7368,26 +7382,63 @@ async function startTrialForCompany(id){
   loadManageCompanies();
 }
 
-/* Deletion is done by one database function so it is atomic (all of the company's data goes, or
-   nothing does) and so it does not depend on this user's row-level access to ~80 tables. The
-   typed-name confirmation exists because there is no undo. */
+/* Deletion goes through one database function (atomic: all of the company's data goes, or nothing
+   does). The confirmation is an in-page dialog rather than prompt(): prompt can be blocked by
+   the browser and fails silently, and a typed name breaks on a duplicate that has the same name.
+   The dialog shows what is inside the company so the empty duplicate can be told apart, shows the
+   database's full error text if it refuses, and checks afterwards that the company is really gone. */
+const DC_BTN_HTML = '<span class="ico-i ico-trash"></span>حذف نهائي';
+
+function dcShowError(text){
+  const box = document.getElementById("dc-error");
+  box.style.display = "block";
+  box.textContent = text;
+}
+
 async function deleteCompanyPermanently(id){
   if(!(currentUserProfile && currentUserProfile.is_platform_admin === true)){ alert("هذه العملية لمالك المنصة فقط"); return; }
   const c = manageCompaniesCache.find(x => x.id === id);
   if(!c) return;
-  const typed = prompt(`حذف نهائي لشركة "${c.name}" وكل بياناتها (اجتماعات، سياسات، أعضاء، مستندات...) ولا يمكن التراجع.\n\nللتأكيد اكتب اسم الشركة بالضبط:`);
-  if(typed === null) return;
-  if(typed.trim() !== (c.name||"").trim()){ alert("الاسم غير مطابق — لم يُحذف شيء."); return; }
+  document.getElementById("dc-id").value = id;
+  document.getElementById("dc-name").textContent = c.name;
+  document.getElementById("dc-meta").textContent = `رقم ${c.id} · ${c.company_type||"—"} · أُنشئت ${c.created_at ? new Date(c.created_at).toLocaleString("ar-SA") : "—"}`;
+  document.getElementById("dc-confirm").value = "";
+  document.getElementById("dc-error").style.display = "none";
+  const btn = document.getElementById("dc-btn"); btn.disabled = false; btn.innerHTML = DC_BTN_HTML;
+  document.getElementById("dc-counts").textContent = "جارِ فحص محتوى الشركة...";
+  openM("m-delete-company");
+  const count = async (t) => {
+    const r = await sb.from(t).select("id", { count: "exact", head: true }).eq("company_id", id);
+    return (r.error || r.count == null) ? "؟" : r.count;
+  };
+  const [members, meetings, policies] = await Promise.all([count("user_company_memberships"), count("meetings"), count("policies")]);
+  document.getElementById("dc-counts").textContent = `تحتوي حالياً على: ${members} عضو مرتبط، ${meetings} اجتماع، ${policies} سياسة. إن كانت كلها صفراً فالأرجح أنها نسخة زائدة فارغة.`;
+}
+
+async function confirmDeleteCompany(){
+  const id = Number(document.getElementById("dc-id").value);
+  if(document.getElementById("dc-confirm").value.trim() !== "حذف"){ dcShowError("اكتب كلمة «حذف» بالضبط بالمربع للتأكيد."); return; }
+  const btn = document.getElementById("dc-btn");
+  btn.disabled = true; btn.textContent = "جارِ الحذف...";
+  document.getElementById("dc-error").style.display = "none";
+
   const { error } = await sb.rpc("delete_company_cascade", { target_id: id });
+  btn.disabled = false; btn.innerHTML = DC_BTN_HTML;
   if(error){
     const missing = error.code === "PGRST202" || error.code === "42883" || /could not find the function/i.test(error.message||"");
-    alert(missing ? "دالة الحذف غير مُنشأة بقاعدة البيانات بعد. شغّل ملف SQL الخاص بها بلوحة Supabase ثم أعد المحاولة." : "تعذّر الحذف، ولم يُحذف شيء: " + error.message);
+    dcShowError(missing
+      ? "دالة الحذف غير مُنشأة بقاعدة البيانات. شغّل ملف HWKM-delete-company-function.sql بلوحة Supabase ثم أعد المحاولة."
+      : "رفضت قاعدة البيانات الحذف، ولم يُحذف شيء. أرسل هذا النص كما هو:\n\n" + [error.message, error.details, error.hint, error.code ? "الرمز: " + error.code : ""].filter(Boolean).join("\n"));
     return;
   }
-  alert(`تم حذف "${c.name}" وكل بياناتها ✅`);
+  const { data: still } = await sb.from("companies").select("id").eq("id", id).maybeSingle();
+  if(still){ dcShowError("اكتملت الدالة بلا خطأ لكن الشركة ما زالت موجودة. غالباً صلاحيات على الجدول، أرسل لي هذا الوصف."); return; }
+  closeM("m-delete-company");
+  alert("تم حذف الشركة وكل بياناتها ✅");
   await loadManageCompanies();
   if(typeof loadCompanies === "function") loadCompanies();
 }
+
 
 async function loadManageCompanies(){
   const box = document.getElementById("manageCompaniesList");
