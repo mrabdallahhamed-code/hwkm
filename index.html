@@ -13597,6 +13597,90 @@ function openSignaturePad(docId){
   setTimeout(initSignaturePad, 50);
 }
 
+/* ══════════ PERMANENT SIGNATURE (التوقيع الدائم) ══════════
+   A person's first signature on the platform becomes their only one. Every signing flow reads its
+   image straight from its own drawing pad, so rather than touching each flow's save logic, a locked
+   signature is painted onto the pad itself and drawing is switched off — whichever flow reads the
+   pad then gets the locked image. The database allows one insert per email and no updates or
+   deletes (see the user_signatures policies), so this is not just a hidden button. */
+let userLockedSignature = undefined;      // undefined = not loaded yet, null = has none, string = data URL
+let userLockedSignatureFor = null;
+
+async function loadUserLockedSignature(force){
+  const { data: { session } } = await sb.auth.getSession();
+  const email = session && session.user ? session.user.email : null;
+  if(!email) return null;
+  if(!force && userLockedSignature !== undefined && userLockedSignatureFor === email) return userLockedSignature;
+  const { data } = await sb.from("user_signatures").select("signature_image").eq("email", email).maybeSingle();
+  userLockedSignatureFor = email;
+  userLockedSignature = data ? data.signature_image : null;
+  return userLockedSignature;
+}
+
+function sigPadModalButtons(canvas){
+  const modal = canvas.closest(".modal");
+  return modal ? Array.from(modal.querySelectorAll("button")).filter(b => /^clear\w*Pad/.test((b.getAttribute("onclick")||"").trim())) : [];
+}
+
+async function applyLockedSignature(canvasId){
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const locked = await loadUserLockedSignature();
+  const holder = canvas.parentElement;
+  const old = holder.parentElement.querySelector(".sig-lock-note");
+  if(old) old.remove();
+  const note = document.createElement("div");
+  note.className = "sig-lock-note";
+  note.style.cssText = "font-size:11px;margin-top:6px;line-height:1.6;" + (locked ? "color:var(--green);font-weight:700" : "color:var(--gray3)");
+  note.textContent = locked ? "توقيعك المعتمد الدائم — يُستخدم تلقائيًا ولا يمكن تغييره." : "أول توقيع تعتمده هنا سيصبح توقيعك الدائم لكل المستندات القادمة، ولا يمكن تغييره بعد ذلك.";
+  holder.insertAdjacentElement("afterend", note);
+
+  sigPadModalButtons(canvas).forEach(b => { b.style.display = locked ? "none" : ""; });
+  if(!locked){ canvas.style.cursor = "crosshair"; return; }
+
+  canvas.onmousedown = canvas.onmousemove = canvas.onmouseup = canvas.onmouseleave = null;
+  canvas.ontouchstart = canvas.ontouchmove = canvas.ontouchend = null;
+  canvas.style.cursor = "default";
+  const ctx = canvas.getContext("2d");
+  await new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const r = Math.min(canvas.width / img.width, canvas.height / img.height);
+      const w = img.width * r, h = img.height * r;
+      ctx.drawImage(img, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+      res();
+    };
+    img.onerror = res;
+    img.src = locked;
+  });
+}
+
+/* Called by each confirm function once its own validations have passed. Returns false if the
+   person backs out of making this their permanent signature. If a signature already exists
+   (including one saved from another device a moment ago) it is painted back onto the pad, so the
+   image the caller reads next is always the locked one. */
+async function lockFirstSignature(canvasId){
+  const existing = await loadUserLockedSignature();
+  if(existing){ await applyLockedSignature(canvasId); return true; }
+  if(!confirm("هذا أول توقيع لك بالمنصة، وسيُعتمد توقيعاً دائماً لكل مستنداتك القادمة ولا يمكن تغييره لاحقاً.\n\nهل تعتمد هذا التوقيع؟")) return false;
+  const canvas = document.getElementById(canvasId);
+  const { data: { session } } = await sb.auth.getSession();
+  const email = session && session.user ? session.user.email : null;
+  if(!email){ alert("تعذّر تحديد هويتك، الرجاء تسجيل الدخول من جديد"); return false; }
+  const { error } = await sb.from("user_signatures").insert([{ email, signature_image: canvas.toDataURL("image/png") }]);
+  if(error){
+    const again = await loadUserLockedSignature(true);
+    if(again){ await applyLockedSignature(canvasId); alert("لديك توقيع معتمد مسبقاً، وسيُستخدم هو."); return true; }
+    alert("تعذّر حفظ التوقيع الدائم: " + error.message);
+    return false;
+  }
+  userLockedSignature = canvas.toDataURL("image/png");
+  userLockedSignatureFor = email;
+  await applyLockedSignature(canvasId);
+  return true;
+}
+
 function initSignaturePad(){
   const canvas = document.getElementById("sigCanvas");
   if(!canvas) return;
@@ -13623,6 +13707,7 @@ function initSignaturePad(){
 
   canvas.onmousedown = start; canvas.onmousemove = move; canvas.onmouseup = end; canvas.onmouseleave = end;
   canvas.ontouchstart = start; canvas.ontouchmove = move; canvas.ontouchend = end;
+  applyLockedSignature("sigCanvas");
 }
 
 function clearSignaturePad(){
@@ -13653,6 +13738,7 @@ async function confirmSignature(){
   const { data: existing } = await sb.from("document_signatures").select("id").eq("document_id", docId).eq("signer_email", myEmail);
   if(existing && existing.length){ alert("لقد وقّعت هذه الوثيقة بالفعل ✅"); closeM("m-signature-pad"); return; }
 
+  if(!(await lockFirstSignature("sigCanvas"))) return;
   const canvas = document.getElementById("sigCanvas");
   const signature_image = canvas.toDataURL("image/png");
 
@@ -13763,6 +13849,7 @@ function initOfficialSigPad(){
   const end = () => { officialSigPadDrawing = false; };
   canvas.onmousedown = start; canvas.onmousemove = move; canvas.onmouseup = end; canvas.onmouseleave = end;
   canvas.ontouchstart = start; canvas.ontouchmove = move; canvas.ontouchend = end;
+  applyLockedSignature("officialSigCanvas");
 }
 
 function clearOfficialSigPad(){
@@ -13785,6 +13872,7 @@ async function confirmOfficialSignature(){
   if(sel.disabled){ alert("لا توجد أدوار متبقية للتوقيع بهذا المستند"); return; }
   const role = sel.value;
   if(isOfficialSigPadEmpty()){ alert("الرجاء رسم التوقيع أولًا"); return; }
+  if(!(await lockFirstSignature("officialSigCanvas"))) return;
 
   const { data: userData } = await sb.auth.getUser();
   const email = userData && userData.user ? userData.user.email : null;
@@ -15981,6 +16069,7 @@ function initGovSigPad(){
   const end = () => { govSigPadDrawing = false; };
   canvas.onmousedown = start; canvas.onmousemove = move; canvas.onmouseup = end; canvas.onmouseleave = end;
   canvas.ontouchstart = start; canvas.ontouchmove = move; canvas.ontouchend = end;
+  applyLockedSignature("govSigCanvas");
 }
 
 function clearGovSigPad(){
@@ -16023,6 +16112,7 @@ async function confirmGovernanceSignature(){
     return;
   }
 
+  if(!(await lockFirstSignature("govSigCanvas"))) return;
   const { data: userData } = await sb.auth.getUser();
   const email = userData?.user?.email;
   const signature_image = document.getElementById("govSigCanvas").toDataURL("image/png");
@@ -19720,6 +19810,7 @@ function initSimpleDecisionSigPad(){
   const end = () => { simpleDecisionSigDrawing = false; };
   canvas.onmousedown = start; canvas.onmousemove = move; canvas.onmouseup = end; canvas.onmouseleave = end;
   canvas.ontouchstart = start; canvas.ontouchmove = move; canvas.ontouchend = end;
+  applyLockedSignature("simpleDecisionSigCanvas");
 }
 
 function clearSimpleDecisionSigPad(){
@@ -19742,6 +19833,7 @@ async function confirmSimpleDecisionSignature(){
   const id = Number(document.getElementById("sds-decision-id").value);
   const signed_by_name = document.getElementById("sds-name").value.trim();
   if(!signed_by_name){ alert("الرجاء إدخال الاسم"); return; }
+  if(!(await lockFirstSignature("simpleDecisionSigCanvas"))) return;
   const canvas = document.getElementById("simpleDecisionSigCanvas");
   const signature_image = canvas.toDataURL("image/png");
   const { error } = await sb.from("simple_decisions").update({ signed_by_name, signature_image, signed_at: new Date().toISOString() }).eq("id", id);
@@ -20253,6 +20345,7 @@ function initPerfSignaturePad(){
   const end = () => { perfSigPadDrawing = false; };
   canvas.onmousedown = start; canvas.onmousemove = move; canvas.onmouseup = end; canvas.onmouseleave = end;
   canvas.ontouchstart = start; canvas.ontouchmove = move; canvas.ontouchend = end;
+  applyLockedSignature("perfSigCanvas");
 }
 
 function clearPerfSigPad(){
@@ -20288,6 +20381,7 @@ function wrapRTLText(ctx, text, x, y, maxWidth, lineHeight){
 async function confirmPerfReviewSignature(){
   if(isPerfSigPadEmpty()){ alert("الرجاء رسم توقيعك أولًا قبل التأكيد"); return; }
   if(!perfDetailContext){ alert("تعذّر تحميل بيانات التقييم"); return; }
+  if(!(await lockFirstSignature("perfSigCanvas"))) return;
 
   const ev = perfCache.find(e => e.id === perfDetailContext.evaluationId);
   const { data: userData } = await sb.auth.getUser();
@@ -21248,6 +21342,7 @@ function initVoteSignaturePad(){
   const end = () => { voteSigPadDrawing = false; };
   canvas.onmousedown = start; canvas.onmousemove = move; canvas.onmouseup = end; canvas.onmouseleave = end;
   canvas.ontouchstart = start; canvas.ontouchmove = move; canvas.ontouchend = end;
+  applyLockedSignature("voteSigCanvas");
 }
 
 function clearVoteSignaturePad(){
@@ -21273,6 +21368,7 @@ function isVoteSignaturePadEmpty(){
 async function confirmVoteCardSignature(){
   if(isVoteSignaturePadEmpty()){ alert("الرجاء رسم توقيعك أولًا قبل التأكيد"); return; }
   if(!voteCardData){ alert("تعذّر تحميل بيانات البطاقة"); return; }
+  if(!(await lockFirstSignature("voteSigCanvas"))) return;
   const { shareholder_name, companyName, meeting: m, agendaRows, card_number, shares_own, shares_proxy, shares_total } = voteCardData;
 
   const scale = 2;
