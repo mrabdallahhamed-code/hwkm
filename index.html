@@ -1387,18 +1387,52 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 
 <!-- ══ COMPLIANCE ═══════════════════════ -->
 <div id="p-compliance" class="page content">
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <span><span class="ico-i ico-check"></span>الالتزام والامتثال</span>
+    <button class="btn btn-ghost" id="complianceLibraryBtn" style="display:none;font-size:11px;padding:6px 14px" onclick="openCmpLibrary()"><span class="ico-i ico-key"></span>إدارة مكتبة الالتزامات</button>
+  </div>
+  <div id="complianceSyncNote" style="display:none;background:#FEF3E2;color:var(--gold);border-radius:8px;padding:9px 12px;font-size:11.5px;font-weight:700;margin-bottom:14px"></div>
+
   <div class="two-col">
     <div class="card">
-      <div class="card-head"><span class="card-title"><span class="ico-i ico-dashboard"></span>مستوى الامتثال — حسب الجهة التنظيمية</span></div>
-      <div class="card-body" id="complianceByAuthority">
+      <div class="card-head"><span class="card-title"><span class="ico-i ico-shield"></span>الالتزام الداخلي (آلي)</span></div>
+      <div class="card-body" id="complianceInternal">
         <div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div>
       </div>
     </div>
     <div class="card">
-      <div class="card-head"><span class="card-title"><span class="ico-i ico-bolt"></span>إجراءات مطلوبة</span></div>
-      <div class="card-body" id="complianceAlerts">
+      <div class="card-head"><span class="card-title"><span class="ico-i ico-dashboard"></span>الالتزام الخارجي — حسب الجهة</span></div>
+      <div class="card-body" id="complianceByAuthority">
         <div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div>
       </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:18px">
+    <div class="card-head"><span class="card-title"><span class="ico-i ico-bolt"></span>إجراءات مطلوبة</span></div>
+    <div class="card-body" id="complianceAlerts">
+      <div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div>
+    </div>
+  </div>
+
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px;flex-wrap:wrap;gap:8px">
+    <span><span class="ico-i ico-clipboard"></span>سجل الالتزامات الخارجية</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <select class="fs" id="cmp-filter" style="margin:0;width:140px;font-size:12px;padding:6px 10px" onchange="renderComplianceTable()">
+        <option value="">الكل</option><option value="late">المتأخرة</option><option value="open">المفتوحة</option>
+        <option value="ok">الملتزم بها</option><option value="na">غير المنطبقة</option>
+      </select>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openNewComplianceItem()">+ إضافة بند</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body" style="padding:0;overflow-x:auto">
+      <table class="tbl">
+        <thead><tr><th>البند</th><th>الجهة / المرجع</th><th>الدورية</th><th>الموعد</th><th>المسؤول</th><th>الحالة</th><th>إجراء</th></tr></thead>
+        <tbody id="complianceTbody">
+          <tr><td colspan="7" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
@@ -1413,21 +1447,6 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   </div>
   <div id="govEvalList">
     <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
-  </div>
-
-  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
-    <span><span class="ico-i ico-clipboard"></span>سجل بنود الامتثال</span>
-    <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mc-id').value='';document.getElementById('mc-title-h').textContent='+ إضافة بند';openM('m-compliance')">+ إضافة بند</button>
-  </div>
-  <div class="card">
-    <div class="card-body" style="padding:0">
-      <table class="tbl">
-        <thead><tr><th>البند</th><th>الجهة التنظيمية</th><th>الموعد</th><th>الحالة</th><th>إجراء</th></tr></thead>
-        <tbody id="complianceTbody">
-          <tr><td colspan="5" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
-        </tbody>
-      </table>
-    </div>
   </div>
 </div>
 
@@ -2967,14 +2986,70 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 </div>
 
 <div class="modal-bg" id="m-compliance">
-  <div class="modal">
-    <div class="modal-title" id="mc-title-h"><span class="ico-i ico-check"></span>إضافة بند امتثال</div>
+  <div class="modal" style="max-height:92vh;overflow-y:auto">
+    <div class="modal-title" id="mc-title-h"><span class="ico-i ico-check"></span>إضافة بند التزام</div>
     <input type="hidden" id="mc-id" value="" />
-    <div class="fg"><label>البند</label><input class="fi" id="mc-item" placeholder="مثال: تحديث سياسة الخصوصية" /></div>
-    <div class="fg"><label>الجهة التنظيمية</label><input class="fi" id="mc-authority" placeholder="مثال: هيئة السوق المالية" /></div>
-    <div class="fg"><label>الموعد</label><input type="date" class="fi" id="mc-duedate"/></div>
-    <div class="fg"><label>الحالة</label><select class="fs" id="mc-status"><option>ملتزم</option><option>جارٍ</option><option>مجدول</option></select></div>
-    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-compliance')">إلغاء</button><button class="btn btn-gold" onclick="saveCompliance()"><span class="ico-i ico-check"></span>حفظ البند</button></div>
+    <div id="mc-lib-note" style="display:none;font-size:11px;color:var(--gray3);background:var(--offwhite);border-radius:8px;padding:8px 10px;margin-bottom:10px">هذا البند من مكتبة المنصة: يمكنك تحديد الموعد والمسؤول والحالة والدليل، أما الاسم والجهة والدورية فمن المكتبة.</div>
+    <div class="fg"><label>البند</label><input class="fi" id="mc-item" placeholder="اسم الالتزام" /></div>
+    <div class="row2">
+      <div class="fg"><label>الجهة</label><input class="fi" id="mc-authority" placeholder="الجهة المختصة" /></div>
+      <div class="fg"><label>المرجع النظامي</label><input class="fi" id="mc-ref" placeholder="النظام / المادة" /></div>
+    </div>
+    <div class="row2">
+      <div class="fg"><label>الدورية</label><select class="fs" id="mc-frequency"></select></div>
+      <div class="fg"><label>الموعد القادم</label><input type="date" class="fi" id="mc-duedate"/></div>
+    </div>
+    <div class="fg" id="mc-hint-row" style="display:none"><label>ملاحظة الموعد (من المكتبة)</label><div id="mc-hint" style="font-size:11.5px;color:var(--gray3)"></div></div>
+    <div class="row2">
+      <div class="fg"><label>المسؤول</label><select class="fs" id="mc-owner"></select></div>
+      <div class="fg"><label>الحالة</label><select class="fs" id="mc-status"></select></div>
+    </div>
+    <div class="fg"><label>دليل الالتزام / ملاحظات</label><textarea class="fta" id="mc-evidence" rows="3" placeholder="رقم الشهادة أو الإيصال، أو أين يوجد المستند، أو ملاحظة"></textarea></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-compliance')">إلغاء</button><button class="btn btn-gold" onclick="saveCompliance()"><span class="ico-i ico-check"></span>حفظ</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-cmplib">
+  <div class="modal" style="max-width:760px;max-height:92vh;overflow-y:auto">
+    <div class="modal-title"><span class="ico-i ico-key"></span>مكتبة الالتزامات الخارجية</div>
+    <p style="font-size:11px;color:var(--gray3);line-height:1.8;margin-bottom:10px">تُنسخ لكل شركة حسب نوع كيانها عند فتحها صفحة الالتزام. الإدخالات الجديدة تصل للشركات القائمة، أما تعديل إدخال موجود فلا يغيّر نسخة الشركة التي استلمته من قبل. الأفضل إيقاف الإدخال بدل حذفه.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openCmpLibEdit()">+ إضافة التزام</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="toggleCmpImport()">استيراد دفعة</button>
+    </div>
+    <div id="cmplib-import" style="display:none;background:var(--offwhite);border-radius:8px;padding:10px 12px;margin-bottom:12px">
+      <div style="font-size:11px;color:var(--gray3);line-height:1.8;margin-bottom:6px">سطر لكل التزام، والفاصل |<br>العنوان | الجهة | المرجع النظامي | الدورية | الكيانات | ملاحظة الموعد<br>الدورية: سنوي، نصف سنوي، ربع سنوي، شهري، مرة واحدة، عند الحدوث. الكيانات: الكل، أو أسماء مفصولة بفاصلة (مدرجة، غير مدرجة، ذات مسؤولية محدودة، فردية).</div>
+      <textarea class="fta" id="cmplib-import-text" rows="6" placeholder="[اسم الالتزام] | [الجهة] | [المرجع] | سنوي | الكل | [ملاحظة الموعد]"></textarea>
+      <button class="btn btn-gold" style="margin-top:8px;font-size:11px;padding:6px 14px" onclick="importCmpLibrary()">استيراد</button>
+      <span id="cmplib-import-result" style="font-size:11px;color:var(--gray3);margin-right:8px"></span>
+    </div>
+    <div id="cmplib-list"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-cmplib')">إغلاق</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-cmplib-edit">
+  <div class="modal" style="max-height:92vh;overflow-y:auto">
+    <div class="modal-title" id="cl-title-h">إضافة التزام للمكتبة</div>
+    <input type="hidden" id="cl-id" value=""/>
+    <div class="fg"><label>العنوان</label><input class="fi" id="cl-title"/></div>
+    <div class="row2">
+      <div class="fg"><label>الجهة</label><input class="fi" id="cl-authority"/></div>
+      <div class="fg"><label>المرجع النظامي</label><input class="fi" id="cl-ref"/></div>
+    </div>
+    <div class="row2">
+      <div class="fg"><label>الدورية</label><select class="fs" id="cl-freq"></select></div>
+      <div class="fg"><label>ملاحظة الموعد</label><input class="fi" id="cl-hint"/></div>
+    </div>
+    <div class="fg"><label>إرشاد للعميل (اختياري)</label><textarea class="fta" id="cl-desc" rows="2"></textarea></div>
+    <div class="fg"><label>يسري على</label>
+      <div id="cl-types" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+    <div class="fg" style="display:flex;gap:16px;flex-wrap:wrap">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0"><input type="checkbox" id="cl-boardonly" style="width:14px;height:14px"/>للكيانات التي لها مجلس فقط</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0"><input type="checkbox" id="cl-active" checked style="width:14px;height:14px"/>مفعّل</label>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-cmplib-edit')">إلغاء</button><button class="btn btn-gold" onclick="saveCmpLibEntry()"><span class="ico-i ico-check"></span>حفظ</button></div>
   </div>
 </div>
 
@@ -6387,7 +6462,7 @@ async function loadReportsPage(){
   ]);
   const meetings = meetingsRes.data || [];
   const signingDocs = signingRes.data || [];
-  const compliance = complianceRes.data || [];
+  const compliance = complianceApplicable(complianceRes.data || []);
   const committeesData = committeesRes.data || [];
   const members = membersRes.data || [];
   const risks = risksRes.data || [];
@@ -6401,7 +6476,7 @@ async function loadReportsPage(){
 
   const boardMeetingsThisYear = meetings.filter(m => (m.meeting_type==="اجتماع مجلس الإدارة الدوري"||m.meeting_type==="اجتماع طارئ") && m.meeting_date && new Date(m.meeting_date).getFullYear()===currentYear);
   const decisionsThisYear = signingDocs.filter(d => d.status==="مكتمل" && d.created_at && new Date(d.created_at).getFullYear()===currentYear);
-  const compliancePct = compliance.length ? Math.round((compliance.filter(c=>c.status==="ملتزم").length/compliance.length)*100) : null;
+  const compliancePct = compliance.length ? Math.round((compliance.filter(complianceIsOk).length/compliance.length)*100) : null;
 
   setText("rep-kpi-meetings", boardMeetingsThisYear.length);
   setText("rep-kpi-decisions", decisionsThisYear.length);
@@ -6462,7 +6537,7 @@ async function loadReportsPage(){
     const openRisks = risks.filter(r=>r.status==="مراقبة"||r.status==="متابعة").length;
     const agmCount = meetings.filter(m=>m.meeting_type==="الجمعية العامة").length;
     const rows = [
-      { title:"تقرير الامتثال التنظيمي", type:"امتثال", summary: compliance.length ? `${compliance.filter(c=>c.status==="ملتزم").length} من ${compliance.length} بندًا ملتزم` : "لا توجد بيانات", ok: compliancePct===100, page:"compliance" },
+      { title:"تقرير الامتثال التنظيمي", type:"امتثال", summary: compliance.length ? `${compliance.filter(complianceIsOk).length} من ${compliance.length} بندًا ملتزم` : "لا توجد بيانات", ok: compliancePct===100, page:"compliance" },
       { title:"تقرير تقييم أداء المجلس", type:"تقييم", summary: perfEvals.length ? `${completedPerf} تقييم مكتمل من ${perfEvals.length}` : "لا توجد بيانات", ok: perfEvals.length>0 && completedPerf===perfEvals.length, page:"perf" },
       { title:"تقرير إدارة المخاطر", type:"مخاطر", summary: risks.length ? `${openRisks} خطر مفتوح من ${risks.length}` : "لا توجد بيانات", ok: openRisks===0, page:"risks" },
       { title:"تقرير الحوكمة للجمعية العامة", type:"جمعية", summary: agmCount ? `${agmCount} جمعية مسجّلة` : "لا توجد بيانات", ok: agmCount>0, page:"agm" },
@@ -6511,7 +6586,7 @@ async function generateAnnualReportPDF(){
 
   const meetings = meetingsRes.data || [];
   const signingDocs = signingRes.data || [];
-  const compliance = complianceRes.data || [];
+  const compliance = complianceApplicable(complianceRes.data || []);
   const committeesData = committeesRes.data || [];
   const members = membersRes.data || [];
   const risks = risksRes.data || [];
@@ -6520,7 +6595,7 @@ async function generateAnnualReportPDF(){
 
   const boardMeetingsThisYear = meetings.filter(m => (m.meeting_type==="اجتماع مجلس الإدارة الدوري"||m.meeting_type==="اجتماع طارئ") && m.meeting_date && new Date(m.meeting_date).getFullYear()===currentYear);
   const decisionsThisYear = signingDocs.filter(d => d.status==="مكتمل" && d.created_at && new Date(d.created_at).getFullYear()===currentYear);
-  const compliancePct = compliance.length ? Math.round((compliance.filter(c=>c.status==="ملتزم").length/compliance.length)*100) : null;
+  const compliancePct = compliance.length ? Math.round((compliance.filter(complianceIsOk).length/compliance.length)*100) : null;
 
   const composRows = members.map(m => `<tr><td>${m.name||""}</td><td>${m.position||"—"}</td><td>${boardMemberClassification(m)}</td></tr>`).join("")
     || '<tr><td colspan="3">لا يوجد أعضاء مسجّلون.</td></tr>';
@@ -8717,6 +8792,15 @@ async function computeGovernanceAlerts(){
     }
   } catch(e){ console.error("corrective action alert check failed", e); }
 
+  // 8) External compliance items past their deadline (a recurring one with a past date is unconfirmed)
+  try {
+    const { data: cmpRows } = await sb.from("compliance_items").select("id,status,due_date,frequency").eq("company_id", currentCompanyId);
+    const cmpLate = (cmpRows||[]).filter(i => complianceDerivedStatus(i) === "متأخر").length;
+    if(cmpLate){
+      alerts.push({ severity: "high", text: `${cmpLate} ${cmpLate===1?'التزام نظامي متأخر':'التزامات نظامية متأخرة'} عن موعدها.`, page: "compliance" });
+    }
+  } catch(e){ console.error("compliance alert check failed", e); }
+
   // 6) Manager decisions (single-manager LLC) past their own target date, unfinished
   if(currentCompanyLLCSingleManager){
     try {
@@ -8810,7 +8894,7 @@ async function loadDashboard(){
 
   const meetings = meetingsRes.data || [];
   const risks = risksRes.data || [];
-  const compliance = complianceRes.data || [];
+  const compliance = complianceApplicable(complianceRes.data || []);
   const members = membersRes.data || [];
   const committeesData = committeesRes.data || [];
   const signingDocs = signingRes.data || [];
@@ -8866,7 +8950,7 @@ async function loadDashboard(){
   setText("kpi-minutes-foot", `↑ ${approvedThisMonth} هذا الشهر`);
 
   // ── KPI: compliance % ──
-  const compliantCount = compliance.filter(c => c.status === "ملتزم").length;
+  const compliantCount = compliance.filter(complianceIsOk).length;
   const compliancePct = compliance.length ? Math.round((compliantCount/compliance.length)*100) : 0;
   setText("kpi-compliance", compliance.length ? compliancePct+"%" : "—");
   setText("kpi-compliance-foot", compliance.length ? `${compliantCount} من ${compliance.length} بندًا ملتزم` : "لا توجد بيانات بعد");
@@ -8937,7 +9021,7 @@ async function loadDashboard(){
     const daysLeft = Math.ceil((new Date(soonReview.review_date)-now)/86400000);
     alerts.push({ color:"gold", text:`موعد مراجعة "${soonReview.policy_name}" خلال ${daysLeft} يومًا` });
   }
-  const complianceGaps = compliance.filter(c => c.status !== "ملتزم").length;
+  const complianceGaps = compliance.filter(c => !complianceIsOk(c)).length;
   if(complianceGaps){
     alerts.push({ color:"gold", text:`${complianceGaps} ${complianceGaps===1?'بند امتثال':'بنود امتثال'} لم يكتمل بعد` });
   }
@@ -13428,79 +13512,480 @@ async function submitRiskRating(requestId){
 
 /* ══════════ COMPLIANCE ══════════ */
 let complianceCache = [];
+/* ══════════ COMPLIANCE (الالتزام والامتثال) ══════════
+   Two tracks. Internal compliance is computed from data the platform already holds (overdue
+   policy reviews, decisions, corrective actions, unsigned documents, the yearly assessment), so
+   nobody types anything in. External compliance is a register of legal obligations: a master list
+   (compliance_library) the platform owner maintains per entity type is copied into each company,
+   which then sets dates, owners and evidence. A copied obligation can be marked "not applicable"
+   but not deleted, so the next sync does not bring it back. */
+const CMP_ENTITIES = ["مساهمة مدرجة","مساهمة غير مدرجة","ذات مسؤولية محدودة","مؤسسة فردية"];
+const CMP_FREQS = ["سنوي","نصف سنوي","ربع سنوي","شهري","مرة واحدة","عند الحدوث"];
+const CMP_STATUSES = ["ملتزم","جارٍ","مجدول","غير ملتزم","غير منطبق"];
+const CMP_STATUS_STYLE = {
+  "ملتزم":["#E8F8EF","var(--green)"], "جارٍ":["#FEF3E2","var(--gold)"], "مجدول":["#F1F1F1","var(--gray3)"],
+  "متأخر":["#FBEAEA","var(--red)"], "غير ملتزم":["#FBEAEA","var(--red)"], "غير منطبق":["#F1F1F1","var(--gray3)"]
+};
+let cmpMembersCache = [];
+let cmpLibraryCache = [];
+
+function cmpToday(){ const t = new Date(); const p = n => String(n).padStart(2,"0"); return `${t.getFullYear()}-${p(t.getMonth()+1)}-${p(t.getDate())}`; }
+function cmpIsRecurring(f){ return !!f && !["مرة واحدة","عند الحدوث"].includes(f); }
+function cmpMonths(f){ return ({"سنوي":12,"نصف سنوي":6,"ربع سنوي":3,"شهري":1})[f] || 0; }
+function cmpAddMonths(dateStr, add){
+  let y, m, d;
+  if(dateStr){ [y,m,d] = dateStr.split("-").map(Number); } else { const t = new Date(); y = t.getFullYear(); m = t.getMonth()+1; d = t.getDate(); }
+  const target = new Date(Date.UTC(y, m-1+add, 1));
+  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth()+1, 0)).getUTCDate();
+  target.setUTCDate(Math.min(d, lastDay));
+  return target.toISOString().slice(0,10);
+}
+
+/* A past deadline means late — except a legacy one-off item already marked complied, whose date is
+   just the day it was done. Recurring items always roll their date forward when confirmed, so a
+   past date on one of those really is an unconfirmed cycle. */
+function complianceDerivedStatus(i){
+  if(i.status === "غير منطبق") return "غير منطبق";
+  if(i.due_date && i.due_date < cmpToday() && (cmpIsRecurring(i.frequency) || i.status !== "ملتزم")) return "متأخر";
+  return i.status || "مجدول";
+}
+function complianceApplicable(items){ return (items||[]).filter(i => i.status !== "غير منطبق"); }
+function complianceIsOk(i){ return complianceDerivedStatus(i) === "ملتزم"; }
+
+async function cmpLoadMembers(){
+  const { data: ms } = await sb.from("user_company_memberships").select("email,role").eq("company_id", currentCompanyId);
+  const rows = (ms||[]).filter(m => m.role !== "مساهم");
+  const emails = rows.map(r => r.email);
+  const { data: profs } = emails.length ? await sb.from("user_profiles").select("email,full_name").in("email", emails) : { data: [] };
+  const nameBy = {}; (profs||[]).forEach(p => { nameBy[p.email] = p.full_name; });
+  cmpMembersCache = rows.map(r => ({ email: r.email, role: r.role, name: nameBy[r.email] || r.email }));
+}
+function cmpOwnerName(email){ if(!email) return "—"; const m = cmpMembersCache.find(x => x.email === email); return m ? m.name : email; }
+
+/* Copies library entries this company doesn't have yet. Safe to run on every visit: it only adds
+   what is missing, and a unique index on (company_id, library_id) makes a simultaneous second run
+   fail harmlessly instead of duplicating. */
+async function cmpSyncFromLibrary(){
+  if(!currentCompanyId || !currentCompanyType) return { added: 0, first: false, missingTables: false };
+  const [libRes, haveRes] = await Promise.all([
+    sb.from("compliance_library").select("*").eq("is_active", true).order("sort_order",{ascending:true}).order("id",{ascending:true}),
+    sb.from("compliance_items").select("library_id").eq("company_id", currentCompanyId).not("library_id","is",null)
+  ]);
+  if(libRes.error || haveRes.error){ console.warn("compliance sync skipped", libRes.error || haveRes.error); return { added: 0, first: false, missingTables: true }; }
+  const haveIds = new Set((haveRes.data||[]).map(x => x.library_id));
+  const noBoard = currentCompanyType === "مؤسسة فردية" || currentCompanyLLCSingleManager || currentCompanyLLCSingleOwner;
+  const toAdd = (libRes.data||[]).filter(l => (l.entity_types||[]).includes(currentCompanyType) && !(l.board_only && noBoard) && !haveIds.has(l.id));
+  if(!toAdd.length) return { added: 0, first: false, missingTables: false };
+  const rows = toAdd.map(l => ({
+    company_id: currentCompanyId, item_name: l.title, authority: l.authority, regulation_ref: l.regulation_ref,
+    frequency: l.frequency, due_hint: l.due_hint, source: "library", library_id: l.id, status: "مجدول"
+  }));
+  const { error } = await sb.from("compliance_items").insert(rows);
+  if(error){ if(error.code !== "23505") console.warn("compliance sync insert failed", error); return { added: 0, first: false, missingTables: false }; }
+  return { added: rows.length, first: haveIds.size === 0, missingTables: false };
+}
+
 async function loadCompliance(){
   loadGovEval();
+  const isOwner = currentUserProfile && currentUserProfile.is_platform_admin === true;
+  const libBtn = document.getElementById("complianceLibraryBtn");
+  if(libBtn) libBtn.style.display = isOwner ? "inline-flex" : "none";
+
+  const sync = await cmpSyncFromLibrary();
+  const note = document.getElementById("complianceSyncNote");
+  if(note){
+    if(sync.added){
+      note.style.display = "block";
+      note.textContent = sync.first
+        ? `جُهّزت قائمة التزامات أولية (${sync.added} بنداً) حسب نوع كيان شركتكم. راجعوها وحدّدوا المواعيد والمسؤولين، وعلّموا ما لا ينطبق عليكم.`
+        : `أُضيف ${sync.added} التزام جديد من مكتبة المنصة حسب نوع كيان شركتكم.`;
+    } else if(sync.missingTables && isOwner){
+      note.style.display = "block";
+      note.textContent = "جداول مكتبة الالتزامات غير مُنشأة بعد. شغّل ملف HWKM-compliance-setup.sql بلوحة Supabase.";
+    } else { note.style.display = "none"; }
+  }
+
+  renderComplianceInternal();
   const tbody = document.getElementById("complianceTbody");
   if(!tbody) return;
-  const { data, error } = await sb.from("compliance_items").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
-  if(error){ tbody.innerHTML = errorRowHTML(5, error.message); renderComplianceByAuthority([]); renderComplianceAlerts([]); return; }
+  await cmpLoadMembers();
+  const { data, error } = await sb.from("compliance_items").select("*").eq("company_id", currentCompanyId).order("id",{ascending:true});
+  if(error){ tbody.innerHTML = errorRowHTML(7, error.message); renderComplianceByAuthority([]); renderComplianceAlerts([]); return; }
   complianceCache = data || [];
-  if(complianceCache.length===0){
-    tbody.innerHTML = emptyRowHTML(5, 'لا توجد بيانات بعد. اضغط "+ إضافة بند" للبدء.');
-    renderComplianceByAuthority([]); renderComplianceAlerts([]);
-    return;
-  }
-  tbody.innerHTML = complianceCache.map(c => `<tr>
-    <td>${c.item_name||""}</td><td>${c.authority||"—"}</td><td>${c.due_date||"—"}</td><td>${c.status||"—"}</td>
-    <td>
-      <button class="btn-xs primary" onclick="editCompliance(${c.id})"><span class="ico-i ico-edit"></span>تعديل</button>
-      <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;margin-right:4px" onclick="deleteCompliance(${c.id})"><span class="ico-i ico-trash"></span>حذف</button>
-    </td>
-  </tr>`).join("");
+  renderComplianceTable();
   renderComplianceByAuthority(complianceCache);
   renderComplianceAlerts(complianceCache);
+}
+
+function renderComplianceTable(){
+  const tbody = document.getElementById("complianceTbody");
+  if(!tbody) return;
+  if(complianceCache.length === 0){
+    tbody.innerHTML = emptyRowHTML(7, 'لا توجد التزامات بعد. اضغط "+ إضافة بند" للبدء.');
+    return;
+  }
+  const f = document.getElementById("cmp-filter") ? document.getElementById("cmp-filter").value : "";
+  const rows = complianceCache.filter(i => {
+    const s = complianceDerivedStatus(i);
+    if(f === "late") return s === "متأخر";
+    if(f === "open") return ["جارٍ","مجدول","غير ملتزم","متأخر"].includes(s);
+    if(f === "ok") return s === "ملتزم";
+    if(f === "na") return s === "غير منطبق";
+    return true;
+  });
+  if(!rows.length){ tbody.innerHTML = emptyRowHTML(7, "لا توجد بنود مطابقة."); return; }
+  const canManage = gaCanManage();
+  tbody.innerHTML = rows.map(i => {
+    const s = complianceDerivedStatus(i);
+    const [bg, fg] = CMP_STATUS_STYLE[s] || CMP_STATUS_STYLE["مجدول"];
+    const fromLib = i.source === "library";
+    const na = s === "غير منطبق";
+    return `<tr>
+      <td><b>${gaEsc(i.item_name)}</b>${fromLib ? ' <span style="font-size:9.5px;background:#E6EEF8;color:var(--primary);border-radius:10px;padding:1px 7px">من المكتبة</span>' : ""}
+        ${i.due_hint && !i.due_date ? `<div style="font-size:10.5px;color:var(--gold);margin-top:2px">${gaEsc(i.due_hint)}</div>` : ""}
+        ${na && i.na_reason ? `<div style="font-size:10.5px;color:var(--gray3);margin-top:2px">سبب عدم الانطباق: ${gaEsc(i.na_reason)}</div>` : ""}</td>
+      <td>${gaEsc(i.authority||"—")}${i.regulation_ref ? `<div style="font-size:10.5px;color:var(--gray3)">${gaEsc(i.regulation_ref)}</div>` : ""}</td>
+      <td style="font-size:11.5px">${gaEsc(i.frequency||"—")}</td>
+      <td style="font-size:11.5px;${s==="متأخر" ? "color:var(--red);font-weight:800" : ""}">${i.due_date||'<span style="color:var(--gray3)">غير محدد</span>'}</td>
+      <td style="font-size:11.5px">${gaEsc(cmpOwnerName(i.owner_email))}</td>
+      <td><span style="font-size:10.5px;font-weight:800;padding:3px 10px;border-radius:20px;background:${bg};color:${fg};white-space:nowrap">${gaEsc(s)}</span></td>
+      <td style="white-space:nowrap">
+        ${!na ? `<button class="btn-xs primary" onclick="cmpMarkDone(${i.id})"><span class="ico-i ico-check"></span>تم</button>` : ""}
+        <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="editCompliance(${i.id})">تعديل</button>
+        ${canManage ? `<button class="btn-xs" style="background:none;border:none;color:var(--gray3);cursor:pointer;font-size:11px" onclick="cmpToggleNA(${i.id})">${na ? "إعادة تفعيل" : "لا ينطبق"}</button>` : ""}
+        ${canManage && !fromLib ? `<button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="deleteCompliance(${i.id})">حذف</button>` : ""}
+      </td></tr>`;
+  }).join("");
 }
 
 function renderComplianceByAuthority(items){
   const box = document.getElementById("complianceByAuthority");
   if(!box) return;
-  if(items.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا توجد بيانات بعد.</div>'; return; }
+  const live = complianceApplicable(items);
+  if(live.length === 0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا توجد بيانات بعد.</div>'; return; }
+  const ok = live.filter(complianceIsOk).length;
+  const overall = Math.round(ok / live.length * 100);
   const byAuthority = {};
-  items.forEach(c => {
+  live.forEach(c => {
     const a = c.authority || "غير محدد";
-    if(!byAuthority[a]) byAuthority[a] = { total:0, compliant:0 };
+    if(!byAuthority[a]) byAuthority[a] = { total: 0, compliant: 0 };
     byAuthority[a].total += 1;
-    if(c.status === "ملتزم") byAuthority[a].compliant += 1;
+    if(complianceIsOk(c)) byAuthority[a].compliant += 1;
   });
-  box.innerHTML = Object.keys(byAuthority).map(a => {
-    const d = byAuthority[a];
-    const pct = Math.round((d.compliant/d.total)*100);
-    return `<div class="comp-item"><div class="comp-head"><span class="comp-name">${a}</span><span class="comp-pct">${pct}%</span></div><div class="comp-track"><div class="comp-fill" style="width:${pct}%"></div></div></div>`;
-  }).join("");
+  box.innerHTML = `<div style="font-size:12px;color:var(--gray3);margin-bottom:10px">الإجمالي: <b style="color:var(--dark)">${ok} من ${live.length}</b> بنداً ملتزم (${overall}%)</div>` +
+    Object.keys(byAuthority).map(a => {
+      const d = byAuthority[a], pct = Math.round(d.compliant / d.total * 100);
+      return `<div class="comp-item"><div class="comp-head"><span class="comp-name">${gaEsc(a)}</span><span class="comp-pct">${pct}%</span></div><div class="comp-track"><div class="comp-fill" style="width:${pct}%"></div></div></div>`;
+    }).join("");
 }
 
 function renderComplianceAlerts(items){
   const box = document.getElementById("complianceAlerts");
   if(!box) return;
-  const pending = items.filter(c => c.status !== "ملتزم").sort((a,b) => (a.due_date||"9999").localeCompare(b.due_date||"9999"));
-  if(pending.length===0){
+  const pending = complianceApplicable(items).filter(c => !complianceIsOk(c))
+    .sort((a,b) => (a.due_date||"9999").localeCompare(b.due_date||"9999"));
+  if(pending.length === 0){
     box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا توجد إجراءات مطلوبة حاليًا — كل البنود ملتزمة ✅</div>';
     return;
   }
-  box.innerHTML = pending.map(c => {
-    const dot = c.status === "جارٍ" ? "gold" : "red";
-    return `<div class="alert-item"><div class="a-dot ${dot}"></div><div><div class="a-text">${c.item_name} — ${c.authority||""}</div><div class="a-time">${c.status} ${c.due_date?(' · الموعد: '+c.due_date):''}</div></div></div>`;
-  }).join("");
+  box.innerHTML = pending.slice(0, 12).map(c => {
+    const s = complianceDerivedStatus(c);
+    const dot = s === "جارٍ" || s === "مجدول" ? "gold" : "red";
+    return `<div class="alert-item"><div class="a-dot ${dot}"></div><div><div class="a-text">${gaEsc(c.item_name)}${c.authority ? " — " + gaEsc(c.authority) : ""}</div><div class="a-time">${gaEsc(s)}${c.due_date ? " · الموعد: " + c.due_date : " · الموعد غير محدد"}</div></div></div>`;
+  }).join("") + (pending.length > 12 ? `<div style="font-size:11px;color:var(--gray3);text-align:center;padding:6px">و${pending.length - 12} بنداً آخر بالسجل أدناه</div>` : "");
+}
+
+/* ── Internal compliance: derived from what the platform already tracks ── */
+async function cmpInternalChecks(){
+  const cid = currentCompanyId, today = cmpToday();
+  const noBoard = currentCompanyType === "مؤسسة فردية" || currentCompanyLLCSingleManager || currentCompanyLLCSingleOwner;
+  const fortnightAgo = new Date(Date.now() - 14*86400000).toISOString();
+  const [pol, sign, assess, acts, bdec, mdec] = await Promise.all([
+    sb.from("policies").select("id,review_date,status").eq("company_id", cid),
+    sb.from("signing_documents").select("id,status,created_at").eq("company_id", cid),
+    sb.from("governance_assessments").select("id,created_at").eq("company_id", cid).order("created_at",{ascending:false}).limit(1),
+    sb.from("governance_actions").select("id,target_date,status").eq("company_id", cid).not("status","eq","مغلق").not("target_date","is",null),
+    noBoard ? Promise.resolve({data:[]}) : sb.from("board_decisions").select("id,target_date,status").eq("company_id", cid).not("status","eq","منجز").not("target_date","is",null),
+    currentCompanyLLCSingleManager ? sb.from("simple_decisions").select("id,target_date,status").eq("company_id", cid).eq("context","manager").not("status","eq","منجز").not("target_date","is",null) : Promise.resolve({data:[]})
+  ]);
+  const checks = [];
+  const lateP = (pol.data||[]).filter(p => p.status === "تجديد مطلوب" || (p.review_date && p.review_date < today)).length;
+  checks.push({ label: "مراجعة السياسات في موعدها", ok: lateP === 0, detail: lateP ? `${lateP} سياسة تجاوزت موعد مراجعتها` : "لا سياسات متأخرة المراجعة", page: "governance" });
+  const stuck = (sign.data||[]).filter(d => d.status !== "مكتمل" && d.created_at && d.created_at < fortnightAgo).length;
+  checks.push({ label: "اكتمال التوقيعات", ok: stuck === 0, detail: stuck ? `${stuck} وثيقة بلا اكتمال توقيع لأكثر من 14 يوماً` : "لا وثائق معلّقة طويلاً", page: "signing" });
+  const lateA = (acts.data||[]).filter(a => a.target_date < today).length;
+  checks.push({ label: "الإجراءات التصحيحية", ok: lateA === 0, detail: lateA ? `${lateA} إجراء متأخر` : "لا إجراءات متأخرة", page: "govassess" });
+  if(!noBoard){
+    const lateD = (bdec.data||[]).filter(d => d.target_date < today).length;
+    checks.push({ label: "تنفيذ قرارات المجلس", ok: lateD === 0, detail: lateD ? `${lateD} قرار متأخر عن موعده` : "لا قرارات متأخرة", page: "decisiontracking" });
+  }
+  if(currentCompanyLLCSingleManager){
+    const lateM = (mdec.data||[]).filter(d => d.target_date < today).length;
+    checks.push({ label: "تنفيذ قرارات المدير", ok: lateM === 0, detail: lateM ? `${lateM} قرار متأخر عن موعده` : "لا قرارات متأخرة", page: "managerdecisions" });
+  }
+  const last = (assess.data||[])[0];
+  const yearAgo = new Date(Date.now() - 365*86400000).toISOString();
+  const fresh = !!(last && last.created_at >= yearAgo);
+  checks.push({ label: "تقييم فعالية الحوكمة السنوي", ok: fresh, detail: fresh ? "أُجري خلال آخر 12 شهراً" : (last ? "آخر تقييم مضى عليه أكثر من 12 شهراً" : "لم يُجرَ تقييم بعد"), page: "govassess" });
+  return checks;
+}
+
+async function renderComplianceInternal(){
+  const box = document.getElementById("complianceInternal");
+  if(!box) return;
+  let checks;
+  try { checks = await cmpInternalChecks(); } catch(e){ box.innerHTML = '<div style="color:var(--red);font-size:12px">تعذّر احتساب الالتزام الداخلي</div>'; return; }
+  const good = checks.filter(c => c.ok).length;
+  box.innerHTML = `<div style="font-size:12px;color:var(--gray3);margin-bottom:10px"><b style="color:var(--dark)">${good} من ${checks.length}</b> مجالات سليمة — يُحتسب تلقائياً من بيانات المنصة</div>` +
+    checks.map(c => `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--gray1);cursor:pointer" onclick="go('${c.page}',null)">
+      <span class="ico-i ${c.ok ? "ico-check" : "ico-warning"}" style="color:${c.ok ? "var(--green)" : "var(--red)"}"></span>
+      <div style="flex:1"><div style="font-size:12.5px;font-weight:700;color:var(--dark)">${gaEsc(c.label)}</div><div style="font-size:11px;color:${c.ok ? "var(--gray3)" : "var(--red)"}">${gaEsc(c.detail)}</div></div></div>`).join("");
+}
+
+/* ── Company-side edits ── */
+function cmpFillOwnerSelect(selected){
+  const sel = document.getElementById("mc-owner");
+  sel.innerHTML = '<option value="">— غير محدَّد —</option>' + cmpMembersCache.map(m => `<option value="${gaEsc(m.email)}" ${m.email===selected?"selected":""}>${gaEsc(m.name)}</option>`).join("");
+  if(selected && !cmpMembersCache.some(m => m.email === selected)) sel.insertAdjacentHTML("beforeend", `<option value="${gaEsc(selected)}" selected>${gaEsc(selected)}</option>`);
+}
+function cmpFillStaticSelects(){
+  document.getElementById("mc-frequency").innerHTML = '<option value="">— غير محددة —</option>' + CMP_FREQS.map(f => `<option>${f}</option>`).join("");
+  document.getElementById("mc-status").innerHTML = CMP_STATUSES.map(s => `<option>${s}</option>`).join("");
+}
+function cmpLockLibraryFields(locked){
+  ["mc-item","mc-authority","mc-ref","mc-frequency"].forEach(id => { document.getElementById(id).disabled = locked; });
+  document.getElementById("mc-lib-note").style.display = locked ? "block" : "none";
+}
+
+function openNewComplianceItem(){
+  cmpFillStaticSelects();
+  document.getElementById("mc-id").value = "";
+  document.getElementById("mc-title-h").textContent = "إضافة بند التزام";
+  ["mc-item","mc-authority","mc-ref","mc-duedate","mc-evidence"].forEach(id => { document.getElementById(id).value = ""; });
+  document.getElementById("mc-frequency").value = "";
+  document.getElementById("mc-status").value = "مجدول";
+  document.getElementById("mc-hint-row").style.display = "none";
+  cmpFillOwnerSelect(null);
+  cmpLockLibraryFields(false);
+  openM("m-compliance");
 }
 
 function editCompliance(id){
   const c = complianceCache.find(x => x.id === id);
   if(!c) return;
+  cmpFillStaticSelects();
   document.getElementById("mc-id").value = c.id;
-  document.getElementById("mc-title-h").textContent = "✏️ تعديل بند امتثال";
+  document.getElementById("mc-title-h").textContent = "تعديل بند الالتزام";
   document.getElementById("mc-item").value = c.item_name || "";
   document.getElementById("mc-authority").value = c.authority || "";
+  document.getElementById("mc-ref").value = c.regulation_ref || "";
+  document.getElementById("mc-frequency").value = c.frequency || "";
   document.getElementById("mc-duedate").value = c.due_date || "";
-  document.getElementById("mc-status").value = c.status || "ملتزم";
+  document.getElementById("mc-status").value = CMP_STATUSES.includes(c.status) ? c.status : "مجدول";
+  document.getElementById("mc-evidence").value = c.evidence_note || "";
+  const hintRow = document.getElementById("mc-hint-row");
+  hintRow.style.display = c.due_hint ? "block" : "none";
+  document.getElementById("mc-hint").textContent = c.due_hint || "";
+  cmpFillOwnerSelect(c.owner_email);
+  cmpLockLibraryFields(c.source === "library");
   openM("m-compliance");
 }
 
+async function saveCompliance(){
+  const id = document.getElementById("mc-id").value;
+  const existing = id ? complianceCache.find(x => x.id === Number(id)) : null;
+  const fromLib = !!(existing && existing.source === "library");
+  const item_name = document.getElementById("mc-item").value.trim();
+  if(!item_name){ alert("الرجاء إدخال اسم البند"); return; }
+  const payload = {
+    due_date: document.getElementById("mc-duedate").value || null,
+    owner_email: document.getElementById("mc-owner").value || null,
+    status: document.getElementById("mc-status").value,
+    evidence_note: document.getElementById("mc-evidence").value.trim() || null
+  };
+  if(!fromLib){
+    payload.item_name = item_name;
+    payload.authority = document.getElementById("mc-authority").value.trim();
+    payload.regulation_ref = document.getElementById("mc-ref").value.trim() || null;
+    payload.frequency = document.getElementById("mc-frequency").value || null;
+  }
+  const { error } = id
+    ? await sb.from("compliance_items").update(payload).eq("id", id)
+    : await sb.from("compliance_items").insert([{ ...payload, company_id: currentCompanyId, source: "manual" }]);
+  if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
+  closeM("m-compliance"); loadCompliance();
+}
+
+async function cmpMarkDone(id){
+  const i = complianceCache.find(x => x.id === id);
+  if(!i) return;
+  const rec = cmpIsRecurring(i.frequency);
+  if(!confirm(rec ? "تأكيد تنفيذ هذه الدورة؟ سيُرحَّل الموعد تلقائياً للدورة القادمة." : "تأكيد الالتزام بهذا البند؟")) return;
+  const today = cmpToday();
+  const upd = { status: "ملتزم", last_done_at: today };
+  if(rec){
+    const step = cmpMonths(i.frequency);
+    let next = cmpAddMonths(i.due_date || today, step), guard = 0;
+    while(next <= today && guard++ < 60) next = cmpAddMonths(next, step);
+    upd.due_date = next;
+  } else { upd.due_date = null; }
+  const { error } = await sb.from("compliance_items").update(upd).eq("id", id);
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  logActivity("تأكيد التزام", "التزام", i.item_name, rec ? `الموعد القادم ${upd.due_date}` : "");
+  loadCompliance();
+}
+
+async function cmpToggleNA(id){
+  const i = complianceCache.find(x => x.id === id);
+  if(!i || !gaCanManage()) return;
+  let upd;
+  if(i.status === "غير منطبق"){ upd = { status: "مجدول", na_reason: null }; }
+  else {
+    const reason = prompt(`لماذا لا ينطبق "${i.item_name}" على شركتكم؟ (يُحفظ كسبب للمراجعة)`);
+    if(reason === null) return;
+    if(!reason.trim()){ alert("اكتب سبباً مختصراً."); return; }
+    upd = { status: "غير منطبق", na_reason: reason.trim() };
+  }
+  const { error } = await sb.from("compliance_items").update(upd).eq("id", id);
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  loadCompliance();
+}
+
 async function deleteCompliance(id){
+  const i = complianceCache.find(x => x.id === id);
+  if(i && i.source === "library"){ alert("هذا البند من مكتبة المنصة ولا يُحذف. استخدم «لا ينطبق» مع ذكر السبب."); return; }
   if(!confirm("هل أنت متأكد من حذف هذا البند؟")) return;
   const { error } = await sb.from("compliance_items").delete().eq("id", id);
   if(error){ alert("تعذّر الحذف: " + error.message); return; }
   loadCompliance();
 }
+
+/* ── Platform owner: the master library ── */
+async function openCmpLibrary(){ await cmpLoadLibrary(); openM("m-cmplib"); }
+
+async function cmpLoadLibrary(){
+  const list = document.getElementById("cmplib-list");
+  const { data, error } = await sb.from("compliance_library").select("*").order("sort_order",{ascending:true}).order("id",{ascending:true});
+  if(error){ list.innerHTML = '<div style="color:var(--red);font-size:12px">جداول المكتبة غير مُنشأة بعد. شغّل ملف HWKM-compliance-setup.sql ثم أعد المحاولة.</div>'; return; }
+  cmpLibraryCache = data || [];
+  if(!cmpLibraryCache.length){ list.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:16px">المكتبة فارغة. أضف التزاماً أو استورد دفعة.</div>'; return; }
+  const short = { "مساهمة مدرجة":"مدرجة", "مساهمة غير مدرجة":"غير مدرجة", "ذات مسؤولية محدودة":"ذ.م.م", "مؤسسة فردية":"فردية" };
+  list.innerHTML = cmpLibraryCache.map(l => `<div style="border:1px solid var(--gray1);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:${l.is_active ? "#fff" : "var(--offwhite)"};opacity:${l.is_active ? 1 : 0.7}">
+    <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:12.5px;font-weight:800;color:var(--dark)">${gaEsc(l.title)}</div>
+        <div style="font-size:11px;color:var(--gray3);margin-top:2px">${gaEsc(l.authority||"—")}${l.regulation_ref ? " · " + gaEsc(l.regulation_ref) : ""} · ${gaEsc(l.frequency||"")}</div>
+        <div style="margin-top:5px;display:flex;gap:4px;flex-wrap:wrap">${(l.entity_types||[]).map(t => `<span style="font-size:9.5px;background:#E6EEF8;color:var(--primary);border-radius:10px;padding:1px 8px">${gaEsc(short[t]||t)}</span>`).join("")}${l.board_only ? '<span style="font-size:9.5px;background:#FEF3E2;color:var(--gold);border-radius:10px;padding:1px 8px">للمجلس فقط</span>' : ""}${l.is_active ? "" : '<span style="font-size:9.5px;background:#F1F1F1;color:var(--gray3);border-radius:10px;padding:1px 8px">موقوف</span>'}</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-xs" style="background:var(--offwhite);border:1px solid var(--gray1);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="openCmpLibEdit(${l.id})">تعديل</button>
+        <button class="btn-xs" style="background:var(--offwhite);border:1px solid var(--gray1);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="toggleCmpLibActive(${l.id})">${l.is_active ? "إيقاف" : "تفعيل"}</button>
+        <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="deleteCmpLibEntry(${l.id})">حذف</button>
+      </div>
+    </div></div>`).join("");
+}
+
+function openCmpLibEdit(id){
+  const l = id ? cmpLibraryCache.find(x => x.id === id) : null;
+  document.getElementById("cl-freq").innerHTML = CMP_FREQS.map(f => `<option>${f}</option>`).join("");
+  document.getElementById("cl-types").innerHTML = CMP_ENTITIES.map((t,k) => `<label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;font-size:12px"><input type="checkbox" id="cl-t-${k}" style="width:14px;height:14px" ${l && (l.entity_types||[]).includes(t) ? "checked" : ""}/>${t}</label>`).join("");
+  document.getElementById("cl-id").value = l ? l.id : "";
+  document.getElementById("cl-title-h").textContent = l ? "تعديل التزام بالمكتبة" : "إضافة التزام للمكتبة";
+  document.getElementById("cl-title").value = l ? l.title : "";
+  document.getElementById("cl-authority").value = l ? (l.authority||"") : "";
+  document.getElementById("cl-ref").value = l ? (l.regulation_ref||"") : "";
+  document.getElementById("cl-freq").value = l ? l.frequency : "سنوي";
+  document.getElementById("cl-hint").value = l ? (l.due_hint||"") : "";
+  document.getElementById("cl-desc").value = l ? (l.description||"") : "";
+  document.getElementById("cl-boardonly").checked = l ? !!l.board_only : false;
+  document.getElementById("cl-active").checked = l ? !!l.is_active : true;
+  openM("m-cmplib-edit");
+}
+
+async function saveCmpLibEntry(){
+  const id = document.getElementById("cl-id").value;
+  const title = document.getElementById("cl-title").value.trim();
+  if(!title){ alert("العنوان مطلوب"); return; }
+  const entity_types = CMP_ENTITIES.filter((t,k) => document.getElementById("cl-t-"+k).checked);
+  if(!entity_types.length){ alert("اختر نوع كيان واحداً على الأقل"); return; }
+  const payload = {
+    title, authority: document.getElementById("cl-authority").value.trim() || null, regulation_ref: document.getElementById("cl-ref").value.trim() || null,
+    frequency: document.getElementById("cl-freq").value, due_hint: document.getElementById("cl-hint").value.trim() || null,
+    description: document.getElementById("cl-desc").value.trim() || null, entity_types,
+    board_only: document.getElementById("cl-boardonly").checked, is_active: document.getElementById("cl-active").checked
+  };
+  const { error } = id ? await sb.from("compliance_library").update(payload).eq("id", id) : await sb.from("compliance_library").insert([payload]);
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  closeM("m-cmplib-edit"); cmpLoadLibrary();
+}
+
+async function toggleCmpLibActive(id){
+  const l = cmpLibraryCache.find(x => x.id === id);
+  if(!l) return;
+  const { error } = await sb.from("compliance_library").update({ is_active: !l.is_active }).eq("id", id);
+  if(error){ alert("تعذّر التحديث: " + error.message); return; }
+  cmpLoadLibrary();
+}
+
+async function deleteCmpLibEntry(id){
+  const l = cmpLibraryCache.find(x => x.id === id);
+  if(!l || !confirm(`حذف "${l.title}" من المكتبة؟\nنسخ الشركات التي استلمته تبقى عندها. الأفضل «إيقاف» لو تريد فقط منع وصوله لشركات جديدة.`)) return;
+  const { error } = await sb.from("compliance_library").delete().eq("id", id);
+  if(error){ alert("تعذّر الحذف: " + error.message); return; }
+  cmpLoadLibrary();
+}
+
+function toggleCmpImport(){ const b = document.getElementById("cmplib-import"); b.style.display = b.style.display === "none" ? "block" : "none"; }
+
+function cmpNormFreq(s){
+  s = (s||"").trim();
+  if(s.includes("نصف")) return "نصف سنوي";
+  if(s.includes("ربع")) return "ربع سنوي";
+  if(s.includes("شهر")) return "شهري";
+  if(s.includes("مرة")) return "مرة واحدة";
+  if(s.includes("حدوث") || s.includes("عند")) return "عند الحدوث";
+  return "سنوي";
+}
+function cmpParseTypes(s){
+  s = (s||"").trim();
+  if(!s || s.includes("الكل")) return CMP_ENTITIES.slice();
+  const out = new Set();
+  s.split(/[،,\/]/).forEach(tok => {
+    tok = tok.trim();
+    if(!tok) return;
+    if(tok.includes("غير") && tok.includes("مدرج")) out.add("مساهمة غير مدرجة");
+    else if(tok.includes("مدرج")) out.add("مساهمة مدرجة");
+    else if(tok.includes("محدود") || tok.includes("ذات") || tok.includes("ذ.م.م")) out.add("ذات مسؤولية محدودة");
+    else if(tok.includes("فردي")) out.add("مؤسسة فردية");
+  });
+  return Array.from(out);
+}
+function cmpParseImportText(text){
+  const rows = [], bad = [];
+  text.split("\n").forEach((line, n) => {
+    if(!line.trim()) return;
+    const p = line.split("|").map(x => x.trim());
+    const types = cmpParseTypes(p[4]);
+    if(!p[0] || !types.length){ bad.push(n+1); return; }
+    rows.push({ title: p[0], authority: p[1]||null, regulation_ref: p[2]||null, frequency: cmpNormFreq(p[3]), entity_types: types, due_hint: p[5]||null, is_active: true, board_only: false });
+  });
+  return { rows, bad };
+}
+async function importCmpLibrary(){
+  const out = document.getElementById("cmplib-import-result");
+  const { rows, bad } = cmpParseImportText(document.getElementById("cmplib-import-text").value);
+  if(!rows.length){ out.textContent = "لا أسطر صالحة."; return; }
+  const { error } = await sb.from("compliance_library").insert(rows);
+  if(error){ out.textContent = "تعذّر الاستيراد: " + error.message; return; }
+  out.textContent = `أُضيف ${rows.length}` + (bad.length ? ` — تُجوهلت الأسطر: ${bad.join("، ")}` : "");
+  document.getElementById("cmplib-import-text").value = "";
+  cmpLoadLibrary();
+}
+
+
+
+
+
 
 /* ══════════ INTERNAL GOVERNANCE EVALUATION (linked to policies & permissions matrix) ══════════ */
 let govEvalCache = [];
@@ -13643,23 +14128,6 @@ async function saveGovEvalItem(){
   loadGovEval();
 }
 
-async function saveCompliance(){
-  const id = document.getElementById("mc-id").value;
-  const item_name = document.getElementById("mc-item").value.trim();
-  if(!item_name){ alert("الرجاء إدخال اسم البند"); return; }
-  const authority = document.getElementById("mc-authority").value.trim();
-  const due_date = document.getElementById("mc-duedate").value || null;
-  const status = document.getElementById("mc-status").value;
-  const payload = { item_name, authority, due_date, status, company_id: currentCompanyId };
-  const { error } = id
-    ? await sb.from("compliance_items").update(payload).eq("id", id)
-    : await sb.from("compliance_items").insert([payload]);
-  if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
-  document.getElementById("mc-id").value = "";
-  document.getElementById("mc-title-h").textContent = "✅ إضافة بند امتثال";
-  document.getElementById("mc-item").value=""; document.getElementById("mc-authority").value=""; document.getElementById("mc-duedate").value="";
-  closeM("m-compliance"); loadCompliance();
-}
 
 /* ══════════ SIGNING DOCUMENTS ══════════ */
 /* ══════════ E-SIGNATURE (real per-user signing) ══════════ */
