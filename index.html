@@ -4194,6 +4194,12 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
         <option>مؤسسة فردية</option>
       </select>
     </div>
+    <div class="fg" id="mco-trial-row" style="background:var(--offwhite);border-radius:8px;padding:10px 12px">
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;margin:0">
+        <input type="checkbox" id="mco-start-trial" checked style="width:14px;height:14px"/>
+        تفعيل تجربة مجانية لمدة 14 يوماً (كل الوحدات مفتوحة)
+      </label>
+    </div>
     <div class="fg" id="mco-llc-fields" style="display:none;background:var(--offwhite);border-radius:8px;padding:10px 12px">
       <label style="display:flex;align-items:center;gap:7px;cursor:pointer;margin-bottom:8px">
         <input type="checkbox" id="mco-llc-single-manager" style="width:14px;height:14px"/>
@@ -5301,7 +5307,7 @@ function isPageAllowed(pageId, role){
   if(currentCompanyLLCSingleManager && LLC_SINGLE_MANAGER_HIDDEN_PAGES.includes(pageId)) return false;
   if(currentCompanyLLCSingleOwner && LLC_SINGLE_OWNER_HIDDEN_PAGES.includes(pageId)) return false;
   if(pageId === 'managerdecisions' && !currentCompanyLLCSingleManager) return false;
-  if(pageId === 'ownerdecisions' && !currentCompanyLLCSingleOwner) return false;
+  if(pageId === 'ownerdecisions' && !(currentCompanyLLCSingleOwner || currentCompanyType === 'مؤسسة فردية')) return false;
   if(MODULE_PAGE_MAP[pageId] && !currentCompanyModules[MODULE_PAGE_MAP[pageId]] && !isPlatformAdmin) return false;
   return true;
 }
@@ -6781,6 +6787,8 @@ function resetCompanyForm(){
   document.getElementById("mco-nominal").value = "";
   document.getElementById("mco-llc-single-manager").checked = false;
   document.getElementById("mco-llc-single-owner").checked = false;
+  document.getElementById("mco-start-trial").checked = true;
+  document.getElementById("mco-trial-row").style.display = "block";
   toggleShareNominalField();
 }
 
@@ -6811,6 +6819,7 @@ async function openEditCompanyModal(){
   document.getElementById("mco-seal-position").value = c.seal_position || "أسفل يمين الصفحة";
   document.getElementById("mco-llc-single-manager").checked = !!c.llc_single_manager;
   document.getElementById("mco-llc-single-owner").checked = !!c.llc_single_owner;
+  document.getElementById("mco-trial-row").style.display = "none";
   document.getElementById("mco-letterhead-current").innerHTML = c.letterhead_url ? `✅ مرفوعة حاليًا — <a href="${c.letterhead_url}" target="_blank">عرض</a> (ارفع ملف جديد لاستبدالها)` : "لم تُرفع بعد";
   document.getElementById("mco-seal-current").innerHTML = c.seal_url ? `✅ مرفوع حاليًا — <a href="${c.seal_url}" target="_blank">عرض</a> (ارفع ملف جديد لاستبداله)` : "لم يُرفع بعد";
   toggleShareNominalField();
@@ -6901,7 +6910,17 @@ function toggleCrLLCFields(){
   if(box) box.style.display = document.getElementById("cr-type").value === "ذات مسؤولية محدودة" ? "block" : "none";
 }
 
+/* Self-serve trial. Every step's result is checked now — before, the membership insert's error
+   was ignored, and since a regular user's company list is built from memberships alone, a silent
+   failure there left the person with "no company linked", so they registered again and ended up
+   with two. A half-finished attempt is remembered locally (the company row exists but linking
+   failed), so a retry reuses that company instead of creating another. */
+let trialSubmitLock = false;
+const TRIAL_BTN_HTML = '<span class="ico-i ico-bolt"></span>ابدأ تجربتك المجانية الآن (14 يوم، فورًا)';
+const TRIAL_PENDING_KEY = "hwkm_pending_trial_company";
+
 async function startInstantTrial(){
+  if(trialSubmitLock) return;
   const company_name = document.getElementById("cr-name").value.trim();
   if(!company_name){ alert("الرجاء إدخال اسم الشركة"); return; }
   const company_type = document.getElementById("cr-type").value;
@@ -6913,51 +6932,102 @@ async function startInstantTrial(){
   const llc_single_manager = document.getElementById("cr-llc-single-manager").checked;
   const llc_single_owner = document.getElementById("cr-llc-single-owner").checked;
 
-  const btn = event.target.closest("button");
+  const btn = (typeof event !== "undefined" && event && event.target && event.target.closest) ? event.target.closest("button") : null;
+  trialSubmitLock = true;
   if(btn){ btn.disabled = true; btn.innerHTML = '<span class="ico-i ico-refresh"></span>جارِ إنشاء شركتك...'; }
+  const release = () => { trialSubmitLock = false; if(btn){ btn.disabled = false; btn.innerHTML = TRIAL_BTN_HTML; } };
 
-  const { data: userData } = await sb.auth.getUser();
-  const sessionEmail = userData && userData.user ? userData.user.email : currentUserProfile.email;
-  const trial_ends_at = new Date(Date.now() + 14*86400000).toISOString();
+  try {
+    const { data: userData } = await sb.auth.getUser();
+    const sessionEmail = userData && userData.user ? userData.user.email : (currentUserProfile ? currentUserProfile.email : null);
+    if(!sessionEmail){ alert("تعذّر تحديد هويتك، الرجاء تسجيل الدخول من جديد"); release(); return; }
 
-  const { data: newCompany, error: cErr } = await sb.from("companies").insert([{
-    name: company_name, company_type, cr_number, cr_date,
-    responsible_person, responsible_phone, responsible_email,
-    module_internal_audit: true, module_risk_management: true, trial_ends_at,
-    llc_single_manager, llc_single_owner
-  }]).select().single();
-  if(cErr){ alert("تعذّر إنشاء الشركة: " + cErr.message); if(btn){ btn.disabled=false; btn.innerHTML='<span class="ico-i ico-bolt"></span>ابدأ تجربتك المجانية الآن (14 يوم، فورًا)'; } return; }
+    // Already registered under this account? Don't create it a second time.
+    const { data: myMems } = await sb.from("user_company_memberships").select("company_id").eq("email", sessionEmail);
+    const myIds = (myMems||[]).map(m => m.company_id).filter(Boolean);
+    if(myIds.length){
+      const { data: mine } = await sb.from("companies").select("id,name").in("id", myIds);
+      if((mine||[]).some(x => (x.name||"").trim().toLowerCase() === company_name.toLowerCase())){
+        alert("شركة بهذا الاسم مسجَّلة بالفعل بحسابك — لا حاجة لتسجيلها مرة ثانية. سنفتحها لك الآن.");
+        location.reload();
+        return;
+      }
+    }
 
-  const { error: uErr } = await sb.from("user_profiles").update({ company_id: newCompany.id, role: "مدير النظام" }).eq("email", sessionEmail);
-  if(uErr){ alert("تم إنشاء الشركة لكن تعذّر ربط حسابك بها: " + uErr.message); return; }
-  await sb.from("user_company_memberships").upsert(
-    [{ email: sessionEmail, company_id: newCompany.id, role: "مدير النظام" }], { onConflict: 'email,company_id' }
-  );
+    let newCompany = null;
+    let pending = null;
+    try { pending = JSON.parse(localStorage.getItem(TRIAL_PENDING_KEY) || "null"); } catch(e){}
+    if(pending && pending.email === sessionEmail && pending.name === company_name && pending.id){
+      newCompany = { id: pending.id, name: company_name };
+    }
 
-  // Logged for admin visibility only — no approval step is waiting on this row.
-  await sb.from("company_requests").insert([{
-    requested_by_email: sessionEmail, requested_by_name: currentUserProfile.full_name,
-    company_name, company_type, cr_number, cr_date, responsible_person, responsible_phone, responsible_email,
-    status: "تجربة تلقائية", company_id: newCompany.id, reviewed_at: new Date().toISOString()
-  }]);
+    if(!newCompany){
+      const trial_ends_at = new Date(Date.now() + 14*86400000).toISOString();
+      const { data: created, error: cErr } = await sb.from("companies").insert([{
+        name: company_name, company_type, cr_number, cr_date,
+        responsible_person, responsible_phone, responsible_email,
+        module_internal_audit: true, module_risk_management: true, trial_ends_at,
+        llc_single_manager, llc_single_owner
+      }]).select().single();
+      if(cErr || !created){ alert("تعذّر إنشاء الشركة: " + (cErr ? cErr.message : "لم يُرجَع السجل")); release(); return; }
+      newCompany = created;
+      try { localStorage.setItem(TRIAL_PENDING_KEY, JSON.stringify({ email: sessionEmail, name: company_name, id: created.id })); } catch(e){}
+    }
 
-  const { data: admins } = await sb.from("user_profiles").select("email").eq("is_platform_admin", true);
-  if(admins && admins.length){
-    const subject = `تجربة مجانية جديدة بدأت: ${company_name}`;
-    const html = `<div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px">
-      <h2 style="color:#1A3A6B">تجربة مجانية تلقائية بدأت الآن</h2>
-      <p><b>الشركة:</b> ${company_name} (${company_type})</p>
-      <p><b>المسؤول:</b> ${currentUserProfile.full_name||sessionEmail} (${sessionEmail})</p>
-      <p>لا يوجد إجراء مطلوب منك — هذا إشعار فقط. التجربة مفعَّلة تلقائيًا لمدة 14 يومًا.</p>
-    </div>`;
-    for(const a of admins){ sendNotificationEmail(a.email, subject, html); }
+    // The membership is what makes the company appear for a regular user, so it is the step that must succeed.
+    const { data: exMem } = await sb.from("user_company_memberships").select("id").eq("email", sessionEmail).eq("company_id", newCompany.id).maybeSingle();
+    if(!exMem){
+      const { error: mErr } = await sb.from("user_company_memberships").insert([{ email: sessionEmail, company_id: newCompany.id, role: "مدير النظام" }]);
+      if(mErr){
+        alert("أُنشئت الشركة لكن تعذّر ربط حسابك بها: " + mErr.message + "\n\nلا تسجّلها مرة ثانية — أعد المحاولة بنفس البيانات وستُستكمل نفس الشركة، أو أرسل لنا هذه الرسالة.");
+        release(); return;
+      }
+    }
+    const { data: chk } = await sb.from("user_company_memberships").select("id").eq("email", sessionEmail).eq("company_id", newCompany.id).maybeSingle();
+    if(!chk){ alert("تعذّر التأكد من ربط حسابك بالشركة. أرسل لنا اسم الشركة وسنربطها فوراً."); release(); return; }
+
+    // Default company on the profile — convenient but not what grants access, so a failure here is not fatal.
+    const { data: upd, error: uErr } = await sb.from("user_profiles").update({ company_id: newCompany.id, role: "مدير النظام" }).eq("email", sessionEmail).select("id");
+    if(uErr || !upd || !upd.length){ console.warn("profile default company not updated", uErr); }
+
+    const { error: rErr } = await sb.from("company_requests").insert([{
+      requested_by_email: sessionEmail, requested_by_name: currentUserProfile ? currentUserProfile.full_name : null,
+      company_name, company_type, cr_number, cr_date, responsible_person, responsible_phone, responsible_email,
+      status: "تجربة تلقائية", company_id: newCompany.id, reviewed_at: new Date().toISOString()
+    }]);
+    if(rErr) console.warn("trial log row not written", rErr);
+
+    try { localStorage.removeItem(TRIAL_PENDING_KEY); } catch(e){}
+
+    const { data: admins } = await sb.from("user_profiles").select("email").eq("is_platform_admin", true);
+    if(admins && admins.length){
+      const subject = `تجربة مجانية جديدة بدأت: ${company_name}`;
+      const html = `<div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px">
+        <h2 style="color:#1A3A6B">تجربة مجانية تلقائية بدأت الآن</h2>
+        <p><b>الشركة:</b> ${company_name} (${company_type})</p>
+        <p><b>المسؤول:</b> ${(currentUserProfile && currentUserProfile.full_name)||sessionEmail} (${sessionEmail})</p>
+        <p>لا يوجد إجراء مطلوب منك — هذا إشعار فقط. التجربة مفعَّلة تلقائيًا لمدة 14 يومًا.</p>
+      </div>`;
+      for(const a of admins){ sendNotificationEmail(a.email, subject, html); }
+    }
+
+    alert("تم إنشاء شركتك وتفعيل تجربتك المجانية 🎉 — راح تدخل منصتك الآن مباشرة.");
+    location.reload();
+  } catch(e){
+    alert("حدث خطأ غير متوقع: " + (e && e.message ? e.message : e));
+    release();
   }
-
-  alert("تم إنشاء شركتك وتفعيل تجربتك المجانية 🎉 — راح تدخل منصتك الآن مباشرة.");
-  location.reload();
 }
 
+
+let companyRequestLock = false;
 async function submitCompanyRequest(){
+  if(companyRequestLock) return;
+  companyRequestLock = true;
+  try { await submitCompanyRequestImpl(); } finally { companyRequestLock = false; }
+}
+
+async function submitCompanyRequestImpl(){
   const company_name = document.getElementById("cr-name").value.trim();
   if(!company_name){ alert("الرجاء إدخال اسم الشركة"); return; }
   const company_type = document.getElementById("cr-type").value;
@@ -6969,6 +7039,9 @@ async function submitCompanyRequest(){
 
   const { data: userData } = await sb.auth.getUser();
   const sessionEmail = userData && userData.user ? userData.user.email : currentUserProfile.email;
+
+  const { data: dupReq } = await sb.from("company_requests").select("id").eq("requested_by_email", sessionEmail).eq("company_name", company_name).eq("status", "قيد المراجعة").limit(1);
+  if(dupReq && dupReq.length){ alert("أرسلتَ طلباً بهذا الاسم من قبل وهو قيد المراجعة — لا حاجة لإرساله مرة ثانية."); return; }
 
   const { error } = await sb.from("company_requests").insert([{
     requested_by_email: sessionEmail, requested_by_name: currentUserProfile.full_name,
@@ -7207,6 +7280,40 @@ async function loadPlatformActivity(){
   </tr>`).join("");
 }
 
+/* ══════════ PLATFORM OWNER: trial start + permanent delete ══════════ */
+let manageCompaniesCache = [];
+
+async function startTrialForCompany(id){
+  const c = manageCompaniesCache.find(x => x.id === id);
+  if(!c) return;
+  if(!confirm(`بدء تجربة مجانية 14 يوماً للشركة "${c.name}" (كل الوحدات مفتوحة)؟`)) return;
+  const trial_ends_at = new Date(Date.now() + 14*86400000).toISOString();
+  const { error } = await sb.from("companies").update({ trial_ends_at, module_internal_audit: true, module_risk_management: true }).eq("id", id);
+  if(error){ alert("تعذّر بدء التجربة: " + error.message); return; }
+  loadManageCompanies();
+}
+
+/* Deletion is done by one database function so it is atomic (all of the company's data goes, or
+   nothing does) and so it does not depend on this user's row-level access to ~80 tables. The
+   typed-name confirmation exists because there is no undo. */
+async function deleteCompanyPermanently(id){
+  if(!(currentUserProfile && currentUserProfile.is_platform_admin === true)){ alert("هذه العملية لمالك المنصة فقط"); return; }
+  const c = manageCompaniesCache.find(x => x.id === id);
+  if(!c) return;
+  const typed = prompt(`حذف نهائي لشركة "${c.name}" وكل بياناتها (اجتماعات، سياسات، أعضاء، مستندات...) ولا يمكن التراجع.\n\nللتأكيد اكتب اسم الشركة بالضبط:`);
+  if(typed === null) return;
+  if(typed.trim() !== (c.name||"").trim()){ alert("الاسم غير مطابق — لم يُحذف شيء."); return; }
+  const { error } = await sb.rpc("delete_company_cascade", { target_id: id });
+  if(error){
+    const missing = error.code === "PGRST202" || error.code === "42883" || /could not find the function/i.test(error.message||"");
+    alert(missing ? "دالة الحذف غير مُنشأة بقاعدة البيانات بعد. شغّل ملف SQL الخاص بها بلوحة Supabase ثم أعد المحاولة." : "تعذّر الحذف، ولم يُحذف شيء: " + error.message);
+    return;
+  }
+  alert(`تم حذف "${c.name}" وكل بياناتها ✅`);
+  await loadManageCompanies();
+  if(typeof loadCompanies === "function") loadCompanies();
+}
+
 async function loadManageCompanies(){
   const box = document.getElementById("manageCompaniesList");
   if(!box) return;
@@ -7214,8 +7321,14 @@ async function loadManageCompanies(){
   if(error){ box.innerHTML = `<div style="color:var(--red);font-size:12px">${error.message}</div>`; return; }
   if(!data || data.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">لا توجد شركات بعد.</div>'; return; }
 
+  manageCompaniesCache = data;
+  const nameCount = {};
+  data.forEach(x => { const k = (x.name||"").trim().toLowerCase(); nameCount[k] = (nameCount[k]||0) + 1; });
+  const isOwner = currentUserProfile && currentUserProfile.is_platform_admin === true;
   box.innerHTML = data.map(c => {
     const inTrial = c.trial_ends_at && new Date(c.trial_ends_at) > new Date();
+    const isDup = nameCount[(c.name||"").trim().toLowerCase()] > 1;
+    const hasPlan = !!(c.converted_to_paid_at || c.module_internal_audit || c.module_risk_management);
     const daysLeft = inTrial ? Math.max(0, Math.ceil((new Date(c.trial_ends_at) - new Date()) / 86400000)) : 0;
     const modules = [
       c.module_internal_audit || inTrial ? "المراجعة الداخلية" : null,
@@ -7226,8 +7339,9 @@ async function loadManageCompanies(){
         <div>
           <div style="font-weight:800;font-size:13.5px;color:var(--dark)">${c.name}</div>
           <div style="font-size:11px;color:var(--gray3);margin-top:2px">${c.company_type||"—"} · الوحدات: ${modules.length?modules.join("، "):"الأساسية فقط"}</div>
+          <div style="font-size:10.5px;color:var(--gray3);margin-top:2px">رقم ${c.id} · أُنشئت ${c.created_at ? new Date(c.created_at).toLocaleString("ar-SA") : "—"}${isDup ? ' <span style="color:var(--red);font-weight:800">· اسم مكرَّر — راجعها واحذف الزائدة</span>' : ""}</div>
         </div>
-        ${inTrial ? `<span class="badge pending"><span class="ico-i ico-package"></span>تجربة — متبقٍ ${daysLeft} يوم</span>` : c.trial_ends_at ? `<span class="badge urgent"><span class="ico-i ico-warning"></span>انتهت التجربة</span>` : `<span class="badge done"><span class="ico-i ico-check"></span>مشترك</span>`}
+        ${inTrial ? `<span class="badge pending"><span class="ico-i ico-package"></span>تجربة — متبقٍ ${daysLeft} يوم</span>` : c.trial_ends_at ? `<span class="badge urgent"><span class="ico-i ico-warning"></span>انتهت التجربة</span>` : hasPlan ? `<span class="badge done"><span class="ico-i ico-check"></span>مشترك</span>` : `<span class="badge urgent"><span class="ico-i ico-warning"></span>غير مفعَّل — بلا تجربة ولا اشتراك</span>`}
       </div>
       ${c.pending_subscription_approval ? `<div style="background:#FEF3E2;border-radius:8px;padding:8px 10px;margin-top:8px;font-size:11px;color:var(--gold);font-weight:700"><span class="ico-i ico-dot"></span>اعتماد أولي من ${c.staff_activated_by||"—"} — بانتظار الاعتماد النهائي
         ${(currentUserProfile && currentUserProfile.is_platform_admin===true) ? `<button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:4px 10px;font-size:10.5px;cursor:pointer;margin-right:8px" onclick="finalApproveSubscription(${c.id})"><span class="ico-i ico-check"></span>اعتماد نهائي</button>` : ""}
@@ -7235,6 +7349,10 @@ async function loadManageCompanies(){
       ${(inTrial || (c.trial_ends_at && !inTrial)) ? `<div style="display:flex;gap:6px;margin-top:10px">
         <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="openActivateSubModal(${c.id},'${c.name.replace(/'/g,"")}')"><span class="ico-i ico-check"></span>تفعيل الاشتراك</button>
         <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="cancelTrial(${c.id},'${c.name.replace(/'/g,"")}')"><span class="ico-i ico-xcircle"></span>إلغاء التجربة</button>
+      </div>` : ""}
+      ${(!inTrial && !c.trial_ends_at && !hasPlan) || isOwner ? `<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+        ${(!inTrial && !c.trial_ends_at && !hasPlan) ? `<button class="btn-xs" style="background:#FEF3E2;color:var(--gold);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="startTrialForCompany(${c.id})"><span class="ico-i ico-bolt"></span>بدء تجربة 14 يوم</button>` : ""}
+        ${isOwner ? `<button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="deleteCompanyPermanently(${c.id})"><span class="ico-i ico-trash"></span>حذف الشركة نهائياً</button>` : ""}
       </div>` : ""}
     </div></div>`;
   }).join("");
@@ -7419,9 +7537,11 @@ async function approveCompanyRequest(requestId){
 
   const { error: uErr } = await sb.from("user_profiles").update({ company_id: newCompany.id, role: "مدير النظام" }).eq("email", r.requested_by_email);
   if(uErr){ alert("تم إنشاء الشركة لكن تعذّر ربط المستخدم بها: " + uErr.message); return; }
-  await sb.from("user_company_memberships").upsert(
-    [{ email: r.requested_by_email, company_id: newCompany.id, role: "مدير النظام" }], { onConflict: 'email,company_id' }
-  );
+  const { data: apprMem } = await sb.from("user_company_memberships").select("id").eq("email", r.requested_by_email).eq("company_id", newCompany.id).maybeSingle();
+  if(!apprMem){
+    const { error: apprMemErr } = await sb.from("user_company_memberships").insert([{ email: r.requested_by_email, company_id: newCompany.id, role: "مدير النظام" }]);
+    if(apprMemErr){ alert("أُنشئت الشركة لكن تعذّر ربط المستخدم بها: " + apprMemErr.message); return; }
+  }
 
   await sb.from("company_requests").update({
     status: "معتمد", reviewed_at: new Date().toISOString(), reviewed_by: myEmail, company_id: newCompany.id,
@@ -7472,7 +7592,14 @@ async function rejectCompanyRequest(requestId){
   loadCompanyRequestsReview();
 }
 
+let saveCompanyLock = false;
 async function saveCompany(){
+  if(saveCompanyLock) return;
+  saveCompanyLock = true;
+  try { await saveCompanyImpl(); } finally { saveCompanyLock = false; }
+}
+
+async function saveCompanyImpl(){
   const id = document.getElementById("mco-id").value;
   const name = document.getElementById("mco-name").value.trim();
   if(!name){ alert("الرجاء إدخال اسم الشركة"); return; }
@@ -7507,6 +7634,13 @@ async function saveCompany(){
     await loadCompanies(Number(id));
     alert("تم تحديث بيانات الشركة ✅");
   } else {
+    const { data: sameName } = await sb.from("companies").select("id").ilike("name", name);
+    if(sameName && sameName.length && !confirm(`توجد شركة بنفس الاسم "${name}" بالفعل. هل تريد إنشاء شركة أخرى بنفس الاسم؟`)) return;
+    if(document.getElementById("mco-start-trial") && document.getElementById("mco-start-trial").checked){
+      payload.trial_ends_at = new Date(Date.now() + 14*86400000).toISOString();
+      payload.module_internal_audit = true;
+      payload.module_risk_management = true;
+    }
     const { data, error } = await sb.from("companies").insert([payload]).select().single();
     if(error){ alert("تعذّر إنشاء الشركة: " + error.message); return; }
     closeM("m-company");
@@ -7518,7 +7652,7 @@ async function saveCompany(){
 
 /* Company-type-aware navigation: sole proprietorships have no board/shareholders, so
    board/committee/AGM-related pages are irrelevant and get hidden from the sidebar. */
-const SOLE_PROP_HIDDEN_PAGES = ['meetings','committees','agm','voting','members','appoint','shareholders','announcements'];
+const SOLE_PROP_HIDDEN_PAGES = ['meetings','committees','agm','voting','members','appoint','shareholders','announcements','indicators','decisiontracking','managerdecisions'];
 const LLC_HIDDEN_PAGES = ['committees','announcements'];
 let currentCompanyModules = { internal_audit: false, risk_management: false };
 let currentCompanyTrialEndsAt = null;
@@ -7591,9 +7725,10 @@ async function applyCompanyTypeVisibility(){
   // owner's simply-documented decisions instead of a dressed-up assembly with one attendee.
   const ownerDecisionsNav = document.getElementById("navOwnerDecisions");
   const agmOldNav = document.getElementById("navAgmOld");
-  if(ownerDecisionsNav) ownerDecisionsNav.style.display = isLLCSingleOwner ? "" : "none";
-  if(agmOldNav) agmOldNav.style.display = isLLCSingleOwner ? "none" : "";
-  setText("generalAssemblyGroupLabel", isLLCSingleOwner ? "قرارات المالك" : "الجمعية العامة");
+  const isOwnerOnly = isLLCSingleOwner || isSoleProp;   // one person owns it, so assembly-style decisions are simply theirs
+  if(ownerDecisionsNav) ownerDecisionsNav.style.display = isOwnerOnly ? "" : "none";
+  if(agmOldNav) agmOldNav.style.display = isOwnerOnly ? "none" : "";
+  setText("generalAssemblyGroupLabel", isOwnerOnly ? "قرارات المالك" : "الجمعية العامة");
   setText("agmNavLabel", isLLCSingleOwner ? "قرارات المالك" : "الجمعيات العامة");
   setText("agmPageTitle", isLLCSingleOwner ? "قرارات المالك" : "الجمعيات العامة");
 
@@ -7622,6 +7757,10 @@ async function applyCompanyTypeVisibility(){
       item.style.display = 'none';
       return;
     }
+    // These two nav items are NOT in any hidden-pages list (they are the replacement pages), so
+    // without an explicit rule the default branch below would show them to every company.
+    if(pageId === 'managerdecisions' && !currentCompanyLLCSingleManager){ item.style.display = 'none'; return; }
+    if(pageId === 'ownerdecisions' && !(currentCompanyLLCSingleOwner || isSoleProp)){ item.style.display = 'none'; return; }
     const moduleKey = MODULE_PAGE_MAP[pageId];
     if(moduleKey && !currentCompanyModules[moduleKey] && !isPlatformAdmin){
       // Locked, not hidden — the whole point of a package upsell is that people can see the
@@ -7636,6 +7775,16 @@ async function applyCompanyTypeVisibility(){
     item.style.display = '';
     item.classList.remove('nav-locked');
     item.querySelector('.nav-lock-badge')?.remove();
+  });
+
+  // A sub-group whose items are all hidden for this company type would otherwise stay on screen
+  // as an empty heading with an arrow that opens nothing.
+  document.querySelectorAll('.nav-subgroup-header').forEach(h => {
+    const kids = document.getElementById(h.id + '-children');
+    if(!kids) return;
+    const anyVisible = Array.from(kids.querySelectorAll('.nav-item')).some(it => it.style.display !== 'none');
+    h.style.display = anyVisible ? 'flex' : 'none';
+    kids.style.display = anyVisible ? '' : 'none';
   });
 }
 
@@ -8605,6 +8754,46 @@ async function renderGovAlertsPanel(){
   </div>`;
 }
 
+/* Dashboard for entities that have no board: the meeting cards, "board members" and "committees"
+   figures and the upcoming-meetings list describe things these companies don't have. Recent
+   decisions replaces the meetings list so the card isn't just removed and left as a hole. */
+async function applyDashboardEntityAdaptation(){
+  const isSoleProp = currentCompanyType === "مؤسسة فردية";
+  const isLLC = currentCompanyType === "ذات مسؤولية محدودة";
+  const noBoard = isSoleProp || currentCompanyLLCSingleManager || currentCompanyLLCSingleOwner;
+  const hide = (id, on) => { const el = document.getElementById(id); const box = el ? (el.closest(".kpi") || el.closest(".sb-item")) : null; if(box) box.style.display = on ? "none" : ""; };
+
+  hide("kpi-meetings-q", noBoard);
+  hide("stat-members", noBoard);
+  hide("stat-committees", noBoard || isLLC);
+  const minutesLbl = document.getElementById("kpi-minutes") ? document.getElementById("kpi-minutes").closest(".kpi").querySelector(".kpi-label") : null;
+  if(minutesLbl) minutesLbl.textContent = noBoard ? "وثائق موقّعة" : "محاضر معتمدة";
+  const membersLbl = document.getElementById("stat-members") ? document.getElementById("stat-members").parentElement.querySelector(".sb-lbl") : null;
+  if(membersLbl) membersLbl.textContent = `أعضاء ${getGovernanceBodyLabel()}`;
+
+  const body = document.getElementById("dashUpcomingMeetings");
+  const card = body ? body.closest(".card") : null;
+  if(!card) return;
+  const title = card.querySelector(".card-title");
+  const btn = card.querySelector(".card-head button");
+  if(!noBoard){
+    if(title) title.innerHTML = '<span class="ico-i ico-calendar"></span>الاجتماعات القادمة';
+    if(btn){ btn.setAttribute("onclick","go('meetings',null)"); btn.textContent = "عرض الكل"; btn.style.display = ""; }
+    return;
+  }
+  const context = currentCompanyLLCSingleManager ? "manager" : "owner";
+  const page = context === "manager" ? "managerdecisions" : "ownerdecisions";
+  if(title) title.innerHTML = `<span class="ico-i ico-signature"></span>آخر قرارات ${context === "manager" ? "المدير" : "المالك"}`;
+  if(btn){ btn.setAttribute("onclick", `go('${page}',null)`); btn.textContent = "عرض الكل"; btn.style.display = ""; }
+  const { data } = await sb.from("simple_decisions").select("*").eq("company_id", currentCompanyId).eq("context", context).order("decision_date",{ascending:false}).limit(4);
+  const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  body.innerHTML = (data && data.length)
+    ? data.map(d => `<div style="padding:8px 0;border-bottom:1px solid var(--gray1)">
+        <div style="font-size:12.5px;font-weight:700;color:var(--dark)">${esc(String(d.decision_text).slice(0,90))}${String(d.decision_text).length>90?"…":""}</div>
+        <div style="font-size:11px;color:var(--gray3);margin-top:2px">${esc(d.decision_date)} · ${d.signed_at ? "موقَّع" : "غير موقَّع"}</div></div>`).join("")
+    : `<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد قرارات موثَّقة بعد.<br><button class="btn-xs primary" style="margin-top:8px" onclick="go('${page}',null)">توثيق قرار</button></div>`;
+}
+
 async function loadDashboard(){
   renderGovAlertsPanel(); // fire independently — a slow/failed alert check must never block the rest of the dashboard
   const [meetingsRes, risksRes, complianceRes, membersRes, committeesRes, signingRes, policiesRes, auditRes, govAssessRes] = await Promise.all([
@@ -8763,6 +8952,7 @@ async function loadDashboard(){
       ).join("");
     }
   }
+  applyDashboardEntityAdaptation();
 }
 function setText(id, val){ const el = document.getElementById(id); if(el) el.textContent = val; }
 
