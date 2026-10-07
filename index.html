@@ -1800,6 +1800,22 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   </div>
 </div>
 
+<div class="modal-bg" id="m-phone-gate" style="z-index:3000">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title"><span class="ico-i ico-lock"></span><span id="pg-title">تأكيد رقم الجوال</span></div>
+    <p style="font-size:12px;color:var(--gray3);line-height:1.8;margin-bottom:12px" id="pg-hint"></p>
+    <div class="fg"><label>رقم الجوال</label><input class="fi" id="pg-phone" placeholder="05XXXXXXXX" style="direction:ltr;text-align:center"/></div>
+    <button class="btn btn-gold" id="pg-send" style="width:100%" onclick="sendGatePhoneOtp()">إرسال الرمز</button>
+    <div class="fg" id="pg-code-row" style="display:none;margin-top:12px">
+      <label>رمز التحقق</label>
+      <input class="fi" id="pg-code" inputmode="numeric" autocomplete="one-time-code" style="direction:ltr;text-align:center;letter-spacing:4px"/>
+      <button class="btn btn-gold" id="pg-verify" style="width:100%;margin-top:8px" onclick="verifyGatePhoneOtp()">تأكيد</button>
+    </div>
+    <div id="pg-msg" style="display:none;border-radius:8px;padding:9px 12px;font-size:12px;line-height:1.7;margin-top:10px"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" id="pg-cancel" style="display:none" onclick="closeM('m-phone-gate')">إلغاء</button><button class="btn btn-ghost" id="pg-logout" onclick="gateLogout()">تسجيل الخروج</button></div>
+  </div>
+</div>
+
 <!-- Assign responsible person + target date for a decision -->
 <div class="modal-bg" id="m-decision-assign">
   <div class="modal" style="max-width:420px">
@@ -4032,7 +4048,10 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     <input type="hidden" id="mep-id" value="" />
     <div class="fg"><label>الاسم الكامل</label><input class="fi" id="mep-name"/></div>
     <div class="fg"><label>رقم الهوية</label><input class="fi" id="mep-national-id"/></div>
-    <div class="fg"><label>رقم الجوال</label><input class="fi" id="mep-phone" placeholder="مثال: 0501234567"/></div>
+    <div class="fg"><label>رقم الجوال</label><input class="fi" id="mep-phone" disabled style="background:var(--gray1)"/>
+      <div id="mep-phone-note" style="font-size:10.5px;color:var(--gray3);margin-top:4px;line-height:1.7"></div>
+      <button type="button" class="btn-xs primary" id="mep-phone-change" style="display:none;margin-top:6px" onclick="closeM('m-edit-profile');openPhoneGate(true)">تغيير رقم الجوال (برمز تحقق)</button>
+    </div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-edit-profile')">إلغاء</button><button class="btn btn-gold" onclick="saveEditProfile()"><span class="ico-i ico-check"></span>حفظ</button></div>
   </div>
 </div>
@@ -4987,7 +5006,7 @@ async function sendOtpLoginCode(){
     const data = await res.json();
     if(!res.ok){ statusBox.innerHTML = `<span style="color:var(--orange)"><span class="ico-i ico-warning"></span>${data.error||"الدخول برمز OTP غير مفعّل بعد"}</span>`; return; }
     document.getElementById("otpLoginCodeField").style.display = "block";
-    statusBox.innerHTML = '<span style="color:var(--green)">تم إرسال الرمز ✅</span>';
+    statusBox.innerHTML = '<span style="color:var(--green)">إن كان الرقم مسجَّلاً ومؤكَّداً سيصلك الرمز خلال لحظات ✅</span>';
   }catch(e){
     statusBox.innerHTML = '<span style="color:var(--orange)"><span class="ico-i ico-warning"></span>الدخول برمز OTP غير مفعّل بعد</span>';
   }
@@ -5003,7 +5022,7 @@ async function verifyOtpLoginCode(){
     body: JSON.stringify({ method: "otp", phone, otpCode })
   });
   const data = await res.json();
-  if(!res.ok){ statusBox.innerHTML = `<span style="color:var(--red)">${data.error||"تعذّر الدخول"}</span>${data.authenticaResponse?`<div style="font-size:9px;color:var(--gray3);margin-top:4px">${JSON.stringify(data.authenticaResponse)}</div>`:""}`; return; }
+  if(!res.ok){ statusBox.innerHTML = `<span style="color:var(--red)">${data.error||"تعذّر الدخول"}</span>`; return; }
   await completePasswordlessLogin(data.email, data.hashed_token);
 }
 
@@ -5109,7 +5128,10 @@ async function handleAuth(){
     // unconfirmed there is no session, so the join request is made on the first signed-in visit
     // (processPendingJoinIntent), by a database function that reads the identity from that session.
     const joinCodeTyped = (document.getElementById("signupCompanyCode").value || "").trim().toUpperCase();
-    const { error } = await sb.auth.signUp({ email, password, options: { data: joinCodeTyped ? { join_code: joinCodeTyped } : {} } });
+    const signupMeta = {};
+    if(joinCodeTyped) signupMeta.join_code = joinCodeTyped;
+    if(signupPhoneProof) signupMeta.phone_proof = signupPhoneProof;   // server-signed; claimed on the first signed-in visit
+    const { error } = await sb.auth.signUp({ email, password, options: { data: signupMeta } });
     if(error){ showLoginMsg("خطأ: " + error.message, false); return; }
 
     // Listed-company shareholder signup: no pre-existing registry to auto-match against, so
@@ -5218,6 +5240,8 @@ async function loadCurrentUserProfile(){
   ]);
   currentUserProfile = data || null;
   userMemberships = memberships || [];
+  await claimPhoneProofIfAny();
+  if(currentUserProfile && !currentUserProfile.phone_verified_at){ openPhoneGate(false); }
   const joinIntentResult = await processPendingJoinIntent();
   if(currentUserProfile && currentUserProfile.account_type === "مساهم" && nameEl){
     nameEl.value = currentUserProfile.full_name || "";
@@ -5242,7 +5266,7 @@ async function loadCurrentUserProfile(){
   await applyRolePermissions();
   checkPendingApprovalBadges();
   resetIdleTimer();
-  if(joinIntentResult){ const jm = joinResultMessage(joinIntentResult); setTimeout(() => alert(jm.text), 700); }
+  if(joinIntentResult && joinIntentResult.status !== "phone_unverified"){ const jm = joinResultMessage(joinIntentResult); setTimeout(() => alert(jm.text), 700); }
   if(currentUserProfile && !currentUserProfile.onboarding_seen && !isPlatformAdminAccount){
     setTimeout(() => openOnboardingGuide(), 600);
   }
@@ -5579,7 +5603,7 @@ async function linkExistingAccount(){
   if(!role){ alert("الرجاء كتابة المسمى المخصّص للدور"); return; }
   if(!currentCompanyId){ alert("لا توجد شركة محددة حاليًا"); return; }
 
-  const { data: existing, error: findErr } = await sb.from("user_profiles").select("*").ilike("email", email).maybeSingle();
+  const { data: existing, error: findErr } = await sb.from("user_profiles").select("*").ilike("email", likeEsc(email)).maybeSingle();
   if(findErr || !existing){ alert("لا يوجد حساب مسجّل بهذا البريد الإلكتروني. تأكد أنه سجّل حساب بالمنصة أولًا، أو استخدم تبويب \"عضو جديد\" بدل ذلك."); return; }
 
   if(!confirm(`سيتم إضافة "${existing.full_name||email}" لفريق شركتك بدور "${role}" (يبقى عضوًا بأي شركة أخرى ينتمي لها). متابعة؟`)) return;
@@ -5626,6 +5650,91 @@ function copyInviteLink(){
   el.select();
   navigator.clipboard?.writeText(el.value).then(()=>alert("تم نسخ الرابط ✅")).catch(()=>{});
 }
+
+/* ══════════ PHONE VERIFICATION (تأكيد الجوال) ══════════
+   A phone number only counts once the SERVER has seen the code verified: the page-side flag that used
+   to stand for this could be skipped by anyone calling the sign-up API directly. Two ways in:
+   - the proof issued when the code was verified at sign-up (signed, bound to that phone and email, valid
+     48h) is claimed on the first signed-in visit, so the person is not asked twice; or
+   - a blocking dialog on that first visit if there is no valid proof.
+   The phone, its normalised form and the verified time are written only by the server (a database trigger
+   refuses them from the browser), and login by phone uses verified numbers only. */
+async function authFn(body){
+  const { data: { session } } = await sb.auth.getSession();
+  const headers = { "Content-Type": "application/json" };
+  if(session && session.access_token) headers["Authorization"] = "Bearer " + session.access_token;
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/passwordless-login`, { method: "POST", headers, body: JSON.stringify(body) });
+  let data = {};
+  try { data = await res.json(); } catch(e){}
+  return { ok: res.ok, status: res.status, data };
+}
+
+async function claimPhoneProofIfAny(){
+  try {
+    if(!currentUserProfile || currentUserProfile.phone_verified_at) return;
+    const { data: { user } } = await sb.auth.getUser();
+    const proof = user && user.user_metadata ? user.user_metadata.phone_proof : null;
+    if(!proof) return;
+    const r = await authFn({ action: "claim_proof", proof });
+    if(r.ok && r.data.verified){
+      currentUserProfile.phone_verified_at = new Date().toISOString();
+      currentUserProfile.phone_number = r.data.phone;
+    }
+    // Done, or unusable (expired / for another account / number taken): stop trying and fall back to the dialog.
+    if(r.ok || r.status === 400 || r.status === 409){ await sb.auth.updateUser({ data: { phone_proof: null } }); }
+  } catch(e){ console.warn("phone proof not claimed", e); }
+}
+
+let phoneGateMode = "gate";
+function pgMsg(text, ok){
+  const box = document.getElementById("pg-msg");
+  box.style.display = "block"; box.style.background = ok ? "#E8F8EF" : "#FBEAEA"; box.style.color = ok ? "var(--green)" : "var(--red)";
+  box.textContent = text;
+}
+function openPhoneGate(optional){
+  phoneGateMode = optional ? "change" : "gate";
+  document.getElementById("pg-title").textContent = optional ? "تغيير رقم الجوال" : "تأكيد رقم الجوال";
+  document.getElementById("pg-hint").textContent = optional
+    ? "اكتب رقمك الجديد وسيصلك رمز تحقق برسالة. لا يُغيَّر الرقم قبل التحقق منه."
+    : "لحماية حسابك نحتاج تأكيد رقم جوالك مرة واحدة برمز يصلك برسالة.";
+  document.getElementById("pg-phone").value = optional ? "" : ((currentUserProfile && currentUserProfile.phone_number) || "");
+  document.getElementById("pg-code").value = "";
+  document.getElementById("pg-code-row").style.display = "none";
+  document.getElementById("pg-msg").style.display = "none";
+  document.getElementById("pg-cancel").style.display = optional ? "inline-flex" : "none";
+  document.getElementById("pg-logout").style.display = optional ? "none" : "inline-flex";
+  openM("m-phone-gate");
+}
+async function sendGatePhoneOtp(){
+  const phone = document.getElementById("pg-phone").value.trim();
+  if(!phone){ pgMsg("اكتب رقم جوالك", false); return; }
+  const btn = document.getElementById("pg-send"); btn.disabled = true;
+  const r = await authFn({ action: "phone_send", phone });
+  btn.disabled = false;
+  if(!r.ok){ pgMsg(r.data.error || "تعذّر إرسال الرمز", false); return; }
+  document.getElementById("pg-code-row").style.display = "block";
+  pgMsg("تم إرسال الرمز إلى جوالك. اكتبه بالأسفل.", true);
+}
+async function verifyGatePhoneOtp(){
+  const phone = document.getElementById("pg-phone").value.trim();
+  const code = document.getElementById("pg-code").value.trim();
+  if(!code){ pgMsg("اكتب الرمز", false); return; }
+  const btn = document.getElementById("pg-verify"); btn.disabled = true;
+  const r = await authFn({ action: "phone_verify", phone, otpCode: code });
+  btn.disabled = false;
+  if(!r.ok){ pgMsg(r.data.error || "تعذّر التحقق", false); return; }
+  currentUserProfile.phone_verified_at = new Date().toISOString();
+  currentUserProfile.phone_number = r.data.phone;
+  closeM("m-phone-gate");
+  // A company code typed at sign-up was waiting for a verified phone.
+  const joinRes = await processPendingJoinIntent();
+  if(joinRes && joinRes.status !== "phone_unverified"){ alert(joinResultMessage(joinRes).text); }
+  if(phoneGateMode === "gate") await loadCurrentUserProfile();
+  else alert("تم تحديث رقم جوالك بعد التحقق منه ✅");
+}
+async function gateLogout(){ closeM("m-phone-gate"); await logout(); }
+
+function likeEsc(s){ return String(s == null ? "" : s).replace(/[\\%_]/g, "\\$&"); }
 
 /* ══════════ COMPANY JOIN CODE (كود الشركة) ══════════
    The model: the code is the key to ONE company, and everyone who comes in through it waits for that
@@ -5690,6 +5799,7 @@ function joinResultMessage(res){
     case "invalid_code": return { ok: false, text: "كود الشركة غير صحيح. تأكد منه مع مدير شركتك." };
     case "rate_limited": return { ok: false, text: "محاولات خاطئة كثيرة. انتظر ساعة ثم أعد المحاولة." };
     case "unauthenticated": return { ok: false, text: "سجّل الدخول أولاً." };
+    case "phone_unverified": return { ok: false, text: "أكّد رقم جوالك أولاً ثم أعد المحاولة." };
     case "not_ready": return { ok: false, text: "الانضمام بالكود لم يُفعَّل بعد بقاعدة البيانات. تواصل مع الدعم." };
     default: return { ok: false, text: "تعذّر إرسال الطلب، حاول مرة أخرى." };
   }
@@ -5716,7 +5826,7 @@ async function processPendingJoinIntent(){
     const code = String(md.join_code || "").trim();
     if(!code || md.join_intent_done) return null;
     const res = await requestJoinByCode(code);
-    if(res && res.status !== "not_ready" && res.status !== "error"){
+    if(res && res.status !== "not_ready" && res.status !== "error" && res.status !== "phone_unverified"){
       await sb.auth.updateUser({ data: { join_intent_done: true } });
     }
     return res;
@@ -5751,7 +5861,7 @@ async function refreshAfterJoinApproval(){
 async function loadMyJoinRequests(boxId){
   const box = document.getElementById(boxId);
   if(!box || !currentUserProfile) return;
-  const { data } = await sb.from("company_join_requests").select("*").ilike("requester_email", currentUserProfile.email).order("id",{ascending:false}).limit(10);
+  const { data } = await sb.from("company_join_requests").select("*").ilike("requester_email", likeEsc(currentUserProfile.email)).order("id",{ascending:false}).limit(10);
   if(!data || !data.length){ box.innerHTML = boxId === "jc-my-requests" ? '<div style="font-size:11.5px;color:var(--gray3)">لا توجد طلبات بعد.</div>' : ""; return; }
   const style = { "قيد المراجعة": ["#FEF3E2","var(--gold)","بانتظار موافقة المدير"], "معتمد": ["#E8F8EF","var(--green)","تمت الموافقة"], "مرفوض": ["#FBEAEA","var(--red)","رُفض الطلب"] };
   box.innerHTML = data.map(r => {
@@ -5846,15 +5956,15 @@ async function approveJoinRequest(id){
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
 
-  const { data: existing } = await sb.from("user_company_memberships").select("id").ilike("email", req.requester_email).eq("company_id", currentCompanyId).maybeSingle();
+  const { data: existing } = await sb.from("user_company_memberships").select("id").ilike("email", likeEsc(req.requester_email)).eq("company_id", currentCompanyId).maybeSingle();
   const { error: memErr } = existing
     ? await sb.from("user_company_memberships").update({ role }).eq("id", existing.id)
     : await sb.from("user_company_memberships").insert([{ email: req.requester_email, company_id: currentCompanyId, role }]);
   if(memErr){ alert("تعذّرت الموافقة: " + memErr.message); return; }
 
   // Only becomes the account's primary company if it has none yet.
-  const { data: prof } = await sb.from("user_profiles").select("company_id").ilike("email", req.requester_email).maybeSingle();
-  if(prof && !prof.company_id){ await sb.from("user_profiles").update({ company_id: currentCompanyId, role }).ilike("email", req.requester_email); }
+  const { data: prof } = await sb.from("user_profiles").select("company_id").ilike("email", likeEsc(req.requester_email)).maybeSingle();
+  if(prof && !prof.company_id){ await sb.from("user_profiles").update({ company_id: currentCompanyId, role }).ilike("email", likeEsc(req.requester_email)); }
 
   // The registry link is made here, by the approver, and only onto a record nobody else holds.
   const shSel = document.getElementById("cjr-sh-"+id);
@@ -6339,6 +6449,8 @@ async function openEditProfileModal(id){
   document.getElementById("mep-name").value = u.full_name || "";
   document.getElementById("mep-national-id").value = u.national_id || "";
   document.getElementById("mep-phone").value = u.phone_number || "";
+  document.getElementById("mep-phone-note").textContent = u.phone_verified_at ? "رقم موثّق برمز تحقق ✅" : "رقم غير موثّق";
+  document.getElementById("mep-phone-change").style.display = (currentUserProfile && String(currentUserProfile.id) === String(u.id)) ? "inline-flex" : "none";
   openM("m-edit-profile");
 }
 
@@ -6351,8 +6463,7 @@ async function saveEditProfile(){
   const id = document.getElementById("mep-id").value;
   const full_name = document.getElementById("mep-name").value.trim();
   const national_id = document.getElementById("mep-national-id").value.trim();
-  const phone_number = document.getElementById("mep-phone").value.trim();
-  const { error } = await sb.from("user_profiles").update({ full_name, national_id, phone_number }).eq("id", id);
+  const { error } = await sb.from("user_profiles").update({ full_name, national_id }).eq("id", id);
   if(error){ alert("تعذّر الحفظ: " + error.message); return; }
   logActivity("تعديل", "بيانات عضو", full_name, "تحديث بيانات الاتصال");
   closeM("m-edit-profile");
@@ -6360,7 +6471,6 @@ async function saveEditProfile(){
   if(currentUserProfile && String(currentUserProfile.id) === String(id)){
     currentUserProfile.full_name = full_name;
     currentUserProfile.national_id = national_id;
-    currentUserProfile.phone_number = phone_number;
     const nameEl = document.getElementById('sidebarUserName');
     if(nameEl) nameEl.textContent = full_name || nameEl.textContent;
   }
@@ -7396,9 +7506,9 @@ async function assignPlatformTeamModule(){
   const email = document.getElementById("pts-email").value.trim();
   if(!email){ alert("الرجاء إدخال البريد الإلكتروني"); return; }
   const platform_team_module = document.getElementById("pts-module").value;
-  const { data: existing, error: findErr } = await sb.from("user_profiles").select("*").ilike("email", email).maybeSingle();
+  const { data: existing, error: findErr } = await sb.from("user_profiles").select("*").ilike("email", likeEsc(email)).maybeSingle();
   if(findErr || !existing){ alert("لا يوجد حساب مسجّل بهذا البريد الإلكتروني — لازم يسجّل حساب بالمنصة أولًا."); return; }
-  const { error } = await sb.from("user_profiles").update({ platform_team_module }).ilike("email", email);
+  const { error } = await sb.from("user_profiles").update({ platform_team_module }).ilike("email", likeEsc(email));
   if(error){ alert("تعذّر التعيين: " + error.message); return; }
   alert(`تم تعيين "${existing.full_name||email}" بتخصص "${platform_team_module}" ✅ — عليه تسجيل خروج ثم دخول من جديد.`);
   document.getElementById("pts-email").value = "";
@@ -7407,7 +7517,7 @@ async function assignPlatformTeamModule(){
 
 async function removePlatformTeamModule(email, name){
   if(!confirm(`إزالة تخصص "${name}" من فريق المنصة؟ يرجع حساب عادي بدون صلاحيات خاصة.`)) return;
-  const { error } = await sb.from("user_profiles").update({ platform_team_module: null }).ilike("email", email);
+  const { error } = await sb.from("user_profiles").update({ platform_team_module: null }).ilike("email", likeEsc(email));
   if(error){ alert("تعذّر الإزالة: " + error.message); return; }
   loadPlatformTeam();
 }
@@ -16474,8 +16584,10 @@ const LEGACY_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 /* ══════════ SMS OTP (phone verification during signup) via Authentica & WhatsApp Business API ══════════ */
 let signupOtpVerifiedFlag = false;
+let signupPhoneProof = null;
 
 async function requestSignupOtp(){
+  signupOtpVerifiedFlag = false; signupPhoneProof = null;
   const phone = document.getElementById("signupPhone").value.trim();
   if(!phone){ alert("الرجاء إدخال رقم الجوال أولًا"); return; }
   try{
@@ -16496,14 +16608,16 @@ async function verifySignupOtp(){
   const phone = document.getElementById("signupPhone").value.trim();
   const code = document.getElementById("signupOtpCode").value.trim();
   if(!code){ alert("الرجاء إدخال الرمز"); return; }
+  if(!(document.getElementById("loginEmail").value || "").trim()){ alert("اكتب بريدك الإلكتروني أولاً، فالتحقق يُربط به."); return; }
   try{
     const res = await fetch(`${SUPABASE_URL}/functions/v1/passwordless-login`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "verify_otp_signup", phone, otpCode: code })
+      body: JSON.stringify({ action: "verify_otp_signup", phone, otpCode: code, email: (document.getElementById("loginEmail").value || "").trim().toLowerCase() })
     });
     const data = await res.json();
     if(!res.ok || !data.verified){ alert("الرمز غير صحيح أو منتهي الصلاحية — اضغط \"إرسال رمز التحقق\" للحصول على رمز جديد."); return; }
     signupOtpVerifiedFlag = true;
+    signupPhoneProof = data.proof || null;
     document.getElementById("signupOtpVerified").style.display = "block";
     document.getElementById("signupOtpRow").style.display = "none";
   }catch(e){
