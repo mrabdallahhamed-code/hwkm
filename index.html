@@ -927,7 +927,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     </div>
     <div class="login-field" id="signupCompanyCodeField" style="display:none">
       <label>كود الشركة (اختياري)</label>
-      <input class="fi" id="signupCompanyCode" placeholder="مثال: HWK-7F2K" />
+      <input class="fi" id="signupCompanyCode" placeholder="مثال: HWK-XXXXXXXX" />
     </div>
     <div class="login-field">
       <label>البريد الإلكتروني</label>
@@ -1195,6 +1195,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
       <option>جارِ التحميل...</option>
     </select>
     <button id="btnAddCompany" class="btn btn-ghost" style="font-size:11px;padding:6px 12px;display:none" onclick="openNewCompanyModal()">+ شركة</button>
+    <button id="btnJoinByCode" class="btn btn-ghost" style="font-size:11px;padding:6px 12px;display:none" onclick="openJoinByCodeModal()"><span class="ico-i ico-key"></span>انضمام بكود</button>
     <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="openEditCompanyModal()"><span class="ico-i ico-edit"></span>تعديل الشركة</button>
     <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="exportAllCompanyData()"><span class="ico-i ico-package"></span>تصدير بياناتي</button>
     <div style="position:relative">
@@ -1783,6 +1784,19 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     <div class="fg"><label>للتأكيد اكتب: حذف</label><input class="fi" id="dc-confirm" autocomplete="off"/></div>
     <div id="dc-error" style="display:none;background:#FBEAEA;color:var(--red);border-radius:8px;padding:9px 12px;font-size:11.5px;line-height:1.7;white-space:pre-wrap;word-break:break-word;user-select:text;margin-bottom:10px"></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-delete-company')">إلغاء</button><button class="btn" id="dc-btn" style="background:var(--red);color:#fff" onclick="confirmDeleteCompany()"><span class="ico-i ico-trash"></span>حذف نهائي</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-join-code">
+  <div class="modal" style="max-width:440px;max-height:92vh;overflow-y:auto">
+    <div class="modal-title"><span class="ico-i ico-key"></span>الانضمام لشركة بكود</div>
+    <p style="font-size:11.5px;color:var(--gray3);line-height:1.8;margin-bottom:12px">اكتب كود الشركة الذي أعطاك إياه مدير النظام. يصله طلبك، وبعد موافقته تظهر الشركة في شريط الشركات ويمكنك التبديل بينها.</p>
+    <div class="fg"><label>كود الشركة</label><input class="fi" id="jc-code" placeholder="HWK-XXXXXXXX" autocomplete="off" style="direction:ltr;text-align:center;letter-spacing:1px"/></div>
+    <div id="jc-msg" style="display:none;border-radius:8px;padding:9px 12px;font-size:12px;line-height:1.7;margin-bottom:10px"></div>
+    <button class="btn btn-gold" id="jc-btn" style="width:100%" onclick="submitJoinByCode()">إرسال الطلب</button>
+    <div style="font-size:12px;font-weight:800;color:var(--dark);margin:16px 0 6px">طلباتي</div>
+    <div id="jc-my-requests"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-join-code')">إغلاق</button></div>
   </div>
 </div>
 
@@ -2504,10 +2518,11 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   <div class="card" id="companyJoinCodeCard" style="margin-bottom:16px">
     <div class="card-head"><span class="card-title"><span class="ico-i ico-key"></span>كود شركتكم للانضمام</span></div>
     <div class="card-body">
-      <p style="font-size:11px;color:var(--gray3);margin-bottom:10px">أعطِ هذا الكود لموظفي شركتكم — يسجّلون حساباً ويكتبونه، ويصلك طلب انضمام تعتمده أنت بالدور المناسب. مختلف عن رابط الدعوة الشخصي، وما يربط أحداً تلقائياً.</p>
+      <p style="font-size:11px;color:var(--gray3);margin-bottom:10px">أعطِ هذا الكود لموظفيكم ومساهميكم وأعضاء مجلسكم. يكتبونه عند التسجيل أو من «+ انضمام بكود»، فيصلك طلب تراجعه وتحدد دوره. لا يدخل أحد قبل موافقتك حتى لو كان مدرجاً بالسجل. وإن تسرّب الكود فأعد توليده.</p>
       <div style="display:flex;gap:8px;align-items:center">
         <div id="companyJoinCodeDisplay" style="flex:1;font-size:18px;font-weight:900;color:var(--primary);background:var(--offwhite);padding:10px 14px;border-radius:8px;letter-spacing:1px">جارِ التحميل...</div>
         <button class="btn-xs primary" onclick="copyCompanyJoinCode()"><span class="ico-i ico-clipboard"></span>نسخ</button>
+        <button class="btn-xs" style="background:var(--offwhite);border:1px solid var(--gray1);border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer" onclick="regenerateCompanyJoinCode()">إعادة توليد</button>
       </div>
     </div>
   </div>
@@ -2573,7 +2588,15 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 
 <!-- ══ COMPANY REQUEST (for company-less users) ══════ -->
 <div id="p-companyrequest" class="page content">
-  <div style="display:flex;align-items:center;justify-content:center;min-height:70vh">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:16px;padding:10px 0">
+    <div class="card" style="max-width:520px;width:100%">
+      <div class="card-body">
+        <div style="font-size:15px;font-weight:800;color:var(--dark);margin-bottom:4px">لديك كود شركة؟</div>
+        <div style="font-size:12px;color:var(--gray3);margin-bottom:10px;line-height:1.8">اكتب الكود الذي أعطاك إياه مدير شركتك. يصله طلبك ويوافق عليه، وبعدها تظهر الشركة في شريط الشركات.</div>
+        <button class="btn btn-gold" style="width:100%" onclick="openJoinByCodeModal()"><span class="ico-i ico-key"></span>الانضمام بكود شركة</button>
+        <div id="crJoinList" style="margin-top:12px"></div>
+      </div>
+    </div>
     <div class="card" style="max-width:520px;width:100%">
       <div class="card-body" id="companyRequestBody">
         <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
@@ -2644,7 +2667,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
             <option>رئيس مجلس</option><option>سكرتير المجلس</option>
             <option>رئيس لجنة الترشيحات</option><option>عضو لجنة الترشيحات</option>
             <option>رئيس لجنة مراجعة</option><option>عضو لجنة مراجعة</option>
-            <option selected>عضو مجلس</option><option>عضو مجلس وعضو مساهم</option><option>مساهم</option><option>مدير النظام</option>
+            <option selected>عضو مجلس</option><option>عضو مجلس وعضو مساهم</option><option>مساهم</option><option>موظف</option><option>مدير النظام</option>
           </select>
         </div>
       </div>
@@ -4246,7 +4269,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     <div class="fg"><label>الدور</label>
       <select class="fs" id="ctu-role" onchange="toggleCustomRoleInput('ctu-role','ctu-role-custom')">
         <option>مدير النظام</option><option>رئيس مجلس</option><option>سكرتير المجلس</option>
-        <option>عضو مجلس</option><option>عضو مجلس وعضو مساهم</option><option>مساهم</option>
+        <option>عضو مجلس</option><option>عضو مجلس وعضو مساهم</option><option>مساهم</option><option>موظف</option>
         <option>رئيس لجنة مراجعة</option><option>عضو لجنة مراجعة</option>
         <option>رئيس لجنة الترشيحات</option><option>عضو لجنة الترشيحات</option>
         <option value="__custom__"><span class="ico-i ico-tag"></span>مسمى مخصّص (مدير مالي، مدير مشتريات...)...</option>
@@ -4270,7 +4293,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
           <option>رئيس مجلس</option><option>سكرتير المجلس</option>
           <option>رئيس لجنة الترشيحات</option><option>عضو لجنة الترشيحات</option>
           <option>رئيس لجنة مراجعة</option><option>عضو لجنة مراجعة</option>
-          <option selected>عضو مجلس</option><option>عضو مجلس وعضو مساهم</option><option>مساهم</option>
+          <option selected>عضو مجلس</option><option>عضو مجلس وعضو مساهم</option><option>مساهم</option><option>موظف</option>
           <option value="__custom__"><span class="ico-i ico-tag"></span>مسمى مخصّص (لجنة أخرى)...</option>
         </select>
         <input class="fi" id="mi-role-custom" placeholder="اكتب اسم اللجنة/الدور، مثال: رئيس لجنة المخاطر" style="display:none;margin-top:6px"/>
@@ -4285,7 +4308,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
           <option>رئيس مجلس</option><option>سكرتير المجلس</option>
           <option>رئيس لجنة الترشيحات</option><option>عضو لجنة الترشيحات</option>
           <option>رئيس لجنة مراجعة</option><option>عضو لجنة مراجعة</option>
-          <option selected>عضو مجلس</option><option>عضو مجلس وعضو مساهم</option><option>مساهم</option>
+          <option selected>عضو مجلس</option><option>عضو مجلس وعضو مساهم</option><option>مساهم</option><option>موظف</option>
           <option value="__custom__"><span class="ico-i ico-tag"></span>مسمى مخصّص (لجنة أخرى)...</option>
         </select>
         <input class="fi" id="mi-existing-role-custom" placeholder="اكتب اسم اللجنة/الدور، مثال: عضو لجنة الحوكمة" style="display:none;margin-top:6px"/>
@@ -4596,7 +4619,7 @@ const TRANSLATIONS = {
 
   // Login/signup screen
   "مرحبًا بك في حوكم":"Welcome to Hawkim","منصة الحوكمة المؤسسية":"Corporate Governance Platform",
-  "عضو مجلس":"Board Member","عضو مجلس وعضو مساهم":"Board Member & Shareholder","مساهم":"Shareholder","مدير النظام":"System Admin","رئيس مجلس":"Board Chairman",
+  "عضو مجلس":"Board Member","عضو مجلس وعضو مساهم":"Board Member & Shareholder","مساهم":"Shareholder","موظف":"Employee","مدير النظام":"System Admin","رئيس مجلس":"Board Chairman",
   "رئيس لجنة مراجعة":"Audit Committee Chairman","عضو لجنة مراجعة":"Audit Committee Member",
   "سكرتير المجلس":"Board Secretary","نوع الحساب":"Account Type","رقم الأسهم":"Shares Count",
 
@@ -5082,7 +5105,11 @@ async function handleAuth(){
     if(account_type === "مساهم" && !shares_count){ showLoginMsg("الرجاء إدخال عدد الأسهم", false); return; }
     if(!signupOtpVerifiedFlag){ showLoginMsg("الرجاء التحقق من رقم جوالك عبر رمز OTP أولًا قبل إنشاء الحساب", false); return; }
 
-    const { error } = await sb.auth.signUp({ email, password });
+    // The company code is only remembered in the account's metadata here. While the email is
+    // unconfirmed there is no session, so the join request is made on the first signed-in visit
+    // (processPendingJoinIntent), by a database function that reads the identity from that session.
+    const joinCodeTyped = (document.getElementById("signupCompanyCode").value || "").trim().toUpperCase();
+    const { error } = await sb.auth.signUp({ email, password, options: { data: joinCodeTyped ? { join_code: joinCodeTyped } : {} } });
     if(error){ showLoginMsg("خطأ: " + error.message, false); return; }
 
     // Listed-company shareholder signup: no pre-existing registry to auto-match against, so
@@ -5117,45 +5144,12 @@ async function handleAuth(){
       }
     }
 
-    // A company join code is a *request*, never an automatic membership — unlike the per-person
-    // invite link above, the same code is shared with every employee, so anyone who got hold of
-    // it must still be approved by that company's own مدير النظام before they get any access.
-    let pendingJoinRequest = null;
-    if(!inviteCompanyId){
-      const companyCode = document.getElementById("signupCompanyCode").value.trim();
-      if(companyCode){
-        const { data: codeCompany } = await sb.from("companies").select("id,name").eq("join_code", companyCode).maybeSingle();
-        if(codeCompany){ pendingJoinRequest = codeCompany; }
-        else { showLoginMsg("تنبيه: كود الشركة غير صحيح — سيُنشأ حسابك بدون طلب انضمام.", false); }
-      }
-    }
-
-    // No invite code (or it didn't match)? Fall back to matching the national ID against real
-    // company records — board members and the shareholders registry, across ALL companies (a
-    // person can legitimately sit on more than one board, or hold shares in several companies).
-    // Every match becomes its own membership row with its own role; each matched record gets
-    // locked to this email so the same ID can't be claimed again by someone else.
+    // Nobody is linked to a company automatically from what they type here — not by a code and not by a
+    // national ID. A company code becomes a pending request that company's admin must approve, and the
+    // national ID is used only by that approver to see which registry record of THAT company matches.
+    // Only an explicit invite link (an admin acting for one named person) joins immediately.
     let claimedRecords = [];
-    let memberships = []; // { company_id, role }
-    if(!inviteCompanyId && national_id){
-      const [{ data: memberMatches }, { data: shareholderMatches }] = await Promise.all([
-        sb.from("board_members").select("*").eq("national_id", national_id).is("claimed_by_email", null),
-        sb.from("shareholders").select("*").eq("national_id", national_id).is("claimed_by_email", null)
-      ]);
-      (memberMatches||[]).forEach(m => {
-        memberships.push({ company_id: m.company_id, role: "عضو مجلس" });
-        claimedRecords.push({ table: "board_members", id: m.id });
-      });
-      (shareholderMatches||[]).forEach(s => {
-        claimedRecords.push({ table: "shareholders", id: s.id });
-        // If this company already got a board-member match, keep the broader role — don't
-        // downgrade it to "مساهم" — but still lock the shareholder record above.
-        if(!memberships.some(mm => mm.company_id === s.company_id)){
-          memberships.push({ company_id: s.company_id, role: "مساهم" });
-        }
-      });
-      if(memberships.length){ inviteCompanyId = memberships[0].company_id; inviteRole = memberships[0].role; }
-    }
+    let memberships = []; // { company_id, role } — only ever filled by an invite link
 
     const profilePayload = { email, account_type, full_name, national_id, phone_number, shares_count };
     if(inviteCompanyId){ profilePayload.company_id = inviteCompanyId; profilePayload.role = inviteRole; }
@@ -5191,19 +5185,9 @@ async function handleAuth(){
     // created — the RLS policy on those tables requires is_member_of(company_id), which only
     // becomes true once the membership insert just above has actually gone through. Doing this
     // in the old order silently failed every claim (RLS blocked it with no visible error).
-    for(const rec of claimedRecords){
-      await sb.from(rec.table).update({ claimed_by_email: email }).eq("id", rec.id);
-    }
-
-    if(pendingJoinRequest){
-      await sb.from("company_join_requests").insert([{
-        company_id: pendingJoinRequest.id, requester_email: email, requester_name: full_name, suggested_role: null
-      }]);
-    }
-
     showLoginMsg(
       inviteCompanyId ? (memberships.length > 1 ? `تم إنشاء الحساب وربطه تلقائيًا بـ${memberships.length} شركات ✅ يمكنك تسجيل الدخول الآن.` : "تم إنشاء الحساب وربطه بشركتك تلقائيًا ✅ يمكنك تسجيل الدخول الآن.")
-      : pendingJoinRequest ? `تم إنشاء الحساب، وأُرسل طلب انضمامك لشركة "${pendingJoinRequest.name}" — بانتظار موافقة مدير النظام. يمكنك تسجيل الدخول الآن، وستصل لشركتك بعد الموافقة.`
+      : joinCodeTyped ? "تم إنشاء الحساب. أكّد بريدك الإلكتروني ثم سجّل الدخول، وسيصل طلب انضمامك لمدير الشركة ليوافق عليه."
       : "تم إنشاء الحساب. يمكنك تسجيل الدخول الآن (أو تحقق من بريدك للتفعيل)", true);
     authMode = "login";
     document.getElementById("loginBtn").textContent = "تسجيل الدخول";
@@ -5234,6 +5218,7 @@ async function loadCurrentUserProfile(){
   ]);
   currentUserProfile = data || null;
   userMemberships = memberships || [];
+  const joinIntentResult = await processPendingJoinIntent();
   if(currentUserProfile && currentUserProfile.account_type === "مساهم" && nameEl){
     nameEl.value = currentUserProfile.full_name || "";
     sharesEl.value = currentUserProfile.shares_count || "";
@@ -5250,11 +5235,14 @@ async function loadCurrentUserProfile(){
   const isTeamMemberAccount = currentUserProfile && currentUserProfile.platform_team_module && !isPlatformAdminAccount;
   const preferred = (currentUserProfile && !isPlatformAdminAccount && !isTeamMemberAccount) ? currentUserProfile.company_id : null;
   if(isPlatformAdminAccount || isTeamMemberAccount) viewingPlatformOverview = true;
+  const joinBtn = document.getElementById("btnJoinByCode");
+  if(joinBtn) joinBtn.style.display = (isPlatformAdminAccount || isTeamMemberAccount) ? "none" : "inline-flex";
   await loadCompanies(preferred);
   await loadMyPermissionOverrides();
   await applyRolePermissions();
   checkPendingApprovalBadges();
   resetIdleTimer();
+  if(joinIntentResult){ const jm = joinResultMessage(joinIntentResult); setTimeout(() => alert(jm.text), 700); }
   if(currentUserProfile && !currentUserProfile.onboarding_seen && !isPlatformAdminAccount){
     setTimeout(() => openOnboardingGuide(), 600);
   }
@@ -5264,6 +5252,9 @@ async function loadCurrentUserProfile(){
 const FULL_ACCESS_ROLES = ['مدير النظام','رئيس مجلس','سكرتير المجلس'];
 
 const SHAREHOLDER_PAGES = ['agm','voting','signing'];
+// An employee starts with the least a staff member needs; the approver adds anything more per person
+// from the permissions page (a per-user override is checked before this list and always wins).
+const EMPLOYEE_PAGES = ['dashboard','governance','signing'];
 
 // A person's role can differ per company they belong to (e.g. board member at one company,
 // shareholder-only at another) — always resolve against whichever company is currently
@@ -5422,6 +5413,7 @@ function isPageAllowed(pageId, role){
   if(pageId === 'users') return role === 'مدير النظام';
   if(pageId === 'activitylog') return role === 'مدير النظام';
   if(role === 'مساهم') return SHAREHOLDER_PAGES.includes(pageId);
+  if(role === 'موظف') return EMPLOYEE_PAGES.includes(pageId);
   if(currentCompanyType === 'مؤسسة فردية' && SOLE_PROP_HIDDEN_PAGES.includes(pageId)) return false;
   if(currentCompanyType === 'ذات مسؤولية محدودة' && LLC_HIDDEN_PAGES.includes(pageId)) return false;
   if(currentCompanyLLCSingleManager && LLC_SINGLE_MANAGER_HIDDEN_PAGES.includes(pageId)) return false;
@@ -5636,18 +5628,37 @@ function copyInviteLink(){
 }
 
 /* ══════════ COMPANY JOIN CODE (كود الشركة) ══════════
-   Deliberately NOT a self-serve auto-join like the per-person invite link above — the same
-   code is shared with every employee, so anyone holding it only gets to REQUEST joining; the
-   company's own مدير النظام still has to pick their role and approve before they get in. This
-   is what keeps a code that's shared company-wide from being as risky as the public CR number
-   would have been. */
+   The model: the code is the key to ONE company, and everyone who comes in through it waits for that
+   company's own مدير النظام (or the platform owner). Nobody is linked automatically — not even a person
+   already listed in the shareholders registry. The national ID is used for one thing only: to show the
+   approver which record of THIS company (if any) the applicant corresponds to, so the registry link is
+   made at approval. A shareholder with shares in several companies enters each company's code and the
+   companies appear in the bar one by one as each is approved.
+   Requests are created by a database function (request_join_company) that takes the applicant's
+   identity from their own signed-in session and rate-limits wrong codes. The browser never reads
+   companies by code and never writes the request row itself. */
+const JOIN_BOARD_ROLES = ["رئيس مجلس","سكرتير المجلس","رئيس لجنة الترشيحات","عضو لجنة الترشيحات","رئيس لجنة مراجعة","عضو لجنة مراجعة","عضو مجلس","عضو مجلس وعضو مساهم"];
+const JOIN_ROLE_OPTIONS = JOIN_BOARD_ROLES.concat(["مساهم","موظف"]);
+
+function joinNormName(s){
+  return String(s||"").normalize("NFKC").replace(/[\u064B-\u065F\u0670\u0640]/g,"").replace(/[أإآٱ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه").replace(/\s+/g," ").trim().toLowerCase();
+}
+/* Registries and sign-up forms often differ in the middle names, so the same first and last name counts as a match. */
+function joinNamesMatch(a, b){
+  const x = joinNormName(a), y = joinNormName(b);
+  if(!x || !y) return false;
+  if(x === y) return true;
+  const tx = x.split(" "), ty = y.split(" ");
+  return tx.length > 1 && ty.length > 1 && tx[0] === ty[0] && tx[tx.length-1] === ty[ty.length-1];
+}
+
 async function loadCompanyJoinCode(){
   const box = document.getElementById("companyJoinCodeDisplay");
   if(!box || !currentCompanyId) return;
   const { data: c } = await sb.from("companies").select("join_code").eq("id", currentCompanyId).maybeSingle();
   let code = c ? c.join_code : null;
   if(!code){
-    code = "HWK-" + randomInviteCode().slice(0,4);
+    code = "HWK-" + randomInviteCode();
     const { error } = await sb.from("companies").update({ join_code: code }).eq("id", currentCompanyId);
     if(error){ box.textContent = "تعذّر توليد الكود"; return; }
   }
@@ -5661,6 +5672,97 @@ function copyCompanyJoinCode(){
   alert("تم نسخ كود الشركة ✅");
 }
 
+async function regenerateCompanyJoinCode(){
+  if(!confirm("إعادة توليد الكود تُبطل الكود الحالي فوراً، فمن معه الكود القديم لا يستطيع استخدامه. الطلبات المعلّقة لا تتأثر. متابعة؟")) return;
+  const code = "HWK-" + randomInviteCode();
+  const { error } = await sb.from("companies").update({ join_code: code }).eq("id", currentCompanyId);
+  if(error){ alert("تعذّر التوليد: " + error.message); return; }
+  document.getElementById("companyJoinCodeDisplay").textContent = code;
+}
+
+/* ── Applicant side ── */
+function joinResultMessage(res){
+  const n = res && res.company_name ? `«${res.company_name}»` : "";
+  switch(res && res.status){
+    case "pending": return { ok: true, text: `أُرسل طلبك للانضمام لشركة ${n}. سيراجعه مدير النظام، وبعد موافقته تظهر الشركة في شريط الشركات.` };
+    case "already_pending": return { ok: true, text: `لديك طلب سابق لشركة ${n} ينتظر المراجعة.` };
+    case "already_member": return { ok: true, text: `أنت عضو بالفعل في شركة ${n}.` };
+    case "invalid_code": return { ok: false, text: "كود الشركة غير صحيح. تأكد منه مع مدير شركتك." };
+    case "rate_limited": return { ok: false, text: "محاولات خاطئة كثيرة. انتظر ساعة ثم أعد المحاولة." };
+    case "unauthenticated": return { ok: false, text: "سجّل الدخول أولاً." };
+    case "not_ready": return { ok: false, text: "الانضمام بالكود لم يُفعَّل بعد بقاعدة البيانات. تواصل مع الدعم." };
+    default: return { ok: false, text: "تعذّر إرسال الطلب، حاول مرة أخرى." };
+  }
+}
+
+async function requestJoinByCode(code){
+  const clean = String(code || "").trim().toUpperCase();
+  if(!clean) return { status: "invalid_code" };
+  const { data, error } = await sb.rpc("request_join_company", { p_code: clean });
+  if(error){
+    const missing = error.code === "PGRST202" || error.code === "42883" || /could not find the function/i.test(error.message || "");
+    return { status: missing ? "not_ready" : "error", message: error.message };
+  }
+  return data;
+}
+
+/* The code typed at sign-up is only remembered in the account's metadata. While the email is
+   unconfirmed there is no session to act with, so the request is made here, on the first signed-in
+   visit. A failure is retried next visit; it is only marked done once the database has answered. */
+async function processPendingJoinIntent(){
+  try {
+    const { data: { user } } = await sb.auth.getUser();
+    const md = user && user.user_metadata ? user.user_metadata : {};
+    const code = String(md.join_code || "").trim();
+    if(!code || md.join_intent_done) return null;
+    const res = await requestJoinByCode(code);
+    if(res && res.status !== "not_ready" && res.status !== "error"){
+      await sb.auth.updateUser({ data: { join_intent_done: true } });
+    }
+    return res;
+  } catch(e){ console.warn("join intent not processed", e); return null; }
+}
+
+function openJoinByCodeModal(){
+  document.getElementById("jc-code").value = "";
+  document.getElementById("jc-msg").style.display = "none";
+  loadMyJoinRequests("jc-my-requests");
+  openM("m-join-code");
+}
+
+async function submitJoinByCode(){
+  const btn = document.getElementById("jc-btn");
+  btn.disabled = true;
+  const res = await requestJoinByCode(document.getElementById("jc-code").value);
+  btn.disabled = false;
+  const m = joinResultMessage(res);
+  const box = document.getElementById("jc-msg");
+  box.style.display = "block"; box.style.background = m.ok ? "#E8F8EF" : "#FBEAEA"; box.style.color = m.ok ? "var(--green)" : "var(--red)";
+  box.textContent = m.text;
+  if(res && res.status === "pending") document.getElementById("jc-code").value = "";
+  loadMyJoinRequests("jc-my-requests"); loadMyJoinRequests("crJoinList");
+}
+
+async function refreshAfterJoinApproval(){
+  closeM("m-join-code");
+  await loadCurrentUserProfile();
+}
+
+async function loadMyJoinRequests(boxId){
+  const box = document.getElementById(boxId);
+  if(!box || !currentUserProfile) return;
+  const { data } = await sb.from("company_join_requests").select("*").ilike("requester_email", currentUserProfile.email).order("id",{ascending:false}).limit(10);
+  if(!data || !data.length){ box.innerHTML = boxId === "jc-my-requests" ? '<div style="font-size:11.5px;color:var(--gray3)">لا توجد طلبات بعد.</div>' : ""; return; }
+  const style = { "قيد المراجعة": ["#FEF3E2","var(--gold)","بانتظار موافقة المدير"], "معتمد": ["#E8F8EF","var(--green)","تمت الموافقة"], "مرفوض": ["#FBEAEA","var(--red)","رُفض الطلب"] };
+  box.innerHTML = data.map(r => {
+    const [bg, fg, label] = style[r.status] || style["قيد المراجعة"];
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--gray1);border-radius:8px;padding:8px 10px;margin-bottom:6px">
+      <div style="font-size:12px;font-weight:700;color:var(--dark)">${gaEsc(r.company_name || "شركة")}</div>
+      <span style="font-size:10.5px;font-weight:800;padding:3px 10px;border-radius:20px;background:${bg};color:${fg};white-space:nowrap">${label}</span></div>`;
+  }).join("") + (data.some(r => r.status === "معتمد") ? '<button class="btn-xs primary" style="margin-top:4px" onclick="refreshAfterJoinApproval()">تحديث شركاتي</button>' : "");
+}
+
+/* ── Approver side ── */
 async function loadCompanyJoinRequests(){
   const card = document.getElementById("companyJoinRequestsCard");
   const list = document.getElementById("companyJoinRequestsList");
@@ -5668,34 +5770,66 @@ async function loadCompanyJoinRequests(){
   const { data } = await sb.from("company_join_requests").select("*").eq("company_id", currentCompanyId).eq("status","قيد المراجعة").order("id",{ascending:false});
   if(!data || !data.length){ card.style.display = "none"; return; }
   card.style.display = "block";
-  const { data: unclaimed } = await sb.from("shareholders").select("id,name,shares_count").eq("company_id", currentCompanyId).is("claimed_by_email", null).order("name",{ascending:true});
-  const shOpts = (unclaimed||[]).map(s => `<option value="${s.id}">${s.name} — ${s.shares_count||0} سهم</option>`).join("");
 
-  list.innerHTML = data.map(r => `<div style="border-bottom:1px solid var(--gray1);padding:10px 0">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
-      <div>
-        <div style="font-size:12.5px;font-weight:700;color:var(--dark)">${r.requester_name||r.requester_email}</div>
-        <div style="font-size:10.5px;color:var(--gray3)">${r.requester_email} — ${new Date(r.created_at).toLocaleDateString('ar-SA')}</div>
+  // Registry records of THIS company only, matched by the applicant's national ID.
+  const ids = [...new Set(data.map(r => r.requester_national_id).filter(Boolean))];
+  const none = { data: [] };
+  const [shRes, bmRes, freeRes] = await Promise.all([
+    ids.length ? sb.from("shareholders").select("id,name,shares_count,national_id,claimed_by_email").eq("company_id", currentCompanyId).in("national_id", ids) : none,
+    ids.length ? sb.from("board_members").select("id,name,position,national_id,claimed_by_email").eq("company_id", currentCompanyId).in("national_id", ids) : none,
+    sb.from("shareholders").select("id,name,shares_count").eq("company_id", currentCompanyId).is("claimed_by_email", null).order("name",{ascending:true})
+  ]);
+  const shs = shRes.data || [], bms = bmRes.data || [], freeShs = freeRes.data || [];
+
+  list.innerHTML = data.map(r => {
+    const mail = String(r.requester_email || "").toLowerCase();
+    const sh = shs.find(x => x.national_id === r.requester_national_id);
+    const bm = bms.find(x => x.national_id === r.requester_national_id);
+    const shTaken = !!(sh && sh.claimed_by_email && String(sh.claimed_by_email).toLowerCase() !== mail);
+    const bmTaken = !!(bm && bm.claimed_by_email && String(bm.claimed_by_email).toLowerCase() !== mail);
+    const regName = (bm && !bmTaken ? bm.name : null) || (sh && !shTaken ? sh.name : null) || (bm || sh ? (bm || sh).name : null);
+    const nameOk = regName ? joinNamesMatch(r.requester_name, regName) : null;
+
+    let role = "موظف";
+    if(bm && !bmTaken && sh && !shTaken) role = "عضو مجلس وعضو مساهم";
+    else if(bm && !bmTaken) role = "عضو مجلس";
+    else if(sh && !shTaken) role = "مساهم";
+
+    const matchLines = [];
+    if(bm) matchLines.push(`مطابق لعضو مجلس: <b>${gaEsc(bm.name)}</b>${bm.position ? " — " + gaEsc(bm.position) : ""}${bmTaken ? ' <span style="color:var(--red)">(السجل مرتبط بحساب آخر)</span>' : ""}`);
+    if(sh) matchLines.push(`مطابق لمساهم: <b>${gaEsc(sh.name)}</b> — ${sh.shares_count || 0} سهم${shTaken ? ' <span style="color:var(--red)">(السجل مرتبط بحساب آخر)</span>' : ""}`);
+    if(!matchLines.length) matchLines.push(r.requester_national_id ? "هذه الهوية غير مدرجة بأي سجل بهذي الشركة." : "لم يُدخل المتقدم رقم هوية.");
+
+    const freeOpts = freeShs.map(s => `<option value="${s.id}" ${sh && !shTaken && s.id === sh.id ? "selected" : ""}>${gaEsc(s.name)} — ${s.shares_count||0} سهم</option>`).join("");
+    const ownOpt = (sh && !shTaken && !freeShs.some(s => s.id === sh.id)) ? `<option value="${sh.id}" selected>${gaEsc(sh.name)} — ${sh.shares_count||0} سهم</option>` : "";
+    const showSh = role === "مساهم" || role === "عضو مجلس وعضو مساهم";
+
+    return `<div style="border-bottom:1px solid var(--gray1);padding:12px 0">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+        <div>
+          <div style="font-size:13px;font-weight:800;color:var(--dark)">${gaEsc(r.requester_name || r.requester_email)}</div>
+          <div style="font-size:10.5px;color:var(--gray3);margin-top:2px;line-height:1.8">${gaEsc(r.requester_email)} · هوية: ${gaEsc(r.requester_national_id || "—")} · جوال: ${gaEsc(r.requester_phone || "—")}<br>${new Date(r.created_at).toLocaleDateString('ar-SA')}</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <select class="fs" id="cjr-role-${r.id}" style="margin:0;font-size:11.5px;padding:6px 8px;width:160px" onchange="toggleCjrShareholderLink(${r.id})">
+            ${JOIN_ROLE_OPTIONS.map(o => `<option ${o === role ? "selected" : ""}>${o}</option>`).join("")}
+          </select>
+          <button class="btn-xs primary" onclick="approveJoinRequest(${r.id})"><span class="ico-i ico-check"></span>موافقة</button>
+          <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer" onclick="rejectJoinRequest(${r.id})">رفض</button>
+        </div>
       </div>
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <select class="fs" id="cjr-role-${r.id}" style="margin:0;font-size:11.5px;padding:6px 8px;width:150px" onchange="toggleCjrShareholderLink(${r.id})">
-          <option>رئيس مجلس</option><option>سكرتير المجلس</option>
-          <option>رئيس لجنة الترشيحات</option><option>عضو لجنة الترشيحات</option>
-          <option>رئيس لجنة مراجعة</option><option>عضو لجنة مراجعة</option>
-          <option selected>عضو مجلس</option><option>عضو مجلس وعضو مساهم</option><option>مساهم</option>
+      <div style="background:var(--offwhite);border-radius:8px;padding:8px 10px;font-size:11.5px;line-height:1.8">
+        ${matchLines.join("<br>")}
+        ${nameOk === false ? `<div style="color:var(--red);font-weight:800;margin-top:4px">⚠ الاسم عند التسجيل («${gaEsc(r.requester_name||"")}») لا يطابق اسم السجل («${gaEsc(regName)}»). تحقق من هوية المتقدم قبل الموافقة.</div>` : ""}
+      </div>
+      <div id="cjr-sh-wrap-${r.id}" style="display:${showSh ? "block" : "none"};margin-top:8px">
+        <label style="font-size:10.5px;color:var(--gray3);display:block;margin-bottom:4px">اربطه بسجل مساهم (أسهمه وصوته بالجمعية يصيران تابعين لحسابه)</label>
+        <select class="fs" id="cjr-sh-${r.id}" style="margin:0;font-size:11.5px;padding:6px 8px;width:100%">
+          <option value="">— بلا ربط بسجل مساهم —</option>${ownOpt}${freeOpts}
         </select>
-        <button class="btn-xs primary" onclick="approveJoinRequest(${r.id})"><span class="ico-i ico-check"></span>موافقة</button>
-        <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer" onclick="rejectJoinRequest(${r.id})">رفض</button>
       </div>
-    </div>
-    <div id="cjr-sh-wrap-${r.id}" style="display:none;background:var(--offwhite);border-radius:8px;padding:8px 10px">
-      <label style="font-size:10.5px;color:var(--gray3);display:block;margin-bottom:4px">اربطه بسجل مساهم (أسهمه وصوته بالجمعية يصيران تابعين لحسابه)</label>
-      <select class="fs" id="cjr-sh-${r.id}" style="margin:0;font-size:11.5px;padding:6px 8px;width:100%">
-        <option value="">— بلا ربط بسجل مساهم —</option>
-        ${shOpts}
-      </select>
-    </div>
-  </div>`).join("");
+    </div>`;
+  }).join("");
 }
 
 function toggleCjrShareholderLink(id){
@@ -5706,29 +5840,37 @@ function toggleCjrShareholderLink(id){
 
 async function approveJoinRequest(id){
   const { data: req } = await sb.from("company_join_requests").select("*").eq("id", id).single();
-  if(!req){ alert("تعذّر تحميل الطلب"); return; }
+  if(!req || req.status !== "قيد المراجعة"){ alert("هذا الطلب لم يعد معلّقاً."); loadCompanyJoinRequests(); return; }
+  if(String(req.company_id) !== String(currentCompanyId)){ alert("افتح الشركة المعنية من شريط الشركات أولاً."); return; }
   const role = document.getElementById("cjr-role-"+id).value;
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
 
-  const { error: memErr } = await sb.from("user_company_memberships").insert([{ email: req.requester_email, company_id: currentCompanyId, role }]);
+  const { data: existing } = await sb.from("user_company_memberships").select("id").ilike("email", req.requester_email).eq("company_id", currentCompanyId).maybeSingle();
+  const { error: memErr } = existing
+    ? await sb.from("user_company_memberships").update({ role }).eq("id", existing.id)
+    : await sb.from("user_company_memberships").insert([{ email: req.requester_email, company_id: currentCompanyId, role }]);
   if(memErr){ alert("تعذّرت الموافقة: " + memErr.message); return; }
-  // Only set this as the account's primary company/role if they don't already have one from
-  // elsewhere — a person who joined another company first keeps that as their default.
-  const { data: prof } = await sb.from("user_profiles").select("company_id").eq("email", req.requester_email).maybeSingle();
-  if(prof && !prof.company_id){ await sb.from("user_profiles").update({ company_id: currentCompanyId, role }).eq("email", req.requester_email); }
 
-  // If this person was approved as (or alongside) a shareholder and the admin picked which
-  // registry row they actually are, claim it now — otherwise their account would have access
-  // but no connection to their real share count or AGM voting weight.
+  // Only becomes the account's primary company if it has none yet.
+  const { data: prof } = await sb.from("user_profiles").select("company_id").ilike("email", req.requester_email).maybeSingle();
+  if(prof && !prof.company_id){ await sb.from("user_profiles").update({ company_id: currentCompanyId, role }).ilike("email", req.requester_email); }
+
+  // The registry link is made here, by the approver, and only onto a record nobody else holds.
   const shSel = document.getElementById("cjr-sh-"+id);
   const shareholderId = shSel ? shSel.value : "";
   if(shareholderId){
-    await sb.from("shareholders").update({ claimed_by_email: req.requester_email }).eq("id", shareholderId);
+    const { data: row } = await sb.from("shareholders").select("claimed_by_email").eq("id", shareholderId).single();
+    if(row && (!row.claimed_by_email || String(row.claimed_by_email).toLowerCase() === String(req.requester_email).toLowerCase())){
+      await sb.from("shareholders").update({ claimed_by_email: req.requester_email }).eq("id", shareholderId);
+    } else { alert("سجل المساهم مرتبط بحساب آخر فلم يُربط. اربطه يدوياً من سجل المساهمين."); }
+  }
+  if(JOIN_BOARD_ROLES.includes(role) && req.requester_national_id){
+    await sb.from("board_members").update({ claimed_by_email: req.requester_email }).eq("company_id", currentCompanyId).eq("national_id", req.requester_national_id).is("claimed_by_email", null);
   }
 
   await sb.from("company_join_requests").update({ status: "معتمد", reviewed_by: myEmail, reviewed_at: new Date().toISOString() }).eq("id", id);
-  logActivity("موافقة", "طلب انضمام", req.requester_name||req.requester_email, `بدور "${role}"`);
+  logActivity("موافقة", "طلب انضمام", req.requester_name || req.requester_email, `بدور "${role}"`);
   loadCompanyJoinRequests();
   loadUsers();
 }
@@ -5737,7 +5879,8 @@ async function rejectJoinRequest(id){
   if(!confirm("رفض طلب الانضمام هذا؟")) return;
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
-  await sb.from("company_join_requests").update({ status: "مرفوض", reviewed_by: myEmail, reviewed_at: new Date().toISOString() }).eq("id", id);
+  const { error } = await sb.from("company_join_requests").update({ status: "مرفوض", reviewed_by: myEmail, reviewed_at: new Date().toISOString() }).eq("id", id);
+  if(error){ alert("تعذّر الرفض: " + error.message); return; }
   loadCompanyJoinRequests();
 }
 
@@ -5779,6 +5922,7 @@ const ROLE_STYLE = {
   "عضو لجنة مراجعة": { color: "#0E76BC", bg: "#E4F1FB", icon: "📑" },
   "عضو مجلس": { color: "var(--green)", bg: "#E8F8EF", icon: "👤" },
   "عضو مجلس وعضو مساهم": { color: "var(--orange)", bg: "#FCEFE3", icon: "🤝" },
+  "موظف": { color: "var(--gray3)", bg: "#F1F1F1", icon: "👤" },
   "مساهم": { color: "var(--gray3)", bg: "var(--offwhite)", icon: "💰" }
 };
 // Fallback style for a custom, owner-typed role name that isn't in the map above.
@@ -6022,7 +6166,7 @@ let usersPageCache = { memberships: [], profileByEmail: {}, roles: [], isSolePro
 
 async function loadUsers(){
   loadPendingInvites();
-  if(getCurrentRole() === "مدير النظام"){ loadCompanyJoinCode(); loadCompanyJoinRequests(); }
+  if(getCurrentRole() === "مدير النظام" || (currentUserProfile && currentUserProfile.is_platform_admin === true)){ loadCompanyJoinCode(); loadCompanyJoinRequests(); }
   else { const jc = document.getElementById("companyJoinCodeCard"); if(jc) jc.style.display = "none"; }
   const linkBtn = document.getElementById("btnListedShareholderLink");
   if(linkBtn) linkBtn.style.display = (currentCompanyType === "مساهمة مدرجة") ? "inline-block" : "none";
@@ -6045,7 +6189,7 @@ async function loadUsers(){
   (profiles||[]).forEach(p => { profileByEmail[p.email] = p; });
 
   const isSoleProp = currentCompanyType === "مؤسسة فردية";
-  const roles = isSoleProp ? ['مدير النظام','عضو مجلس'] : ['مدير النظام','رئيس مجلس','سكرتير المجلس','رئيس لجنة الترشيحات','عضو لجنة الترشيحات','رئيس لجنة مراجعة','عضو لجنة مراجعة','عضو مجلس','عضو مجلس وعضو مساهم','مساهم'];
+  const roles = isSoleProp ? ['مدير النظام','عضو مجلس','موظف'] : ['مدير النظام','رئيس مجلس','سكرتير المجلس','رئيس لجنة الترشيحات','عضو لجنة الترشيحات','رئيس لجنة مراجعة','عضو لجنة مراجعة','عضو مجلس','عضو مجلس وعضو مساهم','مساهم','موظف'];
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
 
@@ -6961,6 +7105,7 @@ const COMPANY_REQUEST_STATUS_STYLE = {
 async function loadCompanyRequestPage(){
   const box = document.getElementById("companyRequestBody");
   if(!box || !currentUserProfile) return;
+  loadMyJoinRequests("crJoinList");
   const { data: myRequests } = await sb.from("company_requests").select("*").eq("requested_by_email", currentUserProfile.email).order("id",{ascending:false});
   const latest = myRequests && myRequests.length ? myRequests[0] : null;
 
@@ -8885,6 +9030,14 @@ async function computeGovernanceAlerts(){
       alerts.push({ severity: "high", text: `${gaLate.length} ${gaLate.length===1?'إجراء تصحيحي متأخر':'إجراءات تصحيحية متأخرة'} عن موعدها من تقييم فعالية الحوكمة.`, page: "govassess" });
     }
   } catch(e){ console.error("corrective action alert check failed", e); }
+
+  // 9) Join requests waiting for this company's approver
+  if(getCurrentRole() === "مدير النظام" || (currentUserProfile && currentUserProfile.is_platform_admin === true)){
+    try {
+      const { data: jr } = await sb.from("company_join_requests").select("id").eq("company_id", currentCompanyId).eq("status","قيد المراجعة");
+      if(jr && jr.length) alerts.push({ severity: "high", text: `${jr.length} ${jr.length===1?'طلب انضمام ينتظر':'طلبات انضمام تنتظر'} موافقتك.`, page: "users" });
+    } catch(e){ console.error("join request alert check failed", e); }
+  }
 
   // 8) External compliance items past their deadline (a recurring one with a past date is unconfirmed)
   try {
