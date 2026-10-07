@@ -1387,72 +1387,73 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 
 <!-- ══ COMPLIANCE ═══════════════════════ -->
 <div id="p-compliance" class="page content">
-  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-    <span><span class="ico-i ico-check"></span>الالتزام والامتثال</span>
-    <button class="btn btn-ghost" id="complianceLibraryBtn" style="display:none;font-size:11px;padding:6px 14px" onclick="openCmpLibrary()"><span class="ico-i ico-key"></span>إدارة مكتبة الالتزامات</button>
-  </div>
   <datalist id="cmp-authorities"></datalist>
-  <div id="complianceSyncNote" style="display:none;background:#FEF3E2;color:var(--gold);border-radius:8px;padding:9px 12px;font-size:11.5px;font-weight:700;margin-bottom:14px"></div>
 
-  <details style="background:#fff;border:1px solid var(--gray1);border-radius:10px;padding:10px 14px;margin-bottom:14px">
-    <summary style="cursor:pointer;font-weight:800;font-size:12.5px;color:var(--dark)">كيف يُقاس الالتزام؟</summary>
-    <div style="margin-top:10px;font-size:12px;line-height:1.9;color:var(--dark)">
-      <div style="margin-bottom:8px"><b>الالتزام الخارجي:</b> لكل التزام نظامي درجة من 1 إلى 5 مع ملاحظات تقييم ودليل. المؤشر العام هو متوسط الدرجات.</div>
-      <div id="cmpLegendScores" style="margin-bottom:10px"></div>
-      <div style="margin-bottom:8px"><b>الالتزام الداخلي:</b> يُحتسب تلقائياً من بيانات المنصة (السياسات، التوقيعات، القرارات، الإجراءات، التقييم السنوي) بلا إدخال.</div>
-      <div><b>الإجراءات:</b> أي بند بدرجة أقل من 5 يمكن أن يحمل إجراءً <b>تصحيحياً</b> (لمعالجة قصور قائم) أو <b>احترازياً</b> (لمنع تكراره)، بمنفّذ ومراقب ومعتمِد وموعد، ويُتابَع حتى الإغلاق. ونسبة الإغلاق مؤشر على جدية المعالجة.</div>
-    </div>
-  </details>
-
-  <div class="two-col">
-    <div class="card">
-      <div class="card-head"><span class="card-title"><span class="ico-i ico-shield"></span>الالتزام الداخلي (آلي)</span></div>
-      <div class="card-body" id="complianceInternal">
-        <div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div>
+  <div id="cmpListView">
+    <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <span><span class="ico-i ico-check"></span>الالتزام والامتثال</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost" id="complianceLibraryBtn" style="display:none;font-size:11px;padding:6px 14px" onclick="openCmpLibrary()"><span class="ico-i ico-key"></span>مكتبة الالتزامات</button>
+        <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openCmpRegister()"><span class="ico-i ico-clipboard"></span>قائمة الالتزامات</button>
+        <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openNewCmpAssessment()">+ تقييم جديد</button>
       </div>
     </div>
+    <div id="complianceSyncNote" style="display:none;background:#FEF3E2;color:var(--gold);border-radius:8px;padding:9px 12px;font-size:11.5px;font-weight:700;margin-bottom:14px"></div>
+
+    <div class="card" style="margin-bottom:16px" id="cmpTrackerCard">
+      <div class="card-head" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <span class="card-title"><span class="ico-i ico-check"></span>متابعة الإجراءات التصحيحية والاحترازية</span>
+        <select class="fs" id="cmp-act-filter" style="margin:0;width:150px;font-size:12px;padding:6px 10px" onchange="renderCmpTracker()">
+          <option value="">كل الإجراءات</option>
+          <option value="mine">المطلوب مني</option>
+          <option value="open">المفتوحة</option>
+          <option value="overdue">المتأخرة</option>
+          <option value="closed">المغلقة</option>
+        </select>
+      </div>
+      <div class="card-body">
+        <div class="kpi-grid" id="cmpStats" style="margin-bottom:14px"></div>
+        <div id="cmpList" style="display:flex;flex-direction:column;gap:10px">
+          <div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</div>
+        </div>
+      </div>
+    </div>
+
     <div class="card">
-      <div class="card-head"><span class="card-title"><span class="ico-i ico-dashboard"></span>الالتزام الخارجي — مؤشر الدرجات حسب الجهة</span></div>
-      <div class="card-body" id="complianceByAuthority">
-        <div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div>
+      <div class="card-body" style="padding:0">
+        <table class="tbl">
+          <thead><tr><th>الفترة</th><th>الجهة المنفذة</th><th>التاريخ</th><th>النتيجة النهائية</th><th>المستوى</th><th></th></tr></thead>
+          <tbody id="cmpHistoryTbody">
+            <tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
 
-  <div class="two-col" style="margin-top:18px">
-    <div class="card">
-      <div class="card-head"><span class="card-title"><span class="ico-i ico-bolt"></span>إجراءات مطلوبة</span></div>
-      <div class="card-body" id="complianceAlerts">
-        <div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div>
-      </div>
+  <div id="cmpFormView" style="display:none">
+    <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span id="cmpFormTitle"><span class="ico-i ico-check"></span>تقييم التزام جديد</span>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="closeCmpAssessmentForm()">◀ رجوع للقائمة</button>
     </div>
-    <div class="card">
-      <div class="card-head"><span class="card-title"><span class="ico-i ico-check"></span>الإجراءات التصحيحية والاحترازية</span></div>
-      <div class="card-body" id="complianceActions">
-        <div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">جارِ التحميل...</div>
-      </div>
-    </div>
-  </div>
 
-  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:20px;flex-wrap:wrap;gap:8px">
-    <span><span class="ico-i ico-clipboard"></span>سجل الالتزامات الخارجية</span>
-    <div style="display:flex;gap:8px;align-items:center">
-      <select class="fs" id="cmp-filter" style="margin:0;width:150px;font-size:12px;padding:6px 10px" onchange="renderComplianceTable()">
-        <option value="">الكل</option><option value="late">المتأخرة</option><option value="open">المفتوحة</option>
-        <option value="low">درجة منخفضة (3 فأقل)</option><option value="unscored">غير المقيَّمة</option>
-        <option value="ok">الملتزم بها</option><option value="na">غير المنطبقة</option>
-      </select>
-      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openNewComplianceItem()">+ إضافة بند</button>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-body">
+        <div class="row2">
+          <div class="fg"><label>الفترة محل التقييم</label><input class="fi" id="cmp-period" placeholder="مثال: الربع الثاني 2026"/></div>
+          <div class="fg"><label>تاريخ التقييم</label><input type="date" class="fi" id="cmp-date"/></div>
+        </div>
+        <div class="fg"><label>الجهة المنفذة للتقييم</label><select class="fs" id="cmp-assessor"></select></div>
+      </div>
     </div>
-  </div>
-  <div class="card">
-    <div class="card-body" style="padding:0;overflow-x:auto">
-      <table class="tbl">
-        <thead><tr><th>البند</th><th>الجهة / المرجع</th><th>الدورية</th><th>الموعد</th><th>المسؤول</th><th>الدرجة</th><th>الحالة</th><th>إجراء</th></tr></thead>
-        <tbody id="complianceTbody">
-          <tr><td colspan="8" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
-        </tbody>
-      </table>
+
+    <div id="cmpAxesContainer"></div>
+
+    <div id="cmpResultsSummary" style="display:none"></div>
+
+    <div style="display:flex;gap:8px;margin-top:16px;margin-bottom:30px">
+      <input type="hidden" id="cmp-id" value=""/>
+      <button class="btn btn-gold" style="flex:1" onclick="saveCmpAssessment()"><span class="ico-i ico-check"></span>حفظ التقييم</button>
     </div>
   </div>
 </div>
@@ -3006,11 +3007,32 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   </div>
 </div>
 
+<div class="modal-bg" id="m-cmp-register">
+  <div class="modal" style="max-width:980px;max-height:92vh;overflow-y:auto">
+    <div class="modal-title"><span class="ico-i ico-clipboard"></span>قائمة التزامات الشركة</div>
+    <p style="font-size:11px;color:var(--gray3);line-height:1.8;margin-bottom:10px">هذي البنود هي التي يُبنى منها التقييم. حدّد لكل بند موعده ومسؤوله، وعلّم ما لا ينطبق عليكم (يخرج من التقييمات القادمة).</p>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <select class="fs" id="cmp-filter" style="margin:0;width:170px;font-size:12px;padding:6px 10px" onchange="renderComplianceTable()">
+        <option value="">الكل</option><option value="late">المتأخرة</option><option value="open">المفتوحة</option>
+        <option value="ok">الملتزم بها</option><option value="na">غير المنطبقة</option>
+      </select>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openNewComplianceItem()">+ إضافة بند</button>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead><tr><th>البند</th><th>الجهة / المرجع</th><th>الدورية</th><th>الموعد</th><th>المسؤول</th><th>الحالة</th><th>إجراء</th></tr></thead>
+        <tbody id="complianceTbody"></tbody>
+      </table>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-cmp-register')">إغلاق</button></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-compliance">
-  <div class="modal" style="max-width:560px;max-height:92vh;overflow-y:auto">
+  <div class="modal" style="max-width:520px;max-height:92vh;overflow-y:auto">
     <div class="modal-title" id="mc-title-h"><span class="ico-i ico-check"></span>إضافة بند التزام</div>
     <input type="hidden" id="mc-id" value="" />
-    <div id="mc-lib-note" style="display:none;font-size:11px;color:var(--gray3);background:var(--offwhite);border-radius:8px;padding:8px 10px;margin-bottom:10px">بند من مكتبة المنصة: الاسم والجهة والدورية منها، أما التقييم والموعد والمسؤول والحالة والدليل فبيدكم.</div>
+    <div id="mc-lib-note" style="display:none;font-size:11px;color:var(--gray3);background:var(--offwhite);border-radius:8px;padding:8px 10px;margin-bottom:10px">بند من مكتبة المنصة: الاسم والجهة والدورية منها، أما الموعد والمسؤول والحالة والدليل فبيدكم.</div>
     <div class="fg"><label>البند</label><input class="fi" id="mc-item" placeholder="اسم الالتزام" /></div>
     <div class="row2">
       <div class="fg"><label>الجهة</label><input class="fi" id="mc-authority" list="cmp-authorities" placeholder="اختر أو اكتب" /></div>
@@ -3026,38 +3048,8 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
       <div class="fg"><label>المسؤول</label><select class="fs" id="mc-owner"></select></div>
       <div class="fg"><label>الحالة</label><select class="fs" id="mc-status"></select></div>
     </div>
-
-    <div style="border-top:1px solid var(--gray1);margin:12px 0 10px;padding-top:12px">
-      <div style="font-size:12.5px;font-weight:800;color:var(--dark);margin-bottom:8px">التقييم</div>
-      <div class="fg"><label>درجة الالتزام</label><select class="fs" id="mc-score"></select></div>
-      <div class="fg"><label>ملاحظات التقييم</label><textarea class="fta" id="mc-scorenote" rows="2" placeholder="ما الذي يدعم هذي الدرجة؟ وما القصور إن وُجد؟"></textarea></div>
-      <div class="fg"><label>دليل الالتزام</label><textarea class="fta" id="mc-evidence" rows="2" placeholder="رقم الشهادة أو الإيصال، أو أين يوجد المستند"></textarea></div>
-    </div>
-
-    <div id="mc-actions-wrap" style="border-top:1px solid var(--gray1);margin-top:6px;padding-top:12px;display:none">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div style="font-size:12.5px;font-weight:800;color:var(--dark)">الإجراءات التصحيحية والاحترازية</div>
-        <button type="button" class="btn-xs gold" onclick="cmpAddActionFromModal()">+ إضافة إجراء</button>
-      </div>
-      <div id="mc-actions-list"></div>
-    </div>
-
+    <div class="fg"><label>دليل الالتزام</label><textarea class="fta" id="mc-evidence" rows="2" placeholder="رقم الشهادة أو الإيصال، أو أين يوجد المستند"></textarea></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-compliance')">إلغاء</button><button class="btn btn-gold" onclick="saveCompliance()"><span class="ico-i ico-check"></span>حفظ</button></div>
-  </div>
-</div>
-
-<div class="modal-bg" id="m-cmp-action">
-  <div class="modal" style="max-width:440px">
-    <div class="modal-title"><span class="ico-i ico-check"></span>إجراء على بند التزام</div>
-    <input type="hidden" id="ca-item" value=""/>
-    <div id="ca-context" style="font-size:11.5px;color:var(--gray3);margin-bottom:10px"></div>
-    <div class="fg"><label>نوع الإجراء</label>
-      <select class="fs" id="ca-kind"><option value="تصحيحي">تصحيحي — لمعالجة قصور قائم</option><option value="احترازي">احترازي — لمنع حدوث القصور أو تكراره</option></select>
-    </div>
-    <div class="fg"><label>الإجراء</label><textarea class="fta" id="ca-text" rows="3" placeholder="ما الذي سيُفعل بالضبط؟"></textarea></div>
-    <div class="fg"><label>الموعد المستهدف</label><input type="date" class="fi" id="ca-target"/></div>
-    <p style="font-size:10.5px;color:var(--gray3);line-height:1.8">يُسند تلقائياً للمنفّذ والمراقب والمعتمِد حسب كيان الشركة، وتفتح بعد الحفظ نافذة المتابعة لتعديلهم.</p>
-    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-cmp-action')">إلغاء</button><button class="btn btn-gold" onclick="saveCmpAction()"><span class="ico-i ico-check"></span>حفظ</button></div>
   </div>
 </div>
 
@@ -6529,7 +6521,8 @@ async function loadReportsPage(){
 
   const boardMeetingsThisYear = meetings.filter(m => (m.meeting_type==="اجتماع مجلس الإدارة الدوري"||m.meeting_type==="اجتماع طارئ") && m.meeting_date && new Date(m.meeting_date).getFullYear()===currentYear);
   const decisionsThisYear = signingDocs.filter(d => d.status==="مكتمل" && d.created_at && new Date(d.created_at).getFullYear()===currentYear);
-  const compliancePct = complianceSummary(compliance).pct;
+  const cmpAssess = await cmpLatestAssessment();
+  const compliancePct = complianceSummary(compliance, cmpAssess).pct;
 
   setText("rep-kpi-meetings", boardMeetingsThisYear.length);
   setText("rep-kpi-decisions", decisionsThisYear.length);
@@ -6590,7 +6583,7 @@ async function loadReportsPage(){
     const openRisks = risks.filter(r=>r.status==="مراقبة"||r.status==="متابعة").length;
     const agmCount = meetings.filter(m=>m.meeting_type==="الجمعية العامة").length;
     const rows = [
-      { title:"تقرير الامتثال التنظيمي", type:"امتثال", summary: complianceSummary(compliance).text, ok: compliancePct===100, page:"compliance" },
+      { title:"تقرير الامتثال التنظيمي", type:"امتثال", summary: complianceSummary(compliance, cmpAssess).text, ok: compliancePct===100, page:"compliance" },
       { title:"تقرير تقييم أداء المجلس", type:"تقييم", summary: perfEvals.length ? `${completedPerf} تقييم مكتمل من ${perfEvals.length}` : "لا توجد بيانات", ok: perfEvals.length>0 && completedPerf===perfEvals.length, page:"perf" },
       { title:"تقرير إدارة المخاطر", type:"مخاطر", summary: risks.length ? `${openRisks} خطر مفتوح من ${risks.length}` : "لا توجد بيانات", ok: openRisks===0, page:"risks" },
       { title:"تقرير الحوكمة للجمعية العامة", type:"جمعية", summary: agmCount ? `${agmCount} جمعية مسجّلة` : "لا توجد بيانات", ok: agmCount>0, page:"agm" },
@@ -6648,7 +6641,8 @@ async function generateAnnualReportPDF(){
 
   const boardMeetingsThisYear = meetings.filter(m => (m.meeting_type==="اجتماع مجلس الإدارة الدوري"||m.meeting_type==="اجتماع طارئ") && m.meeting_date && new Date(m.meeting_date).getFullYear()===currentYear);
   const decisionsThisYear = signingDocs.filter(d => d.status==="مكتمل" && d.created_at && new Date(d.created_at).getFullYear()===currentYear);
-  const compliancePct = complianceSummary(compliance).pct;
+  const cmpAssess = await cmpLatestAssessment();
+  const compliancePct = complianceSummary(compliance, cmpAssess).pct;
 
   const composRows = members.map(m => `<tr><td>${m.name||""}</td><td>${m.position||"—"}</td><td>${boardMemberClassification(m)}</td></tr>`).join("")
     || '<tr><td colspan="3">لا يوجد أعضاء مسجّلون.</td></tr>';
@@ -9050,7 +9044,7 @@ async function loadDashboard(){
   setText("kpi-minutes-foot", `↑ ${approvedThisMonth} هذا الشهر`);
 
   // ── KPI: compliance % ──
-  const cmpSum = complianceSummary(compliance);
+  const cmpSum = complianceSummary(compliance, await cmpLatestAssessment());
   setText("kpi-compliance", cmpSum.pct != null ? cmpSum.pct+"%" : "—");
   setText("kpi-compliance-foot", cmpSum.text);
   setText("stat-compliance2", cmpSum.pct != null ? cmpSum.pct+"%" : "—");
@@ -13612,16 +13606,19 @@ async function submitRiskRating(requestId){
 /* ══════════ COMPLIANCE ══════════ */
 let complianceCache = [];
 /* ══════════ COMPLIANCE (الالتزام والامتثال) ══════════
-   How compliance is measured:
-   - External: every legal obligation gets a score from 1 to 5 with a written note, assessed by a
-     person. The index is the average score. Deadlines are tracked separately through the status.
-   - Internal: computed from data the platform already holds, nobody types anything in.
-   - Any score below 5 can carry corrective (fix a present gap) or preventive (stop it recurring)
-     actions. They live in the same table and workflow as the governance-assessment actions
-     (executor / monitor / approver, dated, history), so they are tracked to closure.
-   The obligations come from a master list (compliance_library) the platform owner maintains per
-   entity type and is copied into each company. A copied obligation can be marked "not applicable"
-   but not deleted, so the next sync does not bring it back. */
+   Built like the governance-effectiveness assessment on purpose: a history of dated assessments,
+   a form where each axis lists its criteria and every criterion gets a 1-5 score, notes and a
+   corrective action that can be tracked to closure, then a results summary.
+   - Axes: one automatic axis (internal compliance, computed from platform data, scores are not
+     editable) followed by one axis per regulating authority, built from the company's own list of
+     obligations (compliance_items).
+   - An assessment stores a snapshot of its axes and criteria, so changing the obligations list or the
+     library later never rewrites an earlier assessment.
+   - Corrective/preventive actions live in governance_actions (same executor / monitor / approver
+     workflow) under axis_key 'compliance'.
+   - The obligations come from a master list (compliance_library) the platform owner keeps per entity
+     type, copied into each company. A copied obligation can be marked "not applicable" but not
+     deleted, so the next sync does not bring it back. */
 const CMP_ENTITIES = ["مساهمة مدرجة","مساهمة غير مدرجة","ذات مسؤولية محدودة","مؤسسة فردية"];
 const CMP_FREQS = ["سنوي","نصف سنوي","ربع سنوي","شهري","مرة واحدة","عند الحدوث"];
 const CMP_STATUSES = ["ملتزم","جارٍ","مجدول","غير ملتزم","غير منطبق"];
@@ -13629,13 +13626,8 @@ const CMP_STATUS_STYLE = {
   "ملتزم":["#E8F8EF","var(--green)"], "جارٍ":["#FEF3E2","var(--gold)"], "مجدول":["#F1F1F1","var(--gray3)"],
   "متأخر":["#FBEAEA","var(--red)"], "غير ملتزم":["#FBEAEA","var(--red)"], "غير منطبق":["#F1F1F1","var(--gray3)"]
 };
-const CMP_SCORES = {
-  5: ["ملتزم بالكامل وبدليل", "#E8F8EF", "var(--green)"],
-  4: ["ملتزم مع ملاحظات بسيطة", "#E5F6F4", "var(--teal)"],
-  3: ["التزام جزئي", "#FEF3E2", "var(--gold)"],
-  2: ["التزام ضعيف", "#FDEBDD", "#C2610F"],
-  1: ["غير ملتزم", "#FBEAEA", "var(--red)"]
-};
+const CMP_SCORES = { 5:"ملتزم بالكامل وبدليل", 4:"ملتزم مع ملاحظات بسيطة", 3:"التزام جزئي", 2:"التزام ضعيف", 1:"غير ملتزم" };
+const CMP_SCORE_COLORS = { 1:"var(--red)", 2:"#E67E22", 3:"var(--gold)", 4:"var(--teal)", 5:"var(--green)" };
 const CMP_AUTHORITIES = [
   "وزارة التجارة", "هيئة الزكاة والضريبة والجمارك", "المؤسسة العامة للتأمينات الاجتماعية",
   "وزارة الموارد البشرية والتنمية الاجتماعية", "هيئة السوق المالية", "شركة السوق المالية السعودية (تداول)",
@@ -13645,7 +13637,9 @@ const CMP_AUTHORITIES = [
 let cmpMembersCache = [];
 let cmpLibraryCache = [];
 let cmpLibFlags = {};   // library id -> { verified, description }
+let currentCmpAxes = [];
 
+function cmpScoreColor(score){ return score == null ? "var(--gray3)" : (CMP_SCORE_COLORS[Math.round(score)] || "var(--gray3)"); }
 function cmpToday(){ const t = new Date(); const p = n => String(n).padStart(2,"0"); return `${t.getFullYear()}-${p(t.getMonth()+1)}-${p(t.getDate())}`; }
 function cmpIsRecurring(f){ return !!f && !["مرة واحدة","عند الحدوث"].includes(f); }
 function cmpMonths(f){ return ({"سنوي":12,"نصف سنوي":6,"ربع سنوي":3,"شهري":1})[f] || 0; }
@@ -13669,25 +13663,43 @@ function complianceDerivedStatus(i){
 function complianceApplicable(items){ return (items||[]).filter(i => i.status !== "غير منطبق"); }
 function complianceIsOk(i){ return complianceDerivedStatus(i) === "ملتزم"; }
 
-/* The one definition of "how compliant are we" used by the compliance page, the dashboard and the
-   governance reports. Once any item has a score, the score average is the measure; before that it
-   falls back to the share of items marked as complied, so older data still shows something. */
-function complianceSummary(items){
-  const live = complianceApplicable(items);
-  if(!live.length) return { pct: null, text: "لا توجد بيانات بعد", basis: "none", avg: null, scored: 0, total: 0 };
-  const scored = live.filter(i => Number.isFinite(i.score) && i.score >= 1 && i.score <= 5);
-  if(scored.length){
-    const avg = scored.reduce((s,i) => s + i.score, 0) / scored.length;
-    return { pct: Math.round(avg/5*100), text: `متوسط ${avg.toFixed(1)} من 5 · ${scored.length} من ${live.length} بنداً مقيَّم`, basis: "score", avg, scored: scored.length, total: live.length };
-  }
-  const ok = live.filter(complianceIsOk).length;
-  return { pct: Math.round(ok/live.length*100), text: `${ok} من ${live.length} بندًا ملتزم (لم تُقيَّم بالدرجات بعد)`, basis: "status", avg: null, scored: 0, total: live.length };
+function cmpAssessmentScores(a){
+  const axes = (a && a.data && a.data.axes) ? a.data.axes : [];
+  let all = [];
+  const axisScores = axes.map(ax => {
+    const sc = (ax.criteria||[]).map(c => c.score).filter(s => Number.isFinite(s));
+    all = all.concat(sc);
+    return { title: ax.title, icon: ax.icon, score: sc.length ? sc.reduce((x,y) => x+y, 0) / sc.length : null, scored: sc.length, total: (ax.criteria||[]).length };
+  });
+  return { axisScores, finalScore: all.length ? all.reduce((x,y) => x+y, 0) / all.length : null };
+}
+function cmpInterpretation(score){
+  if(score < 2) return { label: "التزام ضعيف جداً – قصور جوهري يحتاج معالجة فورية", color: "var(--red)" };
+  if(score < 3) return { label: "التزام ضعيف – يحتاج معالجة عاجلة", color: "#E67E22" };
+  if(score < 4) return { label: "التزام مقبول – ملاحظات تحتاج تصحيحاً", color: "var(--gold)" };
+  if(score < 4.5) return { label: "التزام جيد – ملاحظات بسيطة", color: "var(--teal)" };
+  return { label: "التزام عالٍ – متميز", color: "var(--green)" };
+}
+async function cmpLatestAssessment(){
+  try {
+    const { data, error } = await sb.from("compliance_assessments").select("*").eq("company_id", currentCompanyId).order("created_at",{ascending:false}).limit(1);
+    if(error) return null;
+    return (data && data[0]) || null;
+  } catch(e){ return null; }
 }
 
-function cmpScoreChip(score){
-  if(!CMP_SCORES[score]) return '<span style="font-size:10.5px;color:var(--gray3)">غير مقيَّم</span>';
-  const [label, bg, fg] = CMP_SCORES[score];
-  return `<span title="${gaEsc(label)}" style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;background:${bg};color:${fg};white-space:nowrap">${score} / 5</span>`;
+/* The one definition of "how compliant are we" used by the dashboard and the governance reports:
+   the latest assessment's overall score when there is one, otherwise the share of listed
+   obligations marked as complied, so a company that has not assessed yet still shows something. */
+function complianceSummary(items, assessment){
+  if(assessment){
+    const { finalScore } = cmpAssessmentScores(assessment);
+    if(finalScore != null) return { pct: Math.round(finalScore/5*100), text: `آخر تقييم${assessment.period ? " (" + assessment.period + ")" : ""}: ${finalScore.toFixed(1)} من 5`, basis: "assessment", avg: finalScore };
+  }
+  const live = complianceApplicable(items);
+  if(!live.length) return { pct: null, text: "لا توجد بيانات بعد", basis: "none", avg: null };
+  const ok = live.filter(complianceIsOk).length;
+  return { pct: Math.round(ok/live.length*100), text: `${ok} من ${live.length} بندًا ملتزم (لم يُجرَ تقييم بعد)`, basis: "status", avg: null };
 }
 
 async function cmpLoadMembers(){
@@ -13699,8 +13711,6 @@ async function cmpLoadMembers(){
   cmpMembersCache = rows.map(r => ({ email: r.email, role: r.role, name: nameBy[r.email] || r.email }));
 }
 function cmpOwnerName(email){ if(!email) return "—"; const m = cmpMembersCache.find(x => x.email === email); return m ? m.name : email; }
-function cmpActionsFor(itemId){ return (gaActionsCache||[]).filter(a => a.axis_key === "compliance" && a.criterion_key === "cmp_" + itemId); }
-function cmpOpenActionsFor(itemId){ return cmpActionsFor(itemId).filter(a => a.status !== "مغلق"); }
 
 /* Copies library entries this company doesn't have yet. Safe to run on every visit: it only adds
    what is missing, and a unique index on (company_id, library_id) makes a simultaneous second run
@@ -13731,17 +13741,20 @@ function cmpFillAuthorityList(){
   const dl = document.getElementById("cmp-authorities");
   if(dl) dl.innerHTML = CMP_AUTHORITIES.map(a => `<option value="${gaEsc(a)}"></option>`).join("");
 }
-function cmpFillLegend(){
-  const box = document.getElementById("cmpLegendScores");
-  if(!box) return;
-  box.innerHTML = [5,4,3,2,1].map(n => { const [label,bg,fg] = CMP_SCORES[n]; return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px"><span style="font-size:11px;font-weight:800;padding:2px 10px;border-radius:20px;background:${bg};color:${fg};min-width:46px;text-align:center">${n} / 5</span><span style="font-size:12px;color:var(--dark)">${label}</span></div>`; }).join("");
+
+/* ── The page: history list + action tracker ── */
+function cmpShowList(){
+  const f = document.getElementById("cmpFormView"), l = document.getElementById("cmpListView");
+  if(f) f.style.display = "none";
+  if(l) l.style.display = "block";
 }
 
 async function loadCompliance(){
   const isOwner = currentUserProfile && currentUserProfile.is_platform_admin === true;
   const libBtn = document.getElementById("complianceLibraryBtn");
   if(libBtn) libBtn.style.display = isOwner ? "inline-flex" : "none";
-  cmpFillAuthorityList(); cmpFillLegend();
+  cmpFillAuthorityList();
+  cmpShowList();
 
   const sync = await cmpSyncFromLibrary();
   const note = document.getElementById("complianceSyncNote");
@@ -13749,203 +13762,91 @@ async function loadCompliance(){
     if(sync.added){
       note.style.display = "block";
       note.textContent = sync.first
-        ? `جُهّزت قائمة التزامات أولية (${sync.added} بنداً) حسب نوع كيان شركتكم. راجعوها وحدّدوا المواعيد والمسؤولين وقيّموا كل بند، وعلّموا ما لا ينطبق عليكم.`
+        ? `جُهّزت قائمة التزامات أولية (${sync.added} بنداً) حسب نوع كيان شركتكم. راجعوها من «قائمة الالتزامات» وحدّدوا المواعيد والمسؤولين، ثم ابدؤوا أول تقييم.`
         : `أُضيف ${sync.added} التزام جديد من مكتبة المنصة حسب نوع كيان شركتكم.`;
     } else if(sync.missingTables && isOwner){
       note.style.display = "block";
-      note.textContent = "جداول مكتبة الالتزامات غير مُنشأة بعد. شغّل ملفي HWKM-compliance-setup.sql ثم HWKM-compliance-v2.sql بلوحة Supabase.";
+      note.textContent = "جداول نظام الالتزام غير مُنشأة بعد. شغّل ملف SQL الخاص بها بلوحة Supabase.";
     } else { note.style.display = "none"; }
   }
 
-  renderComplianceInternal();
-  const tbody = document.getElementById("complianceTbody");
-  if(!tbody) return;
-  await Promise.all([cmpLoadMembers(), gaLoadAll()]);
-  const { data, error } = await sb.from("compliance_items").select("*").eq("company_id", currentCompanyId).order("id",{ascending:true});
-  if(error){ tbody.innerHTML = errorRowHTML(8, error.message); renderComplianceByAuthority([]); renderComplianceAlerts([]); renderComplianceActions(); return; }
-  complianceCache = data || [];
-  renderComplianceTable();
-  renderComplianceByAuthority(complianceCache);
-  renderComplianceAlerts(complianceCache);
-  renderComplianceActions();
+  await gaLoadAll();
+  renderCmpTracker();
+  await loadCmpHistory();
 }
 
-function renderComplianceTable(){
-  const tbody = document.getElementById("complianceTbody");
+async function loadCmpHistory(){
+  const tbody = document.getElementById("cmpHistoryTbody");
   if(!tbody) return;
-  if(complianceCache.length === 0){
-    tbody.innerHTML = emptyRowHTML(8, 'لا توجد التزامات بعد. اضغط "+ إضافة بند" للبدء.');
-    return;
-  }
-  const f = document.getElementById("cmp-filter") ? document.getElementById("cmp-filter").value : "";
-  const rows = complianceCache.filter(i => {
-    const s = complianceDerivedStatus(i);
-    if(f === "late") return s === "متأخر";
-    if(f === "open") return ["جارٍ","مجدول","غير ملتزم","متأخر"].includes(s);
-    if(f === "ok") return s === "ملتزم";
-    if(f === "na") return s === "غير منطبق";
-    if(f === "unscored") return s !== "غير منطبق" && !i.score;
-    if(f === "low") return s !== "غير منطبق" && i.score && i.score <= 3;
+  const { data, error } = await sb.from("compliance_assessments").select("*").eq("company_id", currentCompanyId).order("created_at",{ascending:false});
+  if(error){ tbody.innerHTML = `<tr><td colspan="6" style="color:var(--red);font-size:12px;padding:14px">تعذّر التحميل: ${gaEsc(error.message)}</td></tr>`; return; }
+  if(!data || data.length === 0){ tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد تقييمات بعد. اضغط «+ تقييم جديد» للبدء.</td></tr>'; return; }
+  tbody.innerHTML = data.map(a => {
+    const { finalScore } = cmpAssessmentScores(a);
+    const interp = finalScore != null ? cmpInterpretation(finalScore) : null;
+    return `<tr>
+      <td>${gaEsc(a.period||"—")}</td><td>${gaEsc(a.assessed_by_type||"—")}</td><td>${gaEsc(a.assessment_date||"—")}</td>
+      <td>${finalScore != null ? finalScore.toFixed(1) + "/5" : "—"}</td>
+      <td>${interp ? `<span style="color:${interp.color};font-weight:700;font-size:11px">${interp.label}</span>` : "—"}</td>
+      <td><button class="btn-xs primary" onclick="viewCmpAssessment(${a.id})">عرض/تعديل</button></td>
+    </tr>`;
+  }).join("");
+}
+
+function cmpMyPending(a){ return gaMyPending(a); }
+
+function renderCmpTracker(){
+  const statsBox = document.getElementById("cmpStats"), list = document.getElementById("cmpList");
+  if(!statsBox || !list) return;
+  const all = (gaActionsCache||[]).filter(a => a.axis_key === "compliance");
+  const closed = all.filter(a => a.status === "مغلق").length;
+  const overdue = all.filter(gaIsOverdue).length;
+  const mine = all.filter(a => a.status !== "مغلق" && cmpMyPending(a)).length;
+  const rate = all.length ? Math.round(closed/all.length*100) : 0;
+  statsBox.innerHTML = `
+    <div class="kpi blue"><div class="kpi-label">إجمالي الإجراءات</div><div class="kpi-val">${all.length}</div></div>
+    <div class="kpi gold"><div class="kpi-label">المطلوب مني</div><div class="kpi-val">${mine}</div></div>
+    <div class="kpi red"><div class="kpi-label">متأخرة</div><div class="kpi-val">${overdue}</div></div>
+    <div class="kpi green"><div class="kpi-label">نسبة الإغلاق</div><div class="kpi-val">${rate}%</div></div>`;
+
+  const f = document.getElementById("cmp-act-filter").value;
+  const rows = all.filter(a => {
+    if(f === "mine") return a.status !== "مغلق" && cmpMyPending(a);
+    if(f === "open") return a.status !== "مغلق";
+    if(f === "overdue") return gaIsOverdue(a);
+    if(f === "closed") return a.status === "مغلق";
     return true;
   });
-  if(!rows.length){ tbody.innerHTML = emptyRowHTML(8, "لا توجد بنود مطابقة."); return; }
-  const canManage = gaCanManage();
-  tbody.innerHTML = rows.map(i => {
-    const s = complianceDerivedStatus(i);
-    const [bg, fg] = CMP_STATUS_STYLE[s] || CMP_STATUS_STYLE["مجدول"];
-    const fromLib = i.source === "library";
-    const prelim = fromLib && cmpLibFlags[i.library_id] && cmpLibFlags[i.library_id].verified === false;
-    const na = s === "غير منطبق";
-    const openActs = cmpOpenActionsFor(i.id).length;
-    return `<tr>
-      <td><b>${gaEsc(i.item_name)}</b>${fromLib ? ' <span style="font-size:9.5px;background:#E6EEF8;color:var(--primary);border-radius:10px;padding:1px 7px">من المكتبة</span>' : ""}${prelim ? ' <span title="قائمة أولية لم يراجعها مختص بعد، تحقق من المتطلبات والمهل بالنظام" style="font-size:9.5px;background:#FEF3E2;color:var(--gold);border-radius:10px;padding:1px 7px">أولية</span>' : ""}
-        ${i.due_hint && !i.due_date ? `<div style="font-size:10.5px;color:var(--gold);margin-top:2px">${gaEsc(i.due_hint)}</div>` : ""}
-        ${na && i.na_reason ? `<div style="font-size:10.5px;color:var(--gray3);margin-top:2px">سبب عدم الانطباق: ${gaEsc(i.na_reason)}</div>` : ""}</td>
-      <td>${gaEsc(i.authority||"—")}${i.regulation_ref ? `<div style="font-size:10.5px;color:var(--gray3)">${gaEsc(i.regulation_ref)}</div>` : ""}</td>
-      <td style="font-size:11.5px">${gaEsc(i.frequency||"—")}</td>
-      <td style="font-size:11.5px;${s==="متأخر" ? "color:var(--red);font-weight:800" : ""}">${i.due_date||'<span style="color:var(--gray3)">غير محدد</span>'}</td>
-      <td style="font-size:11.5px">${gaEsc(cmpOwnerName(i.owner_email))}</td>
-      <td>${na ? "—" : cmpScoreChip(i.score)}${openActs ? `<div style="font-size:10px;color:var(--red);margin-top:3px">${openActs} إجراء مفتوح</div>` : ""}</td>
-      <td><span style="font-size:10.5px;font-weight:800;padding:3px 10px;border-radius:20px;background:${bg};color:${fg};white-space:nowrap">${gaEsc(s)}</span></td>
-      <td><div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">
-        <button class="btn-xs primary" onclick="editCompliance(${i.id})">${na ? "عرض" : "تقييم / تعديل"}</button>
-        ${!na ? `<button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="cmpMarkDone(${i.id})"><span class="ico-i ico-check"></span>تم</button>` : ""}
-        ${canManage ? `<button class="btn-xs" style="background:none;border:none;color:var(--gray3);cursor:pointer;font-size:11px" onclick="cmpToggleNA(${i.id})">${na ? "إعادة تفعيل" : "لا ينطبق"}</button>` : ""}
-        ${canManage && !fromLib ? `<button class="btn-xs" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:11px" onclick="deleteCompliance(${i.id})">حذف</button>` : ""}
-      </div></td></tr>`;
+  if(!rows.length){
+    list.innerHTML = `<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">${all.length ? "لا توجد إجراءات مطابقة." : "لا توجد إجراءات متابَعة بعد. من داخل أي تقييم اضغط «تتبّع كإجراء متابَع» بجانب الإجراء التصحيحي."}</div>`;
+    return;
+  }
+  list.innerHTML = rows.map(a => {
+    const [bg,fg] = GA_STATUS_STYLE[a.status] || GA_STATUS_STYLE["لم يبدأ"];
+    return `<div style="border:1px solid var(--gray1);border-radius:10px;padding:12px;background:#fff">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
+        <div style="font-size:12.5px;font-weight:700;color:var(--dark);flex:1">${a.action_kind ? `<span style="font-size:10px;background:#E6EEF8;color:var(--primary);border-radius:10px;padding:1px 8px;margin-left:6px">${gaEsc(a.action_kind)}</span>` : ""}${gaEsc(a.action_text)}</div>
+        <span style="font-size:10.5px;font-weight:800;padding:3px 10px;border-radius:20px;background:${bg};color:${fg};white-space:nowrap">${gaEsc(a.status)}</span>
+      </div>
+      <div style="font-size:10.5px;color:var(--gray3);margin-bottom:6px">الالتزام: ${gaEsc(String(a.criterion_label||a.criterion_key).replace(/^التزام:\s*/,""))}</div>
+      <div style="font-size:11px;color:var(--gray3);display:flex;flex-wrap:wrap;gap:12px;margin-bottom:8px">
+        <span>المنفّذ: ${gaEsc(gaName(a.executor_email))}</span><span>المراقب: ${gaEsc(gaName(a.monitor_email))}</span><span>المعتمِد: ${gaEsc(gaName(a.approver_email))}</span>
+        <span>الموعد: ${a.target_date||"غير محدَّد"}</span>${gaIsOverdue(a) ? '<span style="color:var(--red);font-weight:800">متأخر</span>' : ""}
+      </div>
+      <button class="btn-xs ${a.status!=='مغلق' && cmpMyPending(a) ? 'gold' : 'primary'}" onclick="gaOpen(${a.id})">${a.status!=='مغلق' && cmpMyPending(a) ? 'مطلوب منك' : 'فتح'}</button>
+    </div>`;
   }).join("");
 }
 
-function renderComplianceByAuthority(items){
-  const box = document.getElementById("complianceByAuthority");
-  if(!box) return;
-  const live = complianceApplicable(items);
-  if(live.length === 0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا توجد بيانات بعد.</div>'; return; }
-  const sum = complianceSummary(items);
-  const head = sum.basis === "score"
-    ? `<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px"><span style="font-size:26px;font-weight:900;color:var(--dark)">${sum.avg.toFixed(1)}</span><span style="font-size:12px;color:var(--gray3)">من 5 · ${sum.pct}%</span></div><div style="font-size:11.5px;color:var(--gray3);margin-bottom:12px">${gaEsc(sum.text)}</div>`
-    : `<div style="font-size:12px;color:var(--gray3);margin-bottom:12px">${gaEsc(sum.text)}<br><span style="color:var(--gold)">قيّم كل بند بدرجة من 1 إلى 5 ليظهر مؤشر الالتزام.</span></div>`;
-  const by = {};
-  live.forEach(c => {
-    const a = c.authority || "غير محدد";
-    if(!by[a]) by[a] = { total: 0, n: 0, sum: 0 };
-    by[a].total += 1;
-    if(Number.isFinite(c.score)){ by[a].n += 1; by[a].sum += c.score; }
-  });
-  box.innerHTML = head + Object.keys(by).map(a => {
-    const d = by[a];
-    if(!d.n) return `<div class="comp-item"><div class="comp-head"><span class="comp-name">${gaEsc(a)}</span><span class="comp-pct" style="color:var(--gray3);font-weight:600">لم يُقيَّم (${d.total})</span></div></div>`;
-    const avg = d.sum / d.n, pct = Math.round(avg / 5 * 100);
-    return `<div class="comp-item"><div class="comp-head"><span class="comp-name">${gaEsc(a)}</span><span class="comp-pct">${avg.toFixed(1)} / 5</span></div><div class="comp-track"><div class="comp-fill" style="width:${pct}%"></div></div></div>`;
-  }).join("");
-}
-
-function renderComplianceAlerts(items){
-  const box = document.getElementById("complianceAlerts");
-  if(!box) return;
-  const live = complianceApplicable(items);
-  const pending = live.filter(c => !complianceIsOk(c)).sort((a,b) => (a.due_date||"9999").localeCompare(b.due_date||"9999"));
-  const noAction = live.filter(i => Number.isFinite(i.score) && i.score <= 3 && cmpOpenActionsFor(i.id).length === 0);
-  if(pending.length === 0 && noAction.length === 0){
-    box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا توجد إجراءات مطلوبة حاليًا ✅</div>';
-    return;
-  }
-  const lines = [];
-  noAction.forEach(i => lines.push(`<div class="alert-item"><div class="a-dot red"></div><div><div class="a-text">${gaEsc(i.item_name)}</div><div class="a-time">درجة منخفضة (${i.score} / 5) ولا يوجد إجراء تصحيحي مفتوح</div></div></div>`));
-  pending.forEach(c => {
-    const s = complianceDerivedStatus(c);
-    const dot = s === "جارٍ" || s === "مجدول" ? "gold" : "red";
-    lines.push(`<div class="alert-item"><div class="a-dot ${dot}"></div><div><div class="a-text">${gaEsc(c.item_name)}${c.authority ? " — " + gaEsc(c.authority) : ""}</div><div class="a-time">${gaEsc(s)}${c.due_date ? " · الموعد: " + c.due_date : " · الموعد غير محدد"}</div></div></div>`);
-  });
-  box.innerHTML = lines.slice(0, 12).join("") + (lines.length > 12 ? `<div style="font-size:11px;color:var(--gray3);text-align:center;padding:6px">و${lines.length - 12} أخرى بالسجل أدناه</div>` : "");
-}
-
-/* ── Corrective and preventive actions for compliance items ── */
-function renderComplianceActions(){
-  const box = document.getElementById("complianceActions");
-  if(!box) return;
-  const all = (gaActionsCache||[]).filter(a => a.axis_key === "compliance");
-  if(!all.length){
-    box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:10px">لا توجد إجراءات بعد. عند تقييم بند بدرجة أقل من 5، أضف له إجراءً تصحيحياً (لمعالجة قصور قائم) أو احترازياً (لمنع تكراره).</div>';
-    return;
-  }
-  const open = all.filter(a => a.status !== "مغلق");
-  const late = all.filter(gaIsOverdue).length;
-  const closed = all.length - open.length;
-  const rate = Math.round(closed / all.length * 100);
-  const sorted = open.slice().sort((a,b) => (gaIsOverdue(b) - gaIsOverdue(a)) || (a.target_date||"9999").localeCompare(b.target_date||"9999"));
-  box.innerHTML = `<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--gray3);margin-bottom:10px"><span><b style="color:var(--dark)">${open.length}</b> مفتوح</span><span><b style="color:var(--red)">${late}</b> متأخر</span><span><b style="color:var(--green)">${closed}</b> مغلق</span><span>نسبة الإغلاق <b style="color:var(--dark)">${rate}%</b></span></div>` +
-    (sorted.length ? sorted.slice(0, 8).map(a => {
-      const [bg, fg] = GA_STATUS_STYLE[a.status] || GA_STATUS_STYLE["لم يبدأ"];
-      return `<div style="border:1px solid var(--gray1);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:#fff">
-        <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
-          <div style="flex:1"><div style="font-size:12.5px;font-weight:700;color:var(--dark)">${a.action_kind ? `<span style="font-size:10px;background:#E6EEF8;color:var(--primary);border-radius:10px;padding:1px 8px;margin-left:6px">${gaEsc(a.action_kind)}</span>` : ""}${gaEsc(a.action_text)}</div>
-          <div style="font-size:10.5px;color:var(--gray3);margin-top:3px">${gaEsc(String(a.criterion_label||"").replace(/^التزام:\s*/,""))} · المنفّذ: ${gaEsc(gaName(a.executor_email))} · الموعد: ${a.target_date||"غير محدد"}${gaIsOverdue(a) ? ' <b style="color:var(--red)">متأخر</b>' : ""}</div></div>
-          <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><span style="font-size:10.5px;font-weight:800;padding:3px 10px;border-radius:20px;background:${bg};color:${fg};white-space:nowrap">${gaEsc(a.status)}</span><button class="btn-xs primary" onclick="gaOpen(${a.id})">فتح</button></div>
-        </div></div>`;
-    }).join("") + (sorted.length > 8 ? `<div style="font-size:11px;color:var(--gray3);text-align:center">و${sorted.length - 8} أخرى</div>` : "") : '<div style="text-align:center;color:var(--green);font-size:12px;padding:6px">كل الإجراءات مغلقة ✅</div>');
-}
-/* Called from the shared action workflow after any change, so this page's list and the per-row
-   counts stay current when an action is advanced from the dialog it opens. */
+/* The shared action workflow calls this after any change so the tracker and the per-row action
+   marks here stay current when an action is advanced from the dialog it opens. */
 function cmpRefreshActionsCard(){
-  if(!document.getElementById("complianceActions")) return;
-  renderComplianceActions();
-  renderComplianceTable();
-  renderComplianceAlerts(complianceCache);
+  if(document.getElementById("cmpList")) renderCmpTracker();
+  const form = document.getElementById("cmpFormView");
+  if(form && form.style.display !== "none") cmpRefreshSlots();
 }
 
-function cmpRenderItemActions(itemId){
-  const box = document.getElementById("mc-actions-list");
-  const wrap = document.getElementById("mc-actions-wrap");
-  if(!box || !wrap) return;
-  if(!itemId){ wrap.style.display = "none"; return; }
-  wrap.style.display = "block";
-  const acts = cmpActionsFor(itemId);
-  box.innerHTML = acts.length ? acts.map(a => {
-    const [bg, fg] = GA_STATUS_STYLE[a.status] || GA_STATUS_STYLE["لم يبدأ"];
-    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--gray1);border-radius:8px;padding:8px 10px;margin-bottom:6px">
-      <div style="flex:1;font-size:12px">${a.action_kind ? `<b style="color:var(--primary)">${gaEsc(a.action_kind)}:</b> ` : ""}${gaEsc(a.action_text)}</div>
-      <span style="font-size:10px;font-weight:800;padding:2px 9px;border-radius:20px;background:${bg};color:${fg};white-space:nowrap">${gaEsc(a.status)}</span>
-      <button type="button" class="btn-xs primary" onclick="closeM('m-compliance');gaOpen(${a.id})">فتح</button></div>`;
-  }).join("") : '<div style="font-size:11.5px;color:var(--gray3)">لا توجد إجراءات لهذا البند.</div>';
-}
-
-function openCmpActionModal(itemId){
-  const item = complianceCache.find(x => x.id === itemId);
-  if(!item) return;
-  document.getElementById("ca-item").value = itemId;
-  document.getElementById("ca-context").textContent = item.item_name + (Number.isFinite(item.score) ? ` — الدرجة الحالية ${item.score} / 5` : "");
-  document.getElementById("ca-kind").value = (Number.isFinite(item.score) && item.score <= 3) ? "تصحيحي" : "احترازي";
-  document.getElementById("ca-text").value = "";
-  document.getElementById("ca-target").value = "";
-  openM("m-cmp-action");
-}
-
-async function saveCmpAction(){
-  const itemId = Number(document.getElementById("ca-item").value);
-  const item = complianceCache.find(x => x.id === itemId);
-  if(!item) return;
-  const action_text = document.getElementById("ca-text").value.trim();
-  if(!action_text){ alert("اكتب الإجراء"); return; }
-  const action_kind = document.getElementById("ca-kind").value;
-  const target_date = document.getElementById("ca-target").value || null;
-  await gaLoadAll();
-  const roles = await gaDefaultRoles();
-  const { data, error } = await sb.from("governance_actions").insert([{
-    company_id: currentCompanyId, assessment_id: null, axis_key: "compliance", criterion_key: "cmp_" + itemId,
-    criterion_label: "التزام: " + item.item_name, action_text, action_kind,
-    executor_email: roles.executor, monitor_email: roles.monitor, approver_email: roles.approver,
-    target_date, status: "لم يبدأ", created_by: gaMyEmail()
-  }]).select().single();
-  if(error || !data){ alert("تعذّر إنشاء الإجراء: " + (error ? error.message : "")); return; }
-  await gaLog(data, null, "لم يبدأ", "إنشاء الإجراء");
-  if(roles.executor) gaNotify(roles.executor, "إجراء التزام مسند إليك", `إجراء ${action_kind} على بند الالتزام «${item.item_name}»` + (target_date ? ` قبل ${target_date}` : "") + ".", data);
-  closeM("m-cmp-action"); closeM("m-compliance");
-  await loadCompliance();
-  gaOpen(data.id);   // open it straight away so executor, monitor, approver and date can be adjusted
-}
-
-/* ── Internal compliance: derived from what the platform already tracks ── */
+/* ── Internal compliance (automatic): derived from what the platform already tracks ── */
 async function cmpInternalChecks(){
   const cid = currentCompanyId, today = cmpToday();
   const noBoard = currentCompanyType === "مؤسسة فردية" || currentCompanyLLCSingleManager || currentCompanyLLCSingleOwner;
@@ -13960,39 +13861,282 @@ async function cmpInternalChecks(){
   ]);
   const checks = [];
   const lateP = (pol.data||[]).filter(p => p.status === "تجديد مطلوب" || (p.review_date && p.review_date < today)).length;
-  checks.push({ label: "مراجعة السياسات في موعدها", ok: lateP === 0, detail: lateP ? `${lateP} سياسة تجاوزت موعد مراجعتها` : "لا سياسات متأخرة المراجعة", page: "governance" });
+  checks.push({ id: "policies", label: "مراجعة السياسات في موعدها", ok: lateP === 0, detail: lateP ? `${lateP} سياسة تجاوزت موعد مراجعتها` : "لا سياسات متأخرة المراجعة" });
   const stuck = (sign.data||[]).filter(d => d.status !== "مكتمل" && d.created_at && d.created_at < fortnightAgo).length;
-  checks.push({ label: "اكتمال التوقيعات", ok: stuck === 0, detail: stuck ? `${stuck} وثيقة بلا اكتمال توقيع لأكثر من 14 يوماً` : "لا وثائق معلّقة طويلاً", page: "signing" });
+  checks.push({ id: "signatures", label: "اكتمال التوقيعات", ok: stuck === 0, detail: stuck ? `${stuck} وثيقة بلا اكتمال توقيع لأكثر من 14 يوماً` : "لا وثائق معلّقة طويلاً" });
   const lateA = (acts.data||[]).filter(a => a.target_date < today).length;
-  checks.push({ label: "الإجراءات التصحيحية", ok: lateA === 0, detail: lateA ? `${lateA} إجراء متأخر` : "لا إجراءات متأخرة", page: "govassess" });
+  checks.push({ id: "actions", label: "الإجراءات التصحيحية", ok: lateA === 0, detail: lateA ? `${lateA} إجراء متأخر` : "لا إجراءات متأخرة" });
   if(!noBoard){
     const lateD = (bdec.data||[]).filter(d => d.target_date < today).length;
-    checks.push({ label: "تنفيذ قرارات المجلس", ok: lateD === 0, detail: lateD ? `${lateD} قرار متأخر عن موعده` : "لا قرارات متأخرة", page: "decisiontracking" });
+    checks.push({ id: "board_decisions", label: "تنفيذ قرارات المجلس", ok: lateD === 0, detail: lateD ? `${lateD} قرار متأخر عن موعده` : "لا قرارات متأخرة" });
   }
   if(currentCompanyLLCSingleManager){
     const lateM = (mdec.data||[]).filter(d => d.target_date < today).length;
-    checks.push({ label: "تنفيذ قرارات المدير", ok: lateM === 0, detail: lateM ? `${lateM} قرار متأخر عن موعده` : "لا قرارات متأخرة", page: "managerdecisions" });
+    checks.push({ id: "manager_decisions", label: "تنفيذ قرارات المدير", ok: lateM === 0, detail: lateM ? `${lateM} قرار متأخر عن موعده` : "لا قرارات متأخرة" });
   }
   const last = (assess.data||[])[0];
   const yearAgo = new Date(Date.now() - 365*86400000).toISOString();
   const fresh = !!(last && last.created_at >= yearAgo);
-  checks.push({ label: "تقييم فعالية الحوكمة السنوي", ok: fresh, detail: fresh ? "أُجري خلال آخر 12 شهراً" : (last ? "آخر تقييم مضى عليه أكثر من 12 شهراً" : "لم يُجرَ تقييم بعد"), page: "govassess" });
+  checks.push({ id: "governance_assessment", label: "تقييم فعالية الحوكمة السنوي", ok: fresh, detail: fresh ? "أُجري خلال آخر 12 شهراً" : (last ? "آخر تقييم مضى عليه أكثر من 12 شهراً" : "لم يُجرَ تقييم بعد") });
   return checks;
 }
 
-async function renderComplianceInternal(){
-  const box = document.getElementById("complianceInternal");
-  if(!box) return;
-  let checks;
-  try { checks = await cmpInternalChecks(); } catch(e){ box.innerHTML = '<div style="color:var(--red);font-size:12px">تعذّر احتساب الالتزام الداخلي</div>'; return; }
-  const good = checks.filter(c => c.ok).length;
-  box.innerHTML = `<div style="font-size:12px;color:var(--gray3);margin-bottom:10px"><b style="color:var(--dark)">${good} من ${checks.length}</b> مجالات سليمة — يُحتسب تلقائياً من بيانات المنصة</div>` +
-    checks.map(c => `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--gray1);cursor:pointer" onclick="go('${c.page}',null)">
-      <span class="ico-i ${c.ok ? "ico-check" : "ico-warning"}" style="color:${c.ok ? "var(--green)" : "var(--red)"}"></span>
-      <div style="flex:1"><div style="font-size:12.5px;font-weight:700;color:var(--dark)">${gaEsc(c.label)}</div><div style="font-size:11px;color:${c.ok ? "var(--gray3)" : "var(--red)"}">${gaEsc(c.detail)}</div></div></div>`).join("");
+/* ── The assessment form ── */
+async function cmpBuildAxes(){
+  await cmpSyncFromLibrary();
+  const { data } = await sb.from("compliance_items").select("*").eq("company_id", currentCompanyId).order("id",{ascending:true});
+  complianceCache = data || [];
+  const byAuth = {};
+  complianceApplicable(complianceCache).forEach(i => { const a = i.authority || "غير محدد"; (byAuth[a] = byAuth[a] || []).push(i); });
+  const checks = await cmpInternalChecks();
+  const axes = [{
+    key: "internal", title: "الالتزام الداخلي (آلي)", icon: "🛡️", auto: true,
+    criteria: checks.map(ch => ({ key: "int_" + ch.id, label: ch.label, hint: "آلي — " + ch.detail, auto: true, score: ch.ok ? 5 : 2 }))
+  }];
+  Object.keys(byAuth).sort((a,b) => a.localeCompare(b, "ar")).forEach((a, k) => axes.push({
+    key: "auth_" + k, title: a, icon: "🏛️",
+    criteria: byAuth[a].map(i => ({ key: "i" + i.id, itemId: i.id, label: i.item_name, hint: [i.regulation_ref, i.frequency].filter(Boolean).join(" · ") }))
+  }));
+  return axes;
 }
 
-/* ── Company-side edits ── */
+function cmpAssessorOptions(selected){
+  const noBoard = currentCompanyType === "مؤسسة فردية" || currentCompanyLLCSingleOwner || currentCompanyLLCSingleManager;
+  const body = noBoard ? (currentCompanyLLCSingleManager && !currentCompanyLLCSingleOwner && currentCompanyType !== "مؤسسة فردية" ? "المدير" : "المالك") : getGovernanceBodyLabel();
+  const opts = ["المراجعة الداخلية", "طرف خارجي", body];
+  if(selected && !opts.includes(selected)) opts.push(selected);
+  document.getElementById("cmp-assessor").innerHTML = opts.map(o => `<option>${gaEsc(o)}</option>`).join("");
+  document.getElementById("cmp-assessor").value = selected || "المراجعة الداخلية";
+}
+
+async function renderCmpAxesForm(saved){
+  await gaLoadAll();
+  const aid = document.getElementById("cmp-id").value;
+  currentCmpAxes = (saved && saved.data && saved.data.axes) ? saved.data.axes : await cmpBuildAxes();
+  const box = document.getElementById("cmpAxesContainer");
+  const onlyInternal = currentCmpAxes.length <= 1;
+  box.innerHTML = (onlyInternal ? '<div style="background:#FEF3E2;color:var(--gold);border-radius:8px;padding:10px 12px;font-size:12px;font-weight:700;margin-bottom:14px">لا توجد التزامات خارجية بعد. أضفها من «قائمة الالتزامات» ثم ابدأ تقييماً جديداً.</div>' : "") +
+    currentCmpAxes.map((axis, ai) => `<div class="card" style="margin-bottom:14px">
+      <div class="card-head"><span class="card-title">${axis.icon||""} ${gaEsc(axis.title)}</span></div>
+      <div class="card-body">
+        <table class="tbl">
+          <thead><tr><th style="width:24%">الالتزام</th><th style="width:20%">درجة الالتزام (١-٥)</th><th style="width:28%">الملاحظات</th><th style="width:28%">الإجراءات التصحيحية / الاحترازية</th></tr></thead>
+          <tbody>
+            ${axis.criteria.map(c => {
+              const col = cmpScoreColor(c.score);
+              return `<tr data-axis="${ai}" data-crit="${gaEsc(c.key)}">
+                <td><b style="font-size:11.5px">${gaEsc(c.label)}</b><div style="font-size:10px;color:var(--gray3);margin-top:2px">${gaEsc(c.hint||"")}</div></td>
+                <td><select class="fs cmp-score-select" ${c.auto ? "disabled" : ""} style="font-size:12px;padding:6px;font-weight:700;color:${col};border-color:${col}55" onchange="this.style.color=cmpScoreColor(this.value?Number(this.value):null);this.style.borderColor=cmpScoreColor(this.value?Number(this.value):null)+'55'">
+                  <option value="">—</option>
+                  ${[5,4,3,2,1].map(n => `<option value="${n}" ${c.score==n ? "selected" : ""}>${n} — ${CMP_SCORES[n]}</option>`).join("")}
+                </select>${c.auto ? '<div style="font-size:9.5px;color:var(--gray3);margin-top:3px">تُحتسب تلقائياً</div>' : ""}</td>
+                <td><textarea class="fi cmp-notes" rows="2" style="font-size:11.5px;resize:vertical">${gaEsc(c.notes||"")}</textarea></td>
+                <td><textarea class="fi cmp-actions" rows="2" style="font-size:11.5px;resize:vertical">${gaEsc(c.actions||"")}</textarea><div class="cmp-slot" data-crit="${gaEsc(c.key)}">${cmpSlotHTML(aid, c.key, c.score)}</div></td>
+              </tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>`).join("");
+}
+
+function cmpSlotHTML(assessmentId, critKey, score){
+  const ck = "cmp_" + critKey;
+  const mine = (gaActionsCache||[]).filter(a => a.axis_key === "compliance" && a.criterion_key === ck);
+  const own = assessmentId ? mine.find(a => String(a.assessment_id) === String(assessmentId)) : null;
+  let html = "";
+  if(own){
+    const [bg,fg] = GA_STATUS_STYLE[own.status] || GA_STATUS_STYLE["لم يبدأ"];
+    html += `<div style="margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      <span style="font-size:10px;font-weight:800;padding:3px 9px;border-radius:20px;background:${bg};color:${fg}">${gaEsc(own.action_kind||"متابَع")}: ${gaEsc(own.status)}</span>
+      <button type="button" class="btn-xs primary" onclick="gaOpen(${own.id})">فتح</button></div>`;
+  } else {
+    const corrective = Number.isFinite(score) && score <= 3;
+    html += `<div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap">
+      <select class="fs cmp-kind" style="margin:0;font-size:11px;padding:4px 6px;width:auto"><option ${corrective ? "selected" : ""}>تصحيحي</option><option ${corrective ? "" : "selected"}>احترازي</option></select>
+      <button type="button" class="btn-xs gold" onclick="cmpCreateActionFromRow(this)"><span class="ico-i ico-check"></span>تتبّع كإجراء متابَع</button></div>`;
+  }
+  const prior = mine.filter(a => String(a.assessment_id) !== String(assessmentId || ""));
+  if(prior.length){
+    const open = prior.filter(a => a.status !== "مغلق").length;
+    html += `<div style="font-size:10px;margin-top:5px;color:${open ? "var(--red)" : "var(--green)"}">إجراءات من تقييمات سابقة: ${open} مفتوح · ${prior.length - open} مغلق</div>`;
+  }
+  return html;
+}
+function cmpRefreshSlots(){
+  const aid = document.getElementById("cmp-id").value;
+  document.querySelectorAll(".cmp-slot").forEach(el => {
+    const row = el.closest("tr");
+    const v = row ? row.querySelector(".cmp-score-select").value : "";
+    el.innerHTML = cmpSlotHTML(aid, el.dataset.crit, v ? Number(v) : null);
+  });
+}
+
+async function cmpCreateActionFromRow(btn){
+  const aid = document.getElementById("cmp-id").value;
+  if(!aid){ alert("احفظ التقييم أولاً، ثم حوّل الإجراء إلى متابعة."); return; }
+  const tr = btn.closest("tr");
+  const text = tr.querySelector(".cmp-actions").value.trim();
+  if(!text){ alert("اكتب الإجراء أولاً."); return; }
+  const crit = tr.dataset.crit;
+  const label = tr.querySelector("b").textContent;
+  const kind = tr.querySelector(".cmp-kind").value;
+  btn.disabled = true;
+  const roles = await gaDefaultRoles();
+  const { data, error } = await sb.from("governance_actions").insert([{
+    company_id: currentCompanyId, assessment_id: Number(aid), axis_key: "compliance", criterion_key: "cmp_" + crit,
+    criterion_label: "التزام: " + label, action_text: text, action_kind: kind,
+    executor_email: roles.executor, monitor_email: roles.monitor, approver_email: roles.approver,
+    status: "لم يبدأ", created_by: gaMyEmail()
+  }]).select().single();
+  btn.disabled = false;
+  if(error || !data){ alert("تعذّر إنشاء الإجراء: " + (error ? error.message : "")); return; }
+  await gaLog(data, null, "لم يبدأ", "إنشاء الإجراء");
+  await gaLoadAll();
+  cmpRefreshSlots();
+  renderCmpTracker();
+  gaOpen(data.id);   // open it straight away so executor, monitor, approver and the date can be set
+}
+
+function collectCmpAxesData(){
+  return currentCmpAxes.map((axis, ai) => ({
+    key: axis.key, title: axis.title, icon: axis.icon, auto: !!axis.auto,
+    criteria: axis.criteria.map(c => {
+      const row = document.querySelector(`tr[data-axis="${ai}"][data-crit="${c.key}"]`);
+      const sv = row.querySelector(".cmp-score-select").value;
+      return { key: c.key, itemId: c.itemId, label: c.label, hint: c.hint, auto: !!c.auto,
+        score: sv ? Number(sv) : null, notes: row.querySelector(".cmp-notes").value.trim(), actions: row.querySelector(".cmp-actions").value.trim() };
+    })
+  }));
+}
+
+function renderCmpResultsSummary(a){
+  const { axisScores, finalScore } = cmpAssessmentScores(a);
+  const box = document.getElementById("cmpResultsSummary");
+  if(finalScore == null){ box.style.display = "none"; return; }
+  const interp = cmpInterpretation(finalScore);
+  box.style.display = "block";
+  box.innerHTML = `<div class="card" style="margin-bottom:16px">
+    <div class="card-head"><span class="card-title"><span class="ico-i ico-trending"></span>النتيجة النهائية</span></div>
+    <div class="card-body">
+      <table class="tbl">
+        <thead><tr><th>المحور</th><th>الدرجة / 5</th><th>البنود المقيَّمة</th></tr></thead>
+        <tbody>${axisScores.map(ax => `<tr><td>${ax.icon||""} ${gaEsc(ax.title)}</td><td style="color:${cmpScoreColor(ax.score)};font-weight:700">${ax.score != null ? ax.score.toFixed(1) : "—"}</td><td>${ax.scored} من ${ax.total}</td></tr>`).join("")}</tbody>
+      </table>
+      <div style="margin-top:14px;padding:14px;background:${interp.color}15;border-radius:10px;text-align:center">
+        <div style="font-size:28px;font-weight:900;color:${interp.color}">${finalScore.toFixed(1)} / 5</div>
+        <div style="font-size:13px;font-weight:700;color:${interp.color};margin-top:4px">${interp.label}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function openNewCmpAssessment(){
+  document.getElementById("cmp-id").value = "";
+  document.getElementById("cmp-period").value = "";
+  document.getElementById("cmp-date").value = "";
+  cmpAssessorOptions(null);
+  document.getElementById("cmpFormTitle").textContent = "تقييم التزام جديد";
+  await renderCmpAxesForm(null);
+  document.getElementById("cmpResultsSummary").style.display = "none";
+  document.getElementById("cmpListView").style.display = "none";
+  document.getElementById("cmpFormView").style.display = "block";
+}
+function closeCmpAssessmentForm(){ cmpShowList(); loadCompliance(); }
+
+async function viewCmpAssessment(id){
+  const { data: a, error } = await sb.from("compliance_assessments").select("*").eq("id", id).single();
+  if(error || !a){ alert("تعذّر تحميل التقييم"); return; }
+  document.getElementById("cmp-id").value = a.id;
+  document.getElementById("cmp-period").value = a.period || "";
+  document.getElementById("cmp-date").value = a.assessment_date || "";
+  cmpAssessorOptions(a.assessed_by_type);
+  document.getElementById("cmpFormTitle").textContent = "تعديل تقييم: " + (a.period || "");
+  await renderCmpAxesForm(a);
+  renderCmpResultsSummary(a);
+  document.getElementById("cmpListView").style.display = "none";
+  document.getElementById("cmpFormView").style.display = "block";
+}
+
+async function saveCmpAssessment(){
+  const period = document.getElementById("cmp-period").value.trim();
+  if(!period){ alert("الرجاء إدخال الفترة محل التقييم"); return; }
+  const assessment_date = document.getElementById("cmp-date").value || null;
+  const assessed_by_type = document.getElementById("cmp-assessor").value;
+  const axes = collectCmpAxesData();
+  const { finalScore } = cmpAssessmentScores({ data: { axes } });
+  const payload = { company_id: currentCompanyId, period, assessment_date, assessed_by_type, data: { axes }, final_score: finalScore };
+  const id = document.getElementById("cmp-id").value;
+  let error;
+  if(id){
+    ({ error } = await sb.from("compliance_assessments").update(payload).eq("id", id));
+  } else {
+    const r = await sb.from("compliance_assessments").insert([{ ...payload, created_by: gaMyEmail() }]).select("id").single();
+    error = r.error;
+    if(!error && r.data) document.getElementById("cmp-id").value = r.data.id;   // keep it: a second Save must update, and actions need a saved assessment
+  }
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  cmpRefreshSlots();
+  logActivity("إنشاء", "تقييم الالتزام", period, finalScore != null ? `النتيجة النهائية: ${finalScore.toFixed(1)}/5` : "");
+  renderCmpResultsSummary({ data: { axes } });
+  alert("تم حفظ التقييم بنجاح ✅");
+}
+
+/* ── The obligations list (register) ── */
+async function cmpReloadRegister(){
+  await cmpLoadMembers();
+  const { data, error } = await sb.from("compliance_items").select("*").eq("company_id", currentCompanyId).order("id",{ascending:true});
+  const tbody = document.getElementById("complianceTbody");
+  if(error){ tbody.innerHTML = errorRowHTML(7, error.message); return; }
+  complianceCache = data || [];
+  renderComplianceTable();
+}
+async function openCmpRegister(){
+  cmpFillAuthorityList();
+  await cmpSyncFromLibrary();
+  await cmpReloadRegister();
+  openM("m-cmp-register");
+}
+
+function renderComplianceTable(){
+  const tbody = document.getElementById("complianceTbody");
+  if(!tbody) return;
+  if(complianceCache.length === 0){ tbody.innerHTML = emptyRowHTML(7, 'لا توجد التزامات بعد. اضغط "+ إضافة بند".'); return; }
+  const f = document.getElementById("cmp-filter") ? document.getElementById("cmp-filter").value : "";
+  const rows = complianceCache.filter(i => {
+    const s = complianceDerivedStatus(i);
+    if(f === "late") return s === "متأخر";
+    if(f === "open") return ["جارٍ","مجدول","غير ملتزم","متأخر"].includes(s);
+    if(f === "ok") return s === "ملتزم";
+    if(f === "na") return s === "غير منطبق";
+    return true;
+  });
+  if(!rows.length){ tbody.innerHTML = emptyRowHTML(7, "لا توجد بنود مطابقة."); return; }
+  const canManage = gaCanManage();
+  tbody.innerHTML = rows.map(i => {
+    const s = complianceDerivedStatus(i);
+    const [bg, fg] = CMP_STATUS_STYLE[s] || CMP_STATUS_STYLE["مجدول"];
+    const fromLib = i.source === "library";
+    const prelim = fromLib && cmpLibFlags[i.library_id] && cmpLibFlags[i.library_id].verified === false;
+    const na = s === "غير منطبق";
+    return `<tr>
+      <td><b>${gaEsc(i.item_name)}</b>${prelim ? ' <span title="قائمة أولية لم يراجعها مختص بعد، تحقق من المتطلبات والمهل بالنظام" style="font-size:9.5px;background:#FEF3E2;color:var(--gold);border-radius:10px;padding:1px 7px">أولية</span>' : ""}
+        ${i.due_hint && !i.due_date ? `<div style="font-size:10.5px;color:var(--gold);margin-top:2px">${gaEsc(i.due_hint)}</div>` : ""}
+        ${na && i.na_reason ? `<div style="font-size:10.5px;color:var(--gray3);margin-top:2px">سبب عدم الانطباق: ${gaEsc(i.na_reason)}</div>` : ""}</td>
+      <td>${gaEsc(i.authority||"—")}${i.regulation_ref ? `<div style="font-size:10.5px;color:var(--gray3)">${gaEsc(i.regulation_ref)}</div>` : ""}</td>
+      <td style="font-size:11.5px">${gaEsc(i.frequency||"—")}</td>
+      <td style="font-size:11.5px;${s==="متأخر" ? "color:var(--red);font-weight:800" : ""}">${i.due_date||'<span style="color:var(--gray3)">غير محدد</span>'}</td>
+      <td style="font-size:11.5px">${gaEsc(cmpOwnerName(i.owner_email))}</td>
+      <td><span style="font-size:10.5px;font-weight:800;padding:3px 10px;border-radius:20px;background:${bg};color:${fg};white-space:nowrap">${gaEsc(s)}</span></td>
+      <td><div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">
+        <button class="btn-xs primary" onclick="editCompliance(${i.id})">تعديل</button>
+        ${!na ? `<button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="cmpMarkDone(${i.id})"><span class="ico-i ico-check"></span>تم</button>` : ""}
+        ${canManage ? `<button class="btn-xs" style="background:none;border:none;color:var(--gray3);cursor:pointer;font-size:11px" onclick="cmpToggleNA(${i.id})">${na ? "إعادة تفعيل" : "لا ينطبق"}</button>` : ""}
+        ${canManage && !fromLib ? `<button class="btn-xs" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:11px" onclick="deleteCompliance(${i.id})">حذف</button>` : ""}
+      </div></td></tr>`;
+  }).join("");
+}
+
 function cmpFillOwnerSelect(selected){
   const sel = document.getElementById("mc-owner");
   sel.innerHTML = '<option value="">— غير محدَّد —</option>' + cmpMembersCache.map(m => `<option value="${gaEsc(m.email)}" ${m.email===selected?"selected":""}>${gaEsc(m.name)}</option>`).join("");
@@ -14001,7 +14145,6 @@ function cmpFillOwnerSelect(selected){
 function cmpFillStaticSelects(){
   document.getElementById("mc-frequency").innerHTML = '<option value="">— غير محددة —</option>' + CMP_FREQS.map(f => `<option>${f}</option>`).join("");
   document.getElementById("mc-status").innerHTML = CMP_STATUSES.map(s => `<option>${s}</option>`).join("");
-  document.getElementById("mc-score").innerHTML = '<option value="">غير مُقيَّم</option>' + [5,4,3,2,1].map(n => `<option value="${n}">${n} — ${CMP_SCORES[n][0]}</option>`).join("");
 }
 function cmpLockLibraryFields(locked){
   ["mc-item","mc-authority","mc-ref","mc-frequency"].forEach(id => { document.getElementById(id).disabled = locked; });
@@ -14012,15 +14155,13 @@ function openNewComplianceItem(){
   cmpFillAuthorityList(); cmpFillStaticSelects();
   document.getElementById("mc-id").value = "";
   document.getElementById("mc-title-h").textContent = "إضافة بند التزام";
-  ["mc-item","mc-authority","mc-ref","mc-duedate","mc-evidence","mc-scorenote"].forEach(id => { document.getElementById(id).value = ""; });
+  ["mc-item","mc-authority","mc-ref","mc-duedate","mc-evidence"].forEach(id => { document.getElementById(id).value = ""; });
   document.getElementById("mc-frequency").value = "";
   document.getElementById("mc-status").value = "مجدول";
-  document.getElementById("mc-score").value = "";
   document.getElementById("mc-hint-row").style.display = "none";
   document.getElementById("mc-desc-row").style.display = "none";
   cmpFillOwnerSelect(null);
   cmpLockLibraryFields(false);
-  cmpRenderItemActions(null);
   openM("m-compliance");
 }
 
@@ -14029,15 +14170,13 @@ function editCompliance(id){
   if(!c) return;
   cmpFillAuthorityList(); cmpFillStaticSelects();
   document.getElementById("mc-id").value = c.id;
-  document.getElementById("mc-title-h").textContent = "تقييم بند الالتزام وتعديله";
+  document.getElementById("mc-title-h").textContent = "تعديل بند الالتزام";
   document.getElementById("mc-item").value = c.item_name || "";
   document.getElementById("mc-authority").value = c.authority || "";
   document.getElementById("mc-ref").value = c.regulation_ref || "";
   document.getElementById("mc-frequency").value = c.frequency || "";
   document.getElementById("mc-duedate").value = c.due_date || "";
   document.getElementById("mc-status").value = CMP_STATUSES.includes(c.status) ? c.status : "مجدول";
-  document.getElementById("mc-score").value = Number.isFinite(c.score) ? String(c.score) : "";
-  document.getElementById("mc-scorenote").value = c.score_note || "";
   document.getElementById("mc-evidence").value = c.evidence_note || "";
   document.getElementById("mc-hint-row").style.display = c.due_hint ? "block" : "none";
   document.getElementById("mc-hint").textContent = c.due_hint || "";
@@ -14046,14 +14185,7 @@ function editCompliance(id){
   document.getElementById("mc-desc").textContent = desc || "";
   cmpFillOwnerSelect(c.owner_email);
   cmpLockLibraryFields(c.source === "library");
-  cmpRenderItemActions(c.id);
   openM("m-compliance");
-}
-
-function cmpAddActionFromModal(){
-  const id = Number(document.getElementById("mc-id").value);
-  if(!id){ alert("احفظ البند أولاً ثم أضف له الإجراء."); return; }
-  openCmpActionModal(id);
 }
 
 async function saveCompliance(){
@@ -14062,39 +14194,23 @@ async function saveCompliance(){
   const fromLib = !!(existing && existing.source === "library");
   const item_name = document.getElementById("mc-item").value.trim();
   if(!item_name){ alert("الرجاء إدخال اسم البند"); return; }
-  const scoreVal = document.getElementById("mc-score").value;
-  const score = scoreVal ? Number(scoreVal) : null;
-  const score_note = document.getElementById("mc-scorenote").value.trim() || null;
   const payload = {
     due_date: document.getElementById("mc-duedate").value || null,
     owner_email: document.getElementById("mc-owner").value || null,
     status: document.getElementById("mc-status").value,
-    evidence_note: document.getElementById("mc-evidence").value.trim() || null,
-    score, score_note
+    evidence_note: document.getElementById("mc-evidence").value.trim() || null
   };
-  if(score === null){ payload.assessed_at = null; payload.assessed_by = null; }
-  else if(!existing || existing.score !== score || (existing.score_note || null) !== score_note){ payload.assessed_at = cmpToday(); payload.assessed_by = gaMyEmail(); }
   if(!fromLib){
     payload.item_name = item_name;
     payload.authority = document.getElementById("mc-authority").value.trim();
     payload.regulation_ref = document.getElementById("mc-ref").value.trim() || null;
     payload.frequency = document.getElementById("mc-frequency").value || null;
   }
-  let savedId = id ? Number(id) : null;
-  if(id){
-    const { error } = await sb.from("compliance_items").update(payload).eq("id", id);
-    if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
-  } else {
-    const { data, error } = await sb.from("compliance_items").insert([{ ...payload, company_id: currentCompanyId, source: "manual" }]).select("id").single();
-    if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
-    savedId = data ? data.id : null;
-  }
-  closeM("m-compliance");
-  await loadCompliance();
-  // A low score with nothing being done about it is exactly what this page exists to prevent.
-  if(score !== null && score <= 3 && savedId && payload.status !== "غير منطبق" && cmpOpenActionsFor(savedId).length === 0){
-    if(confirm(`الدرجة ${score} من 5 منخفضة. هل تريد تسجيل إجراء تصحيحي الآن؟`)) openCmpActionModal(savedId);
-  }
+  const { error } = id
+    ? await sb.from("compliance_items").update(payload).eq("id", id)
+    : await sb.from("compliance_items").insert([{ ...payload, company_id: currentCompanyId, source: "manual" }]);
+  if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
+  closeM("m-compliance"); cmpReloadRegister();
 }
 
 async function cmpMarkDone(id){
@@ -14113,7 +14229,7 @@ async function cmpMarkDone(id){
   const { error } = await sb.from("compliance_items").update(upd).eq("id", id);
   if(error){ alert("تعذّر الحفظ: " + error.message); return; }
   logActivity("تأكيد التزام", "التزام", i.item_name, rec ? `الموعد القادم ${upd.due_date}` : "");
-  loadCompliance();
+  cmpReloadRegister();
 }
 
 async function cmpToggleNA(id){
@@ -14129,7 +14245,7 @@ async function cmpToggleNA(id){
   }
   const { error } = await sb.from("compliance_items").update(upd).eq("id", id);
   if(error){ alert("تعذّر الحفظ: " + error.message); return; }
-  loadCompliance();
+  cmpReloadRegister();
 }
 
 async function deleteCompliance(id){
@@ -14138,7 +14254,7 @@ async function deleteCompliance(id){
   if(!confirm("هل أنت متأكد من حذف هذا البند؟")) return;
   const { error } = await sb.from("compliance_items").delete().eq("id", id);
   if(error){ alert("تعذّر الحذف: " + error.message); return; }
-  loadCompliance();
+  cmpReloadRegister();
 }
 
 /* ── Platform owner: the master library ── */
@@ -19273,7 +19389,7 @@ function gaMyPending(a){
 function renderGaTracker(){
   const statsBox = document.getElementById("gaStats"), list = document.getElementById("gaList");
   if(!statsBox || !list) return;
-  const all = gaActionsCache;
+  const all = gaActionsCache.filter(a => a.axis_key !== "compliance");
   const closed = all.filter(a => a.status === "مغلق").length;
   const overdue = all.filter(gaIsOverdue).length;
   const mine = all.filter(a => a.status !== "مغلق" && gaMyPending(a)).length;
