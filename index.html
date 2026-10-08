@@ -4862,7 +4862,7 @@ async function uploadFile(inputEl, folder){
     return null;
   }
   const safeName = Date.now() + "_" + file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const path = folder + "/" + safeName;
+  const path = (currentCompanyId ? currentCompanyId : "unassigned") + "/" + folder + "/" + safeName;
   const { error } = await sb.storage.from("documents").upload(path, file);
   if(error){ alert("تعذّر رفع الملف: " + error.message); return null; }
   // The bucket is private now — generate a long-lived signed URL (10 years) instead of a
@@ -5156,11 +5156,11 @@ async function handleAuth(){
     // If an invite code was supplied, validate it and join that company directly
     // instead of landing in the company-less "request a company" state.
     const inviteCode = document.getElementById("signupInviteCode").value.trim();
-    let inviteCompanyId = null, inviteRole = null, inviteRowId = null;
+    let inviteCompanyId = null, inviteRole = null;
     if(inviteCode){
-      const { data: invite } = await sb.from("company_invites").select("*").eq("invite_code", inviteCode).eq("used", false).maybeSingle();
-      if(invite){
-        inviteCompanyId = invite.company_id; inviteRole = invite.suggested_role; inviteRowId = invite.id;
+      const { data: inv, error: invErr } = await sb.rpc("redeem_invite", { p_code: inviteCode, p_email: email });
+      if(!invErr && inv && inv.status === "ok"){
+        inviteCompanyId = inv.company_id; inviteRole = inv.role;
       } else {
         showLoginMsg("تنبيه: رمز الدعوة غير صحيح أو مُستخدَم بالفعل — سيُنشأ حسابك بدون ربطه بشركة.", false);
       }
@@ -5176,15 +5176,6 @@ async function handleAuth(){
     const profilePayload = { email, account_type, full_name, national_id, phone_number, shares_count };
     if(inviteCompanyId){ profilePayload.company_id = inviteCompanyId; profilePayload.role = inviteRole; }
 
-    // Pre-staged by the platform owner's bulk-link tool before this person ever signed up —
-    // the membership row already exists under their email, it just needs this new account to
-    // pick it up as its primary company now that one exists.
-    let preLinkedMembership = null;
-    if(!profilePayload.company_id){
-      const { data: preLinked } = await sb.from("user_company_memberships").select("company_id,role").eq("email", email).limit(1).maybeSingle();
-      if(preLinked){ preLinkedMembership = preLinked; profilePayload.company_id = preLinked.company_id; profilePayload.role = preLinked.role; }
-    }
-
     const { error: profileError } = await sb.from("user_profiles").insert([profilePayload]);
     if(profileError){
       const isDuplicate = profileError.message && (profileError.message.includes("duplicate") || profileError.message.includes("unique"));
@@ -5193,16 +5184,7 @@ async function handleAuth(){
         : "تم إنشاء حساب الدخول، لكن تعذّر حفظ بياناتك الشخصية: " + profileError.message + " — تواصل مع مدير النظام.", false);
       return;
     }
-    if(inviteRowId){
-      await sb.from("company_invites").update({ used: true, used_by_email: email, used_at: new Date().toISOString() }).eq("id", inviteRowId);
-    }
-    if(inviteCompanyId && memberships.length === 0){
-      // Invite-code path: single membership from the invite itself.
-      memberships = [{ company_id: inviteCompanyId, role: inviteRole }];
-    }
-    if(memberships.length){
-      await sb.from("user_company_memberships").insert(memberships.map(m => ({ email, company_id: m.company_id, role: m.role })));
-    }
+    if(inviteCompanyId){ memberships = [{ company_id: inviteCompanyId, role: inviteRole }]; }
     // Claiming board_members/shareholders rows must happen AFTER the membership rows above are
     // created — the RLS policy on those tables requires is_member_of(company_id), which only
     // becomes true once the membership insert just above has actually gone through. Doing this
@@ -5273,7 +5255,8 @@ async function loadCurrentUserProfile(){
 }
 
 /* ══════════ ROLES & PERMISSIONS ══════════ */
-const FULL_ACCESS_ROLES = ['مدير النظام','رئيس مجلس','سكرتير المجلس'];
+const FULL_ACCESS_ROLES = ['مدير النظام'];
+function isFullAccessRole(r){ return FULL_ACCESS_ROLES.includes(r) || (r === getCurrentRole() && myPermissionOverrides && myPermissionOverrides['*'] === 'edit'); }
 
 const SHAREHOLDER_PAGES = ['agm','voting','signing'];
 // An employee starts with the least a staff member needs; the approver adds anything more per person
@@ -5524,7 +5507,7 @@ function restrictMutatingButtons(){
   // Per-user, per-page override takes precedence over the role-based default: 'edit' forces
   // full access on this page even if the role wouldn't normally allow it, 'view' forces
   // read-only even if the role would normally allow editing. No override → fall back to role.
-  const pageOverride = myPermissionOverrides[currentPageId];
+  const pageOverride = myPermissionOverrides[currentPageId] || myPermissionOverrides['*'];
   let restricted;
   if(pageOverride === 'edit') restricted = false;
   else if(pageOverride === 'view') restricted = true;
@@ -6274,6 +6257,18 @@ async function saveUserPermissionOverrides(){
 
 let usersPageCache = { memberships: [], profileByEmail: {}, roles: [], isSoleProp: false, myEmail: null };
 
+async function toggleEditGrant(email, on){
+  if(getCurrentRole() !== 'مدير النظام'){ alert("هذه الصلاحية لمدير النظام فقط"); return; }
+  const em = String(email||"").toLowerCase();
+  await sb.from("user_permission_overrides").delete().eq("company_id", currentCompanyId).eq("page_id","*").ilike("user_email", likeEsc(em));
+  if(on){
+    const { error } = await sb.from("user_permission_overrides").insert([{ company_id: currentCompanyId, user_email: em, page_id: "*", access_level: "edit" }]);
+    if(error){ alert("تعذّر الحفظ: " + error.message); loadUsers(); return; }
+  }
+  if(usersPageCache && usersPageCache.editSet){ if(on) usersPageCache.editSet[em] = true; else delete usersPageCache.editSet[em]; }
+  alert(on ? "تم السماح له بالتعديل ✅ — يظهر ذلك عنده بعد إعادة تحميل الصفحة." : "تم سحب صلاحية التعديل — أصبح للقراءة فقط.");
+}
+
 async function loadUsers(){
   loadPendingInvites();
   if(getCurrentRole() === "مدير النظام" || (currentUserProfile && currentUserProfile.is_platform_admin === true)){ loadCompanyJoinCode(); loadCompanyJoinRequests(); }
@@ -6303,7 +6298,12 @@ async function loadUsers(){
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
 
-  usersPageCache = { memberships, profileByEmail, roles, isSoleProp, myEmail };
+  let editSet = {};
+  try {
+    const { data: eds } = await sb.from("user_permission_overrides").select("user_email").eq("company_id", currentCompanyId).eq("page_id","*").eq("access_level","edit");
+    (eds||[]).forEach(r => { editSet[(r.user_email||"").toLowerCase()] = true; });
+  } catch(e){}
+  usersPageCache = { memberships, profileByEmail, roles, isSoleProp, myEmail, editSet };
 
   // Populate the role filter dropdown with whatever roles actually exist on this team
   // (including custom ones), so it stays useful regardless of team size or role mix.
@@ -6369,6 +6369,7 @@ function renderUserCard(m){
           <div style="display:flex;justify-content:space-between"><span>رقم الهوية</span><span style="color:var(--dark);font-weight:600">${u.national_id||"—"}</span></div>
           <div style="display:flex;justify-content:space-between"><span>رقم الجوال</span><span style="color:var(--dark);font-weight:600">${u.phone_number||"—"}</span></div>
         </div>
+        ${(m.role !== 'مدير النظام' && m.role !== 'مساهم') ? `<label style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:#FDF5DC;border-radius:8px;padding:8px 10px;font-size:11.5px;font-weight:700;color:var(--gold);margin-bottom:8px;cursor:pointer"><span>السماح له بالتعديل</span><input type="checkbox" ${(usersPageCache.editSet||{})[(m.email||'').toLowerCase()] ? 'checked' : ''} onchange="toggleEditGrant('${(m.email||'').replace(/'/g,"")}', this.checked)" style="width:18px;height:18px;cursor:pointer"></label>` : ''}
         ${u.id ? `<button style="width:100%;background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:8px;padding:6px;font-size:11px;font-weight:600;cursor:pointer;margin-bottom:8px" onclick="openEditProfileModal(${u.id})"><span class="ico-i ico-edit"></span>تعديل البيانات</button>` : ""}
         <button style="width:100%;background:#EAF0F8;color:var(--primary);border:none;border-radius:8px;padding:6px;font-size:11px;font-weight:700;cursor:pointer;margin-bottom:8px" onclick="openUserPermissionOverridesModal('${(m.email||'').replace(/'/g,"")}','${(u.full_name||m.email||'').replace(/'/g,"")}', currentCompanyId)"><span class="ico-i ico-wrench"></span>صلاحيات مخصّصة</button>
         <button style="width:100%;background:#FDF5DC;color:var(--gold);border:none;border-radius:8px;padding:6px;font-size:11px;font-weight:700;cursor:pointer;margin-bottom:8px" onclick="openPolicyCategoryRestrictionModal(${m.id},'${(m.email||'').replace(/'/g,"")}','${(u.full_name||m.email||'').replace(/'/g,"")}')"><span class="ico-i ico-clipboard"></span>تقييد فئة السياسات</button>
@@ -7321,64 +7322,18 @@ async function startInstantTrial(){
     const sessionEmail = userData && userData.user ? userData.user.email : (currentUserProfile ? currentUserProfile.email : null);
     if(!sessionEmail){ alert("تعذّر تحديد هويتك، الرجاء تسجيل الدخول من جديد"); release(); return; }
 
-    // Already registered under this account? Don't create it a second time.
-    const { data: myMems } = await sb.from("user_company_memberships").select("company_id").eq("email", sessionEmail);
-    const myIds = (myMems||[]).map(m => m.company_id).filter(Boolean);
-    if(myIds.length){
-      const { data: mine } = await sb.from("companies").select("id,name").in("id", myIds);
-      if((mine||[]).some(x => (x.name||"").trim().toLowerCase() === company_name.toLowerCase())){
-        alert("شركة بهذا الاسم مسجَّلة بالفعل بحسابك — لا حاجة لتسجيلها مرة ثانية. سنفتحها لك الآن.");
-        location.reload();
-        return;
-      }
-    }
+    const { data: tr, error: trErr } = await sb.rpc("create_trial_company", {
+      p_name: company_name, p_type: company_type, p_cr_number: cr_number, p_cr_date: cr_date,
+      p_resp_person: responsible_person, p_resp_phone: responsible_phone, p_resp_email: responsible_email,
+      p_llc_single_manager: llc_single_manager, p_llc_single_owner: llc_single_owner
+    });
+    if(trErr || !tr){ alert("تعذّر إنشاء الشركة: " + (trErr ? trErr.message : "لم يُرجَع نتيجة")); release(); return; }
+    if(tr.status === "phone_unverified"){ alert("يجب توثيق رقم الجوال أولًا قبل إنشاء شركة."); release(); return; }
+    if(tr.status === "limit"){ alert("وصلت للحد الأقصى من الشركات التجريبية. تواصل معنا لإضافة المزيد."); release(); return; }
+    if(tr.status === "exists"){ alert("شركة بهذا الاسم مسجَّلة بالفعل بحسابك — سنفتحها لك الآن."); location.reload(); return; }
+    if(tr.status !== "ok"){ alert("تعذّر إنشاء الشركة."); release(); return; }
 
-    let newCompany = null;
-    let pending = null;
-    try { pending = JSON.parse(localStorage.getItem(TRIAL_PENDING_KEY) || "null"); } catch(e){}
-    if(pending && pending.email === sessionEmail && pending.name === company_name && pending.id){
-      newCompany = { id: pending.id, name: company_name };
-    }
-
-    if(!newCompany){
-      const trial_ends_at = new Date(Date.now() + 14*86400000).toISOString();
-      const { data: created, error: cErr } = await sb.from("companies").insert([{
-        name: company_name, company_type, cr_number, cr_date,
-        responsible_person, responsible_phone, responsible_email,
-        module_internal_audit: true, module_risk_management: true, trial_ends_at,
-        llc_single_manager, llc_single_owner
-      }]).select().single();
-      if(cErr || !created){ alert("تعذّر إنشاء الشركة: " + (cErr ? cErr.message : "لم يُرجَع السجل")); release(); return; }
-      newCompany = created;
-      try { localStorage.setItem(TRIAL_PENDING_KEY, JSON.stringify({ email: sessionEmail, name: company_name, id: created.id })); } catch(e){}
-    }
-
-    // The membership is what makes the company appear for a regular user, so it is the step that must succeed.
-    const { data: exMem } = await sb.from("user_company_memberships").select("id").eq("email", sessionEmail).eq("company_id", newCompany.id).maybeSingle();
-    if(!exMem){
-      const { error: mErr } = await sb.from("user_company_memberships").insert([{ email: sessionEmail, company_id: newCompany.id, role: "مدير النظام" }]);
-      if(mErr){
-        alert("أُنشئت الشركة لكن تعذّر ربط حسابك بها: " + mErr.message + "\n\nلا تسجّلها مرة ثانية — أعد المحاولة بنفس البيانات وستُستكمل نفس الشركة، أو أرسل لنا هذه الرسالة.");
-        release(); return;
-      }
-    }
-    const { data: chk } = await sb.from("user_company_memberships").select("id").eq("email", sessionEmail).eq("company_id", newCompany.id).maybeSingle();
-    if(!chk){ alert("تعذّر التأكد من ربط حسابك بالشركة. أرسل لنا اسم الشركة وسنربطها فوراً."); release(); return; }
-
-    // Default company on the profile — convenient but not what grants access, so a failure here is not fatal.
-    const { data: upd, error: uErr } = await sb.from("user_profiles").update({ company_id: newCompany.id, role: "مدير النظام" }).eq("email", sessionEmail).select("id");
-    if(uErr || !upd || !upd.length){ console.warn("profile default company not updated", uErr); }
-
-    const { error: rErr } = await sb.from("company_requests").insert([{
-      requested_by_email: sessionEmail, requested_by_name: currentUserProfile ? currentUserProfile.full_name : null,
-      company_name, company_type, cr_number, cr_date, responsible_person, responsible_phone, responsible_email,
-      status: "تجربة تلقائية", company_id: newCompany.id, reviewed_at: new Date().toISOString()
-    }]);
-    if(rErr) console.warn("trial log row not written", rErr);
-
-    try { localStorage.removeItem(TRIAL_PENDING_KEY); } catch(e){}
-
-    const { data: admins } = await sb.from("user_profiles").select("email").eq("is_platform_admin", true);
+    const { data: admins } = await sb.rpc("platform_admin_emails");
     if(admins && admins.length){
       const subject = `تجربة مجانية جديدة بدأت: ${company_name}`;
       const html = `<div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px">
@@ -7431,7 +7386,7 @@ async function submitCompanyRequestImpl(){
 
   // Notify every platform admin by email — this is a cross-tenant event, not scoped to any
   // single company's team, so it can't reuse the normal per-company bulk-email helper.
-  const { data: admins } = await sb.from("user_profiles").select("email").eq("is_platform_admin", true);
+  const { data: admins } = await sb.rpc("platform_admin_emails");
   if(admins && admins.length){
     const subject = `طلب إدراج شركة جديد: ${company_name}`;
     const html = `
@@ -8325,7 +8280,7 @@ async function submitSupportTicket(){
   }]);
   if(error){ alert("تعذّر إرسال الطلب: " + error.message); return; }
 
-  const { data: admins } = await sb.from("user_profiles").select("email").eq("is_platform_admin", true);
+  const { data: admins } = await sb.rpc("platform_admin_emails");
   if(admins && admins.length){
     const html = `<div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px">
       <h2 style="color:#1A3A6B">🆘 طلب دعم فني جديد</h2>
@@ -9899,7 +9854,7 @@ async function loadMeetingTopics(meetingId){
   const { data: meetingRow } = await sb.from("meetings").select("committee_id").eq("id", meetingId).single();
   const committeeId = meetingRow ? meetingRow.committee_id : null;
   const role = getCurrentRole();
-  const isFullAccess = FULL_ACCESS_ROLES.includes(role);
+  const isFullAccess = isFullAccessRole(role);
   if(committeeId && !isFullAccess){
     const eligibleVoters = await getEligibleDecisionVoters(meetingId);
     const { data: userData } = await sb.auth.getUser();
@@ -9988,7 +9943,7 @@ async function loadMeetingDecisionsGrid(meetingId){
   const { data: meetingRow } = await sb.from("meetings").select("committee_id").eq("id", meetingId).single();
   const committeeId = meetingRow ? meetingRow.committee_id : null;
   const role = getCurrentRole();
-  const isFullAccess = FULL_ACCESS_ROLES.includes(role);
+  const isFullAccess = isFullAccessRole(role);
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData?.user?.email;
 
@@ -13081,7 +13036,7 @@ async function loadPolicies(){
   // roles (مدير النظام / رئيس مجلس / سكرتير المجلس) and anyone with no restriction configured
   // still see everything — the restriction only kicks in once an admin has actually set it.
   const myRole = getCurrentRole();
-  if(!FULL_ACCESS_ROLES.includes(myRole)){
+  if(!isFullAccessRole(myRole)){
     const { data: userData } = await sb.auth.getUser();
     const myEmail = userData?.user?.email;
     const { data: membership } = await sb.from("user_company_memberships").select("allowed_policy_categories")
@@ -16309,7 +16264,7 @@ async function loadIndicatorsReport(){
   const box = document.getElementById("indicatorsReport");
   if(!box) return;
   const pdfBtn = document.getElementById("indicatorsPdfBtn");
-  if(pdfBtn) pdfBtn.style.display = FULL_ACCESS_ROLES.includes(getCurrentRole()) ? "inline-block" : "none";
+  if(pdfBtn) pdfBtn.style.display = isFullAccessRole(getCurrentRole()) ? "inline-block" : "none";
   const { data, error } = await sb.from("ceo_monthly_reports").select("*").eq("company_id", currentCompanyId).order("created_at",{ascending:false}).limit(1);
   if(error){ box.innerHTML = `<div style="color:var(--red);font-size:12px">تعذّر التحميل: ${error.message}</div>`; return; }
   if(!data || data.length===0){
@@ -16924,7 +16879,7 @@ async function uploadBlobToStorage(blob, folder, filename){
     return null;
   }
   const safeName = Date.now() + "_" + filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const path = folder + "/" + safeName;
+  const path = (currentCompanyId ? currentCompanyId : "unassigned") + "/" + folder + "/" + safeName;
   const { error } = await sb.storage.from("documents").upload(path, blob);
   if(error){ alert("تعذّر رفع الملف: " + error.message); return null; }
   const { data, error: signErr } = await sb.storage.from("documents").createSignedUrl(path, 315360000);
@@ -20573,7 +20528,7 @@ async function deleteRiskServiceType(id){
 
 /* ══════════ CONSULTANTS ══════════ */
 /* ══════════ CONSULTATION REQUESTS (chairman/secretary → admin quote → chairman decision) ══════════ */
-const CONSULT_REQUEST_ROLES = ['رئيس مجلس','سكرتير المجلس','مدير النظام'];
+const CONSULT_REQUEST_ROLES = ['مدير النظام'];
 let consultRequestsCache = [];
 const CONSULT_STATUS_STYLE = {
   "جديد": { bg:"var(--offwhite)", color:"var(--gray3)" },
@@ -20760,7 +20715,7 @@ async function loadServiceProviders(isPlatformOwner){
   providersCache = data || [];
   if(providersCache.length===0){ grid.innerHTML = `<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">${isPlatformOwner ? 'لا توجد جهات مضافة بعد. اضغط "+ إضافة" للبدء.' : 'لا توجد جهات وساطة متاحة حاليًا.'}</div>`; return; }
 
-  const canRequest = !isPlatformOwner && FULL_ACCESS_ROLES.includes(getCurrentRole());
+  const canRequest = !isPlatformOwner && isFullAccessRole(getCurrentRole());
   grid.innerHTML = providersCache.map(p => `<div class="card" style="margin:0;display:flex;flex-direction:column">
     <div class="card-body" style="display:flex;flex-direction:column;flex:1">
       <div style="font-weight:800;font-size:13.5px;color:var(--dark)">${p.entity_name||""}</div>
@@ -20907,7 +20862,7 @@ async function openServiceTrackingModal(requestId){
   </div>`;
 
   const advanceBox = document.getElementById("mst-track-advance");
-  const canAdvance = FULL_ACCESS_ROLES.includes(getCurrentRole());
+  const canAdvance = isFullAccessRole(getCurrentRole());
   if(canAdvance && currentIdx >= 0 && currentIdx < SERVICE_STAGES.length-1){
     advanceBox.innerHTML = `<button class="btn btn-gold" style="width:100%" onclick="advanceServiceRequest()">⏩ نقل إلى: ${SERVICE_STAGES[currentIdx+1]}</button>`;
   } else {
