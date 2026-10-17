@@ -2685,7 +2685,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
             <option>رئيس مجلس</option><option>سكرتير المجلس</option>
             <option>رئيس لجنة الترشيحات</option><option>عضو لجنة الترشيحات</option>
             <option>رئيس لجنة مراجعة</option><option>عضو لجنة مراجعة</option>
-            <option selected>عضو مجلس</option><option>عضو مجلس وعضو مساهم</option><option>مساهم</option><option>موظف</option><option>مدير النظام</option>
+            <option selected>عضو مجلس</option><option>عضو مجلس وعضو مساهم</option><option>مساهم</option><option>موظف</option><option>مدير النظام</option><option>مالك</option><option>ممثل المالك</option>
           </select>
         </div>
       </div>
@@ -4286,7 +4286,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     </div>
     <div class="fg"><label>الدور</label>
       <select class="fs" id="ctu-role" onchange="toggleCustomRoleInput('ctu-role','ctu-role-custom')">
-        <option>مدير النظام</option><option>رئيس مجلس</option><option>سكرتير المجلس</option>
+        <option>مدير النظام</option><option>مالك</option><option>ممثل المالك</option><option>رئيس مجلس</option><option>سكرتير المجلس</option>
         <option>عضو مجلس</option><option>عضو مجلس وعضو مساهم</option><option>مساهم</option><option>موظف</option>
         <option>رئيس لجنة مراجعة</option><option>عضو لجنة مراجعة</option>
         <option>رئيس لجنة الترشيحات</option><option>عضو لجنة الترشيحات</option>
@@ -4637,7 +4637,7 @@ const TRANSLATIONS = {
 
   // Login/signup screen
   "مرحبًا بك في حوكم":"Welcome to Hawkim","منصة الحوكمة المؤسسية":"Corporate Governance Platform",
-  "عضو مجلس":"Board Member","عضو مجلس وعضو مساهم":"Board Member & Shareholder","مساهم":"Shareholder","موظف":"Employee","مدير النظام":"System Admin","رئيس مجلس":"Board Chairman",
+  "عضو مجلس":"Board Member","عضو مجلس وعضو مساهم":"Board Member & Shareholder","مساهم":"Shareholder","موظف":"Employee","مدير النظام":"System Admin","مالك":"Owner","ممثل المالك":"Owner's Representative","رئيس مجلس":"Board Chairman",
   "رئيس لجنة مراجعة":"Audit Committee Chairman","عضو لجنة مراجعة":"Audit Committee Member",
   "سكرتير المجلس":"Board Secretary","نوع الحساب":"Account Type","رقم الأسهم":"Shares Count",
 
@@ -5347,6 +5347,7 @@ async function loadCurrentUserProfile(){
 }
 
 /* ══════════ ROLES & PERMISSIONS ══════════ */
+const OWNER_ROLES = ['مالك','ممثل المالك'];
 const FULL_ACCESS_ROLES = ['مدير النظام'];
 function isFullAccessRole(r){ return FULL_ACCESS_ROLES.includes(r) || (r === getCurrentRole() && myPermissionOverrides && myPermissionOverrides['*'] === 'edit'); }
 
@@ -5386,8 +5387,13 @@ function getCurrentRole(){
   }
 
   const membership = userMemberships.find(m => m.company_id === currentCompanyId);
-  if(membership && membership.role) return membership.role;
-  return currentUserProfile ? (currentUserProfile.role || 'عضو مجلس') : 'عضو مجلس';
+  // The owner and the owner's representative hold the owner's full authority, so they act with full access.
+  const rawR = (membership && membership.role) ? membership.role : (currentUserProfile ? (currentUserProfile.role || 'عضو مجلس') : 'عضو مجلس');
+  return OWNER_ROLES.includes(rawR) ? 'مدير النظام' : rawR;
+}
+function getRawRole(){
+  const m = userMemberships.find(x => x.company_id === currentCompanyId);
+  return (m && m.role) || (currentUserProfile && currentUserProfile.role) || '';
 }
 
 async function applyRolePermissions(){
@@ -6099,6 +6105,8 @@ async function deleteInvite(id){
 
 const ROLE_STYLE = {
   "مدير النظام": { color: "var(--primary)", bg: "#EAF0F8", icon: "🛡️" },
+  "مالك": { color: "var(--gold)", bg: "#FDF5DC", icon: "🏛️" },
+  "ممثل المالك": { color: "var(--gold)", bg: "#FDF5DC", icon: "🖋️" },
   "رئيس مجلس": { color: "var(--gold)", bg: "#FDF5DC", icon: "👑" },
   "سكرتير المجلس": { color: "#8B2FC9", bg: "#F3E8FB", icon: "🗂️" },
   "رئيس لجنة الترشيحات": { color: "var(--teal)", bg: "#E5F6F4", icon: "🎖️" },
@@ -6386,7 +6394,7 @@ async function loadUsers(){
   (profiles||[]).forEach(p => { profileByEmail[p.email] = p; });
 
   const isSoleProp = currentCompanyType === "مؤسسة فردية";
-  const roles = isSoleProp ? ['مدير النظام','عضو مجلس','موظف'] : ['مدير النظام','رئيس مجلس','سكرتير المجلس','رئيس لجنة الترشيحات','عضو لجنة الترشيحات','رئيس لجنة مراجعة','عضو لجنة مراجعة','عضو مجلس','عضو مجلس وعضو مساهم','مساهم','موظف'];
+  const roles = isSoleProp ? ['مدير النظام','مالك','ممثل المالك','عضو مجلس','موظف'] : ['مدير النظام','مالك','ممثل المالك','رئيس مجلس','سكرتير المجلس','رئيس لجنة الترشيحات','عضو لجنة الترشيحات','رئيس لجنة مراجعة','عضو لجنة مراجعة','عضو مجلس','عضو مجلس وعضو مساهم','مساهم','موظف'];
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
 
@@ -6572,9 +6580,23 @@ async function saveEditProfile(){
 
 async function updateUserRole(membershipId, role){
   const { data: membership } = await sb.from("user_company_memberships").select("*").eq("id", membershipId).single();
+  let repInfo = null;
+  if(role === "ممثل المالك"){
+    const ent = prompt("اسم الجهة الاعتبارية (الشركة المالكة) التي يمثلها هذا الشخص:");
+    if(!ent || !ent.trim()){ loadUsers(); return; }
+    const ref = prompt("مرجع التفويض (رقم قرار الشركة المالكة أو تاريخه) — اختياري:") || "";
+    repInfo = { is_entity_rep: true, represented_entity: ent.trim(), authorization_ref: ref.trim() || null };
+  }
   const target = membership ? await sb.from("user_profiles").select("full_name,email").eq("email", membership.email).maybeSingle() : null;
   const { error } = await sb.from("user_company_memberships").update({ role }).eq("id", membershipId);
   if(error){ alert("تعذّر التحديث: " + error.message); return; }
+  if(membership && (role === "مالك" || role === "ممثل المالك")){
+    // The approval lists read the profile role, so keep it in step for the company the person is currently working in.
+    const upd = { role };
+    if(repInfo) Object.assign(upd, repInfo);
+    const r2 = await sb.from("user_profiles").update(upd).eq("email", membership.email).eq("company_id", membership.company_id);
+    if(r2.error && repInfo){ alert("تم تغيير الدور، لكن تعذّر حفظ بيانات الجهة الممثَّلة: " + r2.error.message + " — تأكد من تنفيذ ملف قاعدة البيانات."); }
+  }
   logActivity("صلاحيات", "مستخدم", target && target.data ? (target.data.full_name||target.data.email) : (membership?membership.email:""), `تغيير الدور إلى "${role}"`);
   loadUsers();
 }
@@ -7649,7 +7671,7 @@ async function loadPlatformUsers(){
           <option>رئيس مجلس</option><option>سكرتير المجلس</option>
           <option>رئيس لجنة الترشيحات</option><option>عضو لجنة الترشيحات</option>
           <option>رئيس لجنة مراجعة</option><option>عضو لجنة مراجعة</option>
-          <option>عضو مجلس</option><option>عضو مجلس وعضو مساهم</option><option>مساهم</option><option>موظف</option><option>مدير النظام</option>
+          <option>عضو مجلس</option><option>عضو مجلس وعضو مساهم</option><option>مساهم</option><option>موظف</option><option>مدير النظام</option><option>مالك</option><option>ممثل المالك</option>
         </select>
         <button class="btn-xs primary" style="padding:4px 8px" onclick="savePlatformMembershipRole(${m.id})"><span class="ico-i ico-check"></span></button>
         <button class="btn-xs" style="background:var(--offwhite);border:1px solid var(--gray1);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer" onclick="cancelPlatformMembershipEdit(${m.id})">إلغاء</button>
@@ -13378,7 +13400,7 @@ async function advancePolicyToStatus(policyId, currentStatus, nextStatus, policy
   if(nextStatus === "معتمدة نهائيًا"){
     const p = policyRow || policiesCache.find(x => x.id === policyId);
     if(p && p.file_url){
-      const { data: board } = await sb.from("user_profiles").select("*").eq("company_id", currentCompanyId).or("role.ilike.%مجلس%,role.eq.مدير النظام");
+      const { data: board } = await sb.from("user_profiles").select("*").eq("company_id", currentCompanyId).or("role.ilike.%مجلس%,role.eq.مدير النظام,role.in.(مالك,ممثل المالك)");
       await sb.from("signing_documents").insert([{
         document_name: `اعتماد نهائي — ${p.policy_name}`, doc_type: "اعتماد سياسة",
         signers_total: (board||[]).length, signers_done: 0, status: "قيد التوقيع", file_url: p.file_url, company_id: currentCompanyId
@@ -16612,12 +16634,30 @@ function exportPositionsList(){
   XLSX.writeFile(wb, "دليل المناصب التنظيمية.xlsx");
 }
 
+/* PDF header facts: the company's real name, the approval date if the structure was approved (otherwise the export date), and a version number = how many times it was approved. */
+async function orgPdfMeta(){
+  let companyName = "";
+  try{ const { data } = await sb.from("companies").select("name").eq("id", currentCompanyId).single(); companyName = (data && typeof data.name === "string") ? data.name : ""; }catch(e){}
+  if(!companyName) companyName = (document.getElementById("reportCompanyName1")?.textContent || "").replace(/^—$/, "") || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "الشركة";
+  const fmt = d => new Date(d).toLocaleDateString("ar-SA");
+  let dateTitle = "تاريخ التصدير", dateLabel = fmt(new Date()), version = "مسودة";
+  try{
+    const { data: reqs } = await sb.from("approval_requests").select("status,approved_at,created_at").eq("company_id", currentCompanyId).eq("request_type", "structure").order("created_at",{ascending:false});
+    const ok = Array.isArray(reqs) ? reqs.filter(r => r.status === "معتمد") : [];
+    if(ok.length){
+      const last = ok.slice().sort((a,b) => new Date(b.approved_at || b.created_at) - new Date(a.approved_at || a.created_at))[0];
+      dateTitle = "تاريخ الاعتماد"; dateLabel = fmt(last.approved_at || last.created_at); version = ok.length + ".0";
+    }
+  }catch(e){}
+  return { companyName, dateTitle, dateLabel, version };
+}
 async function exportOrgTreePDF(){
   const treeRows = orgTreeRows(structureCache);
   if(!treeRows.length){ alert("لا توجد شجرة لتصديرها."); return; }
   if(typeof html2pdf === "undefined"){ alert("تعذّر تحميل أداة إنشاء PDF — تحقق من الاتصال بالإنترنت ثم أعد المحاولة."); return; }
-  const companyName = document.getElementById("reportCompanyName1")?.textContent || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "الشركة";
-  const dateNow = new Date().toLocaleDateString("ar-SA");
+  const meta = await orgPdfMeta();
+  const companyName = meta.companyName;
+  const dateNow = meta.dateLabel;
   const esc = orgEsc;
   const byLevel = (x,y) => (x.level ?? 99) - (y.level ?? 99) || (x.id||0) - (y.id||0);
 
@@ -16652,14 +16692,14 @@ async function exportOrgTreePDF(){
 
   const th = "border:1px solid #cfd6e0;padding:7px 8px;background:#1A3A6B;color:#fff;font-size:12px;text-align:right";
   const td = "border:1px solid #cfd6e0;padding:6px 8px;font-size:12px;text-align:right";
-  const head = (title, withDate) => `<div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #D4AF37;padding-bottom:8px;margin-bottom:14px"><div style="font-size:21px;font-weight:800;color:#1A3A6B">${title}</div>${withDate ? `<div style="font-size:12px;color:#5b6678">تاريخ التصدير: ${esc(dateNow)}</div>` : ""}</div>`;
+  const head = (title, withDate) => `<div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #D4AF37;padding-bottom:8px;margin-bottom:14px"><div style="font-size:21px;font-weight:800;color:#1A3A6B">${title}</div><div style="font-size:12px;color:#5b6678;text-align:left;line-height:1.7"><div>${esc(meta.dateTitle)}: ${esc(dateNow)}</div><div>رقم النسخة: ${esc(meta.version)}</div></div></div>`;
   const fit = html => `<div class="orgpdf-box" style="margin:0 auto"><div class="orgpdf-inner" style="display:inline-block;transform-origin:top right">${html}</div></div>`;
 
-  let pages = `<div>${head("الهيكل التنظيمي — " + esc(companyName), true)}${fit(renderOrgTree(summaryRows, { static:true }))}${orgLegendHTML(summaryRows)}</div>`;
+  let pages = `<div>${head("الهيكل التنظيمي — " + esc(companyName), true)}${fit(renderOrgTree(summaryRows, { static:true }))}</div>`;
   if(detailed){
     detailRoots.forEach(r => {
       const sub = descendants(r);
-      pages += `<div style="page-break-before:always">${head("الإدارات التابعة لـ " + esc(r.position_title) + " — " + esc(companyName), false)}${fit(renderOrgTree(sub, { static:true, expandAll:true }))}${orgLegendHTML(sub)}</div>`;
+      pages += `<div style="page-break-before:always">${head("الإدارات التابعة لـ " + esc(r.position_title) + " — " + esc(companyName), false)}${fit(renderOrgTree(sub, { static:true, expandAll:true }))}</div>`;
     });
   }
   if(includeOthers){
@@ -17154,8 +17194,8 @@ function displayStageLabel(text){
 }
 
 async function getBoardApprovers(){
-  const { data } = await sb.from("user_profiles").select("full_name,email,role")
-    .eq("company_id", currentCompanyId).or("role.ilike.%مجلس%,role.eq.مدير النظام");
+  const { data } = await sb.from("user_profiles").select("full_name,email,role,is_entity_rep,represented_entity")
+    .eq("company_id", currentCompanyId).or("role.ilike.%مجلس%,role.eq.مدير النظام,role.in.(مالك,ممثل المالك)");
   return data || [];
 }
 
@@ -17721,12 +17761,12 @@ async function requestBoardApproval(type){
     const container = document.getElementById("orgTreeContainer");
     if(!container || !container.innerHTML.trim()){ alert("لا توجد شجرة هيكل تنظيمي لتصديرها."); return; }
     const treeRowsForPdf = orgTreeRows(structureCache);
-    bodyContent = renderOrgTree(treeRowsForPdf, { static:true }) + orgLegendHTML(treeRowsForPdf);
+    bodyContent = renderOrgTree(treeRowsForPdf, { static:true });
   }
 
   const boardListHtml = board.map(b => `<tr>
     <td style="border:1px solid #ccc;padding:6px">${b.full_name||b.email||""}</td>
-    <td style="border:1px solid #ccc;padding:6px">${b.role||""}</td>
+    <td style="border:1px solid #ccc;padding:6px">${b.role||""}${b.is_entity_rep && b.represented_entity ? " — ممثل " + b.represented_entity : ""}</td>
     <td style="border:1px solid #ccc;padding:6px;width:130px"></td>
   </tr>`).join("");
 
@@ -17790,7 +17830,7 @@ async function requestCharterApproval(){
 
   const boardListHtml = board.map(b => `<tr>
     <td style="border:1px solid #ccc;padding:6px">${b.full_name||b.email||""}</td>
-    <td style="border:1px solid #ccc;padding:6px">${b.role||""}</td>
+    <td style="border:1px solid #ccc;padding:6px">${b.role||""}${b.is_entity_rep && b.represented_entity ? " — ممثل " + b.represented_entity : ""}</td>
     <td style="border:1px solid #ccc;padding:6px;width:130px"></td>
   </tr>`).join("");
 
