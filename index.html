@@ -16613,7 +16613,7 @@ function exportPositionsList(){
 }
 
 async function exportOrgTreePDF(){
-  const treeRows = (structureCache || []).filter(r => r.is_leadership !== false);
+  const treeRows = orgTreeRows(structureCache);
   if(!treeRows.length){ alert("لا توجد شجرة لتصديرها."); return; }
   if(typeof html2pdf === "undefined"){ alert("تعذّر تحميل أداة إنشاء PDF — تحقق من الاتصال بالإنترنت ثم أعد المحاولة."); return; }
   const companyName = document.getElementById("reportCompanyName1")?.textContent || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "الشركة";
@@ -17720,7 +17720,7 @@ async function requestBoardApproval(type){
   } else {
     const container = document.getElementById("orgTreeContainer");
     if(!container || !container.innerHTML.trim()){ alert("لا توجد شجرة هيكل تنظيمي لتصديرها."); return; }
-    const treeRowsForPdf = (structureCache || []).filter(r => r.is_leadership !== false);
+    const treeRowsForPdf = orgTreeRows(structureCache);
     bodyContent = renderOrgTree(treeRowsForPdf, { static:true }) + orgLegendHTML(treeRowsForPdf);
   }
 
@@ -18654,7 +18654,9 @@ function renderOrgTree(rows, opts){
   // spanning exactly the width of its children, then a stem drops from that bus to each child
   // (the standard CSS "family tree" trick: half-border on first/last child).
   function renderNode(s, depth){
-    const hangRoot = (s.level ?? 0) >= 6;
+    const allKids = childrenOf[s.position_title] || [];
+    // A node hangs its children vertically when it is a department (level 6+), or when everything under it is a section / unit (level 7+) — even if the department itself was saved at level 4 or 5.
+    const hangRoot = (s.level ?? 0) >= 6 || (allKids.length > 0 && allKids.every(k => (k.level ?? 0) >= 7));
     const vk = visibleKids(s);
     const kids = vk.kids;
     const sides = sideOf[s.position_title] || [];
@@ -18706,10 +18708,21 @@ function orgLegendHTML(rows){
   const side = hasSide ? `<span style="${item}"><i style="display:inline-block;width:22px;border-top:2px dashed #7A8794"></i>وحدة جانبية (داعمة / رقابية)</span>` : "";
   return `<div style="margin-top:16px;padding-top:10px;border-top:1px solid #e5e0d0;text-align:center"><div>${swatches}${side}</div><div style="font-size:11px;color:#5b6678;margin-top:6px">نوع الهيكل: هرمي وظيفي مع وحدات جانبية (Line &amp; Staff)</div></div>`;
 }
+/* Tree rows = positions marked "show in tree" + every position above them, so a hidden owner / CEO never leaves its departments floating without a head. */
+function orgTreeRows(all){
+  all = all || [];
+  const bt = {}; all.forEach(r => { if(r.position_title) bt[r.position_title] = r; });
+  const keep = new Set();
+  all.filter(r => r.is_leadership !== false).forEach(r => {
+    let cur = r, n = 0;
+    while(cur && !keep.has(cur.id) && n++ < 12){ keep.add(cur.id); cur = cur.parent_position ? bt[cur.parent_position] : null; }
+  });
+  return all.filter(r => keep.has(r.id));
+}
 function rerenderOrgTree(){
   const c = document.getElementById("orgTreeContainer");
   if(!c || !structureCache || !structureCache.length) return;
-  const rows = structureCache.filter(s => s.is_leadership !== false);
+  const rows = orgTreeRows(structureCache);
   c.innerHTML = renderOrgTree(rows) + orgLegendHTML(rows);
 }
 function toggleOrgNode(id){ orgOverride.set(id, !orgNodeCollapsed[id]); rerenderOrgTree(); }
