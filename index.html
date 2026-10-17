@@ -15685,6 +15685,12 @@ async function loadStructure(){
   const { data, error } = await sb.from("org_structure").select("*").eq("company_id", currentCompanyId).order("id",{ascending:true});
   if(error){ tbody.innerHTML = errorRowHTML(7, error.message); if(chartWrap) chartWrap.innerHTML = ""; return; }
   structureCache = data || [];
+  // Display-only: positions saved without a level take their parent's level + 1 (nothing is written back to the database).
+  (function(){
+    const bt = {}; structureCache.forEach(r => { if(r.position_title) bt[r.position_title] = r; });
+    const eff = (r, d) => { if(r.level != null) return r.level; if(d > 8) return 5; const p = bt[r.parent_position]; return p && p !== r ? Math.min(8, (eff(p, d+1) ?? 4) + 1) : 5; };
+    structureCache.forEach(r => { if(r.level == null && !r.is_body) r.level = eff(r, 0); });
+  })();
   try{
     const probe = await sb.from("org_structure").select("is_side").limit(1);
     orgSideSupported = !probe.error;
