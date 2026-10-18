@@ -23216,6 +23216,28 @@ async function polRegisterVersion(policyId, newUrl, prevUrl){
   const by = polMyName(), role = polMyRole();
   if(max === 0 && prevUrl){ await sb.from("policy_file_versions").insert([{ company_id: currentCompanyId, policy_id: policyId, version_no: 1, file_url: prevUrl, uploaded_by: "—", uploaded_role: "" }]); max = 1; }
   await sb.from("policy_file_versions").insert([{ company_id: currentCompanyId, policy_id: policyId, version_no: max + 1, file_url: newUrl, uploaded_by: by, uploaded_role: role }]);
+  try{
+    const oc = await sb.from("policy_comments").select("author_email").eq("policy_id", policyId).eq("status", "مفتوحة");
+    const pn = (policiesCache.find(x => x.id === policyId) || {}).policy_name || "";
+    polNotify(new Set((Array.isArray(oc.data) ? oc.data : []).map(x => x.author_email).filter(Boolean)), "نسخة معدّلة من سياسة: " + pn,
+      ["رُفعت النسخة " + (max + 1) + " بواسطة <b>" + orgEsc(by) + "</b> (" + orgEsc(role) + ").", "لديك ملاحظات مفتوحة على هذه السياسة، سيراجعها موظف الحوكمة ويغلقها."]);
+  }catch(e){}
+}
+/* ── email notifications for policy comments (failures never block saving) ── */
+async function polGovRecipients(){
+  const set = new Set();
+  try{ const a = await sb.from("user_profiles").select("email").eq("is_platform_admin", true); (Array.isArray(a.data) ? a.data : []).forEach(x => x.email && set.add(x.email.toLowerCase())); }catch(e){}
+  try{ const g = await sb.from("user_company_memberships").select("email").eq("company_id", currentCompanyId).ilike("role", "%حوكمة%"); (Array.isArray(g.data) ? g.data : []).forEach(x => x.email && set.add(x.email.toLowerCase())); }catch(e){}
+  return set;
+}
+async function polNotify(recipients, subject, lines){
+  try{
+    const me = (currentUserProfile && currentUserProfile.email ? currentUserProfile.email : "").toLowerCase();
+    const to = [...recipients].filter(e => e && e.toLowerCase() !== me);
+    if(!to.length) return;
+    const html = `<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;font-size:14px;line-height:1.9;color:#0D2447"><h3 style="color:#1A3A6B;margin:0 0 8px">${orgEsc(subject)}</h3>${lines.filter(Boolean).map(l => `<div>${l}</div>`).join("")}<hr style="border:none;border-top:1px solid #e3e8ef;margin:14px 0"><div style="font-size:12px;color:#5b6678">رسالة آلية من منصة حوكم.</div></div>`;
+    for(const t of to){ await sendNotificationEmail(t, subject, html); }
+  }catch(e){}
 }
 async function openPolComments(pid){
   polState.pid = pid; openM("m-polcom");
@@ -23270,8 +23292,13 @@ async function polAddComment(){
     category: document.getElementById("polcom-cat").value, body, suggested_text: document.getElementById("polcom-sugg").value.trim() || null,
     author_name: polMyName(), author_email: u && u.user ? u.user.email : null, author_role: polMyRole() }]);
   if(r.error){ alert("تعذّر الحفظ: " + r.error.message); return; }
+  const nPage = document.getElementById("polcom-page").value.trim(), nClause = document.getElementById("polcom-clause").value.trim(), nCat = document.getElementById("polcom-cat").value;
   ["page","clause","body","sugg"].forEach(k => { document.getElementById("polcom-" + k).value = ""; });
-  logActivity("إنشاء", "ملاحظة سياسة", p.policy_name || "", document.getElementById("polcom-cat").value);
+  logActivity("إنشاء", "ملاحظة سياسة", p.policy_name || "", nCat);
+  polNotify(await polGovRecipients(), "ملاحظة جديدة على سياسة: " + (p.policy_name || ""), [
+    "كاتب الملاحظة: <b>" + orgEsc(polMyName()) + "</b> (" + orgEsc(polMyRole()) + ")",
+    "التصنيف: " + orgEsc(nCat) + (nPage ? " — صفحة " + orgEsc(nPage) : "") + (nClause ? " — " + orgEsc(nClause) : ""),
+    "<b>الملاحظة:</b> " + orgEsc(body)]);
   await polRefresh(); polLoadBadges(policiesCache);
 }
 async function polUploadVersion(){
@@ -23293,6 +23320,7 @@ async function polResolve(id){
   const v = polState.versions.find(x => x.version_no === cur);
   const r = await sb.from("policy_comments").update({ status:"تمت المعالجة", resolution_note: note.trim() || null, resolved_in_version: cur, resolved_by: polMyName(), resolved_role: polMyRole(), resolved_at: v ? v.uploaded_at : new Date().toISOString() }).eq("id", id);
   if(r.error){ alert("تعذّر التنفيذ: " + r.error.message); return; }
+  polNotify([c.author_email], "تمت معالجة ملاحظتك على سياسة: " + (p.policy_name || ""), ["عالجها: <b>" + orgEsc(polMyName()) + "</b> (" + orgEsc(polMyRole()) + ") في النسخة " + cur + " بعد " + polDur((v ? new Date(v.uploaded_at) : new Date()) - new Date(c.created_at)), note.trim() ? "ملاحظة المعالجة: " + orgEsc(note.trim()) : "", "ملاحظتك: " + orgEsc(c.body)]);
   await polRefresh(); polLoadBadges(policiesCache);
 }
 async function polRejectC(id){
@@ -23300,6 +23328,8 @@ async function polRejectC(id){
   if(!reason.trim()){ alert("السبب مطلوب."); return; }
   const r = await sb.from("policy_comments").update({ status:"مرفوضة", resolution_note: reason.trim(), resolved_by: polMyName(), resolved_role: polMyRole(), resolved_at: new Date().toISOString() }).eq("id", id);
   if(r.error){ alert("تعذّر التنفيذ: " + r.error.message); return; }
+  const cc = polState.comments.find(x => x.id === id), pp = policiesCache.find(x => x.id === polState.pid) || {};
+  if(cc) polNotify([cc.author_email], "رُفضت ملاحظتك على سياسة: " + (pp.policy_name || ""), ["رفضها: <b>" + orgEsc(polMyName()) + "</b> (" + orgEsc(polMyRole()) + ")", "السبب: " + orgEsc(reason.trim()), "ملاحظتك: " + orgEsc(cc.body)]);
   await polRefresh(); polLoadBadges(policiesCache);
 }
 async function polExportPDF(){
