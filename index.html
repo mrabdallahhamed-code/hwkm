@@ -7070,7 +7070,7 @@ async function loadReportsPage(){
 
 
 async function generateAnnualReportPDF(){
-  const w = window.open("", "_blank");
+  const w = openPrintWindow();
   if(w){ w.document.write('<html dir="rtl"><body style="font-family:sans-serif;padding:30px">جارِ تجهيز التقرير...</body></html>'); w.document.close(); }
 
   const yearSelect = document.getElementById("reportYearSelect");
@@ -7112,7 +7112,7 @@ async function generateAnnualReportPDF(){
   const cmpAssess = await cmpLatestAssessment();
   const compliancePct = complianceSummary(compliance, cmpAssess).pct;
 
-  const composRows = members.map(m => `<tr><td>${m.name||""}</td><td>${m.position||"—"}</td><td>${boardMemberClassification(m)}</td></tr>`).join("")
+  const composRows = members.map(m => `<tr><td>${orgEsc(m.name||"")}</td><td>${orgEsc(m.position||"—")}</td><td>${boardMemberClassification(m)}</td></tr>`).join("")
     || '<tr><td colspan="3">لا يوجد أعضاء مسجّلون.</td></tr>';
 
   const commRows = committeesData.map(c => {
@@ -7129,7 +7129,7 @@ async function generateAnnualReportPDF(){
     || '<tr><td colspan="5">لا توجد مخاطر مسجّلة.</td></tr>';
 
   const decisionsList = decisionsThisYear.length
-    ? '<ul>' + decisionsThisYear.map(d => `<li>${d.document_name}</li>`).join("") + '</ul>'
+    ? '<ul>' + decisionsThisYear.map(d => `<li>${orgEsc(d.document_name)}</li>`).join("") + '</ul>'
     : '<p>لا توجد قرارات موقّعة مكتملة هذا العام بعد.</p>';
 
   const repIsSoleProp = currentCompanyType === "مؤسسة فردية";
@@ -7138,21 +7138,21 @@ async function generateAnnualReportPDF(){
   const repTitle = repIsSoleProp ? "التقرير السنوي" : repIsLLC ? "تقرير مجلس المديرين السنوي" : "تقرير مجلس الإدارة السنوي";
 
   let sections = [
-    { key:"compliance", num:"أولاً", title:"ما طُبّق من أحكام لائحة حوكمة الشركات وما لم يُطبّق وأسبابه", body: `<p>${manualValues.compliance_statement||"—"}</p>` },
+    { key:"compliance", num:"أولاً", title:"ما طُبّق من أحكام لائحة حوكمة الشركات وما لم يُطبّق وأسبابه", body: `<p>${orgEsc(manualValues.compliance_statement||"—")}</p>` },
     { key:"board", num:"ثانياً", title:`تكوين ${repBoardWord} وتصنيف الأعضاء`, body: `<table><thead><tr><th>الاسم</th><th>المنصب</th><th>التصنيف</th></tr></thead><tbody>${composRows}</tbody></table>` },
-    { key:"directorships", num:"ثالثاً", title:"عضوية أعضاء المجلس في مجالس إدارات أخرى", body: `<p>${manualValues.other_directorships||"لا يوجد"}</p>` },
+    { key:"directorships", num:"ثالثاً", title:"عضوية أعضاء المجلس في مجالس إدارات أخرى", body: `<p>${orgEsc(manualValues.other_directorships||"لا يوجد")}</p>` },
     { key:"committees", num:"رابعاً", title:"اللجان — الأعضاء وعدد الاجتماعات ونسب الحضور", body: `<table><thead><tr><th>اللجنة</th><th>الرئيس</th><th>عدد الأعضاء</th><th>اجتماعاتها هذا العام</th><th>متوسط نسبة الحضور</th></tr></thead><tbody>${commRows}</tbody></table>` },
-    { key:"all", num:"خامساً", title:`مكافآت أعضاء ${repBoardWord} والإدارة التنفيذية`, body: `<p>${manualValues.remuneration||"—"}</p>` },
-    { key:"all", num:"سادساً", title:"العقوبات والجزاءات المفروضة على الشركة", body: `<p>${manualValues.penalties||"—"}</p>` },
-    { key:"internal_control", num:"سابعاً", title:"نتائج المراجعة السنوية للرقابة الداخلية ورأي لجنة المراجعة", body: `<p>${manualValues.internal_control||"—"}</p>` },
-    { key:"all", num:"ثامناً", title:"المخاطر التي تواجه الشركة وسياسة إدارتها", body: `<table><thead><tr><th>الخطر</th><th>الفئة</th><th>التأثير</th><th>الاحتمالية</th><th>الحالة</th></tr></thead><tbody>${riskRows}</tbody></table><p style="margin-top:8px">${manualValues.risk_policy||""}</p>` },
-    { key:"all", num:"تاسعاً", title:"الفروقات الجوهرية في النتائج التشغيلية عن السنة السابقة", body: `<p>${manualValues.material_variances||"—"}</p>` },
-    { key:"all", num:"عاشراً", title:"الشركات التابعة", body: `<p>${manualValues.subsidiaries||"—"}</p>` },
-    { key:"all", num:"حادي عشر", title:"القروض على الشركة", body: `<p>${manualValues.loans||"—"}</p>` },
-    { key:"share_registry", num:"ثاني عشر", title:"طلبات الشركة لسجل المساهمين", body: `<p>${manualValues.share_registry_requests||"—"}</p>` },
-    { key:"all", num:"ثالث عشر", title:`الأعمال والعقود مع أطراف ذات علاقة بـ${repIsSoleProp?"المالك":"أعضاء "+repBoardWord}`, body: `<p>${manualValues.related_party_contracts||"—"}</p>` },
-    { key:"all", num:"رابع عشر", title:"توزيعات الأرباح", body: `<p>${manualValues.dividends||"—"}</p>` },
-    { key:"declarations", num:"خامس عشر", title:`إقرارات ${repBoardWord}`, body: `<p>${manualValues.declarations||"—"}</p>` },
+    { key:"all", num:"خامساً", title:`مكافآت أعضاء ${repBoardWord} والإدارة التنفيذية`, body: `<p>${orgEsc(manualValues.remuneration||"—")}</p>` },
+    { key:"all", num:"سادساً", title:"العقوبات والجزاءات المفروضة على الشركة", body: `<p>${orgEsc(manualValues.penalties||"—")}</p>` },
+    { key:"internal_control", num:"سابعاً", title:"نتائج المراجعة السنوية للرقابة الداخلية ورأي لجنة المراجعة", body: `<p>${orgEsc(manualValues.internal_control||"—")}</p>` },
+    { key:"all", num:"ثامناً", title:"المخاطر التي تواجه الشركة وسياسة إدارتها", body: `<table><thead><tr><th>الخطر</th><th>الفئة</th><th>التأثير</th><th>الاحتمالية</th><th>الحالة</th></tr></thead><tbody>${riskRows}</tbody></table><p style="margin-top:8px">${orgEsc(manualValues.risk_policy||"")}</p>` },
+    { key:"all", num:"تاسعاً", title:"الفروقات الجوهرية في النتائج التشغيلية عن السنة السابقة", body: `<p>${orgEsc(manualValues.material_variances||"—")}</p>` },
+    { key:"all", num:"عاشراً", title:"الشركات التابعة", body: `<p>${orgEsc(manualValues.subsidiaries||"—")}</p>` },
+    { key:"all", num:"حادي عشر", title:"القروض على الشركة", body: `<p>${orgEsc(manualValues.loans||"—")}</p>` },
+    { key:"share_registry", num:"ثاني عشر", title:"طلبات الشركة لسجل المساهمين", body: `<p>${orgEsc(manualValues.share_registry_requests||"—")}</p>` },
+    { key:"all", num:"ثالث عشر", title:`الأعمال والعقود مع أطراف ذات علاقة بـ${repIsSoleProp?"المالك":"أعضاء "+repBoardWord}`, body: `<p>${orgEsc(manualValues.related_party_contracts||"—")}</p>` },
+    { key:"all", num:"رابع عشر", title:"توزيعات الأرباح", body: `<p>${orgEsc(manualValues.dividends||"—")}</p>` },
+    { key:"declarations", num:"خامس عشر", title:`إقرارات ${repBoardWord}`, body: `<p>${orgEsc(manualValues.declarations||"—")}</p>` },
     { key:"all", num:"", title:"أبرز القرارات الصادرة هذا العام", body: decisionsList }
   ];
   const hideKeysNonJointStock = ["compliance","share_registry"];
@@ -7209,7 +7209,7 @@ async function generateAnnualReportPDF(){
         <div class="kpi-box"><div class="val">${compliancePct!=null?compliancePct+'%':'—'}</div><div class="lbl">نسبة الامتثال</div></div>
         <div class="kpi-box"><div class="val">${committeesData.length}</div><div class="lbl">لجان نشطة</div></div>
       </div>
-      ${sections.map(s => `<div class="section"><h2>${s.num?`<span class="num">${s.num}:</span>`:''}${s.title}</h2>${s.body}</div>`).join("")}
+      ${sections.map(s => `<div class="section"><h2>${s.num?`<span class="num">${s.num}:</span>`:''}${orgEsc(s.title)}</h2>${s.body}</div>`).join("")}
       <div class="footer">تقرير مبني على بيانات المنصة الحقيقية بتاريخ ${dateNow} — طبقًا للمادة (90) من لائحة حوكمة الشركات الصادرة عن هيئة السوق المالية.</div>
       <script>window.onload=function(){setTimeout(function(){window.print()},400)}<\/script>
     </body></html>
@@ -9783,7 +9783,7 @@ function downloadMeetingPlanPDF(){
       <p><b>الدورية:</b> ${currentMeetingPlan.frequency} &nbsp; <b>السنة:</b> ${currentMeetingPlan.year||"—"}</p>
       <table><thead><tr><th>الاجتماع</th><th>الموعد التقريبي</th><th>الحالة</th></tr></thead><tbody>${rows}</tbody></table>
     </body></html>`;
-  const w = window.open("", "_blank");
+  const w = openPrintWindow();
   w.document.write(html);
   w.document.close();
   setTimeout(() => w.print(), 300);
@@ -9822,7 +9822,7 @@ async function loadMinutesTable(meetings, tbodyId, emptyText){
           <button class="btn-xs" style="background:none;border:none;color:var(--gray3);font-size:10px;cursor:pointer" onclick="linkMeetingToSigningDoc(${m.id})"><span class="ico-i ico-link"></span>تغيير الربط</button>`;
       }
       return `<tr>
-        <td>${m.title||""}</td><td>${m.meeting_type||"—"}</td><td>${m.meeting_date||"—"}</td><td>${m.meeting_time||"—"}</td>
+        <td>${orgEsc(m.title||"")}</td><td>${m.meeting_type||"—"}</td><td>${m.meeting_date||"—"}</td><td>${m.meeting_time||"—"}</td>
         <td>${statusBadge}</td>
         <td>${actionBtn}</td>
       </tr>`;
@@ -9840,7 +9840,7 @@ async function linkMeetingToSigningDoc(meetingId){
   if(error){ alert("تعذّر تحميل مستندات التوقيع: " + error.message); return; }
   if(!docs || docs.length===0){ alert('لا توجد مستندات بصفحة "التوقيع الإلكتروني" بعد. ارفع محضر الاجتماع هناك أولًا كمستند للتوقيع.'); return; }
 
-  const options = docs.map((d,i) => `${i+1}. ${d.document_name} (${d.signers_done||0}/${d.signers_total||'?'} موقّعين)`).join("\n");
+  const options = docs.map((d,i) => `${i+1}. ${orgEsc(d.document_name)} (${d.signers_done||0}/${d.signers_total||'?'} موقّعين)`).join("\n");
   const choice = prompt("اختر رقم مستند التوقيع المطابق لمحضر هذا الاجتماع:\n\n" + options);
   const idx = Number(choice) - 1;
   if(!choice || isNaN(idx) || idx < 0 || idx >= docs.length) return;
@@ -9855,12 +9855,12 @@ async function generateSignedMinutesPDF(meetingId){
   if(error || !m){ alert("تعذّر تحميل بيانات الاجتماع"); return; }
   const { data: doc } = await sb.from("signing_documents").select("*").eq("id", m.signing_doc_id).single();
 
-  const w = window.open("", "_blank");
+  const w = openPrintWindow();
   if(!w){ alert("المتصفح منع فتح نافذة التقرير — الرجاء السماح بالنوافذ المنبثقة لهذا الموقع ثم المحاولة مرة أخرى."); return; }
   const dateNow = new Date().toLocaleDateString("ar-SA");
   w.document.open();
   w.document.write(`
-    <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>محضر موقّع — ${m.title||""}</title>
+    <html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>محضر موقّع — ${orgEsc(m.title||"")}</title>
     <style>
       body{font-family:'Tajawal',Arial,sans-serif;padding:40px;color:#0D2447}
       h1{color:#1A3A6B;font-size:20px;border-bottom:3px solid #D4AF37;padding-bottom:10px}
@@ -9869,11 +9869,11 @@ async function generateSignedMinutesPDF(meetingId){
       .files a{color:#1A3A6B}
     </style></head><body>
     <h1><span class="ico-i ico-scroll"></span>محضر اجتماع موقّع إلكترونيًا</h1>
-    <p class="meta"><b>عنوان الاجتماع:</b> ${m.title||"—"}</p>
+    <p class="meta"><b>عنوان الاجتماع:</b> ${orgEsc(m.title||"—")}</p>
     <p class="meta"><b>النوع:</b> ${m.meeting_type||"—"}</p>
     <p class="meta"><b>التاريخ:</b> ${m.meeting_date||"—"} ${m.meeting_time?(' — الساعة '+m.meeting_time):''}</p>
     <p class="meta"><b>طريقة الانعقاد:</b> ${m.method||"—"}</p>
-    ${m.notes ? `<p class="meta"><b>ملاحظات:</b> ${m.notes}</p>` : ""}
+    ${m.notes ? `<p class="meta"><b>ملاحظات:</b> ${orgEsc(m.notes)}</p>` : ""}
     <div class="stamp"><span class="ico-i ico-check"></span>تم توقيع هذا المحضر إلكترونيًا من ${doc?.signers_done||0} من ${doc?.signers_total||'?'} من الأعضاء المخوّلين، بتاريخ ${dateNow}.</div>
     ${m.minutes_file_url ? `<p class="files" style="margin-top:20px"><span class="ico-i ico-paperclip"></span><a href="${m.minutes_file_url}" target="_blank">فتح ملف المحضر الأصلي</a></p>` : ""}
     <script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>
@@ -12776,7 +12776,7 @@ async function viewMeetingAgenda(meetingId){
       <p><b>التاريخ:</b> ${m.meeting_date||"—"} &nbsp; <b>الوقت:</b> ${timeRange}</p>
       ${(topics && topics.length) ? `<ol>${topics.map(t=>`<li>${t.topic_text}</li>`).join("")}</ol>` : "<p>لم تُحدَّد بنود بعد.</p>"}
     </body></html>`;
-  const w = window.open("", "_blank");
+  const w = openPrintWindow();
   w.document.write(html);
   w.document.close();
 }
@@ -12808,19 +12808,19 @@ async function generateAndUploadMeetingInvitation(meetingId){
     <body>
       <h1>دعوة اجتماع ${scopeLabel}</h1>
       <p><b>الشركة:</b> ${companyName}</p>
-      <p><b>عنوان الاجتماع:</b> ${m.title||"—"}</p>
+      <p><b>عنوان الاجتماع:</b> ${orgEsc(m.title||"—")}</p>
       <p><b>النوع:</b> ${m.meeting_type||"—"}</p>
       <p><b>التاريخ:</b> ${m.meeting_date||"—"}</p>
       <p><b>الوقت:</b> ${timeRange}</p>
       <p><b>طريقة الانعقاد:</b> ${m.method||"—"}</p>
       ${m.meeting_link ? `<p><b>رابط الانضمام:</b> ${m.meeting_link}</p>` : ""}
       <h2>جدول الأعمال</h2>
-      ${(topics && topics.length) ? `<ol>${topics.map(t=>`<li>${t.topic_text}</li>`).join("")}</ol>` : "<p>سيُحدَّد جدول الأعمال لاحقًا.</p>"}
+      ${(topics && topics.length) ? `<ol>${topics.map(t=>`<li>${orgEsc(t.topic_text)}</li>`).join("")}</ol>` : "<p>سيُحدَّد جدول الأعمال لاحقًا.</p>"}
     </body>
     </html>
   `;
   const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
-  const file_url = await uploadBlobToStorage(blob, "meeting-invitations", `دعوة-${m.title||'اجتماع'}-${Date.now()}.doc`);
+  const file_url = await uploadBlobToStorage(blob, "meeting-invitations", `دعوة-${orgEsc(m.title||'اجتماع')}-${Date.now()}.doc`);
   if(!file_url) return null;
   await sb.from("meetings").update({ invitation_file_url: file_url }).eq("id", meetingId);
   return file_url;
@@ -16841,7 +16841,7 @@ async function loadIndicatorsReport(){
 function exportIndicatorsPDF(){
   const reportBox = document.getElementById("indicatorsReport");
   if(!reportBox || !reportBox.querySelector(".card")){ alert("لا توجد بيانات مرفوعة بعد لتصديرها."); return; }
-  const w = window.open("", "_blank");
+  const w = openPrintWindow();
   if(!w){ alert("المتصفح منع فتح نافذة التصدير — الرجاء السماح بالنوافذ المنبثقة ثم المحاولة مرة أخرى."); return; }
   const companyName = document.getElementById("reportCompanyName1")?.textContent || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "الشركة";
   const dateNow = new Date().toLocaleDateString("ar-SA");
@@ -17047,7 +17047,7 @@ function exportActivityLogExcel(){
 
 function exportActivityLogPDF(){
   if(!activityLogCache || activityLogCache.length === 0){ alert("لا يوجد نشاط لتصديره."); return; }
-  const w = window.open("", "_blank");
+  const w = openPrintWindow();
   if(!w){ alert("المتصفح منع فتح نافذة التصدير — الرجاء السماح بالنوافذ المنبثقة ثم المحاولة مرة أخرى."); return; }
   const companyName = document.getElementById("reportCompanyName1")?.textContent || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "الشركة";
   const dateNow = new Date().toLocaleDateString("ar-SA");
@@ -18033,15 +18033,15 @@ async function requestBoardApproval(type){
   }
 
   const boardListHtml = board.map(b => `<tr>
-    <td style="border:1px solid #ccc;padding:6px">${b.full_name||b.email||""}</td>
-    <td style="border:1px solid #ccc;padding:6px">${b.role||""}${b.is_entity_rep && b.represented_entity ? " — ممثل " + b.represented_entity : ""}</td>
+    <td style="border:1px solid #ccc;padding:6px">${orgEsc(b.full_name||b.email||"")}</td>
+    <td style="border:1px solid #ccc;padding:6px">${orgEsc(b.role||"")}${b.is_entity_rep && b.represented_entity ? " — ممثل " + orgEsc(b.represented_entity) : ""}</td>
     <td style="border:1px solid #ccc;padding:6px;width:130px"></td>
   </tr>`).join("");
 
   const wrapper = document.createElement("div");
   wrapper.style.cssText = "direction:rtl;text-align:right;font-family:Tajawal,Arial,sans-serif;padding:20px;color:#0D2447;background:#fff";
   wrapper.innerHTML = `
-    <h1 style="color:#1A3A6B;font-size:20px;border-bottom:3px solid #D4AF37;padding-bottom:10px">${title} — ${reqMeta.companyName}</h1>
+    <h1 style="color:#1A3A6B;font-size:20px;border-bottom:3px solid #D4AF37;padding-bottom:10px">${orgEsc(title)} — ${orgEsc(reqMeta.companyName)}</h1>
     ${approvalHeaderHTML(Object.assign({}, reqMeta, { approved:false, dateTitle:"تاريخ الطلب", dateLabel:dateNow, approvers:[] }), orgEsc, (reqMeta.count + 1) + ".0 (قيد الاعتماد)")}
     <div style="overflow-x:auto;margin:16px 0">${bodyContent}</div>
     <h3 style="color:#1A3A6B;margin-top:24px">${getGovernanceMemberLabel()} المطلوب موافقتهم</h3>
@@ -18053,16 +18053,16 @@ async function requestBoardApproval(type){
       </tr></thead>
       <tbody>${boardListHtml}</tbody>
     </table>`;
-  document.body.appendChild(wrapper);
+  pdfHostAdd(wrapper, 794);
   let pdfBlob;
   try{
-    pdfBlob = await html2pdf().from(wrapper).set({ margin: 10, html2canvas: { scale: 2 }, jsPDF: { unit: "mm", format: "a4", orientation: "portrait" } }).outputPdf("blob");
+    pdfBlob = await html2pdf().from(wrapper).set({ margin: 10, image: { type: "jpeg", quality: 0.95 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff", scrollX: 0, scrollY: 0 }, jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }, pagebreak: { mode: ["css", "legacy"], avoid: ["tr"] } }).outputPdf("blob");
   }catch(e){
-    document.body.removeChild(wrapper);
+    pdfHostRemove(wrapper);
     alert("تعذّر توليد ملف PDF: " + e.message);
     return;
   }
-  document.body.removeChild(wrapper);
+  pdfHostRemove(wrapper);
 
   const fileUrl = await uploadBlobToStorage(pdfBlob, "approvals", (isMatrix?"permissions-matrix":"org-structure")+".pdf");
   if(!fileUrl) return;
@@ -18097,21 +18097,21 @@ async function requestCharterApproval(){
   const title = `طلب موافقة على ميثاق لجنة ${c.committee_name}`;
 
   const boardListHtml = board.map(b => `<tr>
-    <td style="border:1px solid #ccc;padding:6px">${b.full_name||b.email||""}</td>
-    <td style="border:1px solid #ccc;padding:6px">${b.role||""}${b.is_entity_rep && b.represented_entity ? " — ممثل " + b.represented_entity : ""}</td>
+    <td style="border:1px solid #ccc;padding:6px">${orgEsc(b.full_name||b.email||"")}</td>
+    <td style="border:1px solid #ccc;padding:6px">${orgEsc(b.role||"")}${b.is_entity_rep && b.represented_entity ? " — ممثل " + orgEsc(b.represented_entity) : ""}</td>
     <td style="border:1px solid #ccc;padding:6px;width:130px"></td>
   </tr>`).join("");
 
   const wrapper = document.createElement("div");
   wrapper.style.cssText = "direction:rtl;text-align:right;font-family:Tajawal,Arial,sans-serif;padding:20px;color:#0D2447;background:#fff";
   wrapper.innerHTML = `
-    <h1 style="color:#1A3A6B;font-size:20px;border-bottom:3px solid #D4AF37;padding-bottom:10px">${title} — ${companyName}</h1>
+    <h1 style="color:#1A3A6B;font-size:20px;border-bottom:3px solid #D4AF37;padding-bottom:10px">${orgEsc(title)} — ${orgEsc(companyName)}</h1>
     <p><b>تاريخ الطلب:</b> ${dateNow}</p>
-    <h3 style="color:#1A3A6B;margin-top:20px">الغرض والهدف من اللجنة</h3><p>${(c.charter_purpose||"—").replace(/\n/g,"<br>")}</p>
-    <h3 style="color:#1A3A6B;margin-top:16px">الاختصاصات والصلاحيات</h3><p>${(c.charter_authorities||"—").replace(/\n/g,"<br>")}</p>
-    <h3 style="color:#1A3A6B;margin-top:16px">التشكيل وعضوية اللجنة</h3><p>${(c.charter_composition||"—").replace(/\n/g,"<br>")}</p>
-    <h3 style="color:#1A3A6B;margin-top:16px">تنظيم الاجتماعات</h3><p>${(c.charter_meetings_rules||"—").replace(/\n/g,"<br>")}</p>
-    <h3 style="color:#1A3A6B;margin-top:16px">آلية رفع التقارير لمجلس الإدارة</h3><p>${(c.charter_reporting||"—").replace(/\n/g,"<br>")}</p>
+    <h3 style="color:#1A3A6B;margin-top:20px">الغرض والهدف من اللجنة</h3><p>${orgEsc(c.charter_purpose||"—").replace(/\n/g,"<br>")}</p>
+    <h3 style="color:#1A3A6B;margin-top:16px">الاختصاصات والصلاحيات</h3><p>${orgEsc(c.charter_authorities||"—").replace(/\n/g,"<br>")}</p>
+    <h3 style="color:#1A3A6B;margin-top:16px">التشكيل وعضوية اللجنة</h3><p>${orgEsc(c.charter_composition||"—").replace(/\n/g,"<br>")}</p>
+    <h3 style="color:#1A3A6B;margin-top:16px">تنظيم الاجتماعات</h3><p>${orgEsc(c.charter_meetings_rules||"—").replace(/\n/g,"<br>")}</p>
+    <h3 style="color:#1A3A6B;margin-top:16px">آلية رفع التقارير لمجلس الإدارة</h3><p>${orgEsc(c.charter_reporting||"—").replace(/\n/g,"<br>")}</p>
     <h3 style="color:#1A3A6B;margin-top:24px">${getGovernanceMemberLabel()} المطلوب موافقتهم</h3>
     <table style="width:100%;border-collapse:collapse;margin-top:8px">
       <thead><tr>
@@ -18121,16 +18121,16 @@ async function requestCharterApproval(){
       </tr></thead>
       <tbody>${boardListHtml}</tbody>
     </table>`;
-  document.body.appendChild(wrapper);
+  pdfHostAdd(wrapper, 794);
   let pdfBlob;
   try{
-    pdfBlob = await html2pdf().from(wrapper).set({ margin: 10, html2canvas: { scale: 2 }, jsPDF: { unit: "mm", format: "a4", orientation: "portrait" } }).outputPdf("blob");
+    pdfBlob = await html2pdf().from(wrapper).set({ margin: 10, image: { type: "jpeg", quality: 0.95 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff", scrollX: 0, scrollY: 0 }, jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }, pagebreak: { mode: ["css", "legacy"], avoid: ["tr"] } }).outputPdf("blob");
   }catch(e){
-    document.body.removeChild(wrapper);
+    pdfHostRemove(wrapper);
     alert("تعذّر توليد ملف PDF: " + e.message);
     return;
   }
-  document.body.removeChild(wrapper);
+  pdfHostRemove(wrapper);
 
   const fileUrl = await uploadBlobToStorage(pdfBlob, "approvals", "committee-charter.pdf");
   if(!fileUrl) return;
@@ -19576,7 +19576,7 @@ async function savePermCell(itemId, holderId, code){
 }
 
 async function generatePermissionsReport(){
-  const w = window.open("", "_blank");
+  const w = openPrintWindow();
   if(w){ w.document.write('<html dir="rtl"><body style="font-family:sans-serif;padding:30px">جارِ تجهيز التقرير...</body></html>'); w.document.close(); }
   await loadPermissionsMatrix();
   const table = document.getElementById("permMatrixTable");
@@ -19684,7 +19684,7 @@ async function loadVotingPage(){
     return;
   }
 
-  if(titleEl) titleEl.textContent = `${m.title||"جمعية عامة"} — ${m.meeting_date||""}`;
+  if(titleEl) titleEl.textContent = `${orgEsc(m.title||"جمعية عامة")} — ${m.meeting_date||""}`;
 
   if(isOverseer){
     loadCompanySettings().then(() => { loadVoteResults(); loadShareholdersSummary(); });
@@ -22878,6 +22878,11 @@ function procFmt(d){ try{ return new Date(d).toLocaleDateString("ar-SA"); }catch
 
 async function loadProcedures(){
   const body = document.getElementById("procBody"); if(!body) return;
+  try{ await loadProceduresInner(); }
+  catch(e){ body.innerHTML = '<div style="color:var(--red);font-size:12px;padding:14px">تعذّر تحميل الإجراءات الآن، تحقق من الاتصال وأعد المحاولة.</div>'; }
+}
+async function loadProceduresInner(){
+  const body = document.getElementById("procBody"); if(!body) return;
   const [orgR, pR, sR, gates, mh] = await Promise.all([
     sb.from("org_structure").select("*").eq("company_id", currentCompanyId).order("id",{ascending:true}),
     sb.from("procedures").select("*").eq("company_id", currentCompanyId).order("id",{ascending:true}),
@@ -23245,6 +23250,10 @@ async function openPolComments(pid){
   await polRefresh();
 }
 async function polRefresh(){
+  try{ await polRefreshInner(); }
+  catch(e){ const l = document.getElementById("polcom-list"); if(l) l.innerHTML = '<div style="color:var(--red);font-size:12px;padding:14px">تعذّر تحميل الملاحظات الآن، أعد المحاولة.</div>'; }
+}
+async function polRefreshInner(){
   const pid = polState.pid, p = policiesCache.find(x => x.id === pid) || {};
   document.getElementById("polcom-title").textContent = "ملاحظات: " + (p.policy_name || "");
   const [c, v] = await Promise.all([
@@ -23348,6 +23357,29 @@ async function polExportPDF(){
   finally{ if(holder.parentNode) holder.parentNode.removeChild(holder); }
 }
 
+/* Print/PDF windows are opened from this page, so they share its origin: anything unescaped that reaches
+   document.write could run with the user's session. printSafe strips scripts (except our own print trigger)
+   and inline event handlers from whatever is written — a second line of defence beside escaping. */
+function printSafe(html){
+  return String(html == null ? "" : html)
+    .replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gi, (m, body) => /^\s*window\.onload=function\(\)\{setTimeout\(function\(\)\{window\.print\(\)\}/.test(body) ? m : "")
+    .replace(/<(iframe|object|embed|link)\b[^>]*>/gi, "")
+    .replace(/(<[a-z][^>]*?)\s+on[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "$1")
+    .replace(/(href|src|xlink:href)\s*=\s*(["'])\s*javascript:[^"']*\2/gi, "$1=$2#$2");
+}
+function openPrintWindow(){
+  const w = window.open("", "_blank"); if(!w) return null;
+  try{ const d = w.document, ow = d.write.bind(d); d.write = html => ow(printSafe(html)); }catch(e){}
+  return w;
+}
+/* Off-screen host for html2pdf sources: fixed A4 width so the PDF looks the same on phones and desktops,
+   and nothing flashes on the visible page while it renders. */
+function pdfHostAdd(el, widthPx){
+  const h = document.createElement("div"); h.setAttribute("data-pdf-host","1");
+  h.style.cssText = "position:absolute;top:0;left:-20000px;width:" + widthPx + "px;pointer-events:none";
+  el.style.width = widthPx + "px"; h.appendChild(el); document.body.appendChild(h);
+}
+function pdfHostRemove(el){ const h = el && el.parentNode; if(h && h.getAttribute && h.getAttribute("data-pdf-host") && h.parentNode) h.parentNode.removeChild(h); else if(el && el.parentNode) el.parentNode.removeChild(el); }
 async function go(id, el){
   currentPageId = id;
   if(companyTypeReadyPromise){ try{ await companyTypeReadyPromise; }catch(e){} }
@@ -25292,7 +25324,7 @@ async function fillDocxTemplate(templateUrl, data, downloadName){
 
 async function generateVoteReport(){
   if(!currentVotingMeetingId){ alert("تعذّر تحديد الجمعية الحالية"); return; }
-  const w = window.open("", "_blank");
+  const w = openPrintWindow();
   if(w){ w.document.write('<html dir="rtl"><body style="font-family:sans-serif;padding:30px">جارِ تجهيز التقرير...</body></html>'); w.document.close(); }
   await loadVotingPage();
   const resultsTable = document.getElementById("voteResultsTable");
