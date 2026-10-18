@@ -16646,27 +16646,54 @@ function exportPositionsList(){
 }
 
 /* PDF header facts: the company's real name, the approval date if the structure was approved (otherwise the export date), and a version number = how many times it was approved. */
-async function orgPdfMeta(){
+async function orgPdfMeta(type){
+  type = type || "structure";
   let companyName = "";
   try{ const { data } = await sb.from("companies").select("name").eq("id", currentCompanyId).single(); companyName = (data && typeof data.name === "string") ? data.name : ""; }catch(e){}
   if(!companyName) companyName = (document.getElementById("reportCompanyName1")?.textContent || "").replace(/^—$/, "") || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "الشركة";
   const fmt = d => new Date(d).toLocaleDateString("ar-SA");
-  let dateTitle = "تاريخ التصدير", dateLabel = fmt(new Date()), version = "مسودة";
+  let dateTitle = "تاريخ التصدير", dateLabel = fmt(new Date()), version = "مسودة", approved = false, approvers = [], count = 0;
   try{
-    const { data: reqs } = await sb.from("approval_requests").select("status,approved_at,created_at").eq("company_id", currentCompanyId).eq("request_type", "structure").order("created_at",{ascending:false});
+    const { data: reqs } = await sb.from("approval_requests").select("id,status,approved_at,created_at").eq("company_id", currentCompanyId).eq("request_type", type).order("created_at",{ascending:false});
     const ok = Array.isArray(reqs) ? reqs.filter(r => r.status === "معتمد") : [];
+    count = ok.length;
     if(ok.length){
       const last = ok.slice().sort((a,b) => new Date(b.approved_at || b.created_at) - new Date(a.approved_at || a.created_at))[0];
-      dateTitle = "تاريخ الاعتماد"; dateLabel = fmt(last.approved_at || last.created_at); version = ok.length + ".0";
+      approved = true; dateTitle = "تاريخ الاعتماد"; dateLabel = fmt(last.approved_at || last.created_at); version = ok.length + ".0";
+      const { data: votes } = await sb.from("approval_votes").select("reviewer_name,reviewer_email").eq("request_id", last.id);
+      if(Array.isArray(votes)) approvers = votes.map(v => v.reviewer_name || v.reviewer_email).filter(Boolean);
     }
   }catch(e){}
-  return { companyName, dateTitle, dateLabel, version };
+  return { companyName, dateTitle, dateLabel, version, approved, approvers, count };
+}
+/* Header block for governance PDFs: status (draft / approved), version, date and who approved. */
+function approvalHeaderHTML(meta, esc, extraLabel){
+  const status = meta.approved ? "معتمد" : "مسودة (غير معتمدة)";
+  const col = meta.approved ? "#1B7F4B" : "#9C7A2E";
+  return `<div style="font-size:12px;color:#5b6678;line-height:1.8"><div><b style="color:${col}">الحالة: ${status}</b></div><div>رقم النسخة: ${esc(extraLabel || meta.version)}</div><div>${esc(meta.dateTitle)}: ${esc(meta.dateLabel)}</div>${meta.approved && meta.approvers.length ? `<div>اعتمده: ${meta.approvers.map(esc).join("، ")}</div>` : ""}</div>`;
+}
+/* Printable copy of the permissions matrix: every dropdown becomes its letter, read from the LIVE table (a detached clone loses the selected value). */
+function permPrintableTable(table){
+  const clone = table.cloneNode(true);
+  clone.querySelectorAll("button").forEach(b => b.remove());
+  const live = table.querySelectorAll("select"), copy = clone.querySelectorAll("select");
+  const colors = { "ع":["#1A3A6B","#fff"], "ت":["#0C8B87","#fff"], "م":["#D4AF37","#0D2447"] };
+  copy.forEach((sel, k) => {
+    const v = (live[k] && live[k].value) || "";
+    const span = document.createElement("span");
+    span.textContent = v || "—";
+    const c = colors[v];
+    span.style.cssText = c ? `display:inline-block;min-width:26px;font-weight:900;padding:3px 8px;border-radius:6px;background:${c[0]};color:${c[1]}` : "display:inline-block;color:#9aa4b2";
+    sel.parentNode.replaceChild(span, sel);
+  });
+  clone.querySelectorAll("th").forEach(th => { th.style.background = "#1A3A6B"; th.style.color = "#fff"; });
+  return clone;
 }
 async function exportOrgTreePDF(){
   const treeRows = orgTreeRows(structureCache);
   if(!treeRows.length){ alert("لا توجد شجرة لتصديرها."); return; }
   if(typeof html2pdf === "undefined"){ alert("تعذّر تحميل أداة إنشاء PDF — تحقق من الاتصال بالإنترنت ثم أعد المحاولة."); return; }
-  const meta = await orgPdfMeta();
+  const meta = await orgPdfMeta("structure");
   const companyName = meta.companyName;
   const dateNow = meta.dateLabel;
   const esc = orgEsc;
@@ -16703,7 +16730,7 @@ async function exportOrgTreePDF(){
 
   const th = "border:1px solid #cfd6e0;padding:7px 8px;background:#1A3A6B;color:#fff;font-size:12px;text-align:right";
   const td = "border:1px solid #cfd6e0;padding:6px 8px;font-size:12px;text-align:right";
-  const head = (title, withDate) => `<div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #D4AF37;padding-bottom:8px;margin-bottom:14px"><div style="font-size:21px;font-weight:800;color:#1A3A6B">${title}</div><div style="font-size:12px;color:#5b6678;text-align:left;line-height:1.7"><div>${esc(meta.dateTitle)}: ${esc(dateNow)}</div><div>رقم النسخة: ${esc(meta.version)}</div></div></div>`;
+  const head = (title, withDate) => `<div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #D4AF37;padding-bottom:8px;margin-bottom:14px"><div style="font-size:21px;font-weight:800;color:#1A3A6B">${title}</div>${approvalHeaderHTML(meta, esc)}</div>`;
   const fit = html => `<div class="orgpdf-box" style="margin:0 auto"><div class="orgpdf-inner" style="display:inline-block;transform-origin:top right">${html}</div></div>`;
 
   let pages = `<div>${head("الهيكل التنظيمي — " + esc(companyName), true)}${fit(renderOrgTree(summaryRows, { static:true }))}</div>`;
@@ -16762,13 +16789,7 @@ async function exportPermissionsMatrix(){
   await loadPermissionsMatrix();
   const table = document.getElementById("permMatrixTable");
   if(!table){ alert("تعذّر تحميل مصفوفة الصلاحيات."); return; }
-  const clone = table.cloneNode(true);
-  clone.querySelectorAll('button').forEach(b => b.remove());
-  clone.querySelectorAll('select').forEach(sel => {
-    const span = document.createElement('span');
-    span.textContent = sel.value || "—";
-    sel.parentNode.replaceChild(span, sel);
-  });
+  const clone = permPrintableTable(table);
   const ws = XLSX.utils.table_to_sheet(clone);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "مصفوفة الصلاحيات");
@@ -17753,18 +17774,13 @@ async function requestBoardApproval(type){
   const companyName = document.getElementById("reportCompanyName1")?.textContent || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "";
   const dateNow = new Date().toLocaleDateString("ar-SA");
 
+  const reqMeta = await orgPdfMeta(type);
   let bodyContent = "";
   if(isMatrix){
     await loadPermissionsMatrix();
     const table = document.getElementById("permMatrixTable");
     if(!table){ alert("تعذّر تحميل مصفوفة الصلاحيات."); return; }
-    const clone = table.cloneNode(true);
-    clone.querySelectorAll("button").forEach(b => b.remove());
-    clone.querySelectorAll("select").forEach(sel => {
-      const span = document.createElement("span");
-      span.textContent = sel.value || "—";
-      sel.parentNode.replaceChild(span, sel);
-    });
+    const clone = permPrintableTable(table);
     clone.querySelectorAll("th,td").forEach(c => { c.style.border = "1px solid #ccc"; c.style.padding = "6px"; c.style.fontSize = "11px"; });
     clone.style.cssText = "width:100%;border-collapse:collapse";
     bodyContent = clone.outerHTML;
@@ -17784,8 +17800,8 @@ async function requestBoardApproval(type){
   const wrapper = document.createElement("div");
   wrapper.style.cssText = "direction:rtl;text-align:right;font-family:Tajawal,Arial,sans-serif;padding:20px;color:#0D2447;background:#fff";
   wrapper.innerHTML = `
-    <h1 style="color:#1A3A6B;font-size:20px;border-bottom:3px solid #D4AF37;padding-bottom:10px">${title} — ${companyName}</h1>
-    <p><b>تاريخ الطلب:</b> ${dateNow}</p>
+    <h1 style="color:#1A3A6B;font-size:20px;border-bottom:3px solid #D4AF37;padding-bottom:10px">${title} — ${reqMeta.companyName}</h1>
+    ${approvalHeaderHTML(Object.assign({}, reqMeta, { approved:false, dateTitle:"تاريخ الطلب", dateLabel:dateNow, approvers:[] }), orgEsc, (reqMeta.count + 1) + ".0 (قيد الاعتماد)")}
     <div style="overflow-x:auto;margin:16px 0">${bodyContent}</div>
     <h3 style="color:#1A3A6B;margin-top:24px">${getGovernanceMemberLabel()} المطلوب موافقتهم</h3>
     <table style="width:100%;border-collapse:collapse;margin-top:8px">
@@ -19306,21 +19322,14 @@ async function generatePermissionsReport(){
   await loadPermissionsMatrix();
   const table = document.getElementById("permMatrixTable");
   const dateNow = new Date().toLocaleDateString("ar-SA");
+  const pmeta = await orgPdfMeta("matrix");
   if(!w){ alert("المتصفح منع فتح نافذة التقرير — الرجاء السماح بالنوافذ المنبثقة (Pop-ups) لهذا الموقع ثم المحاولة مرة أخرى."); return; }
 
   // Clone the table and strip interactive elements (delete buttons, selects) down to
   // plain printable text, so the PDF shows a clean report instead of live form controls.
   let printableHTML = '<p style="color:#C0392B">تعذّر تحميل جدول الصلاحيات.</p>';
   if(table){
-    const clone = table.cloneNode(true);
-    clone.querySelectorAll('button').forEach(b => b.remove());
-    clone.querySelectorAll('select').forEach(sel => {
-      const span = document.createElement('span');
-      span.textContent = sel.value || "—";
-      span.style.cssText = "font-weight:900;padding:4px 10px;border-radius:6px;" + permCodeStyle(sel.value).replace(/cursor:[^;]+;?/,'');
-      sel.parentNode.replaceChild(span, sel);
-    });
-    printableHTML = clone.outerHTML;
+    printableHTML = permPrintableTable(table).outerHTML;
   }
 
   w.document.open();
@@ -19334,8 +19343,9 @@ async function generatePermissionsReport(){
       td:first-child{text-align:right}
       th{background:#1A3A6B !important;color:#fff !important}
     </style></head><body>
-    <h1><span class="ico-i ico-key"></span>تقرير مصفوفة الصلاحيات — منصة حوكم</h1>
-    <p>تاريخ التقرير: ${dateNow}</p>
+    <h1>مصفوفة الصلاحيات — ${pmeta.companyName}</h1>
+    ${approvalHeaderHTML(pmeta, x => String(x).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])))}
+    <p style="font-size:11px;color:#5b6678">تاريخ إنشاء التقرير: ${dateNow}</p>
     <p><b>الرمز:</b> ت = توصية &nbsp; · &nbsp; ع = اعتماد &nbsp; · &nbsp; م = مراجعة</p>
     ${printableHTML}
     <script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>
