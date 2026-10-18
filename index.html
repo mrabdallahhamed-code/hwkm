@@ -3051,6 +3051,30 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   </div>
 </div>
 
+<div class="modal-bg" id="m-polcom">
+  <div class="modal" style="max-width:820px">
+    <div class="modal-title" id="polcom-title">ملاحظات السياسة</div>
+    <div id="polcom-stats" style="font-size:12px;color:var(--gray3);margin-bottom:10px"></div>
+    <div style="background:var(--offwhite);border-radius:10px;padding:12px;margin-bottom:12px">
+      <div style="font-weight:800;font-size:12.5px;margin-bottom:8px">إضافة ملاحظة</div>
+      <div class="row2"><div class="fg"><label>رقم الصفحة</label><input class="fi" id="polcom-page" placeholder="مثال: 3"/></div>
+      <div class="fg"><label>رقم البند / المادة</label><input class="fi" id="polcom-clause" placeholder="مثال: المادة 5"/></div></div>
+      <div class="fg"><label>التصنيف</label><select class="fs" id="polcom-cat"><option>جوهرية</option><option>صياغة</option><option>إملائية</option></select></div>
+      <div class="fg"><label>الملاحظة</label><textarea class="fi" id="polcom-body" rows="3" placeholder="اكتب ملاحظتك بوضوح"></textarea></div>
+      <div class="fg"><label>الصياغة المقترحة (اختياري — يُنسخ إلى الملف الأصلي يدويًا)</label><textarea class="fi" id="polcom-sugg" rows="2"></textarea></div>
+      <button class="btn-xs primary" onclick="polAddComment()">إضافة الملاحظة</button>
+    </div>
+    <div id="polcom-gov" style="display:none;background:#FEF3E2;border-radius:10px;padding:12px;margin-bottom:12px">
+      <div style="font-weight:800;font-size:12.5px;margin-bottom:6px">رفع نسخة معدّلة من الملف (PDF)</div>
+      <input type="file" id="polcom-file" accept=".pdf" style="font-size:12px"/>
+      <button class="btn-xs gold" onclick="polUploadVersion()">رفع نسخة جديدة</button>
+      <div id="polcom-versions" style="font-size:11px;color:var(--gray3);margin-top:6px"></div>
+    </div>
+    <div id="polcom-list"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="polExportPDF()">تصدير سجل الملاحظات PDF</button><button class="btn btn-ghost" onclick="closeM('m-polcom')">إغلاق</button></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-policy">
   <div class="modal">
     <div class="modal-title" id="mp-title-h"><span class="ico-i ico-columns"></span>إضافة سياسة جديدة</div>
@@ -13379,6 +13403,7 @@ function renderPoliciesFiltered(){
               ${downloadBtn(p.file_url)}
               <button class="btn-xs primary" onclick="editPolicy(${p.id})"><span class="ico-i ico-edit"></span>تعديل</button>
               <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="openPolicyHistoryModal(${p.id})"><span class="ico-i ico-clock"></span>السجل</button>
+              <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="openPolComments(${p.id})">الملاحظات <span id="polcom-n-${p.id}"></span></button>
               <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="deletePolicy(${p.id})"><span class="ico-i ico-trash"></span>حذف</button>
               <button class="btn-xs gold" onclick="startPolicyGovernanceApproval(${p.id})"><span class="ico-i ico-upload"></span>بدء دورة اعتماد وتوقيع</button>
             </div>
@@ -13391,6 +13416,7 @@ function renderPoliciesFiltered(){
   });
   wrap.innerHTML = html;
   list.forEach(p => loadPolicyApprovalStatus(p.id, `policy-gov-status-${p.id}`));
+  polLoadBadges(list);
 }
 
 
@@ -13509,6 +13535,7 @@ async function deletePolicy(id){
 }
 
 async function advancePolicyStage(id){
+  if(await polBlockIfOpen(id)) return;
   const p = policiesCache.find(x => x.id === id);
   if(!p) return;
   const stages = getPolicyStageSequence(p);
@@ -13681,6 +13708,7 @@ async function buildPolicyCanvasPages(policy, signaturesMap, orderedRoles){
 }
 
 async function startPolicyGovernanceApproval(policyId){
+  if(await polBlockIfOpen(policyId)) return;
   const policy = policiesCache.find(p => p.id === policyId);
   if(!policy){ alert("تعذّر تحميل السياسة"); return; }
   const docType = getPolicyWorkflowType(policy);
@@ -13721,10 +13749,10 @@ async function savePolicy(){
   const approval_level = document.getElementById("mp-approval-level").value;
   if(!policy_name){ alert("الرجاء إدخال اسم السياسة"); return; }
 
+  const previous = id ? policiesCache.find(x => x.id === Number(id)) : null;
+  if(id && previous && previous.status !== status && status !== "مسودة" && await polBlockIfOpen(Number(id))) return;
   const fileInput = document.getElementById("mp-file");
   const file_url = await uploadFile(fileInput, "policies");
-
-  const previous = id ? policiesCache.find(x => x.id === Number(id)) : null;
 
   const payload = { policy_name, policy_type, submission_date, target_approval_date, approval_date, review_date, status, category, approval_level, company_id: currentCompanyId };
   if(file_url) payload.file_url = file_url;
@@ -13734,6 +13762,7 @@ async function savePolicy(){
     ? await sb.from("policies").update(payload).eq("id", id)
     : await sb.from("policies").insert([payload]);
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
+  if(id && file_url){ try{ await polRegisterVersion(Number(id), file_url, previous ? previous.file_url : null); }catch(e){} }
 
   if(id && previous && previous.status !== status){
     await logPolicyStageChange(Number(id), previous.status, status);
@@ -23151,6 +23180,143 @@ async function procRunPDF(list, filename){
 }
 function procExportPDF(id){ const p = procState.procs.find(x => x.id === id); if(p) procRunPDF([p], "إجراء-" + p.title); }
 function procExportAllPDF(){ procRunPDF(procState.procs, "إجراءات-العمل"); }
+
+/* ══════════ POLICY COMMENTS ══════════ */
+let polState = { pid:null, comments:[], versions:[] };
+function polMyRole(){ return (typeof getRawRole === "function" ? getRawRole() : "") || getCurrentRole() || ""; }
+function polMyName(){ return currentUserProfile ? (currentUserProfile.full_name || currentUserProfile.email || "—") : "—"; }
+function polIsGov(){ const r = polMyRole(); return getCurrentRole() === "مدير النظام" || /حوكمة|الحوكمة/.test(r); }
+function polDur(ms){
+  if(!(ms >= 0)) return "—";
+  const m = Math.floor(ms / 60000), h = Math.floor(m / 60), d = Math.floor(h / 24);
+  if(d >= 1) return d + " يوم" + (h % 24 ? " و" + (h % 24) + " ساعة" : "");
+  if(h >= 1) return h + " ساعة" + (m % 60 ? " و" + (m % 60) + " دقيقة" : "");
+  return Math.max(m, 1) + " دقيقة";
+}
+function polCurVersion(versions, policy){ return versions.length ? Math.max(...versions.map(v => v.version_no)) : (policy && policy.file_url ? 1 : 1); }
+async function polOpenCount(pid){
+  try{ const r = await sb.from("policy_comments").select("id", { count:"exact", head:true }).eq("policy_id", pid).eq("status","مفتوحة"); return r.count || 0; }catch(e){ return 0; }
+}
+async function polBlockIfOpen(pid){
+  const n = await polOpenCount(pid);
+  if(n > 0){ alert(`لا يمكن المتابعة: توجد ${n} ملاحظة مفتوحة على هذه السياسة.\nأغلقها بالمعالجة (بعد رفع نسخة معدّلة) أو بالرفض مع كتابة السبب، ثم أعد المحاولة.`); return true; }
+  return false;
+}
+async function polLoadBadges(list){
+  try{
+    const r = await sb.from("policy_comments").select("policy_id").eq("company_id", currentCompanyId).eq("status","مفتوحة");
+    const c = {}; (Array.isArray(r.data) ? r.data : []).forEach(x => { c[x.policy_id] = (c[x.policy_id] || 0) + 1; });
+    let total = 0;
+    list.forEach(p => { const el = document.getElementById("polcom-n-" + p.id); const n = c[p.id] || 0; total += n; if(el){ el.textContent = n ? "(" + n + " مفتوحة)" : ""; el.style.color = n ? "var(--red)" : ""; } });
+  }catch(e){}
+}
+async function polRegisterVersion(policyId, newUrl, prevUrl){
+  const ex = await sb.from("policy_file_versions").select("version_no").eq("policy_id", policyId);
+  let max = Array.isArray(ex.data) && ex.data.length ? Math.max(...ex.data.map(x => x.version_no)) : 0;
+  const by = polMyName(), role = polMyRole();
+  if(max === 0 && prevUrl){ await sb.from("policy_file_versions").insert([{ company_id: currentCompanyId, policy_id: policyId, version_no: 1, file_url: prevUrl, uploaded_by: "—", uploaded_role: "" }]); max = 1; }
+  await sb.from("policy_file_versions").insert([{ company_id: currentCompanyId, policy_id: policyId, version_no: max + 1, file_url: newUrl, uploaded_by: by, uploaded_role: role }]);
+}
+async function openPolComments(pid){
+  polState.pid = pid; openM("m-polcom");
+  document.getElementById("polcom-gov").style.display = polIsGov() ? "block" : "none";
+  await polRefresh();
+}
+async function polRefresh(){
+  const pid = polState.pid, p = policiesCache.find(x => x.id === pid) || {};
+  document.getElementById("polcom-title").textContent = "ملاحظات: " + (p.policy_name || "");
+  const [c, v] = await Promise.all([
+    sb.from("policy_comments").select("*").eq("policy_id", pid).order("created_at",{ascending:false}),
+    sb.from("policy_file_versions").select("*").eq("policy_id", pid).order("version_no",{ascending:true})
+  ]);
+  if(c.error){ document.getElementById("polcom-list").innerHTML = `<div style="color:var(--red);font-size:12px">تعذّر التحميل: ${orgEsc(c.error.message)}</div>`; return; }
+  polState.comments = Array.isArray(c.data) ? c.data : []; polState.versions = Array.isArray(v.data) ? v.data : [];
+  const cur = polCurVersion(polState.versions, p), list = polState.comments;
+  const open = list.filter(x => x.status === "مفتوحة");
+  const done = list.filter(x => x.status === "تمت المعالجة" && x.resolved_at);
+  const avg = done.length ? done.reduce((s, x) => s + (new Date(x.resolved_at) - new Date(x.created_at)), 0) / done.length : null;
+  const hot = {}; list.forEach(x => { const k = x.clause_no || (x.page_no ? "صفحة " + x.page_no : ""); if(k) hot[k] = (hot[k] || 0) + 1; });
+  const top = Object.entries(hot).sort((a, b) => b[1] - a[1]).filter(e => e[1] > 1).slice(0, 3).map(e => `${orgEsc(e[0])} (${e[1]})`).join("، ");
+  document.getElementById("polcom-stats").innerHTML = `النسخة الحالية: <b>${cur}</b> · مفتوحة: <b style="color:${open.length ? "var(--red)" : "var(--green)"}">${open.length}</b> · معالجة: <b>${done.length}</b>${avg != null ? " · متوسط زمن المعالجة: <b>" + polDur(avg) + "</b>" : ""}${top ? "<br>أكثر المواضع تكرارًا في الملاحظات: " + top : ""}`;
+  document.getElementById("polcom-versions").innerHTML = polState.versions.length ? "النسخ: " + polState.versions.map(x => `<a href="${orgEsc(x.file_url)}" target="_blank" rel="noopener">النسخة ${x.version_no}</a> (${procFmt(x.uploaded_at)}${x.uploaded_by && x.uploaded_by !== "—" ? " — " + orgEsc(x.uploaded_by) : ""})`).join(" · ") : "لا توجد نسخ مسجّلة بعد؛ يُعدّ الملف الحالي النسخة 1.";
+  const now = Date.now(), gov = polIsGov();
+  const ST = { "مفتوحة":["#FEF3E2","#9C7A2E"], "تمت المعالجة":["#E8F8EF","#1B7F4B"], "مرفوضة":["#FDE8E8","#C0392B"] };
+  document.getElementById("polcom-list").innerHTML = list.length ? list.map(x => {
+    const st = ST[x.status] || ST["مفتوحة"];
+    let timing = "";
+    if(x.status === "مفتوحة") timing = `مفتوحة منذ <b>${polDur(now - new Date(x.created_at))}</b>`;
+    else if(x.resolved_at) timing = `${x.status === "تمت المعالجة" ? "عولجت" : "رُفضت"} بعد <b>${polDur(new Date(x.resolved_at) - new Date(x.created_at))}</b>${x.resolved_in_version ? " في النسخة " + x.resolved_in_version : ""} — ${orgEsc(x.resolved_by || "")}${x.resolved_role ? " (" + orgEsc(x.resolved_role) + ")" : ""}`;
+    return `<div style="border:1px solid var(--gray1);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:11.5px">
+        <div><span style="background:${st[0]};color:${st[1]};border-radius:10px;padding:1px 10px;font-weight:800">${orgEsc(x.status)}</span>
+        <span style="background:#EEF1F5;border-radius:10px;padding:1px 10px;margin-inline-start:4px">${orgEsc(x.category)}</span>
+        ${x.page_no ? ` · صفحة ${orgEsc(x.page_no)}` : ""}${x.clause_no ? ` · ${orgEsc(x.clause_no)}` : ""} · على النسخة ${x.file_version_no}</div>
+        <div style="color:var(--gray3)">${orgEsc(x.author_name || "—")}${x.author_role ? " — <b>" + orgEsc(x.author_role) + "</b>" : ""} · ${procFmt(x.created_at)}</div></div>
+      <div style="font-size:12.5px;margin:6px 0;white-space:pre-wrap">${orgEsc(x.body)}</div>
+      ${x.suggested_text ? `<div style="background:var(--offwhite);border-radius:8px;padding:6px 10px;font-size:12px"><b>الصياغة المقترحة:</b> <span id="polsug-${x.id}">${orgEsc(x.suggested_text)}</span> <button class="btn-xs" onclick="polCopy(${x.id})">نسخ</button></div>` : ""}
+      <div style="font-size:11px;color:var(--gray3);margin-top:6px">${timing}</div>
+      ${x.resolution_note ? `<div style="font-size:11.5px;margin-top:4px"><b>ملاحظة المعالجة:</b> ${orgEsc(x.resolution_note)}</div>` : ""}
+      ${x.status === "مفتوحة" && gov ? `<div style="margin-top:8px;display:flex;gap:6px"><button class="btn-xs primary" onclick="polResolve(${x.id})">تمت المعالجة</button><button class="btn-xs" style="color:var(--red)" onclick="polRejectC(${x.id})">رفض مع السبب</button></div>` : ""}
+    </div>`; }).join("") : '<div style="text-align:center;color:var(--gray3);font-size:12.5px;padding:18px">لا توجد ملاحظات على هذه السياسة.</div>';
+}
+function polCopy(id){ const el = document.getElementById("polsug-" + id); if(el && navigator.clipboard) navigator.clipboard.writeText(el.textContent).then(() => alert("تم النسخ")); }
+async function polAddComment(){
+  const body = document.getElementById("polcom-body").value.trim();
+  if(!body){ alert("اكتب نص الملاحظة."); return; }
+  const p = policiesCache.find(x => x.id === polState.pid) || {};
+  const { data: u } = await sb.auth.getUser();
+  const r = await sb.from("policy_comments").insert([{ company_id: currentCompanyId, policy_id: polState.pid, file_version_no: polCurVersion(polState.versions, p),
+    page_no: document.getElementById("polcom-page").value.trim() || null, clause_no: document.getElementById("polcom-clause").value.trim() || null,
+    category: document.getElementById("polcom-cat").value, body, suggested_text: document.getElementById("polcom-sugg").value.trim() || null,
+    author_name: polMyName(), author_email: u && u.user ? u.user.email : null, author_role: polMyRole() }]);
+  if(r.error){ alert("تعذّر الحفظ: " + r.error.message); return; }
+  ["page","clause","body","sugg"].forEach(k => { document.getElementById("polcom-" + k).value = ""; });
+  logActivity("إنشاء", "ملاحظة سياسة", p.policy_name || "", document.getElementById("polcom-cat").value);
+  await polRefresh(); polLoadBadges(policiesCache);
+}
+async function polUploadVersion(){
+  if(!polIsGov()){ alert("رفع النسخ لموظف الحوكمة أو مدير النظام."); return; }
+  const inp = document.getElementById("polcom-file"); if(!inp.files || !inp.files[0]){ alert("اختر ملف PDF أولًا."); return; }
+  const p = policiesCache.find(x => x.id === polState.pid) || {};
+  const url = await uploadFile(inp, "policies"); if(!url) return;
+  const up = await sb.from("policies").update({ file_url: url }).eq("id", polState.pid);
+  if(up.error){ alert("تعذّر تحديث الملف: " + up.error.message); return; }
+  await polRegisterVersion(polState.pid, url, p.file_url); p.file_url = url; inp.value = "";
+  await polRefresh();
+}
+async function polResolve(id){
+  const c = polState.comments.find(x => x.id === id); if(!c) return;
+  const p = policiesCache.find(x => x.id === polState.pid) || {};
+  const cur = polCurVersion(polState.versions, p);
+  if(cur <= c.file_version_no){ alert("لا يمكن اعتبارها معالجة قبل رفع نسخة معدّلة من الملف.\nارفع النسخة الجديدة أعلاه ثم أعد المحاولة."); return; }
+  const note = prompt("ملاحظة المعالجة (اختياري):"); if(note === null) return;
+  const v = polState.versions.find(x => x.version_no === cur);
+  const r = await sb.from("policy_comments").update({ status:"تمت المعالجة", resolution_note: note.trim() || null, resolved_in_version: cur, resolved_by: polMyName(), resolved_role: polMyRole(), resolved_at: v ? v.uploaded_at : new Date().toISOString() }).eq("id", id);
+  if(r.error){ alert("تعذّر التنفيذ: " + r.error.message); return; }
+  await polRefresh(); polLoadBadges(policiesCache);
+}
+async function polRejectC(id){
+  const reason = prompt("سبب رفض الملاحظة (مطلوب):"); if(reason === null) return;
+  if(!reason.trim()){ alert("السبب مطلوب."); return; }
+  const r = await sb.from("policy_comments").update({ status:"مرفوضة", resolution_note: reason.trim(), resolved_by: polMyName(), resolved_role: polMyRole(), resolved_at: new Date().toISOString() }).eq("id", id);
+  if(r.error){ alert("تعذّر التنفيذ: " + r.error.message); return; }
+  await polRefresh(); polLoadBadges(policiesCache);
+}
+async function polExportPDF(){
+  if(typeof html2pdf === "undefined"){ alert("تعذّر تحميل أداة PDF — تحقق من الاتصال."); return; }
+  const p = policiesCache.find(x => x.id === polState.pid) || {}, list = polState.comments.slice().reverse();
+  if(!list.length){ alert("لا توجد ملاحظات."); return; }
+  const company = await procCompanyName();
+  const td = "border:1px solid #cfd6e0;padding:5px 6px;font-size:10.5px;text-align:right;vertical-align:top", th = td + ";background:#1A3A6B;color:#fff";
+  const w = document.createElement("div"); w.style.cssText = "width:720px;direction:rtl;font-family:Tajawal,Arial,sans-serif;color:#0D2447;background:#fff";
+  w.innerHTML = `<div style="border-bottom:3px solid #D4AF37;padding-bottom:8px;margin-bottom:10px"><div style="font-size:17px;font-weight:800;color:#1A3A6B">سجل ملاحظات: ${orgEsc(p.policy_name)}</div><div style="font-size:11.5px;color:#5b6678">${orgEsc(company)} · النسخة الحالية ${polCurVersion(polState.versions, p)} · تاريخ التصدير ${procFmt(new Date())}</div></div>
+   <table style="width:100%;border-collapse:collapse"><thead><tr><th style="${th}">#</th><th style="${th}">الموضع</th><th style="${th}">الملاحظة</th><th style="${th}">صاحبها / دوره</th><th style="${th}">الحالة والمعالجة</th><th style="${th}">الزمن</th></tr></thead><tbody>
+   ${list.map((x, i) => `<tr style="page-break-inside:avoid"><td style="${td}">${i + 1}</td><td style="${td}">${orgEsc([x.page_no && "ص " + x.page_no, x.clause_no].filter(Boolean).join(" / ") || "—")}<br>${orgEsc(x.category)}</td><td style="${td}">${orgEsc(x.body)}${x.suggested_text ? "<br><b>مقترح:</b> " + orgEsc(x.suggested_text) : ""}</td><td style="${td}">${orgEsc(x.author_name || "—")}<br>${orgEsc(x.author_role || "")}<br>${procFmt(x.created_at)}</td><td style="${td}">${orgEsc(x.status)}${x.resolved_by ? "<br>" + orgEsc(x.resolved_by) + (x.resolved_role ? " (" + orgEsc(x.resolved_role) + ")" : "") : ""}${x.resolution_note ? "<br>" + orgEsc(x.resolution_note) : ""}</td><td style="${td}">${x.resolved_at ? polDur(new Date(x.resolved_at) - new Date(x.created_at)) : "مفتوحة منذ " + polDur(Date.now() - new Date(x.created_at))}</td></tr>`).join("")}</tbody></table>`;
+  const holder = document.createElement("div"); holder.style.cssText = "position:absolute;top:0;left:-20000px;width:720px;pointer-events:none"; holder.appendChild(w); document.body.appendChild(holder);
+  try{ await html2pdf().from(w).set({ margin:10, filename:("ملاحظات-" + (p.policy_name || "سياسة") + ".pdf").replace(/[\\/:*?"<>|]/g, "-"), image:{type:"jpeg",quality:.98}, html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff",scrollX:0,scrollY:0}, jsPDF:{unit:"mm",format:"a4",orientation:"portrait"}, pagebreak:{mode:["css","legacy"],avoid:["tr"]} }).save(); }
+  catch(e){ alert("تعذّر إنشاء PDF: " + (e && e.message ? e.message : e)); }
+  finally{ if(holder.parentNode) holder.parentNode.removeChild(holder); }
+}
 
 async function go(id, el){
   currentPageId = id;
