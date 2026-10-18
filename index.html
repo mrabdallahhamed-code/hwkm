@@ -783,6 +783,8 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 .sb-lbl{font-size:11px;color:rgba(255,255,255,0.7);margin-top:3px;}
 
 /* ── RESPONSIVE ── */
+.org-tree-wrap{min-width:700px}
+@media(max-width:700px){ .org-tree-wrap{min-width:0 !important} }
 @media(max-width:900px){
   .sidebar{transform:translateX(100%);width:260px;}
   .sidebar.open{transform:translateX(0);}
@@ -803,7 +805,14 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   .tb-left{min-width:0;overflow:hidden;}
   .page-title,.page-sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:44vw;}
   #companySwitcher{max-width:90px;}
-  .tb-right button.btn-ghost{display:none;}
+  .tb-right button.btn-ghost:not(#btnLangToggle):not(#btnAddCompany):not(#btnJoinByCode){display:none !important;}
+  /* The menu buttons must never be squeezed out of the bar by the controls on the other side. */
+  .tb-left .menu-btn{flex-shrink:0;min-width:34px;height:36px;font-size:18px;}
+  .tb-left{flex:1 1 auto;}
+  .tb-right{flex:0 1 auto;min-width:0;max-width:62%;gap:6px;overflow-x:auto;scrollbar-width:none;}
+  .tb-right::-webkit-scrollbar{display:none;}
+  .tb-right > *{flex-shrink:0;}
+  #btnAddCompany,#btnJoinByCode{padding:4px 8px !important;font-size:10px !important;}
 }
 @media(max-width:540px){
   .members-grid,.risk-grid{grid-template-columns:1fr;}
@@ -814,6 +823,8 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   .stats-bar{display:none;}
   .page-sub{display:none;}
   .page-title{max-width:38vw;font-size:15px;}
+  .search-in{width:96px;}
+  .tb-left .page-title{max-width:30vw;}
   #companySwitcher{max-width:70px;font-size:10.5px;}
 }
 /* These 4 modals must appear above the full-screen login overlay (z-index:1000) since they're
@@ -1901,7 +1912,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   <div class="card" style="margin-bottom:18px">
     <div class="card-head">
       <span class="card-title">القيادات العليا والإدارات — هيكل تفاعلي</span>
-      <div style="display:flex;gap:8px;align-items:center">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <span class="badge info">شجرة الهيكل</span>
         <button class="btn-xs" onclick="orgExpandAll()">توسيع الكل</button>
         <button class="btn-xs" onclick="orgCollapseAll()">طي الكل</button>
@@ -1910,7 +1921,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     </div>
     <div class="card-body">
       <div style="overflow-x:auto">
-        <div id="orgTreeContainer" style="min-width:700px;padding:10px 0">جارِ التحميل...</div>
+        <div id="orgTreeContainer" class="org-tree-wrap" style="padding:10px 0">جارِ التحميل...</div>
       </div>
     </div>
   </div>
@@ -18734,6 +18745,22 @@ function renderOrgTree(rows, opts){
     return html;
   }
 
+  // Phone layout: one vertical, indented list (every level under its parent) — no sideways scrolling.
+  function mobNode(n, d){
+    const vk = visibleKids(n);
+    const sides = sideOf[n.position_title] || [];
+    const all = vk.kids.concat(sides);
+    const chip = (vk.hidden > 0 || vk.isOpen) ? `<span onclick="event.stopPropagation();toggleOrgNode(${n.id})" style="cursor:pointer;margin-inline-start:8px;background:rgba(255,255,255,.28);border-radius:10px;padding:1px 10px;font-size:11px;font-weight:800">${vk.isOpen ? "−" : "+" + vk.hidden}</span>` : "";
+    const dashed = orgIsSideRaw(n) && !(childrenOf[n.position_title] || []).length ? "outline:2px dashed rgba(255,255,255,.7);outline-offset:-4px;" : "";
+    const holder = (!n.is_body && n.holder_name) ? `<div style="font-size:11px;font-weight:600;opacity:.92;margin-top:2px">${orgEsc(n.holder_name)}</div>` : "";
+    const card = `<div onclick="editStructure(${n.id})" style="background:${orgLevelColor(n.level)};color:#fff;border-radius:8px;padding:9px 12px;font-size:12.5px;font-weight:800;${dashed}display:flex;flex-direction:column"><div style="display:flex;align-items:center;justify-content:space-between;gap:6px"><span>${orgEsc(n.position_title)}</span>${chip}</div>${holder}</div>`;
+    const kidsHtml = all.length ? `<div style="margin:6px 14px 0 0;padding-right:10px;border-right:2px solid var(--gray2);display:flex;flex-direction:column;gap:6px">${all.map(k => mobNode(k, d + 1)).join("")}</div>` : "";
+    return `<div>${card}${kidsHtml}</div>`;
+  }
+  if(opts.mobile && !isStatic && roots.length){
+    return `<div style="display:flex;flex-direction:column;gap:8px">${roots.map(r => mobNode(r, 0)).join("")}</div>`;
+  }
+
   if(roots.length===0) return '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">تعذّر رسم الهيكل — تحقق من ربط "يتبع لـ" لكل منصب.</div>';
   return `<div style="display:flex;justify-content:center;gap:50px;align-items:flex-start">${roots.map(r => renderNode(r, 0)).join("")}</div>`;
 }
@@ -18763,8 +18790,10 @@ function rerenderOrgTree(){
   const c = document.getElementById("orgTreeContainer");
   if(!c || !structureCache || !structureCache.length) return;
   const rows = orgTreeRows(structureCache);
-  c.innerHTML = renderOrgTree(rows) + orgLegendHTML(rows);
+  c.innerHTML = renderOrgTree(rows, { mobile: window.innerWidth <= 700 }) + orgLegendHTML(rows);
 }
+let __orgMob = null;
+window.addEventListener("resize", () => { const m = window.innerWidth <= 700; if(__orgMob !== null && m !== __orgMob && document.getElementById("orgTreeContainer")) rerenderOrgTree(); __orgMob = m; });
 function toggleOrgNode(id){ orgOverride.set(id, !orgNodeCollapsed[id]); rerenderOrgTree(); }
 function orgExpandAll(){ (structureCache || []).forEach(s => orgOverride.set(s.id, false)); rerenderOrgTree(); }
 function orgCollapseAll(){ (structureCache || []).forEach(s => orgOverride.set(s.id, true)); rerenderOrgTree(); }
