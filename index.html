@@ -831,7 +831,8 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 /* These 4 modals must appear above the full-screen login overlay (z-index:1000) since they're
    used from the pre-login screen itself (forgot password, MFA challenge, password reset, privacy
    policy) — without this override they'd render correctly but stay hidden behind it. */
-#m-forgot-password, #m-reset-password, #m-mfa-challenge, #m-privacy-policy, #m-nafath-login, #m-otp-login{ z-index:1100; }
+#m-forgot-password, #m-reset-password, #m-mfa-challenge, #m-privacy-policy, #m-terms, #m-nafath-login, #m-otp-login{ z-index:1100; }
+#m-terms-consent{ z-index:1090; }
 
 /* ── LOGIN SCREEN ── */
 #loginScreen{
@@ -933,6 +934,9 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
       <label>إثبات الملكية (لقطة شاشة أو PDF من محفظتك بتطبيق الوساطة)</label>
       <input type="file" class="fi" id="listedProofFile" accept="image/*,.pdf" />
     </div>
+    <div class="login-field" id="signupTermsField" style="display:none">
+      <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-size:12px;line-height:1.8"><input type="checkbox" id="signupTermsCheck" style="margin-top:5px"><span>أوافق على <a href="javascript:void(0)" onclick="event.preventDefault();openM('m-terms')" style="color:var(--primary);font-weight:700">شروط الاستخدام</a> و<a href="javascript:void(0)" onclick="event.preventDefault();openM('m-privacy-policy')" style="color:var(--primary);font-weight:700">سياسة الخصوصية</a>.</span></label>
+    </div>
     <div class="login-field" id="signupInviteField" style="display:none">
       <label>رمز الدعوة (اختياري)</label>
       <input class="fi" id="signupInviteCode" placeholder="مثال: A1B2C3D4" />
@@ -972,6 +976,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 
     <div class="login-switch" id="authSwitch" onclick="toggleAuthMode()">ليس لديك حساب؟ <b>إنشاء حساب جديد</b></div>
     <div style="text-align:center;margin-top:12px;font-size:10.5px;color:var(--gray3);cursor:pointer;text-decoration:underline" onclick="openM('m-privacy-policy')">سياسة الخصوصية</div>
+    <div style="text-align:center;margin-top:6px;font-size:10.5px;color:var(--gray3);cursor:pointer;text-decoration:underline" onclick="openM('m-terms')">شروط الاستخدام</div>
   </div>
 </div>
 
@@ -1031,21 +1036,60 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   </div>
 </div>
 
+<div class="modal-bg" id="m-terms">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-title"><span class="ico-i ico-clipboard"></span>شروط الاستخدام — منصة حوكم</div>
+    <div style="font-size:12.5px;line-height:2;color:var(--dark);max-height:60vh;overflow-y:auto">
+      <p><b>١. القبول والجهة المالكة</b><br>منصة حوكم مملوكة ومشغَّلة من <b>شركة أسس الأنظمة الجديدة</b> («مزوّد الخدمة»). باستخدامكم المنصة أو إنشاء حساب فيها فإنكم توافقون على هذه الشروط وعلى سياسة الخصوصية. إن كنتم تستخدمونها نيابةً عن شركة فإنكم تقرّون بأنكم مخوَّلون بقبولها عنها.</p>
+      <p><b>٢. الخدمة</b><br>حوكم منصة رقمية تساعد الشركات على تنظيم أعمال الحوكمة: الاجتماعات والمحاضر والقرارات والسياسات والهيكل التنظيمي والتوقيع الإلكتروني وغيرها. المنصة أداة مساعدة ولا تُعدّ استشارة قانونية أو مالية، والقرارات المتخذة عبرها مسؤولية الشركة وأجهزتها.</p>
+      <p><b>٣. الحسابات والصلاحيات</b><br>كل حساب لشخص واحد، ويلتزم صاحبه بسرية بيانات دخوله وعدم مشاركتها. يحدّد مدير النظام في الشركة الصلاحيات الممنوحة لكل مستخدم، ويتحمل مسؤولية منحها وسحبها. أبلغوا الدعم فورًا عند الاشتباه في أي دخول غير مصرّح به.</p>
+      <p><b>٤. المحتوى والبيانات</b><br>تبقى بيانات الشركة ومحتواها ملكًا لها. وتتحمل الشركة ومستخدموها صحة ما يُدخلونه ونظاميته وحقهم في إدخاله، ولا يجوز رفع محتوى مخالف للأنظمة أو يمس حقوق الغير.</p>
+      <p><b>٥. الاستخدام المقبول</b><br>يُمنع محاولة اختراق المنصة أو تعطيلها أو الوصول إلى بيانات شركة أخرى، أو استخدام المنصة لنشر برمجيات خبيثة أو محتوى مضلل أو مسيء، أو إساءة استخدام التوقيع والاعتماد الإلكتروني. ويحق لنا إيقاف أي حساب يخالف ذلك.</p>
+      <p><b>٦. الاشتراك والفوترة والإلغاء</b><br>تُقدَّم الخدمة وفق الباقة المتفق عليها في اتفاقية الاشتراك. يمكن إلغاء الاشتراك في أي وقت وفق شروط اتفاقية الاشتراك، ويسري الإلغاء عند نهاية الفترة المدفوعة ما لم يُتفق على غير ذلك.</p>
+      <p><b>٧. حفظ البيانات</b><br>تُحفظ بيانات الشركة طوال مدة الاشتراك، وتبقى متاحة للتصدير مدة ٩٠ يومًا بعد انتهائه ثم تُحذف نهائيًا، وفق ما هو مفصَّل في سياسة الخصوصية (البند ٨). تتحمل الشركة مسؤولية تصدير ما تحتاج إليه من نسخ قبل انتهاء المدة.</p>
+      <p><b>٨. الملكية الفكرية</b><br>المنصة وتصميمها وبرمجياتها وعلامتها مملوكة لشركة أسس الأنظمة الجديدة. نمنحكم حق استخدامها خلال مدة الاشتراك فقط، دون حق نسخها أو إعادة بيعها أو هندستها عكسيًا.</p>
+      <p><b>٩. السرية</b><br>نتعامل مع بيانات الشركات بسرية، ولا نطّلع عليها إلا بالقدر اللازم للدعم الفني أو التشغيل أو بطلب جهة نظامية مختصة.</p>
+      <p><b>١٠. حدود المسؤولية</b><br>نبذل العناية المعقولة لتوفير الخدمة بشكل مستمر وآمن، لكننا لا نضمن خلوها من الانقطاع أو الأخطاء. ولا نتحمل المسؤولية عن الأضرار غير المباشرة، ولا عن قرارات الشركة المتخذة اعتمادًا على المنصة، إلا فيما لا يجوز نظامًا استثناؤه.</p>
+      <p><b>١١. تعديل الشروط</b><br>قد نحدّث هذه الشروط، وعند التحديث الجوهري سنطلب موافقتكم من جديد عند أول دخول بعد التحديث.</p>
+      <p><b>١٢. بيانات الجهة والتواصل</b><br>شركة أسس الأنظمة الجديدة — الرقم الوطني الموحد: 7051453038 — المقر: الرياض، المملكة العربية السعودية — البريد: <a href="mailto:info@hwkm.net" style="color:var(--primary)">info@hwkm.net</a>.</p>
+      <p><b>١٣. النظام الواجب التطبيق</b><br>تخضع هذه الشروط لأنظمة المملكة العربية السعودية، وتختص الجهات القضائية المختصة في المملكة بأي نزاع ينشأ عنها.</p>
+      <p style="color:var(--gray3);font-size:11px;margin-top:16px">آخر تحديث: أكتوبر ٢٠٢٦ (النسخة 2026-10).</p>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-terms');openM('m-privacy-policy')">سياسة الخصوصية</button><button class="btn btn-gold" style="flex:1" onclick="closeM('m-terms')">إغلاق</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-terms-consent">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title"><span class="ico-i ico-shield"></span>الموافقة على الشروط وسياسة الخصوصية</div>
+    <div style="font-size:12.5px;line-height:2;color:var(--dark)">
+      لمتابعة استخدام المنصة نحتاج موافقتك مرة واحدة على
+      <a href="javascript:void(0)" onclick="openM('m-terms')" style="color:var(--primary);font-weight:700">شروط الاستخدام</a>
+      و
+      <a href="javascript:void(0)" onclick="openM('m-privacy-policy')" style="color:var(--primary);font-weight:700">سياسة الخصوصية</a>،
+      وفيهما ما يخص حفظ بياناتك وبيانات شركتك.
+      <label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px;cursor:pointer"><input type="checkbox" id="terms-gate-check" onchange="document.getElementById('terms-gate-ok').disabled = !this.checked" style="margin-top:6px"><span>قرأت الشروط وسياسة الخصوصية وأوافق عليهما.</span></label>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="gateLogout()">تسجيل الخروج</button><button class="btn btn-gold" id="terms-gate-ok" disabled onclick="acceptTermsGate()" style="flex:1">أوافق وأتابع</button></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-privacy-policy">
   <div class="modal" style="max-width:640px">
     <div class="modal-title"><span class="ico-i ico-shield"></span>سياسة الخصوصية — منصة حوكم</div>
     <div style="font-size:12.5px;line-height:2;color:var(--dark);max-height:60vh;overflow-y:auto">
-      <p><b>١. البيانات التي نجمعها</b><br>نجمع بيانات التسجيل (الاسم، البريد الإلكتروني، رقم الجوال، رقم الهوية الوطنية عند الحاجة للتحقق التلقائي)، وبيانات الاستخدام (سجلات الدخول والنشاط)، والمحتوى الذي تُدخله شركتكم بالمنصة (محاضر، سياسات، بيانات مساهمين وأعضاء مجلس).</p>
+      <p><b>١. البيانات التي نجمعها</b><br>تُدير شركة أسس الأنظمة الجديدة منصة حوكم، وهي الجهة المسؤولة عن معالجة بياناتكم وفق هذه السياسة. نجمع بيانات التسجيل (الاسم، البريد الإلكتروني، رقم الجوال، رقم الهوية الوطنية عند الحاجة للتحقق التلقائي)، وبيانات الاستخدام (سجلات الدخول والنشاط)، والمحتوى الذي تُدخله شركتكم بالمنصة (محاضر، سياسات، بيانات مساهمين وأعضاء مجلس).</p>
       <p><b>٢. الغرض من المعالجة</b><br>نستخدم بياناتكم لتقديم خدمات المنصة، التحقق من الهوية وربط الحسابات تلقائيًا، إرسال الإشعارات والتنبيهات المتعلقة باستخدامكم، والتواصل بخصوص الدعم الفني والفوترة.</p>
       <p><b>٣. أساس المعالجة</b><br>نعالج بياناتكم بناءً على تنفيذ العقد المبرم معكم (اتفاقية الاشتراك)، والموافقة الصريحة عند التسجيل، والمصلحة المشروعة في تشغيل وتأمين المنصة.</p>
       <p><b>٤. مشاركة البيانات</b><br>لا نبيع بياناتكم لأي طرف ثالث. قد نشارك بيانات محدودة مع مزودي خدمات تقنية ضروريين لتشغيل المنصة (استضافة، بريد إلكتروني، رسائل نصية)، بموجب التزامات تعاقدية بحماية البيانات.</p>
       <p><b>٥. أمن البيانات</b><br>نطبّق تدابير تقنية وتنظيمية مناسبة لحماية بياناتكم، بما في ذلك التشفير، والصلاحيات المحدودة، ومراقبة الأنشطة غير المعتادة.</p>
       <p><b>٦. حقوقكم</b><br>يحق لكم الوصول لبياناتكم (عبر زر "تصدير بياناتي")، طلب تصحيحها، أو طلب حذفها وفق سياسة الاحتفاظ بالبيانات والالتزامات النظامية المعمول بها.</p>
       <p><b>٧. الاحتفاظ بالبيانات</b><br>نحتفظ ببياناتكم طوال مدة اشتراككم، ولمدة إضافية بعد الإلغاء حسب ما تقتضيه الالتزامات النظامية، ما لم تطلبوا الحذف المبكر وفق الأنظمة المعمول بها.</p>
-      <p><b>٨. التواصل</b><br>لأي استفسار متعلق بخصوصية بياناتكم، تواصلوا معنا عبر زر "🆘 الدعم" داخل المنصة.</p>
-      <p style="color:var(--gray3);font-size:11px;margin-top:16px">آخر تحديث: أغسطس ٢٠٢٦ — جزء مكمّل لاتفاقية الاشتراك.</p>
+      <p><b>٨. حفظ البيانات والنسخ الاحتياطي واسترجاعها</b><br>تُحفظ بيانات شركتكم (المحاضر والقرارات والسياسات والمستندات وسجلات الاعتماد والتوقيع) في قاعدة بيانات لدى مزوّد استضافة سحابية، وتبقى طوال مدة الاشتراك. عند انتهاء الاشتراك أو إلغائه تظل بياناتكم متاحة للتصدير مدة <b>٩٠ يومًا</b>، ثم تُحذف نهائيًا من الأنظمة الحيّة ما لم يُطلب حذفها قبل ذلك أو يُلزم النظام بحفظ شيء منها. قد تبقى نسخ احتياطية مشفّرة لفترة محدودة بعد الحذف قبل أن تُستبدل تلقائيًا. وقد يلزم الاحتفاظ بسجلات الاعتماد والتوقيع الإلكتروني والنشاط لإثبات صحة القرارات. ننصحكم بتصدير نسخة دورية من بياناتكم عبر زر "تصدير بياناتي"، ويمكنكم طلب الحذف المبكر عبر زر الدعم.</p>
+      <p><b>٩. التواصل</b><br>لأي استفسار متعلق بخصوصية بياناتكم، تواصلوا معنا عبر زر "🆘 الدعم" داخل المنصة أو عبر البريد <a href="mailto:info@hwkm.net" style="color:var(--primary)">info@hwkm.net</a>.<br>شركة أسس الأنظمة الجديدة — الرقم الوطني الموحد: 7051453038 — المقر: الرياض، المملكة العربية السعودية — البريد: <a href="mailto:info@hwkm.net" style="color:var(--primary)">info@hwkm.net</a></p>
+      <p style="color:var(--gray3);font-size:11px;margin-top:16px">آخر تحديث: أكتوبر ٢٠٢٦ — جزء مكمّل لاتفاقية الاشتراك وشروط الاستخدام. © شركة أسس الأنظمة الجديدة.</p>
     </div>
-    <div class="modal-foot"><button class="btn btn-gold" style="width:100%" onclick="closeM('m-privacy-policy')">إغلاق</button></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-privacy-policy');openM('m-terms')">شروط الاستخدام</button><button class="btn btn-gold" style="flex:1" onclick="closeM('m-privacy-policy')">إغلاق</button></div>
   </div>
 </div>
 
@@ -4780,6 +4824,7 @@ function toggleAuthMode(){
   document.getElementById("signupNationalIdField").style.display = authMode === "signup" ? "block" : "none";
   document.getElementById("signupPhoneField").style.display = authMode === "signup" ? "block" : "none";
   document.getElementById("signupInviteField").style.display = authMode === "signup" ? "block" : "none";
+  document.getElementById("signupTermsField").style.display = authMode === "signup" ? "block" : "none";
   document.getElementById("signupCompanyCodeField").style.display = authMode === "signup" ? "block" : "none";
   document.getElementById("passwordlessLoginOptions").style.display = authMode === "login" ? "block" : "none";
   if(authMode === "signup"){
@@ -5010,6 +5055,7 @@ async function handleAuth(){
     if(!phone_number){ showLoginMsg("الرجاء إدخال رقم الجوال", false); return; }
     if(account_type === "مساهم" && !shares_count){ showLoginMsg("الرجاء إدخال عدد الأسهم", false); return; }
     if(!signupOtpVerifiedFlag){ showLoginMsg("الرجاء التحقق من رقم جوالك عبر رمز OTP أولًا قبل إنشاء الحساب", false); return; }
+    if(!document.getElementById("signupTermsCheck").checked){ showLoginMsg("الرجاء الموافقة على شروط الاستخدام وسياسة الخصوصية لإنشاء الحساب", false); return; }
 
     // The company code is only remembered in the account's metadata here. While the email is
     // unconfirmed there is no session, so the join request is made on the first signed-in visit
@@ -5060,7 +5106,7 @@ async function handleAuth(){
     let claimedRecords = [];
     let memberships = []; // { company_id, role } — only ever filled by an invite link
 
-    const profilePayload = { email, account_type, full_name, national_id, phone_number, shares_count };
+    const profilePayload = { email, account_type, full_name, national_id, phone_number, shares_count, terms_accepted_at: new Date().toISOString(), terms_version: TERMS_VERSION };
     if(inviteCompanyId){ profilePayload.company_id = inviteCompanyId; profilePayload.role = inviteRole; }
 
     const { error: profileError } = await sb.from("user_profiles").insert([profilePayload]);
@@ -5087,12 +5133,37 @@ async function handleAuth(){
     document.getElementById("signupNationalIdField").style.display = "none";
     document.getElementById("signupPhoneField").style.display = "none";
     document.getElementById("signupInviteField").style.display = "none";
+    document.getElementById("signupTermsField").style.display = "none";
     document.getElementById("signupCompanyCodeField").style.display = "none";
     document.getElementById("signupSharesField").style.display = "none";
   }
 }
 
 let userMemberships = [];
+
+/* Terms & privacy consent. Bump TERMS_VERSION when the texts change materially: everyone is asked again once. */
+const TERMS_VERSION = "2026-10";
+function needsTermsConsent(){
+  return !!currentUserProfile && (!currentUserProfile.terms_accepted_at || currentUserProfile.terms_version !== TERMS_VERSION) && sessionStorage.getItem("hwkm_terms_ok") !== TERMS_VERSION;
+}
+function openTermsGate(){
+  const chk = document.getElementById("terms-gate-check"); if(chk) chk.checked = false;
+  const ok = document.getElementById("terms-gate-ok"); if(ok) ok.disabled = true;
+  openM("m-terms-consent");
+}
+async function acceptTermsGate(){
+  if(!currentUserProfile) return;
+  const now = new Date().toISOString();
+  const r = await sb.from("user_profiles").update({ terms_accepted_at: now, terms_version: TERMS_VERSION }).eq("email", currentUserProfile.email);
+  if(r.error){
+    // Never lock someone out of their own company's records because the consent could not be stored — allow this session and ask again next time.
+    try{ sessionStorage.setItem("hwkm_terms_ok", TERMS_VERSION); }catch(e){}
+    alert("تعذّر حفظ موافقتك الآن، يمكنك المتابعة وسنطلبها مرة أخرى في الدخول القادم.");
+  } else {
+    currentUserProfile.terms_accepted_at = now; currentUserProfile.terms_version = TERMS_VERSION;
+  }
+  closeM("m-terms-consent");
+}
 
 async function loadCurrentUserProfile(){
   const nameEl = document.getElementById('gm-shareholder-name');
@@ -5111,6 +5182,7 @@ async function loadCurrentUserProfile(){
   userMemberships = memberships || [];
   await claimPhoneProofIfAny();
   if(currentUserProfile && !currentUserProfile.phone_verified_at){ openPhoneGate(false); }
+  if(needsTermsConsent()){ openTermsGate(); }
   const joinIntentResult = await processPendingJoinIntent();
   if(currentUserProfile && currentUserProfile.account_type === "مساهم" && nameEl){
     nameEl.value = currentUserProfile.full_name || "";
@@ -5608,7 +5680,7 @@ async function verifyGatePhoneOtp(){
   if(phoneGateMode === "gate") await loadCurrentUserProfile();
   else alert("تم تحديث رقم جوالك بعد التحقق منه ✅");
 }
-async function gateLogout(){ closeM("m-phone-gate"); await logout(); }
+async function gateLogout(){ closeM("m-phone-gate"); closeM("m-terms-consent"); await logout(); }
 
 function likeEsc(s){ return String(s == null ? "" : s).replace(/[\\%_]/g, "\\$&"); }
 
