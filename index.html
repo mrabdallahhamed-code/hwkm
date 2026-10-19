@@ -324,6 +324,21 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   transition:margin-right 0.3s ease;
 }
 .content{padding:26px 30px;}
+/* ── واجهة المساهم: بلا قائمة جانبية، وشريط علوي بثلاث صفحات فقط ── */
+#shTopNav{display:none;position:fixed;top:var(--topbar-h);right:0;left:0;height:46px;background:#fff;border-bottom:1px solid var(--gray1);box-shadow:0 2px 10px rgba(15,33,56,.05);z-index:99;align-items:stretch;justify-content:center;gap:6px;padding:0 20px}
+#shTopNav .sh-tab{display:flex;align-items:center;gap:7px;background:none;border:none;border-bottom:3px solid transparent;font-family:'Tajawal',sans-serif;font-size:13.5px;font-weight:700;color:var(--gray3);cursor:pointer;padding:0 18px;transition:color .15s,border-color .15s}
+#shTopNav .sh-tab:hover{color:var(--primary)}
+#shTopNav .sh-tab.active{color:var(--primary);border-bottom-color:var(--gold)}
+body.sh-mode #shTopNav{display:flex}
+body.sh-mode .sidebar{display:none !important}
+body.sh-mode .topbar{right:0}
+body.sh-mode .main{margin-right:0;padding-top:calc(var(--topbar-h) + 46px)}
+body.sh-mode .topbar .menu-btn{display:none !important}
+body.sh-mode .topbar [onclick="openEditCompanyModal()"],
+body.sh-mode .topbar [onclick="exportAllCompanyData()"],
+body.sh-mode #btnAddCompany{display:none !important}
+@media(max-width:600px){ #shTopNav{justify-content:flex-start;overflow-x:auto;padding:0 8px} #shTopNav .sh-tab{padding:0 12px;font-size:12.5px;white-space:nowrap} }
+
 
 /* ── PAGES ── */
 .page{display:none;animation:fadeUp 0.3s ease;}
@@ -1267,6 +1282,12 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     </div>
   </div>
 </header>
+
+<nav id="shTopNav" aria-label="صفحات المساهم">
+  <button class="sh-tab" data-page="agm" onclick="go('agm',null)"><span class="ico-i ico-handshake"></span>الجمعية العامة</button>
+  <button class="sh-tab" data-page="voting" onclick="go('voting',null)"><span class="ico-i ico-ballot"></span>التصويت الإلكتروني</button>
+  <button class="sh-tab" data-page="signing" onclick="go('signing',null)"><span class="ico-i ico-signature"></span>التوقيع الإلكتروني</button>
+</nav>
 
 <!-- MAIN -->
 <main class="main">
@@ -5273,6 +5294,8 @@ async function applyRolePermissions(){
   const teamModule = currentUserProfile && currentUserProfile.platform_team_module;
   const isPlatformTeamMember = !!teamModule && !isPlatformAdmin;
   const hasNoCompany = currentUserProfile && userMemberships.length === 0;
+  // المساهم فقط: بلا قائمة جانبية، ويتنقل بين صفحاته الثلاث من الشريط العلوي
+  document.body.classList.toggle('sh-mode', !!(isShareholder && !isPlatformAdmin && !isPlatformTeamMember && !hasNoCompany));
 
   const nameEl = document.getElementById('sidebarUserName');
   const roleEl = document.getElementById('sidebarUserRole');
@@ -10389,7 +10412,7 @@ async function loadShareholderAGMView(agmMeetings){
    signed invitation, and every supporting document — each offered as either VIEW (opens in
    a new tab, no forced download) or DOWNLOAD (saves the file), never just one or the other. */
 async function shareholderAGMDetailHTML(m){
-  const { invitationDoc, invitationFullySigned, supDocs } = await fetchShareholderAGMDocs(m.id);
+  const { invitationDoc, invitationFullySigned, invitationProgress, invitationUnpublished, supDocs } = await fetchShareholderAGMDocs(m.id);
 
   const todayStr = new Date().toISOString().slice(0,10);
   let statusBadge;
@@ -10414,7 +10437,7 @@ async function shareholderAGMDetailHTML(m){
           <a class="btn-xs primary" href="${invitationDoc.file_url}" download style="border-radius:6px;padding:5px 12px;font-size:10.5px"><span class="ico-i ico-inbox"></span>تحميل</a>
         </div>
       </div>`
-    : `<div style="font-size:12px;color:var(--gray3);background:var(--offwhite);border-radius:8px;padding:10px 12px"><span class="ico-i ico-send"></span>دعوة الجمعية الموقّعة لم تُنشر بعد — تابعونا قريبًا.</div>`;
+    : `<div style="font-size:12px;color:var(--gray3);background:var(--offwhite);border-radius:8px;padding:10px 12px"><span class="ico-i ico-send"></span>دعوة الجمعية لم تُنشر بعد — ${invitationUnpublished ? 'ستظهر هنا فور إرسالها من إدارة الشركة.' : (invitationProgress ? `وُقّع ${invitationProgress.signed} من ${invitationProgress.total} توقيعات مطلوبة.` : 'لم تُنشأ الدعوة بعد.')} تابعونا قريبًا.</div>`;
 
   const supHTML = (supDocs && supDocs.length)
     ? supDocs.map(d => `<div class="sh-doc-row">
@@ -10444,16 +10467,34 @@ async function shareholderAGMDetailHTML(m){
 }
 
 async function fetchShareholderAGMDocs(meetingId){
+  // الطريق الأول: دوال آمنة في قاعدة البيانات (تتجاوز قيود القراءة على جداول التوقيع للمساهم المعتمد فقط)
+  try{
+    const { data: inv, error: e1 } = await sb.rpc("get_agm_invitation", { p_meeting_id: meetingId });
+    const { data: sup, error: e2 } = await sb.rpc("get_agm_supporting_docs", { p_meeting_id: meetingId });
+    if(!e1 && !e2){
+      const invitationDoc = inv && inv.id ? { id: inv.id, file_url: inv.file_url, signers_total: inv.signers_total } : null;
+      const total = inv && inv.signers_total ? inv.signers_total : 1;
+      const signedCount = inv ? (inv.signed_count || 0) : 0;
+      // الدعوة تظهر للمساهم فقط بعد أن ينشرها المسؤول بزر «إرسال الدعوة»
+      const visible = !!(invitationDoc && invitationDoc.file_url);
+      return { invitationDoc: visible ? invitationDoc : null, invitationFullySigned: visible && signedCount >= total,
+        invitationProgress: invitationDoc ? { signed: signedCount, total } : null,
+        invitationUnpublished: !!(invitationDoc && !visible), supDocs: Array.isArray(sup) ? sup : [] };
+    }
+  }catch(e){}
+  // الطريق الاحتياطي (قبل تنفيذ SQL): القراءة المباشرة كما كانت
   const { data: invDocs } = await sb.from("signing_documents").select("id,file_url,signers_total")
     .eq("related_meeting_id", meetingId).eq("doc_type","دعوة جمعية عامة").order("id",{ascending:false}).limit(1);
   const invitationDoc = (invDocs||[])[0];
-  let invitationFullySigned = false;
+  let invitationFullySigned = false, invitationProgress = null;
   if(invitationDoc){
     const { data: sigs } = await sb.from("official_doc_signatures").select("id").eq("document_id", invitationDoc.id);
-    invitationFullySigned = (sigs||[]).length >= (invitationDoc.signers_total||1);
+    const total = invitationDoc.signers_total||1;
+    invitationFullySigned = (sigs||[]).length >= total;
+    invitationProgress = { signed: (sigs||[]).length, total };
   }
   const { data: supDocs } = await sb.from("meeting_supporting_docs").select("*").eq("meeting_id", meetingId).order("id",{ascending:false});
-  return { invitationDoc, invitationFullySigned, supDocs };
+  return { invitationDoc, invitationFullySigned, invitationProgress, supDocs };
 }
 
 async function openShareholderAGMPopup(meetingId){
@@ -12065,7 +12106,7 @@ async function openAGMDetailModal(id){
     {
       icon:"📨", title:"دعوة الجمعية",
       status: invitationDoc
-        ? (invitationFullySigned ? '<span class="file-card-status ok"><span class="ico-i ico-check"></span>موقّعة بالكامل</span>' : '<span class="file-card-status pending"><span class="ico-i ico-dot"></span>بانتظار اكتمال التوقيع</span>')
+        ? (invitationFullySigned ? (m.invitation_published_at ? '<span class="file-card-status ok"><span class="ico-i ico-check"></span>موقّعة ومنشورة للمساهمين</span>' : '<span class="file-card-status ok"><span class="ico-i ico-check"></span>موقّعة — لم تُنشر للمساهمين بعد (اضغط «إرسال الدعوة»)</span>') : '<span class="file-card-status pending"><span class="ico-i ico-dot"></span>بانتظار اكتمال التوقيع</span>')
         : '<span class="file-card-status muted">لم تُولَّد بعد</span>',
       actions: invitationDoc
         ? `<a class="btn btn-outline" style="font-size:11px;padding:6px 14px" href="${invitationDoc.file_url}" target="_blank" rel="noopener"><span class="ico-i ico-inbox"></span>عرض/تحميل</a>`
@@ -17094,7 +17135,12 @@ async function sendInvitationToShareholders(meetingId){
   const invitationLink = invitation ? invitation.file_url : null;
   const listedLink = currentCompanyType === "مساهمة مدرجة" ? `${window.location.origin}${window.location.pathname}?listed_company=${currentCompanyId}` : null;
 
-  if(!await uiConfirm(`سيتم إرسال دعوة الجمعية لـ${recipients.length} مساهم لديهم بريد مسجَّل. متابعة؟`)) return;
+  if(!await uiConfirm(`سيتم نشر دعوة الجمعية لكل المساهمين على المنصة، وإرسالها بالبريد لـ${recipients.length} مساهم لديهم بريد مسجَّل. متابعة؟`)) return;
+
+  // نشر الدعوة وملفاتها الداعمة على حسابات المساهمين (يشترط اكتمال توقيع الدعوة)
+  const { data: pubRes, error: pubErr } = await sb.rpc("publish_agm_invitation", { p_meeting_id: meetingId });
+  if(pubErr){ alert("تعذّر نشر الدعوة: " + pubErr.message + "\nتأكد من تنفيذ ملف SQL الخاص بالنشر."); return; }
+  if(!pubRes || pubRes.ok !== true){ alert("لم تُنشر الدعوة: " + ((pubRes && pubRes.reason) || "سبب غير معروف")); return; }
 
   const subject = `دعوة لحضور ${m.title||"الجمعية العامة"} — ${company?.name||""}`;
   let sent = 0, failed = 0;
@@ -17111,7 +17157,8 @@ async function sendInvitationToShareholders(meetingId){
     const result = await sendNotificationEmail(s.email, subject, html);
     if(result && result.success) sent++; else failed++;
   }
-  alert(`تم الإرسال ✅ — ${sent} رسالة ناجحة${failed?`، ${failed} فشلت`:""}.`);
+  alert(`تم نشر الدعوة للمساهمين على المنصة ✅ — وأُرسلت ${sent} رسالة بريد ناجحة${failed?`، ${failed} فشلت`:""}.`);
+  try{ openAGMDetailModal(meetingId); }catch(e){}
 }
 
 async function sendMeetingReminderEmails(meetingId){
@@ -23360,8 +23407,12 @@ function pdfHostRemove(el){ const h = el && el.parentNode; if(h && h.getAttribut
   window.uiPrompt = (m, def) => dialog(m, { prompt:true, def });
 })();
 
+function updateShTopNav(id){
+  document.querySelectorAll('#shTopNav .sh-tab').forEach(b => b.classList.toggle('active', b.getAttribute('data-page') === id));
+}
 async function go(id, el){
   currentPageId = id;
+  updateShTopNav(id);
   if(companyTypeReadyPromise){ try{ await companyTypeReadyPromise; }catch(e){} }
   const role = currentUserProfile ? getCurrentRole() : null;
   const blocked = role && !isPageAllowed(id, role);
