@@ -19541,6 +19541,24 @@ async function loadVotingPage(){
 
   await loadElectionVotingSection(isOpen);
 
+  // إغلاق أزرار التصويت إذا وقّع المساهم بطاقته
+  if(!isOverseer && isOpen){
+    const nmEl = document.getElementById('gm-shareholder-name');
+    const nm = nmEl ? nmEl.value.trim() : "";
+    if(nm && await isVoteLockedFor(nm)){
+      ["votingTopicsContainer","votingElectionContainer"].forEach(id => {
+        const box = document.getElementById(id);
+        if(!box) return;
+        box.querySelectorAll("button,input").forEach(el => { el.disabled = true; el.style.opacity = "0.45"; el.style.cursor = "not-allowed"; });
+        box.querySelectorAll("button[onclick*='submitElectionAllocation']").forEach(el => el.remove());
+      });
+      const tb = document.getElementById("votingTopicsContainer");
+      if(tb && !document.getElementById("voteLockedNote")){
+        tb.insertAdjacentHTML("afterbegin", '<div id="voteLockedNote" style="background:#E8F8EF;color:var(--green);border-radius:10px;padding:10px 12px;font-size:12px;font-weight:800;margin-bottom:8px"><span class="ico-i ico-check"></span>تم تسجيل تصويتك وتوقيع بطاقتك، وأُغلق التصويت عليك.</div>');
+      }
+    }
+  }
+
   await loadCompanySettings();
   if(isOverseer){
     loadVoteResults();
@@ -19649,7 +19667,8 @@ async function loadShareholdersSummary(){
     <td style="text-align:center;color:var(--green)">${s.yes} بند</td>
     <td style="text-align:center;color:var(--red)">${s.no} بند</td>
     <td style="text-align:center;color:var(--orange)">${s.abs} بند</td>
-    <td><button class="btn-xs primary" onclick="openVoterSignedCard('${orgEsc(s.name.replace(/'/g,""))}')"><span class="ico-i ico-document"></span>عرض/تحميل البطاقة الموقّعة</button></td>
+    <td><button class="btn-xs primary" onclick="openVoterSignedCard('${orgEsc(s.name.replace(/'/g,""))}')"><span class="ico-i ico-document"></span>عرض/تحميل البطاقة الموقّعة</button>
+    <button class="btn-xs" style="margin-top:4px;background:#FEF3E2;color:var(--orange);border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-weight:700" onclick="reopenVoterVoting('${orgEsc(s.name.replace(/'/g,""))}')"><span class="ico-i ico-warning"></span>فتح التصويت للتعديل</button></td>
   </tr>`).join("");
 
   const totalVotedShares = list.reduce((sum,s)=>sum+s.shares,0);
@@ -23557,6 +23576,17 @@ async function recomputeRequestStatus(requestId){
   else newStatus = "محال إلى مجلس الإدارة";
   await sb.from("appoint_requests").update({ status: newStatus }).eq("id", requestId);
 }
+/* قفل التصويت: بعد أن يوقّع المساهم بطاقته ويُحفظ ملفها، لا يستطيع التصويت ولا التعديل */
+async function isVoteLockedFor(shareholderName){
+  try{
+    if(!currentVotingMeetingId || !shareholderName) return false;
+    const { data } = await sb.from("agm_attendance").select("signed_vote_card_url")
+      .eq("meeting_id", currentVotingMeetingId).eq("shareholder_name", shareholderName).maybeSingle();
+    return !!(data && data.signed_vote_card_url);
+  }catch(e){ return false; }
+}
+const VOTE_LOCKED_MSG = "تم إغلاق التصويت عليك لأنك وقّعت بطاقتك وحمّلتها. لا يمكن التصويت أو التعديل بعد التوقيع.";
+
 async function voteItem(btn, topic, result){
   await autofillShareholderVoteFields();
   const nameEl = document.getElementById('gm-shareholder-name');
@@ -23567,6 +23597,7 @@ async function voteItem(btn, topic, result){
     alert("لا يمكن التصويت: لا يوجد سجل مساهم مرتبط بحسابك. تواصل مع مدير الشركة.");
     return;
   }
+  if(await isVoteLockedFor(shareholder_name)){ alert(VOTE_LOCKED_MSG); loadVotingPage(); return; }
   var par=btn.parentElement;
   par.querySelectorAll('button').forEach(function(b){b.style.opacity='0.4';});
   btn.style.opacity='1';btn.style.fontWeight='800';
@@ -23673,6 +23704,7 @@ async function submitElectionAllocation(maxVotes){
   const shareholder_name = nameEl ? nameEl.value.trim() : "";
   const shares_count = sharesEl && sharesEl.value ? Number(sharesEl.value) : null;
   if(!shareholder_name || !shares_count){ alert("لا يمكن التصويت: لا يوجد سجل مساهم مرتبط بحسابك. تواصل مع مدير الشركة."); return; }
+  if(await isVoteLockedFor(shareholder_name)){ alert(VOTE_LOCKED_MSG); loadVotingPage(); return; }
 
   const inputs = [...document.querySelectorAll("#electionAllocRows input[data-cand-id]")];
   const total = inputs.reduce((s,inp)=> s + (Number(inp.value)||0), 0);
@@ -23701,6 +23733,7 @@ async function voteCandidate(btn, candidateId, vote){
   const shareholder_name = nameEl ? nameEl.value.trim() : "";
   const shares_count = sharesEl && sharesEl.value ? Number(sharesEl.value) : null;
   if(!shareholder_name || !shares_count){ alert("لا يمكن التصويت: لا يوجد سجل مساهم مرتبط بحسابك. تواصل مع مدير الشركة."); return; }
+  if(await isVoteLockedFor(shareholder_name)){ alert(VOTE_LOCKED_MSG); loadVotingPage(); return; }
 
   await sb.from("board_election_votes").delete().eq("candidate_id", candidateId).eq("shareholder_name", shareholder_name);
   const { error } = await sb.from("board_election_votes").insert([{
@@ -23720,6 +23753,23 @@ function arabicDayName(dateStr){
   const d = new Date(dateStr + "T00:00:00");
   if(isNaN(d.getTime())) return "";
   return ARABIC_DAY_NAMES[d.getDay()];
+}
+
+/* مالك المنصة / مدير النظام: إعادة فتح التصويت لمساهم وقّع بطاقته (لتصحيح خطأ) */
+async function reopenVoterVoting(shareholderName){
+  if(getCurrentRole() !== 'مدير النظام'){ alert("هذا الإجراء لمدير النظام أو مالك المنصة فقط."); return; }
+  if(!currentVotingMeetingId){ alert("تعذّر تحديد الجمعية الحالية"); return; }
+  if(!await uiConfirm(`فتح التصويت للتعديل للمساهم "${shareholderName}"؟\nسيستطيع تغيير تصويته ثم يوقّع بطاقته من جديد، وتُسجَّل العملية باسمك.`)) return;
+  const reason = await uiPrompt("سبب إعادة الفتح (مثلًا: خطأ في الاختيار):", "");
+  if(reason === null) return;
+  const { data: row } = await sb.from("agm_attendance").select("signed_vote_card_url")
+    .eq("meeting_id", currentVotingMeetingId).eq("shareholder_name", shareholderName).maybeSingle();
+  const { error } = await sb.from("agm_attendance").update({ signed_vote_card_url: null })
+    .eq("meeting_id", currentVotingMeetingId).eq("shareholder_name", shareholderName);
+  if(error){ alert("تعذّر فتح التصويت: " + error.message); return; }
+  await logActivity("إعادة فتح التصويت", "جمعية عمومية", shareholderName, "السبب: " + (reason||"غير مذكور") + " | البطاقة السابقة: " + ((row && row.signed_vote_card_url) || "—"));
+  uiToast("تم فتح التصويت للمساهم، ويستطيع الآن التعديل ثم التوقيع من جديد.");
+  loadVoteResults();
 }
 
 async function openVoterSignedCard(shareholderName){
@@ -24112,16 +24162,19 @@ async function confirmVoteCardSignature(){
     y += rowH;
   });
 
-  y += 40*scale;
+  y += 34*scale;
   ctx.textAlign = "right"; ctx.font = `${12*scale}px Tajawal, Arial`; ctx.fillStyle = "#0D2447";
   ctx.fillText("التوقيع/", RM, y);
   const sigCanvas = document.getElementById("voteSigCanvas");
   const sigDataUrl = sigCanvas.toDataURL("image/png");
   const sigImg = await new Promise(res => { const img = new Image(); img.onload = () => res(img); img.src = sigDataUrl; });
-  const sigW = 160*scale, sigH = sigW * (sigImg.height/sigImg.width);
-  ctx.drawImage(sigImg, RM - 130*scale - sigW, y - sigH + 8*scale, sigW, sigH);
+  const sigW = 150*scale, sigH = Math.min(sigW * (sigImg.height/sigImg.width), 70*scale);
+  const sigTop = y + 10*scale;
+  ctx.drawImage(sigImg, RM - sigW, sigTop, sigW, sigH);
+  ctx.strokeStyle = "#B8C0CC"; ctx.lineWidth = 1*scale;
+  ctx.beginPath(); ctx.moveTo(RM - sigW - 10*scale, sigTop + sigH + 4*scale); ctx.lineTo(RM, sigTop + sigH + 4*scale); ctx.stroke();
   ctx.font = `${9.5*scale}px Tajawal, Arial`; ctx.fillStyle = "#8B95A5"; ctx.textAlign = "right";
-  ctx.fillText(`تاريخ التوقيع: ${new Date().toLocaleDateString("ar-SA-u-ca-gregory")}`, RM, y + 20*scale);
+  ctx.fillText(`تاريخ التوقيع: ${new Date().toLocaleDateString("ar-SA-u-ca-gregory")}`, RM, sigTop + sigH + 24*scale);
 
   const cardPng = canvas.toDataURL("image/png");
   const { PDFDocument } = PDFLib;
@@ -24150,7 +24203,8 @@ async function confirmVoteCardSignature(){
   setTimeout(()=>URL.revokeObjectURL(blobUrl), 5000);
 
   closeM("m-vote-card-sign");
-  alert("تم تحميل بطاقة التصويت موقّعة بنجاح ✅ — ونُسخة محفوظة تلقائيًا بالمنصة.");
+  alert("تم تحميل بطاقة التصويت موقّعة بنجاح ✅ — ونُسخة محفوظة تلقائيًا بالمنصة. أُغلق التصويت عليك الآن.");
+  try{ loadVotingPage(); }catch(e){}
 }
 
 function vote(type){const msg=document.getElementById("vote-msg");const labels={"yes":"✅ تم تسجيل تصويتك: موافق","no":"❌ تم تسجيل تصويتك: معارض","abs":"🔵 تم تسجيل تصويتك: ممتنع"};msg.textContent=labels[type]||"تم التسجيل";msg.style.display="block";if(type==="no"){msg.style.background="#FDE8E8";msg.style.color="var(--red)";}else if(type==="abs"){msg.style.background="#FEF3E2";msg.style.color="var(--orange)";}else{msg.style.background="#E8F8EF";msg.style.color="var(--green)";}};
