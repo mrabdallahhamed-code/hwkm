@@ -14793,6 +14793,7 @@ async function loadSigning(){
 
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
+  window.__myEmailForSigning = myEmail;
   const role = getCurrentRole();
 
   // ── Pending cards: only what still needs a signature, front and center ──
@@ -14814,9 +14815,11 @@ async function loadSigning(){
           const iSigned = myEmail && signed.some(x => x.signer_email === myEmail);
           const namesList = signed.length ? signed.map(x=>x.signer_name||x.signer_email).join('، ') : 'لا أحد بعد';
           const pct = total>0 ? Math.round(signed.length/total*100) : 0;
-          const actionBtn = iSigned
-            ? '<span class="badge done" style="width:100%;justify-content:center;padding:9px 0"><span class="ico-i ico-check"></span>وقّعت بالفعل</span>'
-            : `<button class="btn btn-gold" style="width:100%" onclick="openSignaturePad(${s.id})"><span class="ico-i ico-signature"></span>توقيع الآن</button>`;
+          const actionBtn = s.signer_roles
+            ? officialActionHTML(s, signed, myEmail, true)
+            : (iSigned
+              ? '<span class="badge done" style="width:100%;justify-content:center;padding:9px 0"><span class="ico-i ico-check"></span>وقّعت — انتهى توقيعك</span>'
+              : `<button class="btn btn-gold" style="width:100%" onclick="openSignaturePad(${s.id})"><span class="ico-i ico-signature"></span>توقيع الآن</button>`);
           return `<div class="card">
             <div class="card-body">
               <div style="font-weight:800;font-size:13.5px;color:var(--dark);margin-bottom:2px">${orgEsc(s.document_name||"")}</div>
@@ -14862,7 +14865,7 @@ function renderSigningArchiveTable(){
     const fileLink = s.file_url ? `<a href="${s.file_url}" target="_blank" rel="noopener" title="عرض الملف" style="color:var(--primary);margin-left:10px"><span class="ico ico-document" style="width:16px;height:16px"></span></a>` : "";
     const primaryAction = isOfficialDoc
       ? (isComplete ? `<button class="btn-xs" style="background:#FEF3E2;color:var(--gold);border:1px solid var(--gold);border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer" onclick="applyCompanySealToDoc(${s.id})">إضافة الختم</button>`
-                    : `<button class="btn-xs gold" onclick="openOfficialSignModal(${s.id})">توقيع</button>`)
+                    : officialActionHTML(s, signed, window.__myEmailForSigning, false))
       : `<button class="btn-xs gold" onclick="generateSignedDocumentPDF(${s.id},this)">${isComplete ? "تحميل PDF" : "حالة التوقيع"}</button>`;
     return `<tr>
       <td>${fileLink}${orgEsc(s.document_name||"")}</td>
@@ -15101,24 +15104,60 @@ async function applyCompanySealToDoc(signingDocId){
   }
 }
 
+/* ══════════ التوقيع حسب صاحب الدور (المستندات متعددة الأطراف) ══════════
+   كل حساب يوقّع دوره هو فقط: الأدوار المعروضة له هي التي اسمها المكتوب في المستند يطابق اسمه،
+   وإذا وقّع انتهى توقيعه وبقي مفتوحًا لأصحاب الأدوار الباقية. */
+function normArName(x){
+  return String(x||"").replace(/[\u064B-\u0652\u0640]/g,"").replace(/[أإآ]/g,"ا").replace(/ة/g,"ه").replace(/ى/g,"ي")
+    .replace(/\s+/g," ").trim().toLowerCase();
+}
+function isMyName(name){
+  const me = normArName(currentUserProfile && currentUserProfile.full_name);
+  const other = normArName(name);
+  if(!me || !other) return false;
+  if(me === other) return true;
+  const a = me.split(" "), b = other.split(" ");
+  const small = a.length <= b.length ? a : b, big = a.length <= b.length ? b : a;
+  return small.length >= 2 && small.every(t => big.includes(t));
+}
+// حالة المستند بالنسبة لحسابي: أدواري المتبقية، وهل وقّعت، وما بقي على الآخرين
+function officialDocMyState(doc, sigs, myEmail){
+  const roles = doc.signer_roles || [];
+  const signedRoles = (sigs||[]).map(x => x.role);
+  const remaining = roles.filter(r => !signedRoles.includes(r.role));
+  const myPending = remaining.filter(r => isMyName(r.name)).map(r => r.role);
+  const iSigned = !!(myEmail && (sigs||[]).some(x => (x.signer_email||"").toLowerCase() === myEmail.toLowerCase()));
+  return { remaining, myPending, iSigned, othersPending: remaining.filter(r => !isMyName(r.name)).map(r => r.role) };
+}
+function officialActionHTML(doc, sigs, myEmail, big){
+  const st = officialDocMyState(doc, sigs, myEmail);
+  const w = big ? 'style="width:100%;justify-content:center;padding:9px 0"' : '';
+  if(st.myPending.length) return big
+    ? `<button class="btn btn-gold" style="width:100%" onclick="openOfficialSignModal(${doc.id})"><span class="ico-i ico-signature"></span>توقيع الآن</button>`
+    : `<button class="btn-xs gold" onclick="openOfficialSignModal(${doc.id})">توقيع</button>`;
+  if(st.iSigned) return `<span class="badge done" ${w}><span class="ico-i ico-check"></span>وقّعت — انتهى توقيعك</span>`;
+  if(st.remaining.length) return `<span class="badge pending" ${w} title="بانتظار: ${orgEsc(st.othersPending.join('، '))}">بانتظار توقيع الآخرين</span>`;
+  return "";
+}
+
 async function openOfficialSignModal(docId){
   const { data: doc } = await sb.from("signing_documents").select("*").eq("id", docId).single();
   if(!doc || !doc.signer_roles){ alert("هذا المستند لا يستخدم نظام التوقيع بالمواضع"); return; }
   const { data: sigs } = await sb.from("official_doc_signatures").select("role").eq("document_id", docId);
   const signedRoles = (sigs||[]).map(s => s.role);
-  const remainingRoles = (doc.signer_roles||[]).map(r => r.role).filter(r => !signedRoles.includes(r));
+  const remainingRoles = (doc.signer_roles||[]).filter(r => !signedRoles.includes(r.role) && isMyName(r.name)).map(r => r.role);
+  const anyRemaining = (doc.signer_roles||[]).some(r => !signedRoles.includes(r.role));
+  if(remainingRoles.length === 0){
+    alert(anyRemaining ? "لا يوجد دور توقيع باسمك في هذا المستند، أو أنك وقّعت دورك بالفعل. التوقيع لصاحب الدور فقط." : "اكتمل توقيع كل الأطراف المطلوبة.");
+    return;
+  }
 
   currentOfficialSignDocId = docId;
   document.getElementById("officialSignInfo").innerHTML =
     `<b>${orgEsc(doc.document_name)}</b><br>وقّع حتى الآن: ${signedRoles.length} من ${doc.signer_roles.length}`;
   const sel = document.getElementById("official-sign-role");
-  if(remainingRoles.length === 0){
-    sel.innerHTML = '<option>اكتمل توقيع كل الأطراف المطلوبة</option>';
-    sel.disabled = true;
-  } else {
-    sel.disabled = false;
-    sel.innerHTML = remainingRoles.map(r => `<option value="${r}">${r}</option>`).join("");
-  }
+  sel.disabled = false;
+  sel.innerHTML = remainingRoles.map(r => `<option value="${orgEsc(r)}">${orgEsc(r)}</option>`).join("");
   openM("m-official-sign");
   setTimeout(initOfficialSigPad, 50);
 }
@@ -15161,6 +15200,14 @@ async function confirmOfficialSignature(){
   if(sel.disabled){ alert("لا توجد أدوار متبقية للتوقيع بهذا المستند"); return; }
   const role = sel.value;
   if(isOfficialSigPadEmpty()){ alert("الرجاء رسم التوقيع أولًا"); return; }
+  // إعادة التحقق من قاعدة البيانات: الدور لي ولم يُوقَّع بعد
+  {
+    const { data: docChk } = await sb.from("signing_documents").select("signer_roles").eq("id", currentOfficialSignDocId).single();
+    const { data: sigChk } = await sb.from("official_doc_signatures").select("role").eq("document_id", currentOfficialSignDocId);
+    const roleRow = ((docChk && docChk.signer_roles) || []).find(r => r.role === role);
+    if(!roleRow || !isMyName(roleRow.name)){ alert("هذا الدور ليس لك، التوقيع لصاحب الدور فقط."); closeM("m-official-sign"); return; }
+    if((sigChk||[]).some(x => x.role === role)){ alert("هذا الدور وقّع بالفعل ✅"); closeM("m-official-sign"); loadSigning(); return; }
+  }
   if(!(await lockFirstSignature("officialSigCanvas"))) return;
 
   const { data: userData } = await sb.auth.getUser();
