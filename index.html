@@ -23780,9 +23780,15 @@ async function reopenVoterVoting(shareholderName){
 
 async function openVoterSignedCard(shareholderName){
   if(!currentVotingMeetingId){ alert("تعذّر تحديد الجمعية الحالية"); return; }
-  const { data, error } = await sb.from("agm_attendance").select("signed_vote_card_url")
+  const { data: att, error } = await sb.from("agm_attendance").select("signed_vote_card_url")
     .eq("meeting_id", currentVotingMeetingId).eq("shareholder_name", shareholderName).maybeSingle();
   if(error){ alert("تعذّر التحقق: " + error.message); return; }
+  let data = att;
+  if(!data || !data.signed_vote_card_url){
+    const { data: lk } = await sb.from("agm_vote_locks").select("card_url")
+      .eq("meeting_id", currentVotingMeetingId).eq("shareholder_name", shareholderName).limit(1);
+    if(lk && lk[0] && lk[0].card_url) data = { signed_vote_card_url: lk[0].card_url };
+  }
   if(!data || !data.signed_vote_card_url){
     alert(`"${shareholderName}" لم يوقّع أو يحمّل بطاقته بعد — بطاقته الموقّعة تُحفظ تلقائيًا بالمنصة بمجرد ما يوقّعها هو بنفسه من حسابه.`);
     return;
@@ -24192,20 +24198,6 @@ async function confirmVoteCardSignature(){
   const finalBytes = await pdfDoc.save();
   const blob = new Blob([finalBytes], { type: "application/pdf" });
 
-  // قفل التصويت فورًا (قبل رفع الملف): لا يعتمد على وجود سجل حضور ولا على نجاح الرفع
-  try{
-    const ownEl = document.getElementById('gm-shareholder-name');
-    const ownName = ownEl ? ownEl.value.trim() : "";
-    if(ownName && ownName === shareholder_name && currentVotingMeetingId){
-      const { data: ud } = await sb.auth.getUser();
-      const { error: lkErr } = await sb.from("agm_vote_locks").insert([{
-        company_id: currentCompanyId, meeting_id: currentVotingMeetingId,
-        shareholder_name, shareholder_email: (ud && ud.user && ud.user.email) || null
-      }]);
-      if(lkErr && !/duplicate|unique/i.test(lkErr.message||"")){ console.warn("vote lock failed", lkErr.message); }
-    }
-  }catch(e){ console.warn("vote lock error", e); }
-
   // Save a persistent copy the platform (and by extension the company's admin) can retrieve
   // later — without this, the signed card only ever existed on the shareholder's own device,
   // which is useless when the company needs to submit it to the Ministry of Commerce.
@@ -24214,6 +24206,21 @@ async function confirmVoteCardSignature(){
     await sb.from("agm_attendance").update({ signed_vote_card_url: storedUrl })
       .eq("meeting_id", currentVotingMeetingId).eq("shareholder_name", shareholder_name);
   }
+
+  // قفل التصويت + حفظ رابط البطاقة في سجل القفل (لا يعتمد على وجود سجل حضور ولا على نجاح الرفع)
+  try{
+    const ownEl = document.getElementById('gm-shareholder-name');
+    const ownName = ownEl ? ownEl.value.trim() : "";
+    if(ownName && ownName === shareholder_name && currentVotingMeetingId){
+      const { data: ud } = await sb.auth.getUser();
+      const { error: lkErr } = await sb.from("agm_vote_locks").insert([{
+        company_id: currentCompanyId, meeting_id: currentVotingMeetingId,
+        shareholder_name, shareholder_email: (ud && ud.user && ud.user.email) || null, card_url: storedUrl || null
+      }]);
+      if(lkErr && !/duplicate|unique/i.test(lkErr.message||"")){ console.warn("vote lock failed", lkErr.message); }
+    }
+  }catch(e){ console.warn("vote lock error", e); }
+
 
   const blobUrl = URL.createObjectURL(blob);
   const a = document.createElement("a");
