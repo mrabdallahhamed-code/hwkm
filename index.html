@@ -2241,6 +2241,9 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   </div>
   <div class="card">
     <div class="card-body" style="padding:12px 12px 0">
+      <div id="agmStrictRow" style="display:none;background:#FEF3E2;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;line-height:1.9">
+        <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="agmStrictToggle" onchange="saveAgmStrict(this.checked)" style="margin-top:6px"><span><b>تصويت صارم:</b> يُحتسب وزن كل صوت من سجل المساهمين المرتبط بحساب المصوّت فقط، ولا يُقبل أي اسم أو عدد أسهم من غيره. يُنصح بتفعيله قبل فتح التصويت في أي جمعية.</span></label>
+      </div>
       <div class="row2" style="margin-bottom:6px">
         <div class="fg" style="margin:0"><label style="font-size:11px">نسبة النصاب المطلوبة نظامًا (%)</label><input type="number" class="fi" id="quorumThresholdInput" value="50" onchange="loadShareholdersSummary()" style="margin:0"/></div>
       </div>
@@ -2662,7 +2665,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   </div>
 
   <div class="card" id="companyJoinRequestsCard" style="margin-bottom:16px;display:none">
-    <div class="card-head"><span class="card-title"><span class="ico-i ico-add"></span>طلبات انضمام بكود الشركة</span></div>
+    <div class="card-head" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><span class="card-title"><span class="ico-i ico-add"></span>طلبات انضمام بكود الشركة</span><button class="btn-xs primary" onclick="approveAllMatchedJoinRequests()">اعتماد كل الطلبات المطابقة للسجل</button></div>
     <div class="card-body" id="companyJoinRequestsList"></div>
   </div>
 
@@ -5007,7 +5010,9 @@ async function startNafathVerification(){
 
 function toggleShareholderFields(){
   const type = document.getElementById("signupAccountType").value;
-  document.getElementById("signupSharesField").style.display = (authMode==="signup" && type==="مساهم") ? "block" : "none";
+  // Shares are never typed by a shareholder: they come from the company's shareholder register when the account is matched.
+  // Only the listed-company proof-of-ownership request still carries a claimed number, which a reviewer checks against the uploaded proof.
+  document.getElementById("signupSharesField").style.display = (authMode==="signup" && type==="مساهم" && listedCompanyContext) ? "block" : "none";
 }
 
 function showLoginMsg(text, ok){
@@ -5053,7 +5058,7 @@ async function handleAuth(){
     if(!full_name){ showLoginMsg("الرجاء إدخال الاسم الكامل", false); return; }
     if(!national_id){ showLoginMsg("الرجاء إدخال رقم الهوية", false); return; }
     if(!phone_number){ showLoginMsg("الرجاء إدخال رقم الجوال", false); return; }
-    if(account_type === "مساهم" && !shares_count){ showLoginMsg("الرجاء إدخال عدد الأسهم", false); return; }
+    if(listedCompanyContext && account_type === "مساهم" && !shares_count){ showLoginMsg("الرجاء إدخال عدد الأسهم", false); return; }
     if(!signupOtpVerifiedFlag){ showLoginMsg("الرجاء التحقق من رقم جوالك عبر رمز OTP أولًا قبل إنشاء الحساب", false); return; }
     if(!document.getElementById("signupTermsCheck").checked){ showLoginMsg("الرجاء الموافقة على شروط الاستخدام وسياسة الخصوصية لإنشاء الحساب", false); return; }
 
@@ -5106,7 +5111,7 @@ async function handleAuth(){
     let claimedRecords = [];
     let memberships = []; // { company_id, role } — only ever filled by an invite link
 
-    const profilePayload = { email, account_type, full_name, national_id, phone_number, shares_count, terms_accepted_at: new Date().toISOString(), terms_version: TERMS_VERSION };
+    const profilePayload = { email, account_type, full_name, national_id, phone_number, shares_count: null, terms_accepted_at: new Date().toISOString(), terms_version: TERMS_VERSION };
     if(inviteCompanyId){ profilePayload.company_id = inviteCompanyId; profilePayload.role = inviteRole; }
 
     const { error: profileError } = await sb.from("user_profiles").insert([profilePayload]);
@@ -5184,14 +5189,7 @@ async function loadCurrentUserProfile(){
   if(currentUserProfile && !currentUserProfile.phone_verified_at){ openPhoneGate(false); }
   if(needsTermsConsent()){ openTermsGate(); }
   const joinIntentResult = await processPendingJoinIntent();
-  if(currentUserProfile && currentUserProfile.account_type === "مساهم" && nameEl){
-    nameEl.value = currentUserProfile.full_name || "";
-    sharesEl.value = currentUserProfile.shares_count || "";
-    nameEl.disabled = true;
-    sharesEl.disabled = true;
-    nameEl.style.background = "var(--gray1)";
-    sharesEl.style.background = "var(--gray1)";
-  }
+  // (The voter name and shares are filled later, only from the company's shareholder register — see autofillShareholderVoteFields.)
   // Platform owners stay company-less by design — even if their national ID happens to match
   // a shareholder/board-member record somewhere (and gets auto-linked at signup), the platform
   // view should never default them into "belonging" to that company. They explicitly pick a
@@ -5869,7 +5867,7 @@ async function loadCompanyJoinRequests(){
           <div style="font-size:10.5px;color:var(--gray3);margin-top:2px;line-height:1.8">${gaEsc(r.requester_email)} · هوية: ${gaEsc(r.requester_national_id || "—")} · جوال: ${gaEsc(r.requester_phone || "—")}<br>${new Date(r.created_at).toLocaleDateString('ar-SA-u-ca-gregory')}</div>
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-          <select class="fs" id="cjr-role-${r.id}" style="margin:0;font-size:11.5px;padding:6px 8px;width:160px" onchange="toggleCjrShareholderLink(${r.id})">
+          <select class="fs" id="cjr-role-${r.id}" ${(role === "مساهم" && sh && !shTaken && nameOk !== false) ? 'data-bulk-ok="1"' : ""} style="margin:0;font-size:11.5px;padding:6px 8px;width:160px" onchange="toggleCjrShareholderLink(${r.id})">
             ${JOIN_ROLE_OPTIONS.map(o => `<option ${o === role ? "selected" : ""}>${o}</option>`).join("")}
           </select>
           <button class="btn-xs primary" onclick="approveJoinRequest(${r.id})"><span class="ico-i ico-check"></span>موافقة</button>
@@ -5894,6 +5892,21 @@ function toggleCjrShareholderLink(id){
   const role = document.getElementById("cjr-role-"+id).value;
   const wrap = document.getElementById("cjr-sh-wrap-"+id);
   if(wrap) wrap.style.display = (role === "مساهم" || role === "عضو مجلس وعضو مساهم") ? "block" : "none";
+}
+
+/* Approves, in one go, only the requests that are a clean match: the national ID matches an unclaimed shareholder record,
+   the name agrees with the register, and the role is plain shareholder. Anything else stays for the approver's own review. */
+async function approveAllMatchedJoinRequests(){
+  const ids = [...document.querySelectorAll('#companyJoinRequestsList select[data-bulk-ok="1"]')].map(x => Number(String(x.id).replace("cjr-role-","")));
+  if(!ids.length){ alert("لا توجد طلبات مطابقة تمامًا للسجل حاليًا. راجع الطلبات يدويًا."); return; }
+  if(!await uiConfirm("سيتم اعتماد " + ids.length + " طلبًا مطابقًا لسجل المساهمين (الهوية والاسم) بدور «مساهم» وربط كلٍّ بسجله. الطلبات غير المطابقة تبقى لمراجعتك. متابعة؟")) return;
+  let done = 0;
+  for(const id of ids){
+    const sel = document.getElementById("cjr-role-" + id);
+    if(!sel || sel.getAttribute("data-bulk-ok") !== "1") continue;
+    await approveJoinRequest(id); done++;
+  }
+  alert("تم اعتماد " + done + " طلبًا ✅");
 }
 
 async function approveJoinRequest(id){
@@ -12354,12 +12367,16 @@ async function renderAGMQuorumWidget(meetingId){
 
   const rows = attendance || [];
   const totalShares = Number(company.total_shares) || 0;
+  const { data: regRows } = await sb.from("shareholders").select("shares_count").eq("company_id", currentCompanyId);
+  const regSum = (regRows || []).reduce((t, r) => t + (Number(r.shares_count) || 0), 0);
+  const mismatch = !totalShares ? "⚠️ إجمالي أسهم الشركة غير مُدخل، فلن يُحسب النصاب بشكل صحيح. أدخله من بيانات الشركة."
+    : (regSum && regSum !== totalShares ? "⚠️ مجموع أسهم سجل المساهمين (" + regSum.toLocaleString("ar-SA-u-ca-gregory") + ") لا يساوي إجمالي أسهم الشركة (" + totalShares.toLocaleString("ar-SA-u-ca-gregory") + "). راجع أحدهما قبل الاعتماد على النصاب." : "");
   const attendingShares = rows.reduce((s,r) => s + (Number(r.shares_asalah)||0) + (Number(r.shares_wakala)||0), 0);
   const attendancePct = totalShares ? (attendingShares/totalShares)*100 : 0;
   const threshold = getAGMQuorumThreshold(company, m.agm_type||"عادية", m.call_number||1);
   const met = attendancePct >= threshold;
 
-  box.innerHTML = `
+  box.innerHTML = (mismatch ? `<div style="background:#FDE8E8;color:var(--red);border-radius:10px;padding:10px 12px;font-size:12px;font-weight:700;margin-bottom:8px">${mismatch}</div>` : "") + `
     <div class="quorum-banner ${met?'ok':'pending'}">
       ${met?'✅':'⏳'} النصاب المطلوب ${threshold}% — الحضور الحالي ${attendancePct.toFixed(1)}% ${met?'(تحقق النصاب)':'(لم يتحقق بعد)'}
     </div>
@@ -19411,18 +19428,35 @@ async function autofillShareholderVoteFields(){
   const { data: userData } = await sb.auth.getUser();
   const email = userData && userData.user ? userData.user.email : null;
   if(!email || !currentCompanyId) return;
-  const { data: sh } = await sb.from("shareholders").select("name,shares_count")
-    .eq("company_id", currentCompanyId).eq("claimed_by_email", email).maybeSingle();
-  if(sh){
-    nameEl.value = sh.name || "";
-    sharesEl.value = sh.shares_count ?? "";
-    nameEl.disabled = true; sharesEl.disabled = true;
-    nameEl.style.background = "var(--gray1)"; sharesEl.style.background = "var(--gray1)";
-  }
+  const { data: rows } = await sb.from("shareholders").select("name,shares_count")
+    .eq("company_id", currentCompanyId).ilike("claimed_by_email", likeEsc(email)).limit(1);
+  const sh = Array.isArray(rows) && rows.length ? rows[0] : null;
+  nameEl.value = sh ? (sh.name || "") : "";
+  sharesEl.value = sh && sh.shares_count != null ? sh.shares_count : "";
+  nameEl.disabled = true; sharesEl.disabled = true;
+  nameEl.style.background = "var(--gray1)"; sharesEl.style.background = "var(--gray1)";
+  let note = document.getElementById("gm-registry-note");
+  if(!note){ note = document.createElement("div"); note.id = "gm-registry-note"; note.style.cssText = "font-size:11.5px;margin-top:6px;line-height:1.8"; sharesEl.parentElement.parentElement.appendChild(note); }
+  note.style.color = sh ? "var(--green)" : "var(--red)";
+  note.textContent = sh ? "الاسم وعدد الأسهم مأخوذان من سجل المساهمين المعتمد." : "لا يوجد سجل مساهم مرتبط بحسابك. تواصل مع مدير الشركة لاعتماد انضمامك وربطك بسجلك قبل التصويت.";
 }
 
+async function loadAgmStrictToggle(){
+  const row = document.getElementById("agmStrictRow"), chk = document.getElementById("agmStrictToggle");
+  if(!row || !chk || !currentCompanyId) return;
+  const { data, error } = await sb.from("companies").select("agm_strict_voting").eq("id", currentCompanyId).maybeSingle();
+  if(error || !data || !("agm_strict_voting" in data)){ row.style.display = "none"; return; }
+  chk.checked = data.agm_strict_voting === true; row.style.display = "block";
+}
+async function saveAgmStrict(on){
+  const { error } = await sb.from("companies").update({ agm_strict_voting: !!on }).eq("id", currentCompanyId);
+  if(error){ alert("تعذّر حفظ الإعداد: " + error.message); loadAgmStrictToggle(); return; }
+  logActivity("تعديل", "إعداد الجمعية", "تصويت صارم", on ? "تفعيل" : "إيقاف");
+  alert(on ? "تم تفعيل التصويت الصارم لهذه الشركة ✅" : "تم إيقاف التصويت الصارم.");
+}
 async function loadVotingPage(){
   const isOverseer = getCurrentRole() === 'مدير النظام';
+  if(isOverseer) loadAgmStrictToggle();
   const selfSection = document.getElementById("voterSelfSection");
   if(selfSection) selfSection.style.display = isOverseer ? "none" : "block";
   const adminSection = document.getElementById("voterAdminSection");
@@ -23524,12 +23558,13 @@ async function recomputeRequestStatus(requestId){
   await sb.from("appoint_requests").update({ status: newStatus }).eq("id", requestId);
 }
 async function voteItem(btn, topic, result){
+  await autofillShareholderVoteFields();
   const nameEl = document.getElementById('gm-shareholder-name');
   const sharesEl = document.getElementById('gm-shares-count');
   const shareholder_name = nameEl ? nameEl.value.trim() : "";
   const shares_count = sharesEl && sharesEl.value ? Number(sharesEl.value) : null;
   if(!shareholder_name || !shares_count){
-    alert("الرجاء إدخال اسم المساهم وعدد الأسهم قبل التصويت");
+    alert("لا يمكن التصويت: لا يوجد سجل مساهم مرتبط بحسابك. تواصل مع مدير الشركة.");
     return;
   }
   var par=btn.parentElement;
@@ -23632,11 +23667,12 @@ function updateElectionAllocTotal(maxVotes){
 }
 
 async function submitElectionAllocation(maxVotes){
+  await autofillShareholderVoteFields();
   const nameEl = document.getElementById('gm-shareholder-name');
   const sharesEl = document.getElementById('gm-shares-count');
   const shareholder_name = nameEl ? nameEl.value.trim() : "";
   const shares_count = sharesEl && sharesEl.value ? Number(sharesEl.value) : null;
-  if(!shareholder_name || !shares_count){ alert("الرجاء إدخال اسم المساهم وعدد الأسهم قبل التصويت"); return; }
+  if(!shareholder_name || !shares_count){ alert("لا يمكن التصويت: لا يوجد سجل مساهم مرتبط بحسابك. تواصل مع مدير الشركة."); return; }
 
   const inputs = [...document.querySelectorAll("#electionAllocRows input[data-cand-id]")];
   const total = inputs.reduce((s,inp)=> s + (Number(inp.value)||0), 0);
@@ -23659,11 +23695,12 @@ async function submitElectionAllocation(maxVotes){
 }
 
 async function voteCandidate(btn, candidateId, vote){
+  await autofillShareholderVoteFields();
   const nameEl = document.getElementById('gm-shareholder-name');
   const sharesEl = document.getElementById('gm-shares-count');
   const shareholder_name = nameEl ? nameEl.value.trim() : "";
   const shares_count = sharesEl && sharesEl.value ? Number(sharesEl.value) : null;
-  if(!shareholder_name || !shares_count){ alert("الرجاء إدخال اسم المساهم وعدد الأسهم قبل التصويت"); return; }
+  if(!shareholder_name || !shares_count){ alert("لا يمكن التصويت: لا يوجد سجل مساهم مرتبط بحسابك. تواصل مع مدير الشركة."); return; }
 
   await sb.from("board_election_votes").delete().eq("candidate_id", candidateId).eq("shareholder_name", shareholder_name);
   const { error } = await sb.from("board_election_votes").insert([{
