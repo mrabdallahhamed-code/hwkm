@@ -23580,9 +23580,13 @@ async function recomputeRequestStatus(requestId){
 async function isVoteLockedFor(shareholderName){
   try{
     if(!currentVotingMeetingId || !shareholderName) return false;
-    const { data } = await sb.from("agm_attendance").select("signed_vote_card_url")
+    const { data } = await sb.from("agm_vote_locks").select("id")
+      .eq("meeting_id", currentVotingMeetingId).eq("shareholder_name", shareholderName).limit(1);
+    if(data && data.length) return true;
+    // الموجود سابقًا: من وقّع بطاقته وحُفظ رابطها يُعتبر مقفولًا حتى لو لم يُسجَّل له قفل
+    const { data: att } = await sb.from("agm_attendance").select("signed_vote_card_url")
       .eq("meeting_id", currentVotingMeetingId).eq("shareholder_name", shareholderName).maybeSingle();
-    return !!(data && data.signed_vote_card_url);
+    return !!(att && att.signed_vote_card_url);
   }catch(e){ return false; }
 }
 const VOTE_LOCKED_MSG = "تم إغلاق التصويت عليك لأنك وقّعت بطاقتك وحمّلتها. لا يمكن التصويت أو التعديل بعد التوقيع.";
@@ -23764,9 +23768,11 @@ async function reopenVoterVoting(shareholderName){
   if(reason === null) return;
   const { data: row } = await sb.from("agm_attendance").select("signed_vote_card_url")
     .eq("meeting_id", currentVotingMeetingId).eq("shareholder_name", shareholderName).maybeSingle();
-  const { error } = await sb.from("agm_attendance").update({ signed_vote_card_url: null })
+  const { error: lkDelErr } = await sb.from("agm_vote_locks").delete()
     .eq("meeting_id", currentVotingMeetingId).eq("shareholder_name", shareholderName);
-  if(error){ alert("تعذّر فتح التصويت: " + error.message); return; }
+  if(lkDelErr){ alert("تعذّر فتح التصويت: " + lkDelErr.message); return; }
+  await sb.from("agm_attendance").update({ signed_vote_card_url: null })
+    .eq("meeting_id", currentVotingMeetingId).eq("shareholder_name", shareholderName);
   await logActivity("إعادة فتح التصويت", "جمعية عمومية", shareholderName, "السبب: " + (reason||"غير مذكور") + " | البطاقة السابقة: " + ((row && row.signed_vote_card_url) || "—"));
   uiToast("تم فتح التصويت للمساهم، ويستطيع الآن التعديل ثم التوقيع من جديد.");
   loadVoteResults();
@@ -24185,6 +24191,20 @@ async function confirmVoteCardSignature(){
   page.drawImage(pngImage, { x: 0, y: 0, width: 595, height: 842 });
   const finalBytes = await pdfDoc.save();
   const blob = new Blob([finalBytes], { type: "application/pdf" });
+
+  // قفل التصويت فورًا (قبل رفع الملف): لا يعتمد على وجود سجل حضور ولا على نجاح الرفع
+  try{
+    const ownEl = document.getElementById('gm-shareholder-name');
+    const ownName = ownEl ? ownEl.value.trim() : "";
+    if(ownName && ownName === shareholder_name && currentVotingMeetingId){
+      const { data: ud } = await sb.auth.getUser();
+      const { error: lkErr } = await sb.from("agm_vote_locks").insert([{
+        company_id: currentCompanyId, meeting_id: currentVotingMeetingId,
+        shareholder_name, shareholder_email: (ud && ud.user && ud.user.email) || null
+      }]);
+      if(lkErr && !/duplicate|unique/i.test(lkErr.message||"")){ console.warn("vote lock failed", lkErr.message); }
+    }
+  }catch(e){ console.warn("vote lock error", e); }
 
   // Save a persistent copy the platform (and by extension the company's admin) can retrieve
   // later — without this, the signed card only ever existed on the shareholder's own device,
