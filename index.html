@@ -916,8 +916,9 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
       <label>رقم الجوال</label>
       <div style="display:flex;gap:6px">
         <input class="fi" id="signupPhone" type="tel" placeholder="مثال: 05XXXXXXXX" style="flex:1;margin:0" oninput="document.getElementById('signupOtpVerified').style.display='none';signupOtpVerifiedFlag=false" />
-        <button type="button" class="btn btn-ghost" style="font-size:11px;padding:8px 12px;white-space:nowrap" onclick="requestSignupOtp()">إرسال رمز التحقق</button>
+        <button type="button" class="btn btn-ghost" id="signupOtpSendBtn" style="font-size:11px;padding:8px 12px;white-space:nowrap" onclick="requestSignupOtp()">إرسال رمز التحقق</button>
       </div>
+      <div style="font-size:10.5px;color:var(--gray3);margin-top:6px;line-height:1.7">التحقق من الجوال اختياري الآن: يمكنك إكمال التسجيل وتوثيق رقمك لاحقًا من داخل المنصة. ويبقى تأكيد البريد الإلكتروني وتفعيل الحساب من مدير النظام كما هو.</div>
       <div id="signupOtpRow" style="display:none;margin-top:8px">
         <div style="display:flex;gap:6px">
           <input class="fi" id="signupOtpCode" placeholder="أدخل الرمز المكوّن من 6 أرقام" style="flex:1;margin:0" maxlength="6" />
@@ -1869,7 +1870,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
       <button class="btn btn-gold" id="pg-verify" style="width:100%;margin-top:8px" onclick="verifyGatePhoneOtp()">تأكيد</button>
     </div>
     <div id="pg-msg" style="display:none;border-radius:8px;padding:9px 12px;font-size:12px;line-height:1.7;margin-top:10px"></div>
-    <div class="modal-foot"><button class="btn btn-ghost" id="pg-cancel" style="display:none" onclick="closeM('m-phone-gate')">إلغاء</button><button class="btn btn-ghost" id="pg-logout" onclick="gateLogout()">تسجيل الخروج</button></div>
+    <div class="modal-foot"><button class="btn btn-ghost" id="pg-cancel" style="display:none" onclick="closePhoneGateLater()">إلغاء</button><button class="btn btn-ghost" id="pg-logout" onclick="gateLogout()">تسجيل الخروج</button></div>
   </div>
 </div>
 
@@ -5059,7 +5060,6 @@ async function handleAuth(){
     if(!national_id){ showLoginMsg("الرجاء إدخال رقم الهوية", false); return; }
     if(!phone_number){ showLoginMsg("الرجاء إدخال رقم الجوال", false); return; }
     if(listedCompanyContext && account_type === "مساهم" && !shares_count){ showLoginMsg("الرجاء إدخال عدد الأسهم", false); return; }
-    if(!signupOtpVerifiedFlag){ showLoginMsg("الرجاء التحقق من رقم جوالك عبر رمز OTP أولًا قبل إنشاء الحساب", false); return; }
     if(!document.getElementById("signupTermsCheck").checked){ showLoginMsg("الرجاء الموافقة على شروط الاستخدام وسياسة الخصوصية لإنشاء الحساب", false); return; }
 
     // The company code is only remembered in the account's metadata here. While the email is
@@ -5186,7 +5186,10 @@ async function loadCurrentUserProfile(){
   currentUserProfile = data || null;
   userMemberships = memberships || [];
   await claimPhoneProofIfAny();
-  if(currentUserProfile && !currentUserProfile.phone_verified_at){ openPhoneGate(false); }
+  if(currentUserProfile && !currentUserProfile.phone_verified_at){
+    let later = false; try{ later = sessionStorage.getItem("hwkm_phone_later") === "1"; }catch(e){}
+    if(!later) openPhoneGate(false);
+  }
   if(needsTermsConsent()){ openTermsGate(); }
   const joinIntentResult = await processPendingJoinIntent();
   // (The voter name and shares are filled later, only from the company's shareholder register — see autofillShareholderVoteFields.)
@@ -5647,19 +5650,24 @@ function openPhoneGate(optional){
   document.getElementById("pg-code").value = "";
   document.getElementById("pg-code-row").style.display = "none";
   document.getElementById("pg-msg").style.display = "none";
-  document.getElementById("pg-cancel").style.display = optional ? "inline-flex" : "none";
+  document.getElementById("pg-cancel").style.display = "inline-flex";
+  document.getElementById("pg-cancel").textContent = optional ? "إلغاء" : "لاحقًا";
   document.getElementById("pg-logout").style.display = optional ? "none" : "inline-flex";
   openM("m-phone-gate");
+}
+function closePhoneGateLater(){
+  try{ if(phoneGateMode === "gate") sessionStorage.setItem("hwkm_phone_later", "1"); }catch(e){}
+  closeM("m-phone-gate");
 }
 async function sendGatePhoneOtp(){
   const phone = document.getElementById("pg-phone").value.trim();
   if(!phone){ pgMsg("اكتب رقم جوالك", false); return; }
   const btn = document.getElementById("pg-send"); btn.disabled = true;
   const r = await authFn({ action: "phone_send", phone });
-  btn.disabled = false;
-  if(!r.ok){ pgMsg(r.data.error || "تعذّر إرسال الرمز", false); return; }
+  if(!r.ok){ btn.disabled = false; pgMsg(r.data.error || "تعذّر إرسال الرمز", false); return; }
   document.getElementById("pg-code-row").style.display = "block";
-  pgMsg("تم إرسال الرمز إلى جوالك. اكتبه بالأسفل.", true);
+  startResendCooldown(document.getElementById("pg-send"), "إعادة إرسال الرمز", 60);
+  pgMsg("تم إرسال الرمز إلى جوالك. قد تتأخر الرسالة دقيقة، وإن لم تصل فأعد الإرسال بعد انتهاء العدّاد. ويمكنك المتابعة الآن والتوثيق لاحقًا.", true);
 }
 async function verifyGatePhoneOtp(){
   const phone = document.getElementById("pg-phone").value.trim();
@@ -16927,6 +16935,19 @@ const LEGACY_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 let signupOtpVerifiedFlag = false;
 let signupPhoneProof = null;
 
+/* عدّاد إعادة الإرسال: يمنع تكرار الضغط ويوضّح للمستخدم متى يعيد المحاولة */
+function startResendCooldown(btn, baseLabel, secs){
+  if(!btn) return;
+  btn.disabled = true;
+  let left = secs || 60;
+  const tick = () => {
+    if(left <= 0){ btn.disabled = false; btn.textContent = baseLabel; return; }
+    btn.textContent = `${baseLabel} (بعد ${left} ث)`;
+    left--; setTimeout(tick, 1000);
+  };
+  tick();
+}
+
 async function requestSignupOtp(){
   signupOtpVerifiedFlag = false; signupPhoneProof = null;
   const phone = document.getElementById("signupPhone").value.trim();
@@ -16939,7 +16960,8 @@ async function requestSignupOtp(){
     const data = await res.json();
     if(!res.ok){ throw new Error(data.error || "فشل إرسال الرمز"); }
     document.getElementById("signupOtpRow").style.display = "block";
-    alert("تم إرسال رمز التحقق إلى جوالك ✅");
+    startResendCooldown(document.getElementById("signupOtpSendBtn"), "إعادة إرسال الرمز", 60);
+    alert("تم إرسال رمز التحقق إلى جوالك ✅ — قد تتأخر الرسالة دقيقة. ويمكنك إكمال التسجيل الآن وتوثيق الجوال لاحقًا.");
   }catch(e){
     alert("تعذّر إرسال رمز التحقق: " + e.message);
   }
