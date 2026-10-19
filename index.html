@@ -23964,6 +23964,154 @@ async function confirmVoteCardSignature(){
     y += rowH;
   });
 
+  y += 34*scale;
+  ctx.textAlign = "right"; ctx.font = `${12*scale}px Tajawal, Arial`; ctx.fillStyle = "#0D2447";
+  ctx.fillText("التوقيع/", RM, y);
+  const sigCanvas = document.getElementById("voteSigCanvas");
+  const sigDataUrl = sigCanvas.toDataURL("image/png");
+  const sigImg = await new Promise(res => { const img = new Image(); img.onload = () => res(img); img.src = sigDataUrl; });
+  // التوقيع يوضع تحت كلمة «التوقيع/» بمسافة واضحة، بعيدًا عن الجدول
+  const sigW = 150*scale, sigH = Math.min(sigW * (sigImg.height/sigImg.width), 70*scale);
+  const sigTop = y + 10*scale;
+  ctx.drawImage(sigImg, RM - sigW, sigTop, sigW, sigH);
+  ctx.strokeStyle = "#B8C0CC"; ctx.lineWidth = 1*scale;
+  ctx.beginPath(); ctx.moveTo(RM - sigW - 10*scale, sigTop + sigH + 4*scale); ctx.lineTo(RM, sigTop + sigH + 4*scale); ctx.stroke();
+  ctx.font = `${9.5*scale}px Tajawal, Arial`; ctx.fillStyle = "#8B95A5"; ctx.textAlign = "right";
+  ctx.fillText(`تاريخ التوقيع: ${new Date().toLocaleDateString("ar-SA-u-ca-gregory")}`, RM, sigTop + sigH + 24*scale);
+
+  const cardPng = canvas.toDataURL("image/png");
+  const { PDFDocument } = PDFLib;
+  const pdfDoc = await PDFDocument.create();
+  const pngBytes = await (await fetch(cardPng)).arrayBuffer();
+  const pngImage = await pdfDoc.embedPng(pngBytes);
+  const page = pdfDoc.addPage([595, 842]);
+  page.drawImage(pngImage, { x: 0, y: 0, width: 595, height: 842 });
+  const finalBytes = await pdfDoc.save();
+  const blob = new Blob([finalBytes], { type: "application/pdf" });
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = `بطاقة-تصويت-مرجعية-${shareholder_name.replace(/[\\/:*?"<>|]/g,"_")}.pdf`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(blobUrl), 5000);
+}
+
+function initVoteSignaturePad(){
+  const canvas = document.getElementById("voteSigCanvas");
+  if(!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width; canvas.height = rect.height;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle = "#0D2447"; ctx.lineWidth = 2.5; ctx.lineCap = "round"; ctx.lineJoin = "round";
+  voteSigPadCtx = ctx;
+  const getPos = (e) => { const r = canvas.getBoundingClientRect(); const p = e.touches ? e.touches[0] : e; return { x: p.clientX - r.left, y: p.clientY - r.top }; };
+  const start = (e) => { e.preventDefault(); voteSigPadDrawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+  const move = (e) => { if(!voteSigPadDrawing) return; e.preventDefault(); const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+  const end = () => { voteSigPadDrawing = false; };
+  canvas.onmousedown = start; canvas.onmousemove = move; canvas.onmouseup = end; canvas.onmouseleave = end;
+  canvas.ontouchstart = start; canvas.ontouchmove = move; canvas.ontouchend = end;
+  applyLockedSignature("voteSigCanvas");
+}
+
+function clearVoteSignaturePad(){
+  if(!voteSigPadCtx) return;
+  const canvas = document.getElementById("voteSigCanvas");
+  voteSigPadCtx.clearRect(0,0,canvas.width,canvas.height);
+}
+
+function isVoteSignaturePadEmpty(){
+  const canvas = document.getElementById("voteSigCanvas");
+  if(!canvas) return true;
+  const ctx = canvas.getContext("2d");
+  const data = ctx.getImageData(0,0,canvas.width,canvas.height).data;
+  for(let i=3; i<data.length; i+=4){ if(data[i] !== 0) return false; }
+  return true;
+}
+
+// Redraws the card matching the official regulatory template layout exactly (title, card
+// number, assembly line, meeting line, shareholder/shares line, the م|البند|موافق|غير موافق|
+// ممتنع table with a checkmark in the actual result column, and a signature line) — rendered on
+// an offscreen canvas so Arabic text shapes correctly, then embedded as a real PDF page via
+// pdf-lib so the signature is genuinely part of the file, not a separate image.
+async function confirmVoteCardSignature(){
+  if(isVoteSignaturePadEmpty()){ alert("الرجاء رسم توقيعك أولًا قبل التأكيد"); return; }
+  if(!voteCardData){ alert("تعذّر تحميل بيانات البطاقة"); return; }
+  if(!(await lockFirstSignature("voteSigCanvas"))) return;
+  const { shareholder_name, companyName, meeting: m, agendaRows, card_number, shares_own, shares_proxy, shares_total } = voteCardData;
+
+  const scale = 2;
+  const W = 595 * scale, H = 842 * scale;
+  const canvas = document.createElement("canvas");
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(0,0,W,H);
+  ctx.direction = "rtl"; ctx.textAlign = "center";
+  const CX = W/2, RM = W - 45*scale, LM = 45*scale;
+
+  ctx.font = `bold ${18*scale}px Tajawal, Arial`; ctx.fillStyle = "#0D2447";
+  ctx.fillText("بطاقة تصويت", CX, 50*scale);
+
+  ctx.textAlign = "right"; ctx.font = `bold ${12.5*scale}px Tajawal, Arial`;
+  let y = 85*scale;
+  ctx.fillText(`الرقم ${card_number}`, RM, y); y += 28*scale;
+
+  ctx.textAlign = "center"; ctx.font = `bold ${13*scale}px Tajawal, Arial`;
+  ctx.fillText(`الجمعية العامة ${m?.agm_type || "العادية"} لشركة ${companyName}`, CX, y); y += 26*scale;
+
+  ctx.font = `${11.5*scale}px Tajawal, Arial`;
+  ctx.fillText(`المنعقدة ${m?.method || "—"} في يوم ${arabicDayName(m?.meeting_date)} الموافق ${m?.meeting_date || "—"} في تمام الساعة (${m?.meeting_time || "—"}) مساءً.`, CX, y);
+  y += 36*scale;
+
+  ctx.textAlign = "right"; ctx.font = `${12*scale}px Tajawal, Arial`;
+  ctx.fillText(`اسم المساهم / ${shareholder_name}`, RM, y); y += 26*scale;
+  ctx.fillText(`عدد الأسهم أصالة (${shares_own})     عدد الأسهم وكالة (${shares_proxy})     مجموع الأسهم (${shares_total})`, RM, y);
+  y += 34*scale;
+
+  // Table: م | البند | موافق | غير موافق | ممتنع عن التصويت — proper column boundaries with
+  // dividing lines (RTL order: م rightmost, البند next, then the 3 result columns going left).
+  const tableW = RM - LM;
+  const wNo = tableW*0.06, wItem = tableW*0.40, wCol = tableW*0.18; // 3 result columns share the rest
+  const xNoStart = RM - wNo;
+  const xItemStart = xNoStart - wItem;
+  const xAgreeStart = xItemStart - wCol;
+  const xDisagreeStart = xAgreeStart - wCol;
+  const xAbstainStart = xDisagreeStart - wCol; // should equal LM
+  const colBounds = [
+    { start: xNoStart, end: RM, label: "م" },
+    { start: xItemStart, end: xNoStart, label: "البند" },
+    { start: xAgreeStart, end: xItemStart, label: "موافق" },
+    { start: xDisagreeStart, end: xAgreeStart, label: "غير موافق" },
+    { start: xAbstainStart, end: xDisagreeStart, label: "ممتنع" }
+  ];
+  const tableTop = y;
+  ctx.strokeStyle = "#333"; ctx.lineWidth = 1*scale;
+  ctx.font = `bold ${10*scale}px Tajawal, Arial`; ctx.textAlign = "center";
+  const headerH = 28*scale;
+  ctx.strokeRect(LM, y, RM-LM, headerH);
+  colBounds.forEach(c => { ctx.strokeRect(c.start, y, c.end-c.start, headerH); ctx.fillText(c.label, (c.start+c.end)/2, y + 18*scale); });
+  y += headerH;
+
+  ctx.font = `${10*scale}px Tajawal, Arial`;
+  const rowsToShow = agendaRows.length ? agendaRows : [{ topic: "", result: null }];
+  rowsToShow.forEach((r, i) => {
+    const rowH = 32*scale;
+    colBounds.forEach(c => ctx.strokeRect(c.start, y, c.end-c.start, rowH));
+    ctx.textAlign = "center";
+    ctx.fillText(String(i+1), (xNoStart+RM)/2, y + rowH/2 + 4*scale);
+    ctx.textAlign = "right";
+    const itemMaxChars = 26;
+    const itemText = r.topic.length > itemMaxChars ? r.topic.slice(0,itemMaxChars)+"…" : r.topic;
+    ctx.fillText(itemText, xNoStart - 6*scale, y + rowH/2 + 4*scale);
+    ctx.textAlign = "center";
+    ctx.font = `bold ${13*scale}px Tajawal, Arial`;
+    if(r.result === "موافق") ctx.fillText("✓", (xAgreeStart+xItemStart)/2, y + rowH/2 + 5*scale);
+    if(r.result === "معارض") ctx.fillText("✓", (xDisagreeStart+xAgreeStart)/2, y + rowH/2 + 5*scale);
+    if(r.result === "ممتنع") ctx.fillText("✓", (xAbstainStart+xDisagreeStart)/2, y + rowH/2 + 5*scale);
+    ctx.font = `${10*scale}px Tajawal, Arial`;
+    y += rowH;
+  });
+
   y += 40*scale;
   ctx.textAlign = "right"; ctx.font = `${12*scale}px Tajawal, Arial`; ctx.fillStyle = "#0D2447";
   ctx.fillText("التوقيع/", RM, y);
