@@ -324,21 +324,6 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   transition:margin-right 0.3s ease;
 }
 .content{padding:26px 30px;}
-/* ── واجهة المساهم: بلا قائمة جانبية، وشريط علوي بثلاث صفحات فقط ── */
-#shTopNav{display:none;position:fixed;top:var(--topbar-h);right:0;left:0;height:46px;background:#fff;border-bottom:1px solid var(--gray1);box-shadow:0 2px 10px rgba(15,33,56,.05);z-index:99;align-items:stretch;justify-content:center;gap:6px;padding:0 20px}
-#shTopNav .sh-tab{display:flex;align-items:center;gap:7px;background:none;border:none;border-bottom:3px solid transparent;font-family:'Tajawal',sans-serif;font-size:13.5px;font-weight:700;color:var(--gray3);cursor:pointer;padding:0 18px;transition:color .15s,border-color .15s}
-#shTopNav .sh-tab:hover{color:var(--primary)}
-#shTopNav .sh-tab.active{color:var(--primary);border-bottom-color:var(--gold)}
-body.sh-mode #shTopNav{display:flex}
-body.sh-mode .sidebar{display:none !important}
-body.sh-mode .topbar{right:0}
-body.sh-mode .main{margin-right:0;padding-top:calc(var(--topbar-h) + 46px)}
-body.sh-mode .topbar .menu-btn{display:none !important}
-body.sh-mode .topbar [onclick="openEditCompanyModal()"],
-body.sh-mode .topbar [onclick="exportAllCompanyData()"],
-body.sh-mode #btnAddCompany{display:none !important}
-@media(max-width:600px){ #shTopNav{justify-content:flex-start;overflow-x:auto;padding:0 8px} #shTopNav .sh-tab{padding:0 12px;font-size:12.5px;white-space:nowrap} }
-
 
 /* ── PAGES ── */
 .page{display:none;animation:fadeUp 0.3s ease;}
@@ -1282,12 +1267,6 @@ body.sh-mode #btnAddCompany{display:none !important}
     </div>
   </div>
 </header>
-
-<nav id="shTopNav" aria-label="صفحات المساهم">
-  <button class="sh-tab" data-page="agm" onclick="go('agm',null)"><span class="ico-i ico-handshake"></span>الجمعية العامة</button>
-  <button class="sh-tab" data-page="voting" onclick="go('voting',null)"><span class="ico-i ico-ballot"></span>التصويت الإلكتروني</button>
-  <button class="sh-tab" data-page="signing" onclick="go('signing',null)"><span class="ico-i ico-signature"></span>التوقيع الإلكتروني</button>
-</nav>
 
 <!-- MAIN -->
 <main class="main">
@@ -2265,6 +2244,9 @@ body.sh-mode #btnAddCompany{display:none !important}
     <div class="card-body" style="padding:12px 12px 0">
       <div id="agmStrictRow" style="display:none;background:#FEF3E2;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;line-height:1.9">
         <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="agmStrictToggle" onchange="saveAgmStrict(this.checked)" style="margin-top:6px"><span><b>تصويت صارم:</b> يُحتسب وزن كل صوت من سجل المساهمين المرتبط بحساب المصوّت فقط، ولا يُقبل أي اسم أو عدد أسهم من غيره. يُنصح بتفعيله قبل فتح التصويت في أي جمعية.</span></label>
+      </div>
+      <div id="shReportsRow" style="display:none;background:#EAF0F8;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;line-height:1.9">
+        <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="shReportsToggle" onchange="saveShReports(this.checked)" style="margin-top:6px"><span><b>إظهار «تقارير الحوكمة» للمساهمين:</b> عند التفعيل تظهر صفحة التقارير في قائمة المساهمين بهذه الشركة، وعند الإيقاف تختفي. فعّلها فقط حين تحتاجها الجمعية.</span></label>
       </div>
       <div class="row2" style="margin-bottom:6px">
         <div class="fg" style="margin:0"><label style="font-size:11px">نسبة النصاب المطلوبة نظامًا (%)</label><input type="number" class="fi" id="quorumThresholdInput" value="50" onchange="loadShareholdersSummary()" style="margin:0"/></div>
@@ -5243,6 +5225,7 @@ const FULL_ACCESS_ROLES = ['مدير النظام'];
 function isFullAccessRole(r){ return FULL_ACCESS_ROLES.includes(r) || (r === getCurrentRole() && myPermissionOverrides && myPermissionOverrides['*'] === 'edit'); }
 
 const SHAREHOLDER_PAGES = ['agm','voting','signing'];
+let currentShareholdersSeeReports = false;   // يحدده مدير النظام/مالك المنصة لكل شركة
 // An employee starts with the least a staff member needs; the approver adds anything more per person
 // from the permissions page (a per-user override is checked before this list and always wins).
 const EMPLOYEE_PAGES = ['dashboard','governance','signing'];
@@ -5287,6 +5270,33 @@ function getRawRole(){
   return (m && m.role) || (currentUserProfile && currentUserProfile.role) || '';
 }
 
+function applyShareholderSidebar(){
+  const allowed = SHAREHOLDER_PAGES.concat(currentShareholdersSeeReports ? ['reports'] : []);
+  const root = document.getElementById('companyNavGroups');
+  if(!root) return;
+  root.querySelectorAll('.nav-item').forEach(item => {
+    const m = (item.getAttribute('onclick') || '').match(/go\('([a-z]+)'/);
+    item.style.display = (m && allowed.includes(m[1])) ? '' : 'none';
+    item.classList.remove('active');
+  });
+  const hasVisible = el => [...el.querySelectorAll('.nav-item')].some(i => i.style.display !== 'none');
+  // المجموعات الفرعية: نخفي العنوان والمحتوى معًا إن لم يبقَ فيها شيء، ونفتحها إن بقي
+  root.querySelectorAll('.nav-subgroup-children').forEach(ch => {
+    const head = ch.previousElementSibling && ch.previousElementSibling.classList.contains('nav-subgroup-header') ? ch.previousElementSibling : null;
+    const show = hasVisible(ch);
+    ch.style.display = show ? '' : 'none';
+    if(head) head.style.display = show ? '' : 'none';
+    if(show){ ch.classList.remove('collapsed'); if(head) head.classList.remove('collapsed'); }
+  });
+  root.querySelectorAll('.nav-group').forEach(g => {
+    const show = hasVisible(g);
+    g.style.display = show ? '' : 'none';
+    if(show) g.querySelectorAll('.collapsed').forEach(c => c.classList.remove('collapsed'));
+  });
+  const adminGroup = document.getElementById('adminNavGroup'); if(adminGroup) adminGroup.style.display = 'none';
+  const reqGroup = document.getElementById('companyRequestNavGroup'); if(reqGroup) reqGroup.style.display = 'none';
+}
+
 async function applyRolePermissions(){
   const role = getCurrentRole();
   const isShareholder = role === 'مساهم';
@@ -5294,8 +5304,6 @@ async function applyRolePermissions(){
   const teamModule = currentUserProfile && currentUserProfile.platform_team_module;
   const isPlatformTeamMember = !!teamModule && !isPlatformAdmin;
   const hasNoCompany = currentUserProfile && userMemberships.length === 0;
-  // المساهم فقط: بلا قائمة جانبية، ويتنقل بين صفحاته الثلاث من الشريط العلوي
-  document.body.classList.toggle('sh-mode', !!(isShareholder && !isPlatformAdmin && !isPlatformTeamMember && !hasNoCompany));
 
   const nameEl = document.getElementById('sidebarUserName');
   const roleEl = document.getElementById('sidebarUserRole');
@@ -5364,6 +5372,14 @@ async function applyRolePermissions(){
   }
 
   if(isShareholder){
+    // المساهم: القائمة الجانبية تبقى لكن بثلاث صفحات فقط (الجمعية، التصويت، التوقيع)،
+    // وتُضاف «تقارير الحوكمة» فقط إذا أذن بها مدير النظام أو مالك المنصة لهذه الشركة.
+    currentShareholdersSeeReports = false;
+    try{
+      const { data: shFlag } = await sb.from("companies").select("shareholders_see_reports").eq("id", currentCompanyId).maybeSingle();
+      currentShareholdersSeeReports = !!(shFlag && shFlag.shareholders_see_reports === true);
+    }catch(e){}
+    applyShareholderSidebar();
     go('agm');
   }
 
@@ -5410,7 +5426,7 @@ function isPageAllowed(pageId, role){
   }
   if(pageId === 'users') return role === 'مدير النظام';
   if(pageId === 'activitylog') return role === 'مدير النظام';
-  if(role === 'مساهم') return SHAREHOLDER_PAGES.includes(pageId);
+  if(role === 'مساهم') return SHAREHOLDER_PAGES.includes(pageId) || (pageId === 'reports' && currentShareholdersSeeReports === true);
   if(role === 'موظف') return EMPLOYEE_PAGES.includes(pageId);
   if(currentCompanyType === 'مؤسسة فردية' && SOLE_PROP_HIDDEN_PAGES.includes(pageId)) return false;
   if(currentCompanyType === 'ذات مسؤولية محدودة' && LLC_HIDDEN_PAGES.includes(pageId)) return false;
@@ -19566,6 +19582,19 @@ async function loadAgmStrictToggle(){
   if(error || !data || !("agm_strict_voting" in data)){ row.style.display = "none"; return; }
   chk.checked = data.agm_strict_voting === true; row.style.display = "block";
 }
+async function loadShReportsToggle(){
+  const row = document.getElementById("shReportsRow"), chk = document.getElementById("shReportsToggle");
+  if(!row || !chk || !currentCompanyId) return;
+  const { data, error } = await sb.from("companies").select("shareholders_see_reports").eq("id", currentCompanyId).maybeSingle();
+  if(error || !data || !("shareholders_see_reports" in data)){ row.style.display = "none"; return; }
+  chk.checked = data.shareholders_see_reports === true; row.style.display = "block";
+}
+async function saveShReports(on){
+  const { error } = await sb.from("companies").update({ shareholders_see_reports: !!on }).eq("id", currentCompanyId);
+  if(error){ alert("تعذّر حفظ الإعداد: " + error.message); loadShReportsToggle(); return; }
+  logActivity("تعديل", "إعداد الجمعية", "تقارير الحوكمة للمساهمين", on ? "إظهار" : "إخفاء");
+  uiToast(on ? "ستظهر «تقارير الحوكمة» للمساهمين عند دخولهم القادم." : "أُخفيت «تقارير الحوكمة» عن المساهمين.");
+}
 async function saveAgmStrict(on){
   const { error } = await sb.from("companies").update({ agm_strict_voting: !!on }).eq("id", currentCompanyId);
   if(error){ alert("تعذّر حفظ الإعداد: " + error.message); loadAgmStrictToggle(); return; }
@@ -19574,7 +19603,7 @@ async function saveAgmStrict(on){
 }
 async function loadVotingPage(){
   const isOverseer = getCurrentRole() === 'مدير النظام';
-  if(isOverseer) loadAgmStrictToggle();
+  if(isOverseer){ loadAgmStrictToggle(); loadShReportsToggle(); }
   const selfSection = document.getElementById("voterSelfSection");
   if(selfSection) selfSection.style.display = isOverseer ? "none" : "block";
   const adminSection = document.getElementById("voterAdminSection");
@@ -23407,12 +23436,8 @@ function pdfHostRemove(el){ const h = el && el.parentNode; if(h && h.getAttribut
   window.uiPrompt = (m, def) => dialog(m, { prompt:true, def });
 })();
 
-function updateShTopNav(id){
-  document.querySelectorAll('#shTopNav .sh-tab').forEach(b => b.classList.toggle('active', b.getAttribute('data-page') === id));
-}
 async function go(id, el){
   currentPageId = id;
-  updateShTopNav(id);
   if(companyTypeReadyPromise){ try{ await companyTypeReadyPromise; }catch(e){} }
   const role = currentUserProfile ? getCurrentRole() : null;
   const blocked = role && !isPageAllowed(id, role);
