@@ -913,12 +913,12 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
       <div id="nafathStatus" style="font-size:11px;margin-top:6px"></div>
     </div>
     <div class="login-field" id="signupPhoneField" style="display:none">
-      <label>رقم الجوال</label>
+      <label>رقم الجوال <span style="font-size:10.5px;color:var(--gray3);font-weight:600">(إرسال رمز التحقق اختياري)</span></label>
       <div style="display:flex;gap:6px">
         <input class="fi" id="signupPhone" type="tel" placeholder="مثال: 05XXXXXXXX" style="flex:1;margin:0" oninput="document.getElementById('signupOtpVerified').style.display='none';signupOtpVerifiedFlag=false" />
         <button type="button" class="btn btn-ghost" id="signupOtpSendBtn" style="font-size:11px;padding:8px 12px;white-space:nowrap" onclick="requestSignupOtp()">إرسال رمز التحقق</button>
       </div>
-      <div style="font-size:10.5px;color:var(--gray3);margin-top:6px;line-height:1.7">التحقق من الجوال اختياري الآن: يمكنك إكمال التسجيل وتوثيق رقمك لاحقًا من داخل المنصة. ويبقى تأكيد البريد الإلكتروني وتفعيل الحساب من مدير النظام كما هو.</div>
+
       <div id="signupOtpRow" style="display:none;margin-top:8px">
         <div style="display:flex;gap:6px">
           <input class="fi" id="signupOtpCode" placeholder="أدخل الرمز المكوّن من 6 أرقام" style="flex:1;margin:0" maxlength="6" />
@@ -936,7 +936,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
       <input type="file" class="fi" id="listedProofFile" accept="image/*,.pdf" />
     </div>
     <div class="login-field" id="signupTermsField" style="display:none">
-      <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-size:12px;line-height:1.8"><input type="checkbox" id="signupTermsCheck" style="margin-top:5px"><span>أوافق على <a href="javascript:void(0)" onclick="event.preventDefault();openM('m-terms')" style="color:var(--primary);font-weight:700">شروط الاستخدام</a> و<a href="javascript:void(0)" onclick="event.preventDefault();openM('m-privacy-policy')" style="color:var(--primary);font-weight:700">سياسة الخصوصية</a>.</span></label>
+      
     </div>
     <div class="login-field" id="signupInviteField" style="display:none">
       <label>رمز الدعوة (اختياري)</label>
@@ -5060,7 +5060,6 @@ async function handleAuth(){
     if(!national_id){ showLoginMsg("الرجاء إدخال رقم الهوية", false); return; }
     if(!phone_number){ showLoginMsg("الرجاء إدخال رقم الجوال", false); return; }
     if(listedCompanyContext && account_type === "مساهم" && !shares_count){ showLoginMsg("الرجاء إدخال عدد الأسهم", false); return; }
-    if(!document.getElementById("signupTermsCheck").checked){ showLoginMsg("الرجاء الموافقة على شروط الاستخدام وسياسة الخصوصية لإنشاء الحساب", false); return; }
 
     // The company code is only remembered in the account's metadata here. While the email is
     // unconfirmed there is no session, so the join request is made on the first signed-in visit
@@ -5111,7 +5110,7 @@ async function handleAuth(){
     let claimedRecords = [];
     let memberships = []; // { company_id, role } — only ever filled by an invite link
 
-    const profilePayload = { email, account_type, full_name, national_id, phone_number, shares_count: null, terms_accepted_at: new Date().toISOString(), terms_version: TERMS_VERSION };
+    const profilePayload = { email, account_type, full_name, national_id, phone_number, shares_count: null, terms_accepted_at: null, terms_version: null };   // الموافقة تُؤخذ بعد التسجيل عبر نافذة الشروط الإلزامية عند أول دخول
     if(inviteCompanyId){ profilePayload.company_id = inviteCompanyId; profilePayload.role = inviteRole; }
 
     const { error: profileError } = await sb.from("user_profiles").insert([profilePayload]);
@@ -5168,6 +5167,9 @@ async function acceptTermsGate(){
     currentUserProfile.terms_accepted_at = now; currentUserProfile.terms_version = TERMS_VERSION;
   }
   closeM("m-terms-consent");
+  try{
+    if(currentUserProfile && !currentUserProfile.phone_verified_at && sessionStorage.getItem("hwkm_phone_later") !== "1") openPhoneGate(false);
+  }catch(e){}
 }
 
 async function loadCurrentUserProfile(){
@@ -5188,7 +5190,7 @@ async function loadCurrentUserProfile(){
   await claimPhoneProofIfAny();
   if(currentUserProfile && !currentUserProfile.phone_verified_at){
     let later = false; try{ later = sessionStorage.getItem("hwkm_phone_later") === "1"; }catch(e){}
-    if(!later) openPhoneGate(false);
+    if(!later && !needsTermsConsent()) openPhoneGate(false);   // الشروط أولًا، ثم نافذة الجوال بعد قبولها
   }
   if(needsTermsConsent()){ openTermsGate(); }
   const joinIntentResult = await processPendingJoinIntent();
