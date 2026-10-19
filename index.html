@@ -2037,7 +2037,8 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="exportPositionsList()"><span class="ico-i ico-inbox"></span>تصدير Excel</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="generateBaseStructure()"><span class="ico-i ico-building"></span>إنشاء الهيكل</button>
-      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="document.getElementById('mst-id').value='';document.getElementById('mst-title-h').textContent='🌳 إضافة منصب في الهيكل التنظيمي';document.getElementById('mst-leadership').checked=true;document.getElementById('mst-side').checked=false;document.getElementById('mst-is-body').checked=false;toggleBodyFields();document.getElementById('mst-delete-btn').style.display='none';populateParentPositionSelect();document.getElementById('mst-level').value='';populateOrgLevelSelect();openM('m-structure')">+ إضافة منصب</button>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openUnitModal()">+ إضافة إدارة / قسم / وحدة</button>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openPositionModal()">+ إضافة منصب</button>
       <button class="btn" id="approvalBtnStructure" style="background:var(--gold);color:#fff;font-size:11px;padding:6px 14px" onclick="requestBoardApproval('structure')"><span class="ico-i ico-upload"></span>اعتماد المجلس</button>
     </div>
   </div>
@@ -2045,7 +2046,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   <div class="card">
     <div class="card-body" style="padding:0">
       <table class="tbl">
-        <thead><tr><th>المنصب</th><th>الاسم</th><th>يتبع لـ</th><th>المستوى</th><th>تاريخ التعيين</th><th>بالشجرة</th><th>إجراء</th></tr></thead>
+        <thead><tr><th>الاسم</th><th>المنصب</th><th>القسم / الوحدة</th><th>الإدارة</th><th>المدير المباشر</th><th>تاريخ التعيين</th><th>إجراء</th></tr></thead>
         <tbody id="structureTbody">
           <tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
@@ -3536,6 +3537,26 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   </div>
 </div>
 
+<div class="modal-bg" id="m-unit">
+  <div class="modal">
+    <div class="modal-title" id="mu-title-h"><span class="ico-i ico-tree"></span>إضافة إدارة / قسم / وحدة</div>
+    <input type="hidden" id="mu-id" value="" />
+    <div class="fg"><label>النوع</label>
+      <select class="fs" id="mu-type"><option value="department">إدارة</option><option value="section">قسم</option><option value="unit">وحدة</option></select>
+    </div>
+    <div class="fg"><label>الاسم</label><input class="fi" id="mu-title" placeholder="مثال: الإدارة المالية" /></div>
+    <div class="fg"><label>تتبع لـ</label><select class="fs" id="mu-parent"></select></div>
+    <div class="fg" id="mu-side-row" style="display:none;align-items:center;gap:8px;background:var(--offwhite);padding:10px 12px;border-radius:8px">
+      <input type="checkbox" id="mu-side" style="width:16px;height:16px" />
+      <label for="mu-side" style="margin:0;font-size:12px;cursor:pointer">عرضها بخط جانبي (وحدة داعمة أو رقابية)</label>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeM('m-unit')">إلغاء</button>
+      <button id="mu-delete-btn" class="btn" style="background:#FDE8E8;color:var(--red);display:none" onclick="deleteUnitFromModal()"><span class="ico-i ico-trash"></span>حذف</button>
+      <button class="btn btn-gold" onclick="saveUnit()"><span class="ico-i ico-check"></span>حفظ</button>
+    </div>
+  </div>
+</div>
 <div class="modal-bg" id="m-structure">
   <div class="modal">
     <div class="modal-title" id="mst-title-h"><span class="ico-i ico-tree"></span>إضافة منصب في الهيكل التنظيمي</div>
@@ -3544,11 +3565,15 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
       <input type="checkbox" id="mst-is-body" style="width:16px;height:16px" onchange="toggleBodyFields()" />
       <label for="mst-is-body" style="margin:0;font-size:12px;cursor:pointer">هذه جهة/مجلس (مثل: مجلس الإدارة، اللجان، الجمعية العامة) — بدون اسم شخص، تظهر بالشجرة فقط</label>
     </div>
-    <div class="fg"><label>المنصب / اسم الجهة</label><input class="fi" id="mst-title" placeholder="مثال: مدير إدارة المخاطر" /></div>
-    <div class="fg" id="mst-holder-field"><label>اسم شاغل المنصب</label><input class="fi" id="mst-holder" placeholder="مثال: خالد العتيبي" /></div>
-    <div class="fg" id="mst-date-field"><label>تاريخ التعيين</label><input type="date" class="fi" id="mst-appointment-date"/></div>
-    <div class="fg"><label>يتبع لـ (المنصب الأعلى)</label>
-      <select class="fs" id="mst-parent">
+    <div class="fg"><label>المنصب / اسم الجهة</label><input class="fi" id="mst-title" placeholder="مثال: محاسب" /></div>
+    <div class="fg" id="mst-holder-field"><label>الأشخاص الذين يشغلون هذا المنصب</label>
+      <div id="mst-holders-list"></div>
+      <button type="button" class="btn btn-ghost" style="font-size:11px;padding:5px 12px;margin-top:6px" onclick="addHolderRow()">+ إضافة شخص</button>
+      <datalist id="mst-people-dl"></datalist>
+    </div>
+    <div id="mst-date-field" style="display:none"></div>
+    <div class="fg"><label>يتبع لـ (الإدارة / القسم / الوحدة)</label>
+      <select class="fs" id="mst-parent" onchange="mstParentChanged()">
         <option value="">— بدون (أعلى مستوى في الهيكل) —</option>
       </select>
     </div>
@@ -15730,20 +15755,29 @@ async function loadStructure(){
   const sideRow = document.getElementById("mst-side-row");
   if(sideRow) sideRow.style.display = orgSideSupported ? "flex" : "none";
   if(structureCache.length===0){
-    tbody.innerHTML = emptyRowHTML(7, 'لا توجد بيانات بعد. اضغط "+ إضافة منصب" للبدء.');
-    if(chartWrap) chartWrap.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:30px">لا يوجد هيكل تنظيمي بعد. اضغط "+ إضافة منصب" لبدء بناء الهيكل.</div>';
+    tbody.innerHTML = emptyRowHTML(7, 'لا توجد بيانات بعد. اضغط "+ إضافة إدارة / قسم / وحدة" للبدء.');
+    if(chartWrap) chartWrap.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:30px">لا يوجد هيكل تنظيمي بعد. اضغط "+ إضافة إدارة / قسم / وحدة" لبدء بناء الهيكل.</div>';
     return;
   }
 
-  tbody.innerHTML = structureCache.filter(s => !s.is_body).map(s => `<tr>
-    <td>${orgEsc(s.position_title||"")}</td><td>${orgEsc(s.holder_name||"—")}</td><td>${s.parent_position||"—"}</td><td>${orgLevelLabel(s.level)}</td><td>${s.appointment_date||"—"}</td>
-    <td>${s.is_leadership !== false ? '<span style="color:var(--green)">✓ نعم</span>' : '<span style="color:var(--gray3)">— لا</span>'}</td>
-    <td>
-      <button class="btn-xs primary" onclick="editStructure(${s.id})"><span class="ico-i ico-edit"></span>تعديل</button>
+  const byT = {}; structureCache.forEach(r => { if(r.position_title) byT[r.position_title] = r; });
+  const deptOf = r => { let c = byT[r.parent_position], n = 0; while(c && n++ < 12){ if(c.unit_type === "department") return c.position_title; c = byT[c.parent_position]; } return ""; };
+  const btns = s => `<button class="btn-xs primary" onclick="editStructure(${s.id})"><span class="ico-i ico-edit"></span>تعديل</button>
       <button class="btn-xs" style="background:#FDF5DC;color:var(--gold);border:1px solid #F0D8A0;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;margin-right:4px" onclick="openJobDescriptionModal(${s.id})"><span class="ico-i ico-document"></span>الوصف الوظيفي</button>
-      <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;margin-right:4px" onclick="deletePosition(${s.id})"><span class="ico-i ico-trash"></span>حذف</button>
-    </td>
-  </tr>`).join("") || emptyRowHTML(7, "لا يوجد مناصب أفراد بعد (المجالس والجهات تظهر بالشجرة فقط).");
+      <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;margin-right:4px" onclick="deletePosition(${s.id})"><span class="ico-i ico-trash"></span>حذف</button>`;
+  const personRows = [];
+  structureCache.filter(s => !s.is_body && !s.unit_type).forEach(s => {
+    const hs = orgHolderList(s);
+    const par = byT[s.parent_position];
+    const unitCol = s.parent_position ? orgEsc(s.parent_position) : "—";
+    const dept = deptOf(s);
+    const deptCol = dept && dept !== s.parent_position ? orgEsc(dept) : (par && par.unit_type === "department" ? orgEsc(par.position_title) : "—");
+    const unitShown = par && par.unit_type === "department" ? "—" : unitCol;
+    (hs.length ? hs : [{ name: "", direct_manager: "", appointment_date: "" }]).forEach(h => {
+      personRows.push(`<tr><td>${orgEsc(h.name || "— (شاغر)")}</td><td>${orgEsc(s.position_title||"")}</td><td>${unitShown}</td><td>${deptCol}</td><td>${orgEsc(h.direct_manager||"—")}</td><td>${h.appointment_date ? orgEsc(h.appointment_date) : "—"}</td><td>${btns(s)}</td></tr>`);
+    });
+  });
+  tbody.innerHTML = personRows.join("") || emptyRowHTML(7, "لا يوجد مناصب بعد. أضف الهيكل أولًا ثم اضغط \"+ إضافة منصب\".");
 
   rerenderOrgTree();
 }
@@ -18995,27 +19029,123 @@ function autoToggleLeadership(){
 function toggleBodyFields(){
   const isBody = document.getElementById("mst-is-body").checked;
   document.getElementById("mst-holder-field").style.display = isBody ? "none" : "block";
-  document.getElementById("mst-date-field").style.display = isBody ? "none" : "block";
-  if(isBody){ document.getElementById("mst-holder").value = ""; document.getElementById("mst-appointment-date").value = ""; }
 }
 
 function editStructure(id){
   const s = structureCache.find(x => x.id === id);
   if(!s) return;
-  document.getElementById("mst-id").value = s.id;
-  document.getElementById("mst-title-h").textContent = "✏️ تعديل منصب";
-  document.getElementById("mst-title").value = s.position_title || "";
-  document.getElementById("mst-holder").value = s.holder_name || "";
-  document.getElementById("mst-appointment-date").value = s.appointment_date || "";
-  populateParentPositionSelect(s.parent_position || "");
-  populateOrgLevelSelect(s.level);
-  document.getElementById("mst-level").value = s.level ?? "";
-  document.getElementById("mst-leadership").checked = s.is_leadership !== false;
-  document.getElementById("mst-is-body").checked = !!s.is_body;
-  document.getElementById("mst-side").checked = orgIsSideRaw(s);
+  if(s.unit_type){ openUnitModal(s); return; }
+  openPositionModal(s);
+}
+
+const ORG_UNIT_LEVEL = { department: 6, section: 7, unit: 8 };
+const ORG_UNIT_LABEL = { department: "إدارة", section: "قسم", unit: "وحدة" };
+function orgHolderList(s){
+  if(Array.isArray(s.holders) && s.holders.length) return s.holders;
+  return s.holder_name ? [{ name: s.holder_name, direct_manager: "", appointment_date: s.appointment_date || "" }] : [];
+}
+function orgParentOptions(selected, excludeId){
+  const rows = structureCache.filter(r => r.id !== excludeId);
+  const units = rows.filter(r => r.unit_type || r.is_body);
+  const others = rows.filter(r => !r.unit_type && !r.is_body);
+  const opt = r => `<option value="${orgEsc(r.position_title||"")}">${orgEsc(r.position_title||"")}${r.unit_type ? " ("+ORG_UNIT_LABEL[r.unit_type]+")" : ""}</option>`;
+  return '<option value="">— بدون (أعلى مستوى في الهيكل) —</option>'
+    + (units.length ? '<optgroup label="الإدارات والأقسام والوحدات والجهات">'+units.map(opt).join("")+'</optgroup>' : "")
+    + (others.length ? '<optgroup label="مناصب">'+others.map(opt).join("")+'</optgroup>' : "");
+}
+function openUnitModal(s){
+  document.getElementById("mu-id").value = s ? s.id : "";
+  document.getElementById("mu-title-h").textContent = s ? "✏️ تعديل" : "🌳 إضافة إدارة / قسم / وحدة";
+  document.getElementById("mu-type").value = (s && s.unit_type) || "department";
+  document.getElementById("mu-title").value = s ? (s.position_title || "") : "";
+  const sel = document.getElementById("mu-parent");
+  sel.innerHTML = orgParentOptions("", s ? s.id : null);
+  sel.value = s ? (s.parent_position || "") : "";
+  const sideRow = document.getElementById("mu-side-row");
+  sideRow.style.display = orgSideSupported ? "flex" : "none";
+  document.getElementById("mu-side").checked = s ? orgIsSideRaw(s) : false;
+  document.getElementById("mu-delete-btn").style.display = s ? "inline-block" : "none";
+  openM("m-unit");
+}
+async function saveUnit(){
+  const id = document.getElementById("mu-id").value;
+  const title = document.getElementById("mu-title").value.trim();
+  if(!title){ alert("الرجاء إدخال الاسم"); return; }
+  const unit_type = document.getElementById("mu-type").value;
+  const dup = structureCache.find(r => r.position_title === title && String(r.id) !== String(id));
+  if(dup){ alert("يوجد عنصر بنفس الاسم في الهيكل. اختر اسمًا مختلفًا."); return; }
+  const payload = { position_title: title, unit_type, level: ORG_UNIT_LEVEL[unit_type], parent_position: document.getElementById("mu-parent").value.trim(),
+    is_leadership: true, is_body: false, holder_name: "", holders: [], appointment_date: null, company_id: currentCompanyId };
+  if(orgSideSupported) payload.is_side = document.getElementById("mu-side").checked;
+  let error;
+  if(id){
+    const old = structureCache.find(r => String(r.id) === String(id));
+    ({ error } = await sb.from("org_structure").update(payload).eq("id", id));
+    if(!error && old && old.position_title !== title){
+      await sb.from("org_structure").update({ parent_position: title }).eq("company_id", currentCompanyId).eq("parent_position", old.position_title);
+      await sb.from("org_structure").update({ unit_title: title }).eq("company_id", currentCompanyId).eq("unit_title", old.position_title);
+    }
+  } else {
+    ({ error } = await sb.from("org_structure").insert([payload]));
+  }
+  if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
+  closeM("m-unit"); loadStructure();
+}
+async function deleteUnitFromModal(){
+  const id = document.getElementById("mu-id").value;
+  if(!id) return;
+  if(!await uiConfirm("حذف هذا العنصر سيفصله عن الهيكل. العناصر التابعة له ستحتاج إعادة ربط يدويًا. متابعة؟")) return;
+  const { error } = await sb.from("org_structure").delete().eq("id", id);
+  if(error){ alert("تعذّر الحذف: " + error.message); return; }
+  closeM("m-unit"); loadStructure();
+}
+
+function addHolderRow(h){
+  h = h || {};
+  const list = document.getElementById("mst-holders-list");
+  const div = document.createElement("div");
+  div.className = "mst-holder-row";
+  div.style.cssText = "display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px;background:var(--offwhite);padding:8px;border-radius:8px";
+  div.innerHTML = `<input class="fi mh-name" style="flex:2;min-width:140px" placeholder="اسم الشخص" value="${orgEsc(h.name||"")}" />
+    <input class="fi mh-mgr" list="mst-people-dl" style="flex:2;min-width:140px" placeholder="المدير المباشر" value="${orgEsc(h.direct_manager||"")}" />
+    <input type="date" class="fi mh-date" style="flex:1;min-width:130px" value="${orgEsc(h.appointment_date||"")}" title="تاريخ التعيين" />
+    <button type="button" class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;cursor:pointer" onclick="this.parentNode.remove()">حذف</button>`;
+  list.appendChild(div);
+}
+function openPositionModal(s){
+  if(!s && (!structureCache || !structureCache.length)){
+    alert("أضف الهيكل أولًا (إدارة أو قسم أو وحدة)، ثم أضف المناصب بعد اكتماله.");
+    return;
+  }
+  document.getElementById("mst-id").value = s ? s.id : "";
+  document.getElementById("mst-title-h").textContent = s ? "✏️ تعديل منصب" : "🌳 إضافة منصب في الهيكل التنظيمي";
+  document.getElementById("mst-title").value = s ? (s.position_title || "") : "";
+  const sel = document.getElementById("mst-parent");
+  sel.innerHTML = orgParentOptions("", s ? s.id : null);
+  sel.value = s ? (s.parent_position || "") : "";
+  populateOrgLevelSelect(s ? s.level : undefined);
+  document.getElementById("mst-level").value = s ? (s.level ?? "") : "";
+  document.getElementById("mst-leadership").checked = s ? s.is_leadership !== false : false;
+  document.getElementById("mst-is-body").checked = s ? !!s.is_body : false;
+  document.getElementById("mst-side").checked = s ? orgIsSideRaw(s) : false;
+  const dl = document.getElementById("mst-people-dl");
+  const names = new Set();
+  structureCache.forEach(r => orgHolderList(r).forEach(h => { if(h.name) names.add(h.name); }));
+  dl.innerHTML = [...names].map(n => `<option value="${orgEsc(n)}"></option>`).join("");
+  document.getElementById("mst-holders-list").innerHTML = "";
+  if(s){ orgHolderList(s).forEach(h => addHolderRow(h)); }
+  if(!s || !orgHolderList(s).length) addHolderRow();
   toggleBodyFields();
-  document.getElementById("mst-delete-btn").style.display = "inline-block";
+  mstParentChanged();
+  document.getElementById("mst-delete-btn").style.display = s ? "inline-block" : "none";
   openM("m-structure");
+}
+function mstParentChanged(){
+  const u = structureCache.find(r => r.position_title === document.getElementById("mst-parent").value);
+  const row = document.getElementById("mst-leadership").parentNode;
+  if(row) row.style.display = (u && u.unit_type) ? "none" : "flex";
+  if(document.getElementById("mst-id").value) return;
+  if(u && u.unit_type) document.getElementById("mst-level").value = String(u.level ?? "");
 }
 
 async function deleteStructureFromModal(){
@@ -19032,21 +19162,24 @@ async function saveStructure(){
   const position_title = document.getElementById("mst-title").value.trim();
   if(!position_title){ alert("الرجاء إدخال اسم المنصب"); return; }
   const is_body = document.getElementById("mst-is-body").checked;
-  const holder_name = is_body ? "" : document.getElementById("mst-holder").value.trim();
-  const appointment_date = is_body ? null : (document.getElementById("mst-appointment-date").value || null);
+  const holders = is_body ? [] : [...document.querySelectorAll("#mst-holders-list .mst-holder-row")].map(r => ({
+    name: r.querySelector(".mh-name").value.trim(),
+    direct_manager: r.querySelector(".mh-mgr").value.trim(),
+    appointment_date: r.querySelector(".mh-date").value || ""
+  })).filter(h => h.name);
+  const holder_name = holders.map(h => h.name).join("، ");
+  const appointment_date = holders.length ? (holders[0].appointment_date || null) : null;
   const parent_position = document.getElementById("mst-parent").value.trim();
   const level = document.getElementById("mst-level").value ? Number(document.getElementById("mst-level").value) : null;
-  const is_leadership = document.getElementById("mst-leadership").checked;
-  const payload = { position_title, holder_name, appointment_date, parent_position, level, is_leadership, is_body, company_id: currentCompanyId };
+  const parentRow = structureCache.find(r => r.position_title === parent_position);
+  const is_leadership = (parentRow && parentRow.unit_type) ? false : document.getElementById("mst-leadership").checked;
+  const payload = { position_title, holder_name, holders, appointment_date, parent_position, unit_title: parent_position || null, unit_type: null, level, is_leadership, is_body, company_id: currentCompanyId };
   if(orgSideSupported) payload.is_side = document.getElementById("mst-side").checked;
   const { error } = id
     ? await sb.from("org_structure").update(payload).eq("id", id)
     : await sb.from("org_structure").insert([payload]);
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
   document.getElementById("mst-id").value = "";
-  document.getElementById("mst-title-h").textContent = "🌳 إضافة منصب في الهيكل التنظيمي";
-  document.getElementById("mst-title").value=""; document.getElementById("mst-holder").value=""; document.getElementById("mst-appointment-date").value=""; document.getElementById("mst-parent").value=""; document.getElementById("mst-level").value=""; document.getElementById("mst-leadership").checked = true; document.getElementById("mst-is-body").checked = false; toggleBodyFields(); document.getElementById("mst-delete-btn").style.display = "none";
-  document.getElementById("mst-side").checked = false;
   closeM("m-structure"); loadStructure();
 }
 
