@@ -12126,6 +12126,9 @@ async function openAGMDetailModal(id){
         : '<span class="file-card-status muted">لم تُولَّد بعد</span>',
       actions: invitationDoc
         ? `<a class="btn btn-outline" style="font-size:11px;padding:6px 14px" href="${invitationDoc.file_url}" target="_blank" rel="noopener"><span class="ico-i ico-inbox"></span>عرض/تحميل</a>`
+          + (invitationFullySigned
+              ? `<button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="sendInvitationToShareholders(${m.id})"><span class="ico-i ico-send"></span>${m.invitation_published_at ? 'إعادة إرسال الدعوة للمساهمين' : 'نشر وإرسال الدعوة للمساهمين'}</button>`
+              : `<span style="font-size:11px;color:var(--gray3);align-self:center">يُفعَّل زر الإرسال بعد اكتمال التوقيعات</span>`)
         : `<button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="generateAGMInvitationDoc(${m.id})"><span class="ico-i ico-edit"></span>توليد</button>`
     },
     {
@@ -17145,18 +17148,25 @@ async function sendInvitationToShareholders(meetingId){
     sb.from("companies").select("name").eq("id", currentCompanyId).single()
   ]);
   const recipients = (shareholders||[]).filter(s => s.email);
-  if(recipients.length === 0){ alert("لا يوجد مساهمين لديهم بريد إلكتروني مسجَّل بسجل المساهمين."); return; }
 
   const invitation = (invitationDoc||[])[0];
   const invitationLink = invitation ? invitation.file_url : null;
   const listedLink = currentCompanyType === "مساهمة مدرجة" ? `${window.location.origin}${window.location.pathname}?listed_company=${currentCompanyId}` : null;
 
-  if(!await uiConfirm(`سيتم نشر دعوة الجمعية لكل المساهمين على المنصة، وإرسالها بالبريد لـ${recipients.length} مساهم لديهم بريد مسجَّل. متابعة؟`)) return;
+  if(!await uiConfirm(recipients.length
+    ? `سيتم نشر دعوة الجمعية لكل المساهمين على المنصة، وإرسالها بالبريد لـ${recipients.length} مساهم لديهم بريد مسجَّل. متابعة؟`
+    : "سيتم نشر دعوة الجمعية لكل المساهمين على المنصة (لا يوجد بريد مسجَّل في سجل المساهمين، فلن تُرسل رسائل بريدية). متابعة؟")) return;
 
   // نشر الدعوة وملفاتها الداعمة على حسابات المساهمين (يشترط اكتمال توقيع الدعوة)
   const { data: pubRes, error: pubErr } = await sb.rpc("publish_agm_invitation", { p_meeting_id: meetingId });
   if(pubErr){ alert("تعذّر نشر الدعوة: " + pubErr.message + "\nتأكد من تنفيذ ملف SQL الخاص بالنشر."); return; }
   if(!pubRes || pubRes.ok !== true){ alert("لم تُنشر الدعوة: " + ((pubRes && pubRes.reason) || "سبب غير معروف")); return; }
+
+  if(recipients.length === 0){
+    alert("تم نشر الدعوة للمساهمين على المنصة ✅ — ولم تُرسل رسائل بريدية لعدم وجود بريد مسجَّل في سجل المساهمين.");
+    try{ openAGMDetailModal(meetingId); }catch(e){}
+    return;
+  }
 
   const subject = `دعوة لحضور ${m.title||"الجمعية العامة"} — ${company?.name||""}`;
   let sent = 0, failed = 0;
