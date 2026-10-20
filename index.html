@@ -2215,9 +2215,9 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   <div class="card">
     <div class="card-body" style="padding:0;overflow-x:auto">
       <table class="tbl" style="min-width:560px" id="myVoteHistoryTable">
-        <thead><tr><th>الجمعية</th><th>التاريخ</th><th>البند</th><th style="text-align:center">تصويتي</th></tr></thead>
+        <thead><tr><th>الجمعية</th><th>التاريخ</th><th style="text-align:center">بطاقة التصويت</th></tr></thead>
         <tbody id="myVoteHistoryTbody">
-          <tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
+          <tr><td colspan="3" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
         </tbody>
       </table>
     </div>
@@ -19866,22 +19866,22 @@ async function loadMyVoteHistory(){
   if(!tbody) return;
   const { data: userData } = await sb.auth.getUser();
   const email = userData && userData.user ? userData.user.email : null;
-  if(!email || !currentCompanyId){ tbody.innerHTML = emptyRowHTML(4, "تعذّر تحديد هويتك."); return; }
+  if(!email || !currentCompanyId){ tbody.innerHTML = emptyRowHTML(3, "تعذّر تحديد هويتك."); return; }
   const { data: sh } = await sb.from("shareholders").select("name")
     .eq("company_id", currentCompanyId).eq("claimed_by_email", email).maybeSingle();
-  if(!sh || !sh.name){ tbody.innerHTML = emptyRowHTML(4, "لم يتم العثور على سجل مساهم مرتبط بحسابك."); return; }
+  if(!sh || !sh.name){ tbody.innerHTML = emptyRowHTML(3, "لم يتم العثور على سجل مساهم مرتبط بحسابك."); return; }
 
-  const { data: votes, error } = await sb.from("votes").select("*, meetings(title,meeting_date)")
+  const { data: votes, error } = await sb.from("votes").select("meeting_id, meetings(title,meeting_date)")
     .eq("company_id", currentCompanyId).eq("shareholder_name", sh.name).order("id",{ascending:false});
-  if(error){ tbody.innerHTML = errorRowHTML(4, error.message); return; }
-  if(!votes || votes.length===0){ tbody.innerHTML = emptyRowHTML(4, "لا يوجد لديك تصويت مسجّل بعد."); return; }
-
-  const resultColor = { "موافق":"var(--green)", "معارض":"var(--red)", "ممتنع":"var(--orange)" };
-  tbody.innerHTML = votes.map(v => `<tr>
-    <td>${orgEsc((v.meetings && v.meetings.title) || "—")}</td>
-    <td>${(v.meetings && v.meetings.meeting_date) || "—"}</td>
-    <td>${v.topic || "—"}</td>
-    <td style="text-align:center;font-weight:800;color:${resultColor[v.result]||'var(--dark)'}">${v.result || "—"}</td>
+  if(error){ tbody.innerHTML = errorRowHTML(3, error.message); return; }
+  const byMeeting = new Map();
+  (votes||[]).forEach(v => { if(v.meeting_id && !byMeeting.has(v.meeting_id)) byMeeting.set(v.meeting_id, v.meetings || {}); });
+  if(byMeeting.size===0){ tbody.innerHTML = emptyRowHTML(3, "لا يوجد لديك تصويت مسجّل بعد."); return; }
+  const nm = String(sh.name).replace(/\\/g,"\\\\").replace(/'/g,"\\'");
+  tbody.innerHTML = [...byMeeting.entries()].map(([mid, m]) => `<tr>
+    <td>${orgEsc(m.title || "—")}</td>
+    <td>${m.meeting_date || "—"}</td>
+    <td style="text-align:center"><button class="btn-xs primary" onclick="openVoterSignedCard('${nm}', ${Number(mid)})"><span class="ico-i ico-document"></span>عرض بطاقة التصويت</button></td>
   </tr>`).join("");
 }
 
@@ -23579,6 +23579,25 @@ function pdfHostRemove(el){ const h = el && el.parentNode; if(h && h.getAttribut
   window.uiPrompt = (m, def) => dialog(m, { prompt:true, def });
 })();
 
+/* Auto-refresh: re-load the page you are looking at every 40 seconds (and when you return to the tab),
+   unless you are typing, a window is open, or the page is an editor — so changes by others appear without F5. */
+const AUTO_REFRESH_SKIP_PAGES = ['govassess','reports','procedures'];
+let __lastAutoRefresh = Date.now();
+function autoRefreshTick(force){
+  try{
+    if(document.visibilityState !== 'visible' || !currentCompanyId) return;
+    if(!force && Date.now() - __lastAutoRefresh < 35000) return;
+    if(document.querySelector('.modal-bg.open')) return;
+    const ae = document.activeElement;
+    if(ae && (/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) || ae.isContentEditable)) return;
+    if(AUTO_REFRESH_SKIP_PAGES.includes(currentPageId)) return;
+    __lastAutoRefresh = Date.now();
+    reloadCurrentPageData();
+  }catch(e){}
+}
+setInterval(() => autoRefreshTick(false), 40000);
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') autoRefreshTick(false); });
+
 async function go(id, el){
   currentPageId = id;
   if(companyTypeReadyPromise){ try{ await companyTypeReadyPromise; }catch(e){} }
@@ -24068,26 +24087,27 @@ async function reopenVoterVoting(shareholderName){
   loadVoteResults();
 }
 
-async function openVoterSignedCard(shareholderName){
-  if(!currentVotingMeetingId){ alert("تعذّر تحديد الجمعية الحالية"); return; }
+async function openVoterSignedCard(shareholderName, meetingIdArg){
+  const mtgId = meetingIdArg || currentVotingMeetingId;
+  if(!mtgId){ alert("تعذّر تحديد الجمعية الحالية"); return; }
   const { data: att, error } = await sb.from("agm_attendance").select("signed_vote_card_url")
-    .eq("meeting_id", currentVotingMeetingId).eq("shareholder_name", shareholderName).maybeSingle();
+    .eq("meeting_id", mtgId).eq("shareholder_name", shareholderName).maybeSingle();
   if(error){ alert("تعذّر التحقق: " + error.message); return; }
   let data = att;
   if(!data || !data.signed_vote_card_url){
     try{
-      const { data: u } = await sb.rpc("get_vote_card_url", { p_meeting_id: currentVotingMeetingId, p_name: shareholderName });
+      const { data: u } = await sb.rpc("get_vote_card_url", { p_meeting_id: mtgId, p_name: shareholderName });
       if(u) data = { signed_vote_card_url: u };
     }catch(e){}
   }
   if(!data || !data.signed_vote_card_url){
     const { data: lk } = await sb.from("agm_vote_locks").select("card_url")
-      .eq("meeting_id", currentVotingMeetingId).eq("shareholder_name", shareholderName).limit(1);
+      .eq("meeting_id", mtgId).eq("shareholder_name", shareholderName).limit(1);
     if(lk && lk[0] && lk[0].card_url) data = { signed_vote_card_url: lk[0].card_url };
   }
   if(!data || !data.signed_vote_card_url){
     const { data: lk2 } = await sb.from("agm_vote_locks").select("id")
-      .eq("meeting_id", currentVotingMeetingId).eq("shareholder_name", shareholderName).limit(1);
+      .eq("meeting_id", mtgId).eq("shareholder_name", shareholderName).limit(1);
     if(lk2 && lk2.length){
       alert(`"${shareholderName}" وقّع بطاقته، لكن ملف البطاقة لم يُحفظ في المنصة (وُقّعت قبل الإصلاح أو تعذّر رفعها). افتح له التصويت من زر «فتح التصويت للتعديل» ليعيد التوقيع فيُحفظ الملف.`);
       return;
