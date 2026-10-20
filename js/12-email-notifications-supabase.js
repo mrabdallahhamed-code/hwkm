@@ -66,7 +66,7 @@ async function verifySignupOtp(){
 async function sendWhatsAppReminderAPI(phone, templateName, params){
   try{
     const res = await fetch(`${SUPABASE_URL}/functions/v1/send-whatsapp-reminder`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
+      method: "POST", headers: await edgeAuthHeaders(),
       body: JSON.stringify({ phone: normalizeSaudiPhone(phone), templateName, params })
     });
     const data = await res.json();
@@ -77,11 +77,21 @@ async function sendWhatsAppReminderAPI(phone, templateName, params){
   }
 }
 
+async function edgeAuthHeaders(){
+  const h = { "Content-Type": "application/json" };
+  try{
+    const { data } = await sb.auth.getSession();
+    const t = data && data.session && data.session.access_token;
+    if(t) h["Authorization"] = "Bearer " + t;
+  }catch(e){}
+  return h;
+}
+
 async function sendNotificationEmail(to, subject, html){
   try{
     const res = await fetch(`${SUPABASE_URL}/functions/v1/send-notification-email`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: await edgeAuthHeaders(),
       body: JSON.stringify({ to, subject, html })
     });
     const data = await res.json();
