@@ -471,6 +471,7 @@ async function handleAuth(){
     if(!national_id){ showLoginMsg("الرجاء إدخال رقم الهوية", false); return; }
     if(!phone_number){ showLoginMsg("الرجاء إدخال رقم الجوال", false); return; }
     if(listedCompanyContext && account_type === "مساهم" && !shares_count){ showLoginMsg("الرجاء إدخال عدد الأسهم", false); return; }
+    if(password.length < 8){ showLoginMsg("كلمة المرور يجب أن تكون 8 أحرف على الأقل", false); return; }
 
     // The company code is only remembered in the account's metadata here. While the email is
     // unconfirmed there is no session, so the join request is made on the first signed-in visit
@@ -479,8 +480,15 @@ async function handleAuth(){
     const signupMeta = {};
     if(joinCodeTyped) signupMeta.join_code = joinCodeTyped;
     if(signupPhoneProof) signupMeta.phone_proof = signupPhoneProof;   // server-signed; claimed on the first signed-in visit
-    const { error } = await sb.auth.signUp({ email, password, options: { data: signupMeta } });
+    // الملف الشخصي لا يُدرَج من الزائر: تُحفظ بياناته هنا في حساب الدخول، ويُنشأ صفّه في قاعدة البيانات
+    // عند أول دخول موثَّق (ensureProfileFromSignup) ببريد الجلسة نفسه، فلا يمكن اختلاق ملف ببريد غيرك.
+    signupMeta.hwkm_profile = { account_type, full_name, national_id, phone_number };
+    const { data: signUpData, error } = await sb.auth.signUp({ email, password, options: { data: signupMeta } });
     if(error){ showLoginMsg("خطأ: " + error.message, false); return; }
+    if(signUpData && signUpData.user && Array.isArray(signUpData.user.identities) && signUpData.user.identities.length === 0){
+      showLoginMsg("هذا البريد الإلكتروني مسجّل بحساب موجود مسبقًا — الرجاء تسجيل الدخول بدل إنشاء حساب جديد.", false);
+      return;
+    }
 
     // Listed-company shareholder signup: no pre-existing registry to auto-match against, so
     // this becomes a proof-of-ownership request the company reviews manually — completely
@@ -521,17 +529,7 @@ async function handleAuth(){
     let claimedRecords = [];
     let memberships = []; // { company_id, role } — only ever filled by an invite link
 
-    const profilePayload = { email, account_type, full_name, national_id, phone_number, shares_count: null, terms_accepted_at: null, terms_version: null };   // الموافقة تُؤخذ بعد التسجيل عبر نافذة الشروط الإلزامية عند أول دخول
-    if(inviteCompanyId){ profilePayload.company_id = inviteCompanyId; profilePayload.role = inviteRole; }
-
-    const { error: profileError } = await sb.from("user_profiles").insert([profilePayload]);
-    if(profileError){
-      const isDuplicate = profileError.message && (profileError.message.includes("duplicate") || profileError.message.includes("unique"));
-      showLoginMsg(isDuplicate
-        ? "هذا البريد الإلكتروني مسجّل بحساب موجود مسبقًا — الرجاء تسجيل الدخول بدل إنشاء حساب جديد."
-        : "تم إنشاء حساب الدخول، لكن تعذّر حفظ بياناتك الشخصية: " + profileError.message + " — تواصل مع مدير النظام.", false);
-      return;
-    }
+    // (لا إدراج للملف الشخصي هنا — انظر ensureProfileFromSignup عند أول دخول.)
     if(inviteCompanyId){ memberships = [{ company_id: inviteCompanyId, role: inviteRole }]; }
     // Claiming board_members/shareholders rows must happen AFTER the membership rows above are
     // created — the RLS policy on those tables requires is_member_of(company_id), which only
@@ -583,6 +581,27 @@ async function acceptTermsGate(){
   }catch(e){}
 }
 
+/* ينشئ صف الملف الشخصي عند أول دخول موثَّق من البيانات التي حُفظت مع حساب الدخول عند التسجيل.
+   البريد يؤخذ من الجلسة (لا من النموذج)، وقاعدة البيانات تفرض الشركة والدور من العضويات ولا تسمح بصلاحيات المنصة. */
+async function ensureProfileFromSignup(user){
+  try{
+    const m = user && user.user_metadata && user.user_metadata.hwkm_profile;
+    if(!m || !user.email) return false;
+    const clip = (v, n) => (v == null ? null : String(v).trim().slice(0, n) || null);
+    const payload = {
+      email: user.email,
+      account_type: clip(m.account_type, 40),
+      full_name: clip(m.full_name, 120),
+      national_id: clip(m.national_id, 20),
+      phone_number: clip(m.phone_number, 20),
+      shares_count: null, terms_accepted_at: null, terms_version: null
+    };
+    const { error } = await sb.from("user_profiles").insert([payload]);
+    if(error && !/duplicate|unique/i.test(error.message || "")){ console.warn("profile create failed", error.message); return false; }
+    return true;
+  }catch(e){ return false; }
+}
+
 async function loadCurrentUserProfile(){
   const nameEl = document.getElementById('gm-shareholder-name');
   const sharesEl = document.getElementById('gm-shares-count');
@@ -592,10 +611,14 @@ async function loadCurrentUserProfile(){
   const { data: userData } = await sb.auth.getUser();
   const email = userData && userData.user ? userData.user.email : null;
   if(!email) return;
-  const [{ data }, { data: memberships }] = await Promise.all([
+  let [{ data }, { data: memberships }] = await Promise.all([
     sb.from("user_profiles").select("*").eq("email", email).maybeSingle(),
     sb.from("user_company_memberships").select("*").eq("email", email)
   ]);
+  if(!data){
+    const made = await ensureProfileFromSignup(userData.user);
+    if(made){ const r = await sb.from("user_profiles").select("*").eq("email", email).maybeSingle(); data = r.data || null; }
+  }
   currentUserProfile = data || null;
   userMemberships = memberships || [];
   await claimPhoneProofIfAny();

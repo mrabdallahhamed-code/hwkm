@@ -234,7 +234,7 @@ async function confirmPasswordReset(){
   const pw = document.getElementById("reset-new-password").value;
   const pw2 = document.getElementById("reset-confirm-password").value;
   const msgEl = document.getElementById("reset-msg");
-  if(!pw || pw.length < 6){ msgEl.textContent = "كلمة المرور يجب أن تكون 6 أحرف على الأقل"; msgEl.style.color = "var(--red)"; msgEl.style.display = "block"; return; }
+  if(!pw || pw.length < 8){ msgEl.textContent = "كلمة المرور يجب أن تكون 8 أحرف على الأقل"; msgEl.style.color = "var(--red)"; msgEl.style.display = "block"; return; }
   if(pw !== pw2){ msgEl.textContent = "كلمتا المرور غير متطابقتين"; msgEl.style.color = "var(--red)"; msgEl.style.display = "block"; return; }
   const { error } = await sb.auth.updateUser({ password: pw });
   if(error){ msgEl.textContent = "تعذّر تعيين كلمة المرور: " + error.message; msgEl.style.color = "var(--red)"; msgEl.style.display = "block"; return; }

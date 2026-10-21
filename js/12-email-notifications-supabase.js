@@ -150,7 +150,7 @@ async function createTestUser(){
   const role = resolveRoleValue("ctu-role", "ctu-role-custom");
   if(!name || !email || !password){ alert("الرجاء تعبئة الاسم والإيميل وكلمة المرور"); return; }
   if(!role){ alert("الرجاء كتابة المسمى الوظيفي المخصّص"); return; }
-  if(password.length < 6){ alert("كلمة المرور لازم تكون ٦ أحرف على الأقل"); return; }
+  if(password.length < 8){ alert("كلمة المرور لازم تكون ٨ أحرف على الأقل"); return; }
 
   const { data: sessionData } = await sb.auth.getSession();
   const token = sessionData?.session?.access_token;
