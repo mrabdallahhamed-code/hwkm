@@ -462,11 +462,12 @@ function renderEntityVerificationTable(all){
     : '<span style="color:var(--gold);font-weight:700">غير موثّق ⏳</span>';
   const rank = c => (c.entity_verification === "verified" ? 2 : 0) + ((c.company_type||"").indexOf("مدرجة") > 0 && c.company_type.indexOf("غير") < 0 ? 0 : 1);
   const rows = (all||[]).slice().sort((a,b) => rank(a) - rank(b) || new Date(b.created_at) - new Date(a.created_at));
-  if(!rows.length){ tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد شركات.</td></tr>'; return; }
+  if(!rows.length){ tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد شركات.</td></tr>'; return; }
   tb.innerHTML = rows.map(c => `<tr>
     <td>${orgEsc(c.name)}</td>
     <td>${orgEsc(c.company_type||"—")}</td>
     <td>${orgEsc(c.cr_number||"—")}</td>
+    <td>${orgEsc(c.responsible_person||"—")}<div style="font-size:10.5px;color:var(--gray3);direction:ltr;text-align:right">${orgEsc(c.responsible_phone||"")}${c.responsible_email ? "<br>" + orgEsc(c.responsible_email) : ""}</div></td>
     <td>${badge(c.entity_verification)}</td>
     <td style="white-space:nowrap">
       ${c.entity_verification === "verified"
