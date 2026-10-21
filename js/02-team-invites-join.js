@@ -509,6 +509,23 @@ async function logActivity(action_type, entity_type, entity_label, details){
   }catch(e){ /* logging must never block the actual action */ }
 }
 
+/* دخول فريق المنصة إلى بيانات شركة عميل: يُسجَّل في سجل نشاط الشركة ليراه مديروها (مرة لكل شركة في الجلسة).
+   لا يُسجَّل إلا لمن ليس عضوًا في الشركة (مالك المنصة أو فريقها)، ولا يعطّل أي عمل إن فشل التسجيل. */
+const _platformAccessLogged = new Set();
+function logPlatformStaffAccess(){
+  try{
+    if(!currentCompanyId || !currentUserProfile) return;
+    const isStaff = currentUserProfile.is_platform_admin === true || !!currentUserProfile.platform_team_module;
+    if(!isStaff) return;
+    if((userMemberships || []).some(m => m.company_id === currentCompanyId)) return;
+    const key = String(currentCompanyId);
+    if(_platformAccessLogged.has(key)) return;
+    _platformAccessLogged.add(key);
+    const who = currentUserProfile.is_platform_admin === true ? "مالك المنصة" : ("فريق المنصة — " + currentUserProfile.platform_team_module);
+    logActivity("دخول", "دخول فريق المنصة", who, "دخول فريق المنصة إلى بيانات الشركة للدعم أو الإدارة");
+  }catch(e){}
+}
+
 let activityLogCache = [];
 let activityLogActiveType = "الكل";
 const ACTIVITY_TYPE_ICONS = { "إنشاء":"➕", "تعديل":"✏️", "حذف":"🗑️", "دعوة":"🔗", "صلاحيات":"🛡️", "موافقة":"✅", "رفض":"❌", "توقيع":"✍️", "دخول":"🔓" };
@@ -1033,6 +1050,7 @@ async function loadCompanies(preferredCompanyId){
   currentCompanyId = preferredCompanyId && data.some(c=>c.id===preferredCompanyId) ? preferredCompanyId : data[0].id;
   if(sel) sel.value = currentCompanyId;
   await refreshCompanyTypeVisibility();
+  logPlatformStaffAccess();
   reloadCurrentPageData();
 }
 
@@ -1049,6 +1067,7 @@ async function switchCompany(id){
   await loadMyPermissionOverrides();
   await applyRolePermissions();
   await refreshCompanyTypeVisibility();
+  logPlatformStaffAccess();
   checkPendingApprovalBadges();
   const platformOnlyPages = ['adminrequests','platformdashboard','platformusers','platformactivity'];
   if(platformOnlyPages.includes(currentPageId)){
