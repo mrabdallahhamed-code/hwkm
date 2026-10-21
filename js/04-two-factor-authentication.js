@@ -218,13 +218,17 @@ function openForgotPasswordModal(){
   document.getElementById("forgot-email").value = document.getElementById("loginEmail")?.value || "";
   document.getElementById("forgot-msg").style.display = "none";
   openM("m-forgot-password");
+  tsRender("tsForgotBox");
 }
 
 async function sendPasswordResetEmail(){
   const email = document.getElementById("forgot-email").value.trim();
   const msgEl = document.getElementById("forgot-msg");
   if(!email){ msgEl.textContent = "الرجاء إدخال بريد إلكتروني صحيح"; msgEl.style.color = "var(--red)"; msgEl.style.display = "block"; return; }
-  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname });
+  const captchaToken = tsToken("tsForgotBox");
+  if(window.turnstile && !captchaToken){ msgEl.textContent = "جارٍ التحقق الأمني… انتظر لحظة ثم اضغط مرة أخرى"; msgEl.style.color = "var(--red)"; msgEl.style.display = "block"; return; }
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname, captchaToken });
+  tsReset("tsForgotBox");
   if(error){ msgEl.textContent = "تعذّر الإرسال: " + error.message; msgEl.style.color = "var(--red)"; msgEl.style.display = "block"; return; }
   msgEl.textContent = "✅ تم إرسال رابط إعادة التعيين إلى بريدك — تحقق من صندوق الوارد (والمزعج/السبام).";
   msgEl.style.color = "var(--green)"; msgEl.style.display = "block";

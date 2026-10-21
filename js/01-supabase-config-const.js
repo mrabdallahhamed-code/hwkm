@@ -1,6 +1,25 @@
 /* ══════════ SUPABASE CONFIG ══════════ */
 const SUPABASE_URL = "https://omddnkofsdtwfjkxdktt.supabase.co";
 const SUPABASE_KEY = "sb_publishable_SbHWC7JAuyvXypZyJeiWkg_I9Y4gjbj";
+/* ══════════ CAPTCHA (Cloudflare Turnstile) ══════════
+   المفتاح العام فقط هنا (آمن للنشر). المفتاح السري يوضع في إعدادات Supabase ولا يظهر في الكود. */
+const TURNSTILE_SITE_KEY = "0x4AAAAAAFfbq7ZLVouDezxS";
+const _tsIds = {};
+function tsRender(boxId){
+  if(!window.turnstile || _tsIds[boxId] !== undefined) return;
+  const box = document.getElementById(boxId);
+  if(!box) return;
+  try{ _tsIds[boxId] = window.turnstile.render(box, { sitekey: TURNSTILE_SITE_KEY, theme: "light" }); }catch(e){}
+}
+function tsToken(boxId){
+  if(!window.turnstile || _tsIds[boxId] === undefined) return undefined;
+  return window.turnstile.getResponse(_tsIds[boxId]) || undefined;
+}
+function tsReset(boxId){
+  try{ if(window.turnstile && _tsIds[boxId] !== undefined) window.turnstile.reset(_tsIds[boxId]); }catch(e){}
+}
+window.hwkmTsReady = function(){ tsRender("tsLoginBox"); };
+
 /* ══════════ ENGLISH TRANSLATION LAYER ══════════
    Rather than rewrite every function that builds Arabic HTML (hundreds of them), we translate
    the rendered DOM after the fact: a dictionary of exact Arabic phrases → English, applied to
@@ -443,8 +462,12 @@ async function handleAuth(){
   const password = document.getElementById("loginPassword").value;
   if(!email || !password){ showLoginMsg("الرجاء تعبئة البريد الإلكتروني وكلمة المرور", false); return; }
 
+  const captchaToken = tsToken("tsLoginBox");
+  if(window.turnstile && !captchaToken){ showLoginMsg("جارٍ التحقق الأمني… انتظر لحظة ثم اضغط مرة أخرى", false); return; }
+
   if(authMode === "login"){
-    const { error } = await sb.auth.signInWithPassword({ email, password });
+    const { error } = await sb.auth.signInWithPassword({ email, password, options: { captchaToken } });
+    tsReset("tsLoginBox");
     if(error){ showLoginMsg("خطأ: " + error.message, false); return; }
 
     // Remember Me only ever stores the email (never the password) — purely a convenience so
@@ -483,7 +506,8 @@ async function handleAuth(){
     // الملف الشخصي لا يُدرَج من الزائر: تُحفظ بياناته هنا في حساب الدخول، ويُنشأ صفّه في قاعدة البيانات
     // عند أول دخول موثَّق (ensureProfileFromSignup) ببريد الجلسة نفسه، فلا يمكن اختلاق ملف ببريد غيرك.
     signupMeta.hwkm_profile = { account_type, full_name, national_id, phone_number };
-    const { data: signUpData, error } = await sb.auth.signUp({ email, password, options: { data: signupMeta } });
+    const { data: signUpData, error } = await sb.auth.signUp({ email, password, options: { data: signupMeta, captchaToken } });
+    tsReset("tsLoginBox");
     if(error){ showLoginMsg("خطأ: " + error.message, false); return; }
     if(signUpData && signUpData.user && Array.isArray(signUpData.user.identities) && signUpData.user.identities.length === 0){
       showLoginMsg("هذا البريد الإلكتروني مسجّل بحساب موجود مسبقًا — الرجاء تسجيل الدخول بدل إنشاء حساب جديد.", false);
