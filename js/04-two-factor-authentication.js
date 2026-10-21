@@ -111,15 +111,14 @@ async function submitSupportTicket(){
   }]);
   if(error){ alert("تعذّر إرسال الطلب: " + error.message); return; }
 
-  const { data: admins } = await sb.rpc("platform_admin_emails");
-  if(admins && admins.length){
+  {
     const html = `<div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px">
       <h2 style="color:#1A3A6B">🆘 طلب دعم فني جديد</h2>
       <p><b>من:</b> ${currentUserProfile?currentUserProfile.full_name:email} (${email})</p>
       <p><b>الموضوع:</b> ${subject}</p>
       <p><b>الرسالة:</b> ${message}</p>
     </div>`;
-    for(const a of admins){ await sendNotificationEmail(a.email, `🆘 طلب دعم: ${subject}`, html); }
+    await notifyPlatformAdmins(`🆘 طلب دعم: ${subject}`, html);
   }
   alert("تم إرسال طلبك ✅ — سيتواصل معك فريق الدعم قريبًا.");
   document.getElementById("sup-subject").value = "";

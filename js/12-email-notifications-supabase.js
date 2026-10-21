@@ -87,6 +87,22 @@ async function edgeAuthHeaders(){
   return h;
 }
 
+// إشعار مالكي المنصة: الخادم هو من يحدّد عناوينهم، فلا تُكشف لأي مستخدم من الواجهة.
+async function notifyPlatformAdmins(subject, html){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/send-notification-email`, {
+      method: "POST",
+      headers: await edgeAuthHeaders(),
+      body: JSON.stringify({ notify_admins: true, subject, html })
+    });
+    const data = await res.json();
+    if(!res.ok){ throw new Error(data.error || data.message || "فشل الإرسال"); }
+    return { success: true, data };
+  }catch(e){
+    return { success: false, error: e.message };
+  }
+}
+
 async function sendNotificationEmail(to, subject, html){
   try{
     const res = await fetch(`${SUPABASE_URL}/functions/v1/send-notification-email`, {
