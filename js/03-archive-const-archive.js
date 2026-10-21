@@ -330,7 +330,8 @@ async function startInstantTrial(){
       const subject = `تجربة جديدة بدأت: ${company_name}`;
       const html = `<div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px">
         <h2 style="color:#1A3A6B">تجربة تلقائية بدأت الآن</h2>
-        <p><b>الشركة:</b> ${company_name} (${company_type})</p>
+        <p><b>الشركة:</b> ${company_name} (${company_type}) — رقم السجل: ${cr_number||"—"}</p>
+        <p style="color:#B8860B"><b>نوع الكيان غير موثّق:</b> راجعه من لوحة المنصة (السجل التجاري، وللمدرجة قائمة تداول).</p>
         <p><b>المسؤول:</b> ${(currentUserProfile && currentUserProfile.full_name)||sessionEmail} (${sessionEmail})</p>
         <p>لا يوجد إجراء مطلوب منك — هذا إشعار فقط. التجربة مفعَّلة تلقائيًا لمدة 14 يومًا.</p>
       </div>`;
@@ -407,7 +408,7 @@ async function loadPlatformDashboard(){
   const all = companies || [];
 
   const countByType = { "مساهمة": 0, "ذات مسؤولية محدودة": 0, "مؤسسة فردية": 0 };
-  all.forEach(c => { if(countByType[c.company_type] !== undefined) countByType[c.company_type]++; });
+  all.forEach(c => { const k = (c.company_type||"").indexOf("مساهمة") === 0 ? "مساهمة" : c.company_type; if(countByType[k] !== undefined) countByType[k]++; });
 
   const cards = [
     { icon:"🏢", label:"إجمالي الشركات", val: all.length, color:"blue" },
@@ -435,6 +436,8 @@ async function loadPlatformDashboard(){
     }).join("");
   }
 
+  renderEntityVerificationTable(all);
+
   const converted = all.filter(c => c.converted_to_paid_at);
   const avgEl = document.getElementById("platformAvgConversionDays");
   const subEl = document.getElementById("platformConversionSubtext");
@@ -446,6 +449,43 @@ async function loadPlatformDashboard(){
     avgEl.textContent = Math.round(totalDays/converted.length) + " يوم";
     subEl.textContent = `بناءً على ${converted.length} شركة تحوّلت لاشتراك مدفوع`;
   }
+}
+
+/* توثيق نوع الكيان: يراجعه مالك المنصة يدويًا (السجل التجاري + قائمة الشركات المدرجة في تداول).
+   الخادم يمنع أي مستخدم غير مالك/فريق المنصة من تغيير الحالة، ويعيدها لـ"غير موثّق" تلقائيًا
+   إذا تغيّر نوع الشركة أو اسمها أو رقم سجلها. */
+function renderEntityVerificationTable(all){
+  const tb = document.getElementById("platformEntityTbody");
+  if(!tb) return;
+  const badge = (st) => st === "verified" ? '<span style="color:var(--green);font-weight:700">موثّق ✅</span>'
+    : st === "rejected" ? '<span style="color:var(--red);font-weight:700">مرفوض ⛔</span>'
+    : '<span style="color:var(--gold);font-weight:700">غير موثّق ⏳</span>';
+  const rank = c => (c.entity_verification === "verified" ? 2 : 0) + ((c.company_type||"").indexOf("مدرجة") > 0 && c.company_type.indexOf("غير") < 0 ? 0 : 1);
+  const rows = (all||[]).slice().sort((a,b) => rank(a) - rank(b) || new Date(b.created_at) - new Date(a.created_at));
+  if(!rows.length){ tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد شركات.</td></tr>'; return; }
+  tb.innerHTML = rows.map(c => `<tr>
+    <td>${orgEsc(c.name)}</td>
+    <td>${orgEsc(c.company_type||"—")}</td>
+    <td>${orgEsc(c.cr_number||"—")}</td>
+    <td>${badge(c.entity_verification)}</td>
+    <td style="white-space:nowrap">
+      ${c.entity_verification === "verified"
+        ? `<button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="setEntityVerification(${c.id},'unverified')">إلغاء التوثيق</button>`
+        : `<button class="btn btn-primary" style="font-size:11px;padding:4px 10px" onclick="setEntityVerification(${c.id},'verified')">توثيق</button>
+           <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="setEntityVerification(${c.id},'rejected')">رفض</button>`}
+    </td></tr>`).join("");
+}
+
+async function setEntityVerification(companyId, status){
+  const labels = { verified:"توثيق", rejected:"رفض", unverified:"إلغاء توثيق" };
+  if(!await uiConfirm(`تأكيد ${labels[status]||"تغيير"} نوع الكيان لهذه الشركة؟ تأكد أولًا من السجل التجاري، وللمدرجة من قائمة الشركات المدرجة.`)) return;
+  const me = (currentUserProfile && currentUserProfile.email) || "";
+  const patch = status === "verified"
+    ? { entity_verification:"verified", entity_verified_at:new Date().toISOString(), entity_verified_by:me }
+    : { entity_verification:status, entity_verified_at:null, entity_verified_by:null };
+  const { error } = await sb.from("companies").update(patch).eq("id", companyId);
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  loadPlatformDashboard();
 }
 
 async function assignPlatformTeamModule(){
@@ -1055,8 +1095,9 @@ function refreshCompanyTypeVisibility(){
 
 async function applyCompanyTypeVisibility(){
   if(!currentCompanyId) return;
-  const { data: c } = await sb.from("companies").select("company_type,module_internal_audit,module_risk_management,trial_ends_at,llc_single_manager,llc_single_owner").eq("id", currentCompanyId).single();
+  const { data: c } = await sb.from("companies").select("company_type,module_internal_audit,module_risk_management,trial_ends_at,llc_single_manager,llc_single_owner,entity_verification").eq("id", currentCompanyId).single();
   currentCompanyType = c ? c.company_type : null;
+  currentCompanyEntityVerified = !!(c && c.entity_verification === "verified");
   const inTrial = !!(c && c.trial_ends_at && new Date(c.trial_ends_at) > new Date());
   currentCompanyTrialEndsAt = inTrial ? c.trial_ends_at : null;
   currentCompanyModules = {

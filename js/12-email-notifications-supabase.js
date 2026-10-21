@@ -187,7 +187,7 @@ async function sendInvitationToShareholders(meetingId){
 
   const invitation = (invitationDoc||[])[0];
   const invitationLink = invitation ? invitation.file_url : null;
-  const listedLink = currentCompanyType === "مساهمة مدرجة" ? `${window.location.origin}${window.location.pathname}?listed_company=${currentCompanyId}` : null;
+  const listedLink = (currentCompanyType === "مساهمة مدرجة" && currentCompanyEntityVerified) ? `${window.location.origin}${window.location.pathname}?listed_company=${currentCompanyId}` : null;
 
   if(!await uiConfirm(recipients.length
     ? `سيتم نشر دعوة الجمعية لكل المساهمين على المنصة، وإرسالها بالبريد لـ${recipients.length} مساهم لديهم بريد مسجَّل. متابعة؟`

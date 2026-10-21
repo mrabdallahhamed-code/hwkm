@@ -750,8 +750,18 @@ async function loadUsers(){
   if(getCurrentRole() === "مدير النظام" || (currentUserProfile && currentUserProfile.is_platform_admin === true)){ loadCompanyJoinCode(); loadCompanyJoinRequests(); }
   else { const jc = document.getElementById("companyJoinCodeCard"); if(jc) jc.style.display = "none"; }
   const linkBtn = document.getElementById("btnListedShareholderLink");
-  if(linkBtn) linkBtn.style.display = (currentCompanyType === "مساهمة مدرجة") ? "inline-block" : "none";
-  if(currentCompanyType === "مساهمة مدرجة") loadPendingShareholderVerifications();
+  const listedVerified = currentCompanyType === "مساهمة مدرجة" && currentCompanyEntityVerified;
+  if(linkBtn) linkBtn.style.display = listedVerified ? "inline-block" : "none";
+  const evNote = document.getElementById("entityVerifyNote");
+  if(evNote) evNote.remove();
+  if(linkBtn && currentCompanyType === "مساهمة مدرجة" && !currentCompanyEntityVerified){
+    const n = document.createElement("div");
+    n.id = "entityVerifyNote";
+    n.style.cssText = "font-size:11.5px;color:var(--gold);background:var(--offwhite);border-radius:8px;padding:8px 12px;margin:6px 0";
+    n.textContent = "⏳ نوع الكيان (مساهمة مدرجة) قيد التحقق من فريق المنصة. تُفعَّل ميزات الشركات المدرجة (رابط توثيق المساهمين) بعد التوثيق. للتسريع تواصل معنا وأرسل صورة السجل التجاري.";
+    linkBtn.parentNode.insertBefore(n, linkBtn);
+  }
+  if(listedVerified) loadPendingShareholderVerifications();
   const testUserBtn = document.getElementById("btnCreateTestUser");
   if(testUserBtn) testUserBtn.style.display = (getCurrentRole() === "مدير النظام") ? "inline-block" : "none";
   const grid = document.getElementById("usersCardsGrid");

@@ -801,6 +801,7 @@ async function applyRolePermissions(){
 }
 
 let currentCompanyType = null;
+let currentCompanyEntityVerified = false; // نوع الكيان وُثّق من فريق المنصة
 let currentCompanyLLCSingleManager = false;
 let currentCompanyLLCSingleOwner = false;
 const LLC_SINGLE_MANAGER_HIDDEN_PAGES = ['meetings','members','appoint','indicators','decisiontracking'];
