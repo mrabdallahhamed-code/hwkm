@@ -376,7 +376,7 @@ async function loadProceduresInner(){
 }
 function procRenderGates(){
   const g = procState.gates, el = document.getElementById("procGates"); if(!el || !g) return;
-  const row = (ok, t, extra) => `<div>${ok ? "✅" : "⬜"} ${t}${extra ? ` <span style="color:var(--gray3);font-size:11.5px">— ${extra}</span>` : ""}</div>`;
+  const row = (ok, t, extra) => `<div class="gate-row"><span class="gate-ic ${ok?'ok':''}">${ok ? "✓" : ""}</span> ${t}${extra ? ` <span style="color:var(--gray3);font-size:11.5px">— ${extra}</span>` : ""}</div>`;
   el.innerHTML = row(g.structure.ok, "اعتماد الهيكل التنظيمي", g.structure.ok ? "بتاريخ " + procFmt(g.structure.at) : "من صفحة الهيكل التنظيمي")
     + row(g.matrix.ok, "اعتماد مصفوفة الصلاحيات", g.matrix.ok ? "اكتملت دورة الاعتماد" : "من صفحة مصفوفة الصلاحيات")
     + row(g.policies.ok, "اعتماد السياسات", g.policies.ok ? g.policies.count + " سياسة معتمدة نهائيًا" : "من صفحة السياسات والحوكمة")

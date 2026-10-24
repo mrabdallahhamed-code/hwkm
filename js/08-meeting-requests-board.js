@@ -481,14 +481,14 @@ function renderPoliciesFiltered(){
             ${p.approval_level === "جمعية عامة" ? '<span style="color:var(--gold)"><span class="ico-i ico-columns"></span>تحتاج الجمعية العامة</span>' : p.approval_level === "داخلية" ? '<span style="color:var(--gray3)"><span class="ico-i ico-clipboard"></span>داخلية</span>' : ""}
           </div>
           <div style="margin-top:auto;padding-top:10px">
-            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <div class="pol-actions">
               ${downloadBtn(p.file_url)}
               <button class="btn-xs primary" onclick="editPolicy(${p.id})"><span class="ico-i ico-edit"></span>تعديل</button>
-              <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="openPolicyHistoryModal(${p.id})"><span class="ico-i ico-clock"></span>السجل</button>
-              <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="openPolComments(${p.id})">الملاحظات <span id="polcom-n-${p.id}"></span></button>
-              <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer" onclick="deletePolicy(${p.id})"><span class="ico-i ico-trash"></span>حذف</button>
-              <button class="btn-xs gold" onclick="startPolicyGovernanceApproval(${p.id})"><span class="ico-i ico-upload"></span>بدء دورة اعتماد وتوقيع</button>
+              <button class="btn-xs sec" onclick="openPolicyHistoryModal(${p.id})"><span class="ico-i ico-clock"></span>السجل</button>
+              <button class="btn-xs sec" onclick="openPolComments(${p.id})">الملاحظات <span id="polcom-n-${p.id}"></span></button>
+              <button class="btn-xs dng" onclick="deletePolicy(${p.id})"><span class="ico-i ico-trash"></span>حذف</button>
             </div>
+            <button class="btn-xs gold pol-cta" onclick="startPolicyGovernanceApproval(${p.id})"><span class="ico-i ico-upload"></span>بدء دورة اعتماد وتوقيع</button>
             <div id="policy-gov-status-${p.id}" style="margin-top:6px"></div>
           </div>
         </div>

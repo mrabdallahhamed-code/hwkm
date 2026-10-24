@@ -843,3 +843,19 @@ input.sw:checked::after{inset-inline-start:22px;}
 .mc.pending{border:1px solid var(--gray1);border-inline-start:4px solid var(--gold2);background:var(--white);}
 .mc-pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;background:#F6EBD0;color:#6B4F12;margin-bottom:10px;}
 .mc-pill.over{background:#F1E3E3;color:#7A2E2E;}
+
+/* ── تحسينات عامة (دفعة 2) ── */
+.btn-xs{text-decoration:none;}
+a.btn-xs{display:inline-flex;align-items:center;gap:4px;}
+.btn-xs.sec{background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);}
+.btn-xs.sec:hover{border-color:var(--gray2);background:var(--white);}
+.btn-xs.dng{background:transparent;color:var(--red);border:1px solid transparent;}
+.btn-xs.dng:hover{background:#FDE8E8;}
+.pol-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.pol-cta{width:100%;margin-top:8px;justify-content:center;text-align:center;}
+.kpi-foot{padding-left:34px;}
+.gate-row{display:flex;align-items:center;gap:8px;margin:4px 0;}
+.gate-ic{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--gray2);font-size:11px;font-weight:900;color:#fff;flex-shrink:0;}
+.gate-ic.ok{background:var(--accent);border-color:var(--accent);}
+/* رسائل الحالة الفارغة: أوضح وأكثر راحة */
+div[style*="text-align:center"][style*="color:var(--gray3)"][style*="font-size:12px"]{font-size:13px!important;padding-top:26px!important;padding-bottom:26px!important;}

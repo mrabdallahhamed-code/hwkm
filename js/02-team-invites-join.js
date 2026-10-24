@@ -565,11 +565,11 @@ function renderActivityLogFiltered(){
   if(activityLogCache.length===0){ tbody.innerHTML = emptyRowHTML(5, "لا يوجد نشاط مسجّل بعد."); return; }
   if(list.length===0){ tbody.innerHTML = emptyRowHTML(5, "لا توجد نتائج مطابقة."); return; }
   tbody.innerHTML = list.map(a => `<tr>
-    <td style="font-size:11px;color:var(--gray3);white-space:nowrap">${new Date(a.created_at).toLocaleString('ar-SA-u-ca-gregory')}</td>
+    <td style="font-size:12.5px;color:var(--gray3);white-space:nowrap">${new Date(a.created_at).toLocaleString('ar-SA-u-ca-gregory')}</td>
     <td>${orgEsc(a.actor_name||a.actor_email||"—")}</td>
     <td>${ACTIVITY_TYPE_ICONS[a.action_type]||''} ${a.action_type||""} ${a.entity_type||""}</td>
     <td>${a.entity_label||"—"}</td>
-    <td style="font-size:11px;color:var(--gray3)">${a.details||""}</td>
+    <td style="font-size:12px;color:var(--gray3)">${a.details||""}</td>
   </tr>`).join("");
 }
 
