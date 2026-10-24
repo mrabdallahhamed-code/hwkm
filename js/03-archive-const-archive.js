@@ -230,7 +230,7 @@ async function loadCompanyRequestPage(){
     <div style="text-align:center;margin-bottom:16px">
       <div style="font-size:36px"><span class="ico ico-new" style="width:16px;height:16px"></span></div>
       <div style="font-size:15px;font-weight:800;color:var(--dark);margin-top:6px">أدرج شركتك بالمنصة</div>
-      <div style="font-size:12px;color:var(--gray3);margin-top:4px">عبِّ بيانات شركتك — تقدر تبدأ تجربتك المجانية فورًا بضغطة زر، بدون انتظار.</div>
+      <div style="font-size:12px;color:var(--gray3);margin-top:4px">عبِّ بيانات شركتك — تقدر تبدأ فترتك التجريبية فورًا بضغطة زر، بدون انتظار.</div>
     </div>
     ${rejectedNotice}
     <div class="fg"><label>اسم الشركة</label><input class="fi" id="cr-name" placeholder="مثال: شركة النخبة القابضة"/></div>
@@ -260,7 +260,7 @@ async function loadCompanyRequestPage(){
       <div class="fg"><label>إيميل المسؤول</label><input type="email" class="fi" id="cr-resp-email" value="${orgEsc(currentUserProfile.email||'')}"/></div>
     </div>
 
-    <button class="btn btn-gold" style="width:100%;margin-top:10px;font-size:13.5px;padding:13px" onclick="startInstantTrial()"><span class="ico-i ico-bolt"></span>ابدأ تجربتك المجانية الآن (14 يوم، فورًا)</button>
+    <button class="btn btn-gold" style="width:100%;margin-top:10px;font-size:13.5px;padding:13px" onclick="startInstantTrial()"><span class="ico-i ico-bolt"></span>ابدأ فترتك التجريبية الآن (14 يوم، فورًا)</button>
     <p style="font-size:10.5px;color:var(--gray3);text-align:center;margin-top:6px">كل الوحدات مفتوحة أثناء التجربة — بلا حاجة لبطاقة دفع أو موافقة مسبقة.</p>
 
     <div style="display:flex;align-items:center;gap:10px;margin:16px 0">
@@ -289,7 +289,7 @@ function toggleCrLLCFields(){
    with two. A half-finished attempt is remembered locally (the company row exists but linking
    failed), so a retry reuses that company instead of creating another. */
 let trialSubmitLock = false;
-const TRIAL_BTN_HTML = '<span class="ico-i ico-bolt"></span>ابدأ تجربتك المجانية الآن (14 يوم، فورًا)';
+const TRIAL_BTN_HTML = '<span class="ico-i ico-bolt"></span>ابدأ فترتك التجريبية الآن (14 يوم، فورًا)';
 const TRIAL_PENDING_KEY = "hwkm_pending_trial_company";
 
 async function startInstantTrial(){
@@ -642,7 +642,7 @@ async function loadPlatformActivity(){
     <td>${companyNameById[l.company_id]||"—"}</td>
     <td style="font-size:11.5px">${l.action_type||""} — ${l.entity_type||""} — ${l.entity_label||""}</td>
     <td style="font-size:11px">${orgEsc(l.actor_name||l.actor_email||"—")}</td>
-    <td style="font-size:11px">${new Date(l.created_at).toLocaleString('ar-SA-u-ca-gregory')}</td>
+    <td style="font-size:12.5px;white-space:nowrap">${new Date(l.created_at).toLocaleString('ar-SA-u-ca-gregory')}</td>
   </tr>`).join("");
 }
 
@@ -652,7 +652,7 @@ let manageCompaniesCache = [];
 async function startTrialForCompany(id){
   const c = manageCompaniesCache.find(x => x.id === id);
   if(!c) return;
-  if(!await uiConfirm(`بدء تجربة مجانية 14 يوماً للشركة "${c.name}" (كل الوحدات مفتوحة)؟`)) return;
+  if(!await uiConfirm(`بدء فترة تجريبية 14 يوماً للشركة "${c.name}" (كل الوحدات مفتوحة)؟`)) return;
   const trial_ends_at = new Date(Date.now() + 14*86400000).toISOString();
   const { error } = await sb.from("companies").update({ trial_ends_at, module_internal_audit: true, module_risk_management: true }).eq("id", id);
   if(error){ alert("تعذّر بدء التجربة: " + error.message); return; }
@@ -980,7 +980,7 @@ async function approveCompanyRequest(requestId){
       <div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px">
         <h2 style="color:#1A3A6B">🎉 تهانينا! تمت الموافقة على طلبك</h2>
         <p>تم إنشاء شركة <b>${orgEsc(newCompany.name)}</b> على منصة حوكم، وربطك بها كمدير نظام.</p>
-        ${isTrial ? `<p>لديك فترة تجربة مجانية لمدة <b>${trialDays} يوم</b> — كل الوحدات مفتوحة خلالها.</p>` : ""}
+        ${isTrial ? `<p>لديك فترة تجريبية لمدة <b>${trialDays} يوم</b> — كل الوحدات مفتوحة خلالها.</p>` : ""}
         <p>يمكنك الآن تسجيل الدخول من <a href="https://hwkm.net">hwkm.net</a> بنفس بريدك الإلكتروني وكلمة المرور اللي سجّلت فيهم.</p>
         <p style="color:#8B95A5;font-size:12px;margin-top:20px">هذه رسالة تلقائية من منصّة حوكم.</p>
       </div>`;
@@ -989,7 +989,7 @@ async function approveCompanyRequest(requestId){
 
   closeM("m-approve-company");
   alert("تم إنشاء الشركة وربط المستخدم بها كمدير نظام ✅"
-    + (isTrial ? ` — فترة تجربة مجانية ${trialDays} يوم (كل الوحدات مفتوحة).` : "")
+    + (isTrial ? ` — فترة تجريبية ${trialDays} يوم (كل الوحدات مفتوحة).` : "")
     + (defaults && defaults.length ? ` وتم نسخ ${defaults.length} قالب مستند افتراضي لها.` : ""));
   loadCompanyRequestsReview();
 }
@@ -1084,8 +1084,8 @@ function renderTrialBanner(){
     appWrapper.insertBefore(banner, appWrapper.firstChild);
   }
   banner.textContent = daysLeft > 0
-    ? `🎁 أنت بفترة تجربة مجانية — متبقٍ ${daysLeft} يوم (كل الوحدات مفتوحة مؤقتًا)`
-    : `⚠️ انتهت فترة التجربة المجانية — تواصل معنا لتفعيل الاشتراك`;
+    ? `🎁 أنت بفترة تجريبية — متبقٍ ${daysLeft} يوم (كل الوحدات مفتوحة مؤقتًا)`
+    : `⚠️ انتهت فترة الفترة التجريبية — تواصل معنا لتفعيل الاشتراك`;
 }
 
 let companyTypeReadyPromise = null;

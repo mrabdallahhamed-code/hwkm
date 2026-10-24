@@ -297,7 +297,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 .kpi-foot{font-size:12px;color:var(--gray3);margin-top:8px;}
 .kpi-icon{
   position:absolute;bottom:14px;left:16px;
-  font-size:25px;opacity:0.06;
+  font-size:25px;opacity:0.16;
 }
 
 /* ── CARDS — primary content surfaces (decisions, documents): ledger treatment, not a
@@ -823,3 +823,8 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 .login-switch{text-align:center;font-size:11.5px;color:var(--gray3);margin-top:12px;cursor:pointer;}
 .login-switch b{color:var(--primary3);}
 .login-msg{font-size:11.5px;text-align:center;border-radius:6px;padding:8px;margin-bottom:10px;display:none;}
+
+/* ── إمكانية الوصول: مؤشر تركيز واضح عند التنقل بلوحة المفاتيح، واحترام تقليل الحركة ── */
+:focus-visible{outline:2px solid var(--gold,#C9A227);outline-offset:2px;}
+button:focus-visible,.nav-item:focus-visible,a:focus-visible,.btn:focus-visible{outline:2px solid var(--gold,#C9A227);outline-offset:2px;}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important;}}
