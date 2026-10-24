@@ -388,7 +388,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 }
 
 /* ── MEETING CARDS ── */
-.meet-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;}
+.meet-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,380px));justify-content:start;gap:16px;margin-bottom:24px;}
 .mc{
   background:var(--white);border-radius:16px;padding:19px;
   border:1px solid var(--gray1);cursor:pointer;
@@ -828,3 +828,18 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 :focus-visible{outline:2px solid var(--gold,#C9A227);outline-offset:2px;}
 button:focus-visible,.nav-item:focus-visible,a:focus-visible,.btn:focus-visible{outline:2px solid var(--gold,#C9A227);outline-offset:2px;}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important;}}
+
+/* ── صفوف الإعدادات (مفاتيح تبديل) ── */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:18px;background:var(--white);border:1px solid var(--gray1);border-radius:12px;padding:12px 16px;cursor:pointer;transition:border-color .2s;}
+.set-row:hover{border-color:var(--gray2);}
+.set-txt{flex:1;min-width:0;}
+.set-txt b{display:block;font-size:13px;font-weight:800;color:var(--dark);}
+.set-txt small{display:block;font-size:12px;font-weight:400;color:var(--gray3);line-height:1.8;margin-top:2px;max-width:70ch;}
+input.sw{appearance:none;-webkit-appearance:none;position:relative;flex-shrink:0;width:44px;height:25px;border-radius:999px;background:var(--gray2);cursor:pointer;transition:background .2s;margin:0;}
+input.sw::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:19px;height:19px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:inset-inline-start .2s;}
+input.sw:checked{background:var(--accent);}
+input.sw:checked::after{inset-inline-start:22px;}
+/* بطاقة طلب اجتماع بانتظار الموافقة */
+.mc.pending{border:1px solid var(--gray1);border-inline-start:4px solid var(--gold2);background:var(--white);}
+.mc-pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;background:#F6EBD0;color:#6B4F12;margin-bottom:10px;}
+.mc-pill.over{background:#F1E3E3;color:#7A2E2E;}

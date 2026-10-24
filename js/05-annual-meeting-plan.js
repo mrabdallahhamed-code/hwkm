@@ -836,20 +836,21 @@ function meetingCardHTML(m){
 }
 
 function meetingRequestCardHTML(r){
+  const isOver = r.response_deadline ? (new Date(r.response_deadline) < new Date()) : false;
   let deadlineDetail = "";
-  if(r.response_deadline){
-    const isOver = new Date(r.response_deadline) < new Date();
-    deadlineDetail = `<div class="mc-detail" style="color:${isOver?'var(--red)':'var(--gold)'};font-weight:700">${isOver ? '⌛ انتهت مهلة الرد' : '⏰ آخر موعد للرد: '+new Date(r.response_deadline).toLocaleDateString('ar-SA-u-ca-gregory')}</div>`;
+  if(r.response_deadline && !isOver){
+    deadlineDetail = `<div class="mc-detail" style="color:var(--gold);font-weight:700"><span class="ico-i ico-calendar"></span>آخر موعد للرد: ${new Date(r.response_deadline).toLocaleDateString('ar-SA-u-ca-gregory')}</div>`;
   }
-  return `<div class="mc" style="cursor:pointer;border:1.5px dashed var(--gold2);background:linear-gradient(145deg,#FFFBF0,#FFF6E0)" onclick="openMeetingRequestPopup(${r.id})">
-    <div class="mc-bar" style="background:linear-gradient(90deg,var(--gold2),var(--gold3))"></div>
-    <div class="mc-type" style="color:var(--gold)">⏳ بانتظار موافقة الأعضاء</div>
+  return `<div class="mc pending" onclick="openMeetingRequestPopup(${r.id})">
+    <span class="mc-pill${isOver?' over':''}">${isOver ? 'انتهت مهلة الرد' : 'بانتظار موافقة الأعضاء'}</span>
     <div class="mc-title">${orgEsc(r.title||"")}</div>
     <div class="mc-detail"><span class="ico-i ico-calendar"></span>${r.proposed_date||"—"}${r.proposed_time ? (" — من "+r.proposed_time+(r.proposed_time_end?(" إلى "+r.proposed_time_end):"")) : ""}</div>
     <div class="mc-detail"><span class="ico-i ico-pin"></span>${r.method||"—"}</div>
     ${deadlineDetail}
     <div class="mc-actions">
-      <button class="btn-xs gold" style="width:100%" onclick="event.stopPropagation();openMeetingRequestPopup(${r.id})"><span class="ico-i ico-ballot"></span>الرد على الطلب</button>
+      ${isOver
+        ? `<button class="btn-xs" style="width:100%;background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1)" onclick="event.stopPropagation();openMeetingRequestPopup(${r.id})"><span class="ico-i ico-folder"></span>عرض الطلب</button>`
+        : `<button class="btn-xs gold" style="width:100%" onclick="event.stopPropagation();openMeetingRequestPopup(${r.id})"><span class="ico-i ico-ballot"></span>الرد على الطلب</button>`}
     </div>
   </div>`;
 }

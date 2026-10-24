@@ -251,9 +251,9 @@ async function loadShareholdersSummary(){
   if(error){ tbody.innerHTML = errorRowHTML(6, error.message); return; }
   const rows = data || [];
   if(rows.length===0){
-    tbody.innerHTML = emptyRowHTML(6, "لا يوجد مساهمون صوّتوا بعد.");
+    tbody.innerHTML = emptyRowHTML(7, "لا يوجد مساهمون صوّتوا بعد.");
     if(tfoot) tfoot.innerHTML = "";
-    if(summaryBox) summaryBox.textContent = "لا يوجد مساهمون صوّتوا بعد.";
+    if(summaryBox) summaryBox.textContent = "";
     return;
   }
   const totalShares = Number(companySettings.total_shares) || 0;
