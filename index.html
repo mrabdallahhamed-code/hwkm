@@ -48,7 +48,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.1" onerror="document.write('<script src=&quot;https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2&quot;><\/script>')"></script>
-<link rel="stylesheet" href="style.css?v=6">
+<link rel="stylesheet" href="style.css?v=7">
 <script src="https://unpkg.com/pizzip@3.2.0/dist/pizzip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://unpkg.com/docxtemplater@3.69.0/build/docxtemplater.js"></script>
@@ -1787,9 +1787,9 @@
 <!-- ══ CONSULTANTS PAGE ═══════════════════ -->
 <div id="p-consultants" class="page content">
   <!-- ══ SECTION 1: طلبات الاستشارات (client-facing, hidden entirely from platform owner) ══ -->
-  <div id="consultRequestsSection">
+  <div id="consultRequestsSection" style="display:none">
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
-    <span><span class="ico-i ico-briefcase"></span>طلبات الاستشارات</span>
+    <span><span class="ico-i ico-briefcase"></span>طلبات الاستشارات السابقة</span>
     <button id="btn-new-consult-request" class="btn btn-gold" style="font-size:11px;padding:6px 14px;display:none" onclick="document.getElementById('mcr-id').value='';document.getElementById('mcr-title-h').textContent='💼 تقديم طلب استشارة';document.getElementById('mcr-category').value='إدارية';document.getElementById('mcr-details').value='';openM('m-consult-request')">+ تقديم طلب استشارة</button>
   </div>
   <div id="consultRequestsList" style="margin-bottom:28px">
@@ -1797,13 +1797,15 @@
   </div>
   </div>
 
-  <!-- ══ SECTION 2: وساطة ══ -->
+  <!-- ══ دليل مقدّمي الخدمات (يديره مالك المنصة وفريقها) ══ -->
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
-    <span id="providersSectionTitle"><span class="ico-i ico-handshake"></span>وساطة — مقدّمو الخدمات</span>
-    <button id="btn-add-provider" class="btn btn-gold" style="font-size:11px;padding:6px 14px;display:none" onclick="openM('m-provider-add')">+ إضافة</button>
+    <span id="providersSectionTitle"><span class="ico-i ico-handshake"></span>دليل مقدّمي الخدمات</span>
+    <button id="btn-manage-providers" class="btn btn-gold" style="font-size:11px;padding:6px 14px;display:none" onclick="openProvidersAdmin()"><span class="ico-i ico-edit"></span>إدارة الدليل</button>
   </div>
-  <div id="providersGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;align-items:stretch;margin-bottom:20px">
-    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>
+  <p class="dir-intro">جهات معتمدة في الاستشارات والخدمات المهنية. اختر الجهة المناسبة واضغط «طلب الخدمة» ليصل طلبك إلى فريق حوكم، وسيتواصلون معكم.</p>
+  <div id="providerCats" class="dir-chips"></div>
+  <div id="providersGrid" class="dir-grid">
+    <div class="dir-empty">جارِ التحميل...</div>
   </div>
 
   <div class="sec-title" style="margin-top:10px" id="requestsHistoryTitle"><span class="ico-i ico-clipboard"></span>الطلبات السابقة</div>
@@ -2041,6 +2043,7 @@
     <button class="btn btn-ghost adminreq-tab-btn" data-tab="managecompanies" style="font-size:11.5px;padding:8px 16px" onclick="switchAdminRequestsTab('managecompanies')"><span class="ico-i ico-settings"></span>الشركات والاشتراكات</button>
     <button class="btn btn-ghost adminreq-tab-btn" data-tab="auditadmin" style="font-size:11.5px;padding:8px 16px" onclick="switchAdminRequestsTab('auditadmin')"><span class="ico-i ico-folder"></span>طلبات المراجعة الداخلية</button>
     <button class="btn btn-ghost adminreq-tab-btn" data-tab="riskadmin" style="font-size:11.5px;padding:8px 16px" onclick="switchAdminRequestsTab('riskadmin')"><span class="ico-i ico-warning"></span>طلبات تحليل المخاطر</button>
+<button class="btn btn-ghost adminreq-tab-btn" data-tab="providers" style="font-size:11.5px;padding:8px 16px" onclick="switchAdminRequestsTab('providers')"><span class="ico-i ico-handshake"></span>دليل مقدّمي الخدمات</button>
   </div>
 
   <div id="adminreq-tab-companyrequests" class="adminreq-tab-content">
@@ -2077,6 +2080,30 @@
           <tbody id="auditAdminTbody">
             <tr><td colspan="7" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr>
           </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="adminreq-tab-providers" class="adminreq-tab-content" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+      <select class="fs" id="providersAdminCat" style="max-width:240px" onchange="loadProvidersAdmin()"><option value="">كل الفئات</option></select>
+      <button class="btn btn-gold" style="font-size:11px;padding:6px 14px" onclick="openProviderEditor(0)">+ إضافة جهة</button>
+    </div>
+    <div class="card">
+      <div class="card-body" style="padding:0;overflow-x:auto">
+        <table class="tbl" style="min-width:900px">
+          <thead><tr><th>الجهة</th><th>الفئة</th><th>الخدمات</th><th>الجوال</th><th>الإيميل</th><th>الحالة</th><th>إجراء</th></tr></thead>
+          <tbody id="providersAdminTbody"><tr><td colspan="7" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="sec-title" style="margin-top:22px"><span class="ico-i ico-inbox"></span>طلبات الخدمة الواردة من الشركات</div>
+    <div class="card">
+      <div class="card-body" style="padding:0">
+        <table class="tbl">
+          <thead><tr><th>الشركة</th><th>الجهة المطلوبة</th><th>التاريخ</th><th>الحالة</th><th>إجراء</th></tr></thead>
+          <tbody id="serviceRequestsAdminTbody"><tr><td colspan="5" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -3197,13 +3224,25 @@
 </div>
 
 <div class="modal-bg" id="m-provider-add">
-  <div class="modal">
-    <div class="modal-title"><span class="ico-i ico-handshake"></span>إضافة جهة وساطة</div>
-    <div class="fg"><label>اسم الجهة</label><input class="fi" id="mpv-name" placeholder="مثال: شركة الرواد للخدمات" /></div>
-    <div class="fg"><label>الخدمة المقدَّمة</label><input class="fi" id="mpv-service" placeholder="مثال: خدمات تأمين طبي" /></div>
-    <div class="fg"><label>نوع النشاط</label><input class="fi" id="mpv-activity" placeholder="مثال: وساطة تأمين" /></div>
-    <div class="fg"><label>رقم السجل التجاري</label><input class="fi" id="mpv-cr" placeholder="مثال: 1010XXXXXX" /></div>
-    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-provider-add')">إلغاء</button><button class="btn btn-gold" onclick="saveServiceProvider()"><span class="ico-i ico-check"></span>حفظ الجهة</button></div>
+  <div class="modal" style="max-width:640px">
+    <div class="modal-title"><span class="ico-i ico-handshake"></span><span id="mpv-title">إضافة جهة</span></div>
+    <input type="hidden" id="mpv-id" />
+    <div class="row2">
+      <div class="fg"><label>اسم الجهة</label><input class="fi" id="mpv-name" placeholder="مثال: مكتب الرواد للمحاماة" /></div>
+      <div class="fg"><label>الفئة</label><input class="fi" id="mpv-category" list="mpv-cats" placeholder="اختر أو اكتب فئة جديدة" /><datalist id="mpv-cats"></datalist></div>
+    </div>
+    <div class="fg"><label>الخدمات المقدَّمة</label><input class="fi" id="mpv-service" placeholder="مثال: صياغة العقود، المراجعة القانونية، التمثيل أمام الجهات" /></div>
+    <div class="fg"><label>نبذة عن الجهة (تظهر للشركات)</label><textarea class="fta" id="mpv-about" rows="3" placeholder="تعريف مختصر بالجهة وخبراتها"></textarea></div>
+    <div class="row2">
+      <div class="fg"><label>تاريخ التأسيس</label><input type="date" class="fi" id="mpv-founded" /></div>
+      <div class="fg"><label>رقم السجل التجاري (داخلي)</label><input class="fi" id="mpv-cr" placeholder="اختياري" /></div>
+    </div>
+    <div class="row2">
+      <div class="fg"><label>الجوال (لفريق حوكم فقط)</label><input class="fi" id="mpv-phone" dir="ltr" placeholder="05XXXXXXXX" /></div>
+      <div class="fg"><label>الإيميل (لفريق حوكم فقط)</label><input class="fi" id="mpv-email" dir="ltr" placeholder="name@example.com" /></div>
+    </div>
+    <label class="set-row" style="margin-top:6px"><span class="set-txt"><b>الجهة نشطة</b><small>الجهات الموقوفة لا تظهر للشركات.</small></span><input type="checkbox" class="sw" id="mpv-active" checked></label>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-provider-add')">إلغاء</button><button class="btn btn-gold" onclick="saveServiceProvider()"><span class="ico-i ico-check"></span>حفظ</button></div>
   </div>
 </div>
 
@@ -3212,6 +3251,7 @@
     <div class="modal-title" id="mst-track-title"><span class="ico-i ico-search"></span>تتبع الطلب</div>
     <div style="font-size:12px;color:var(--gray3);margin-bottom:14px" id="mst-track-meta"></div>
     <div id="mst-track-stepper" style="margin-bottom:14px"></div>
+    <div id="mst-track-contact" style="margin-bottom:12px"></div>
     <div id="mst-track-advance"></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-service-tracking')">إغلاق</button></div>
   </div>
@@ -3797,7 +3837,7 @@
 
 </div><!-- /appWrapper -->
 
-<script>try{if(localStorage.getItem("hawkim_lang")==="en")document.write('<script src="i18n-en.js?v=ui2"><\/script>')}catch(e){}</script>
+<script>try{if(localStorage.getItem("hawkim_lang")==="en")document.write('<script src="i18n-en.js?v=dir1"><\/script>')}catch(e){}</script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=hwkmTsReady" async defer></script>
 <script src="js/01-supabase-config-const.js?v=5"></script>
 <script src="js/02-team-invites-join.js?v=5"></script>
@@ -3813,7 +3853,7 @@
 <script src="js/12-email-notifications-supabase.js?v=6"></script>
 <script src="js/13-pdf-import-best.js?v=2"></script>
 <script src="js/14-votes-let-companysettings.js?v=3"></script>
-<script src="js/15-audit-services-back.js?v=2"></script>
+<script src="js/15-audit-services-back.js?v=3"></script>
 <script src="js/16-performance-evaluations-let.js?v=2"></script>
 <script src="js/17-admin-management-criteria.js?v=4"></script>
 <script src="js/18-board-member-review.js?v=2"></script>
