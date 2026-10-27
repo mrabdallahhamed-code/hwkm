@@ -898,3 +898,20 @@ div[style*="text-align:center"][style*="color:var(--gray3)"][style*="font-size:1
   .card-body[style*="overflow-x:auto"]:has(table[style*="min-width"])::before{content:"اسحب الجدول أفقياً لعرض باقي الأعمدة";display:block;position:sticky;right:0;left:0;width:max-content;max-width:100vw;padding:6px 14px;font-size:11px;color:var(--gray3)}
   .tbl td[colspan]{text-align:start !important;padding-inline-start:16px}
 }
+
+/* ── Eye-comfort pass: lighter filter bars and softer cards ── */
+div[style*="linear-gradient(135deg,var(--primary),var(--primary2))"][style*="border-radius:14px"]{
+  background:var(--white) !important;border:1px solid var(--gray1);box-shadow:0 1px 3px rgba(15,33,56,.06) !important;
+}
+div[style*="linear-gradient(135deg,var(--primary),var(--primary2))"][style*="border-radius:14px"] input{
+  background:var(--offwhite) !important;border:1px solid var(--gray1) !important;
+}
+div[style*="linear-gradient(135deg,var(--primary),var(--primary2))"][style*="border-radius:14px"] button{
+  background:var(--offwhite) !important;color:var(--gray3) !important;border:1px solid var(--gray1) !important;font-weight:600 !important;
+}
+div[style*="linear-gradient(135deg,var(--primary),var(--primary2))"][style*="border-radius:14px"] button:hover{border-color:var(--gray2) !important;color:var(--primary) !important;}
+div[style*="linear-gradient(135deg,var(--primary),var(--primary2))"][style*="border-radius:14px"] button[style*="background:#fff"]{
+  background:var(--primary3) !important;color:#fff !important;border-color:var(--primary3) !important;
+}
+.card{border:1px solid var(--gray1);border-right:3px solid var(--gray2);box-shadow:0 1px 3px rgba(15,33,56,.05);}
+.card:hover{border-right-color:var(--gold2);}
