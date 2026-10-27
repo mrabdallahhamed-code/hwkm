@@ -877,3 +877,24 @@ div[style*="text-align:center"][style*="color:var(--gray3)"][style*="font-size:1
 .prov-about{font-size:12.5px;color:var(--gray3);line-height:1.9;margin:0;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}
 .prov-meta{font-size:12px;color:var(--gray3);}
 .prov-card .pol-cta{margin-top:auto;}
+
+/* ══ تحسينات الجوال (٢٧ أكتوبر ٢٠٢٦) ══ */
+@media(max-width:640px){
+  :root{--topbar-h:104px}
+  .topbar{flex-wrap:wrap;align-content:center;row-gap:8px;padding:8px 12px;height:var(--topbar-h)}
+  .topbar .tb-left{flex:1 1 100%;order:1;min-width:0;overflow:visible}
+  .topbar .tb-left .page-title{max-width:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:16px}
+  .topbar .tb-left > div:last-child{min-width:0;flex:1 1 auto}
+  .topbar .tb-right{order:2;flex:1 1 100%;max-width:100%;overflow:visible;gap:8px}
+  .topbar #companySwitcher{flex:1 1 0;min-width:0;max-width:none;height:36px;font-size:12px}
+  .topbar .tb-right > div:has(#globalSearchInput){flex:1 1 0;min-width:0}
+  .topbar .search-in{width:100%;height:36px;box-sizing:border-box}
+  #globalSearchResults,#notifPanel{position:fixed !important;left:12px !important;right:12px !important;top:calc(var(--topbar-h) + 4px) !important;width:auto !important}
+  .sec-title{flex-wrap:wrap;row-gap:10px}
+  .sec-title > div[style*="gap"]{flex:1 1 100%;flex-wrap:wrap}
+  .sec-title .btn{white-space:nowrap}
+}
+@media(max-width:700px){
+  .card-body[style*="overflow-x:auto"]:has(table[style*="min-width"])::before{content:"اسحب الجدول أفقياً لعرض باقي الأعمدة";display:block;position:sticky;right:0;left:0;width:max-content;max-width:100vw;padding:6px 14px;font-size:11px;color:var(--gray3)}
+  .tbl td[colspan]{text-align:start !important;padding-inline-start:16px}
+}
