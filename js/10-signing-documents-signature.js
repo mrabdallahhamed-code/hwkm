@@ -923,5 +923,6 @@ async function loadStructure(){
   tbody.innerHTML = personRows.join("") || emptyRowHTML(7, "لا يوجد مناصب بعد. أضف الهيكل أولًا ثم اضغط \"+ إضافة منصب\".");
 
   rerenderOrgTree();
+  if(typeof orgCenterScroll === "function") orgCenterScroll();
 }
 

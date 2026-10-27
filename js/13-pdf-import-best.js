@@ -434,7 +434,7 @@ function renderOrgTree(rows, opts){
     const dashed = orgIsSideRaw(n) && !(childrenOf[n.position_title] || []).length ? "outline:2px dashed rgba(255,255,255,.7);outline-offset:-4px;" : "";
     const holder = (!n.is_body && n.holder_name) ? `<div style="font-size:11px;font-weight:600;opacity:.92;margin-top:2px">${orgEsc(n.holder_name)}</div>` : "";
     const card = `<div onclick="editStructure(${n.id})" style="background:${orgLevelColor(n.level)};color:#fff;border-radius:8px;padding:9px 12px;font-size:12.5px;font-weight:800;${dashed}display:flex;flex-direction:column"><div style="display:flex;align-items:center;justify-content:space-between;gap:6px"><span>${orgEsc(n.position_title)}</span>${chip}</div>${holder}</div>`;
-    const kidsHtml = all.length ? `<div style="margin:6px 14px 0 0;padding-right:10px;border-right:2px solid var(--gray2);display:flex;flex-direction:column;gap:6px">${all.map(k => mobNode(k, d + 1)).join("")}</div>` : "";
+    const kidsHtml = all.length ? `<div style="margin:6px 6px 0 0;padding-right:8px;border-right:2px solid var(--gray2);display:flex;flex-direction:column;gap:6px">${all.map(k => mobNode(k, d + 1)).join("")}</div>` : "";
     return `<div>${card}${kidsHtml}</div>`;
   }
   if(opts.mobile && !isStatic && roots.length){
@@ -471,6 +471,14 @@ function rerenderOrgTree(){
   if(!c || !structureCache || !structureCache.length) return;
   const rows = orgTreeRows(structureCache);
   c.innerHTML = renderOrgTree(rows, { mobile: window.innerWidth <= 700 }) + orgLegendHTML(rows);
+}
+/* على الشاشات العريضة: افتح الشجرة وجذرها في منتصف منطقة العرض بدل أن تبدأ من طرف واحد. */
+function orgCenterScroll(){
+  const c = document.getElementById("orgTreeContainer");
+  const sc = c && c.parentElement;
+  if(!sc || sc.scrollWidth <= sc.clientWidth + 4) return;
+  const d = sc.scrollWidth - sc.clientWidth;
+  sc.scrollLeft = getComputedStyle(sc).direction === "rtl" ? -d / 2 : d / 2;
 }
 let __orgMob = null;
 window.addEventListener("resize", () => { const m = window.innerWidth <= 700; if(__orgMob !== null && m !== __orgMob && document.getElementById("orgTreeContainer")) rerenderOrgTree(); __orgMob = m; });
