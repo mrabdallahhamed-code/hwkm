@@ -463,35 +463,28 @@ function renderPoliciesFiltered(){
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;align-items:stretch;${indent}">`;
 
     groups[cat].forEach(p => {
-      html += `<div class="card" style="margin:0;display:flex;flex-direction:column">
-        <div class="card-body" style="display:flex;flex-direction:column;flex:1">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-            <div style="min-width:0">
-              <div style="font-weight:800;font-size:13.5px;color:var(--dark);word-break:break-word">${orgEsc(p.policy_name||"")}</div>
-              <div style="font-size:11px;color:var(--gray3);margin-top:2px">${orgEsc(p.policy_type||"—")}</div>
-            </div>
-            <div style="flex-shrink:0">${statusBadge(p.status)}</div>
-          </div>
-          <div style="font-size:11px;color:var(--gray3);display:flex;gap:14px;margin-top:6px;flex-wrap:wrap">
-            <span><span class="ico-i ico-upload"></span>رُفعت: ${p.submission_date||"—"}</span>
-            ${p.approval_date
-              ? `<span style="color:var(--green)"><span class="ico-i ico-check"></span>اعتُمدت: ${p.approval_date}</span>`
-              : `<span><span class="ico-i ico-compass"></span>متوقّع: ${p.target_approval_date||"—"}</span>`}
-            <span><span class="ico-i ico-refresh"></span>مراجعة: ${p.review_date||"—"}</span>
-            ${p.approval_level === "جمعية عامة" ? '<span style="color:var(--gold)"><span class="ico-i ico-columns"></span>تحتاج الجمعية العامة</span>' : p.approval_level === "داخلية" ? '<span style="color:var(--gray3)"><span class="ico-i ico-clipboard"></span>داخلية</span>' : ""}
-          </div>
-          <div style="margin-top:auto;padding-top:10px">
-            <div class="pol-actions">
-              ${downloadBtn(p.file_url)}
-              <button class="btn-xs primary" onclick="editPolicy(${p.id})"><span class="ico-i ico-edit"></span>تعديل</button>
-              <button class="btn-xs sec" onclick="openPolicyHistoryModal(${p.id})"><span class="ico-i ico-clock"></span>السجل</button>
-              <button class="btn-xs sec" onclick="openPolComments(${p.id})">الملاحظات <span id="polcom-n-${p.id}"></span></button>
-              <button class="btn-xs dng" onclick="deletePolicy(${p.id})"><span class="ico-i ico-trash"></span>حذف</button>
-            </div>
-            <button class="btn-xs gold pol-cta" onclick="startPolicyGovernanceApproval(${p.id})"><span class="ico-i ico-upload"></span>بدء دورة اعتماد وتوقيع</button>
-            <div id="policy-gov-status-${p.id}" style="margin-top:6px"></div>
-          </div>
+      html += `<div class="card pcard">
+        <div class="pcard-top">
+          <div class="pcard-title">${orgEsc(p.policy_name||"")}</div>
+          <div class="pcard-badge">${statusBadge(p.status)}</div>
         </div>
+        <div class="pcard-type">${orgEsc(p.policy_type||"—")}${p.approval_level === "جمعية عامة" ? ' · <span style="color:var(--gold)">تحتاج الجمعية العامة</span>' : p.approval_level === "داخلية" ? ' · داخلية' : ""}</div>
+        <div class="pcard-dates">
+          <div><small>رُفعت</small><b>${p.submission_date||"—"}</b></div>
+          ${p.approval_date
+            ? `<div><small>اعتُمدت</small><b style="color:var(--green)">${p.approval_date}</b></div>`
+            : `<div><small>متوقّع</small><b>${p.target_approval_date||"—"}</b></div>`}
+          <div><small>المراجعة</small><b>${p.review_date||"—"}</b></div>
+        </div>
+        <div class="pcard-actions">
+          ${downloadBtn(p.file_url)}
+          <button class="btn-xs sec" onclick="editPolicy(${p.id})"><span class="ico-i ico-edit"></span>تعديل</button>
+          <button class="btn-xs sec" onclick="openPolicyHistoryModal(${p.id})"><span class="ico-i ico-clock"></span>السجل</button>
+          <button class="btn-xs sec" onclick="openPolComments(${p.id})">الملاحظات <span id="polcom-n-${p.id}"></span></button>
+        </div>
+        <button class="btn-xs gold pol-cta" onclick="startPolicyGovernanceApproval(${p.id})"><span class="ico-i ico-upload"></span>بدء دورة اعتماد وتوقيع</button>
+        <div id="policy-gov-status-${p.id}"></div>
+        <button class="pcard-del" onclick="deletePolicy(${p.id})" title="حذف السياسة"><span class="ico-i ico-trash"></span>حذف</button>
       </div>`;
     });
     html += `</div>`;

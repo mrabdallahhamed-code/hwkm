@@ -915,3 +915,19 @@ div[style*="linear-gradient(135deg,var(--primary),var(--primary2))"][style*="bor
 }
 .card{border:1px solid var(--gray1);border-right:3px solid var(--gray2);box-shadow:0 1px 3px rgba(15,33,56,.05);}
 .card:hover{border-right-color:var(--gold2);}
+
+/* ── Policy card: calmer, roomier layout ── */
+.pcard{position:relative;margin:0;padding:18px 18px 14px;display:flex;flex-direction:column;gap:12px;border:1px solid var(--gray1);border-right:1px solid var(--gray1);border-radius:12px;box-shadow:0 1px 4px rgba(15,33,56,.06);}
+.pcard:hover{border-color:var(--gray2);}
+.pcard-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.pcard-title{font-size:15px;font-weight:800;line-height:1.5;color:var(--dark);word-break:break-word}
+.pcard-badge{flex-shrink:0}
+.pcard-type{font-size:12.5px;color:var(--gray3);margin-top:-6px}
+.pcard-dates{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px 12px;background:var(--offwhite);border-radius:8px}
+.pcard-dates small{display:block;font-size:11px;color:var(--gray3)}
+.pcard-dates b{font-size:12.5px;font-weight:700;color:var(--dark)}
+.pcard-actions{display:flex;gap:6px;flex-wrap:wrap}
+.pcard-actions .btn-xs{flex:1;text-align:center;justify-content:center;padding:8px 10px;font-size:12px}
+.pcard .pol-cta{margin-top:0;padding:10px;font-size:12.5px}
+.pcard-del{align-self:flex-start;background:none;border:none;color:var(--gray3);font:inherit;font-size:11.5px;cursor:pointer;padding:2px 0}
+.pcard-del:hover{color:var(--red)}

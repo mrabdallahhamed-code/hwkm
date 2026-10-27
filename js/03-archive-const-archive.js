@@ -75,13 +75,13 @@ function renderArchiveDocs(){
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">`;
     groups[cat].forEach(d => {
-      html += `<div class="card" style="margin-bottom:0">
+      html += `<div class="card pcard" style="margin-bottom:0">
         <div class="card-body" style="padding:14px">
           <div style="display:flex;align-items:flex-start;gap:10px">
             <div style="width:38px;height:38px;border-radius:10px;background:${color};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${icon}</div>
             <div style="flex:1;min-width:0">
-              <div style="font-size:12.5px;font-weight:800;color:var(--dark);word-break:break-word">${orgEsc(d.document_name||"")}</div>
-              <div style="font-size:10.5px;color:var(--gray3);margin-top:3px"><span class="ico-i ico-calendar"></span>${d.upload_date||"—"}</div>
+              <div style="font-size:14px;font-weight:800;color:var(--dark);word-break:break-word">${orgEsc(d.document_name||"")}</div>
+              <div style="font-size:12px;color:var(--gray3);margin-top:3px"><span class="ico-i ico-calendar"></span>${d.upload_date||"—"}</div>
             </div>
           </div>
           <div style="display:flex;gap:6px;margin-top:12px">
