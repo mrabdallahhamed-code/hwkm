@@ -83,7 +83,7 @@ async function openAuditAdminDetail(requestId){
 
   const chatHtml = (messages||[]).length ? messages.map(m => `<div style="margin-bottom:8px;text-align:${m.sender_email===r.requested_by_email?'right':'left'}">
     <div style="display:inline-block;max-width:80%;background:${m.sender_email===r.requested_by_email?'var(--offwhite)':'var(--primary)'};color:${m.sender_email===r.requested_by_email?'var(--dark)':'#fff'};border-radius:10px;padding:8px 12px;font-size:11.5px">
-      <b style="font-size:10px;opacity:0.8">${orgEsc(m.sender_name||m.sender_email)}</b><br>${m.message}
+      <b style="font-size:10px;opacity:0.8">${orgEsc(m.sender_name||m.sender_email)}</b><br><span style="white-space:pre-line">${orgEsc(m.message)}</span>
     </div>
   </div>`).join("") : '<div style="font-size:11px;color:var(--gray3);text-align:center">لا توجد رسائل بعد.</div>';
 
@@ -306,6 +306,64 @@ async function loadRiskAdmin(){
   </tr>`).join("");
 }
 
+/* دليل معالجة طلب تقييم المخاطر: يخبر الموظف ماذا يفعل الآن وبماذا يرد على العميل (رسائل جاهزة يعدّلها قبل الإرسال) */
+let _radCtx = { name:"", status:"" };
+function riskGuideData(r, items, messages){
+  const nm = (r.client_name || "").trim() || "العميل الكريم";
+  const missing = [];
+  if(!r.sector) missing.push("القطاع");
+  if(!r.scope) missing.push("نطاق التقييم");
+  if(!r.risk_types_needed) missing.push("أنواع المخاطر المطلوبة");
+  const hasStaffReply = (messages||[]).some(m => m.sender_email !== r.requested_by_email);
+  const T = {
+    "تم الاستلام": [
+      { label:"رد الاستلام وطلب المعلومات", text:`مرحباً ${nm}،\nشكراً لطلبك تقييم المخاطر عبر منصة حوكم. استلمنا طلبك وسنبدأ العمل عليه.\nلنبدأ بشكل صحيح نحتاج منك:\n1) نبذة عن نشاط الشركة وعدد الموظفين تقريباً.\n2) أهم 3 مخاوف أو مخاطر تقلقكم حالياً.\n3) أي ملفات متاحة (الهيكل التنظيمي، السياسات، تقارير سابقة).\nويسعدنا ترتيب مكالمة قصيرة (20 دقيقة) للتعرّف على شركتكم، فما الوقت المناسب لك؟\nفريق حوكم` }
+    ],
+    "قيد التحليل": [
+      { label:"تحديث: بدأ التحليل", text:`مرحباً ${nm}،\nبدأ فريقنا تحليل مخاطر شركتكم وتسجيلها وتقييم احتماليتها وتأثيرها. سنوافيك بالمصفوفة الحرارية قريباً، وسنتواصل معك إن احتجنا توضيحاً.\nفريق حوكم` }
+    ],
+    "قيد المراجعة الميدانية": [
+      { label:"تحديث: المراجعة الميدانية", text:`مرحباً ${nm}،\nانتقل طلبك إلى مرحلة المراجعة الميدانية للتأكد من المخاطر المسجّلة. نرجو تزويدنا بالموعد المناسب وبالشخص الذي نتواصل معه في شركتكم.\nفريق حوكم` }
+    ],
+    "تقرير نهائي جاهز": [
+      { label:"التقرير النهائي جاهز", text:`مرحباً ${nm}،\nالتقرير النهائي لتقييم مخاطر شركتكم جاهز، وتجده في صفحة طلبك داخل المنصة مع المصفوفة الحرارية وخطط المعالجة المقترحة. يسعدنا ترتيب جلسة لشرح النتائج، فأخبرنا بالوقت المناسب.\nفريق حوكم` }
+    ],
+    "مغلق": [
+      { label:"إغلاق الطلب", text:`مرحباً ${nm}،\nتم إغلاق طلبك بعد تسليم التقرير. نرجو تقييم تجربتك معنا، ويمكنك فتح طلب جديد في أي وقت.\nفريق حوكم` }
+    ]
+  };
+  const STEPS = {
+    "تم الاستلام": ["ردّ على العميل خلال يوم عمل (الرسالة الجاهزة بالأسفل)", "اتصل به أو أرسل واتساب للتعرّف على نشاطه", "كلّف مستشاراً بالطلب (بريده في الأعلى) ثم غيّر الحالة إلى «قيد التحليل»"],
+    "قيد التحليل": ["سجّل المخاطر التي تظهر من حديثك مع العميل وملفاته (قسم «إضافة خطر»)", "قيّم كل خطر: الاحتمالية والتأثير من 1 إلى 5 مع خطة معالجة ومسؤول", "عند اكتمال التسجيل غيّر الحالة إلى «قيد المراجعة الميدانية» أو اذهب للتقرير"],
+    "قيد المراجعة الميدانية": ["تأكد مع العميل من صحة المخاطر والمعلومات", "عدّل المخاطر إن لزم", "جهّز التقرير النهائي وارفعه"],
+    "تقرير نهائي جاهز": ["أبلغ العميل بجاهزية التقرير", "رتّب جلسة شرح النتائج", "بعد الشرح والرضا اغلق الطلب"],
+    "مغلق": ["الطلب مغلق — لا إجراء مطلوب"]
+  };
+  return { missing, hasStaffReply, templates: T[r.status] || [], steps: STEPS[r.status] || [], nm };
+}
+function riskGuideHTML(r, items, messages){
+  const g = riskGuideData(r, items, messages);
+  _radCtx = { name: g.nm, status: r.status, templates: g.templates };
+  const unassigned = !r.assigned_consultant_email;
+  const alerts = [];
+  if(!g.hasStaffReply) alerts.push("لم يُرسل أي رد للعميل بعد");
+  if(g.missing.length) alerts.push("بيانات ناقصة من العميل: " + g.missing.join("، "));
+  if(unassigned) alerts.push("لم يُكلَّف مستشار بعد");
+  return `<div style="background:#F1F6FD;border:1px solid #BFD3EE;border-radius:10px;padding:12px 14px;margin-bottom:14px">
+    <div style="font-weight:800;font-size:13px;color:var(--dark);margin-bottom:6px">🧭 ماذا نفعل الآن؟ — مرحلة «${orgEsc(r.status)}»</div>
+    ${alerts.length ? `<div style="font-size:11.5px;color:#9A6200;background:#FFF4D6;border-radius:6px;padding:6px 10px;margin-bottom:8px">⚠️ ${alerts.map(orgEsc).join(" · ")}</div>` : ""}
+    <ol style="margin:0 18px 8px 0;padding:0;font-size:12px;line-height:2">${g.steps.map(x => `<li>${orgEsc(x)}</li>`).join("")}</ol>
+    ${g.templates.map((t,i) => `<button class="btn-xs primary" style="margin:2px 0 0 6px" onclick="riskUseTemplate(${i})">✍️ ضع «${orgEsc(t.label)}» في خانة الرد</button>`).join("")}
+    ${r.client_name && g.templates.length ? '<div style="font-size:10.5px;color:var(--gray3);margin-top:6px">تُوضع الرسالة في خانة الرد بالأسفل لتعدّلها ثم تضغط «إرسال» — لا تُرسل تلقائياً.</div>' : ""}
+  </div>`;
+}
+function riskUseTemplate(i){
+  const t = (_radCtx.templates||[])[i]; const inp = document.getElementById("rad-chat-input");
+  if(!t || !inp) return;
+  inp.value = t.text;
+  inp.scrollIntoView({ behavior:"smooth", block:"center" }); inp.focus();
+}
+
 async function openRiskAdminDetail(requestId){
   const box = document.getElementById("rad-body");
   box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>';
@@ -343,11 +401,12 @@ async function openRiskAdminDetail(requestId){
 
   const chatHtml = (messages||[]).length ? messages.map(m => `<div style="margin-bottom:8px;text-align:${m.sender_email===r.requested_by_email?'right':'left'}">
     <div style="display:inline-block;max-width:80%;background:${m.sender_email===r.requested_by_email?'var(--offwhite)':'var(--primary)'};color:${m.sender_email===r.requested_by_email?'var(--dark)':'#fff'};border-radius:10px;padding:8px 12px;font-size:11.5px">
-      <b style="font-size:10px;opacity:0.8">${orgEsc(m.sender_name||m.sender_email)}</b><br>${m.message}
+      <b style="font-size:10px;opacity:0.8">${orgEsc(m.sender_name||m.sender_email)}</b><br><span style="white-space:pre-line">${orgEsc(m.message)}</span>
     </div>
   </div>`).join("") : '<div style="font-size:11px;color:var(--gray3);text-align:center">لا توجد رسائل بعد.</div>';
 
   box.innerHTML = `
+    ${riskGuideHTML(r, items, messages)}
     ${r.pending_final_approval ? `<div style="background:#FEF3E2;border:2px solid var(--gold);border-radius:10px;padding:12px;margin-bottom:14px">
       <div style="font-size:12px;font-weight:700;color:var(--gold)"><span class="ico-i ico-dot"></span>بانتظار الاعتماد النهائي — اعتمد أوليًا: ${r.staff_closed_by||"—"}</div>
       ${(currentUserProfile && currentUserProfile.is_platform_admin===true) ? `<div style="display:flex;gap:6px;margin-top:8px">
@@ -412,7 +471,7 @@ async function openRiskAdminDetail(requestId){
     <div class="card"><div class="card-body">
       <div style="max-height:200px;overflow-y:auto;margin-bottom:10px">${chatHtml}</div>
       <div style="display:flex;gap:6px">
-        <input class="fi" id="rad-chat-input" placeholder="اكتب ردًا للعميل..." style="flex:1;margin:0">
+        <textarea class="fi" id="rad-chat-input" rows="5" placeholder="اكتب ردًا للعميل..." style="flex:1;margin:0"></textarea>
         <button class="btn-xs primary" onclick="sendRiskAdminMessage(${requestId})">إرسال</button>
       </div>
     </div></div>
