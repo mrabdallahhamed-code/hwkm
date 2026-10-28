@@ -1086,6 +1086,37 @@ async function submitAuditRating(requestId){
    assessor already entered. Criteria that need human judgement (independence, quality, culture, KRIs…)
    stay empty. A criterion with no data in the platform is NOT scored low — it is left for the assessor,
    because "no record here" is not the same as "not practiced". */
+
+/* ══ INDEPENDENCE CHECK (CMA Corporate Governance Regulations, Article 19 — independence obstacles) ══
+   Reads the member disclosure form: answers a–l on the form map to the obstacles in Art. 19(ج),
+   and 9+ consecutive years on the board is the last obstacle. Only members CLASSED as independent are checked. */
+const INDEP_OBSTACLE = { a:"ملكية 5% فأكثر (هو أو أقاربه)", b:"من كبار التنفيذيين خلال العامين الماضيين", c:"صلة قرابة بعضو مجلس أو من كبار التنفيذيين", d:"عضو مجلس إدارة في شركة من مجموعة الشركة",
+  e:"موظف خلال العامين الماضيين أو طرف متعامل مع الشركة", f:"يتقاضى مبالغ تزيد عن 200 ألف ريال أو 50% من مكافأة العضوية", g:"مصلحة مباشرة أو غير مباشرة في أعمال وعقود الشركة",
+  h:"قريب/عضو في شركة لها عقود مع الشركة", i:"يملك منشأة لها عقود مع الشركة", j:"يشارك في عمل ينافس الشركة", k:"عضو/تنفيذي في شركة منافسة", l:"يملك منشأة منافسة" };
+async function govIndependenceCheck(){
+  const co = currentCompanyId;
+  const [bmR, dfR] = await Promise.all([ sb.from("board_members").select("*").eq("company_id", co), sb.from("board_disclosure_forms").select("*").eq("company_id", co) ]);
+  const bm = (bmR.data||[]).filter(m => !/مستقيل|منتهي/.test(m.status || "")), forms = dfR.data || [];
+  const norm = x => String(x||"").replace(/\s+/g," ").trim();
+  const formOf = m => forms.filter(d => (m.claimed_by_email && d.member_email === m.claimed_by_email) || (m.national_id && d.national_id && String(d.national_id) === String(m.national_id)) || (norm(d.full_name) && norm(m.name) && (norm(d.full_name).includes(norm(m.name)) || norm(m.name).includes(norm(d.full_name))))).sort((a,b) => new Date(b.created_at) - new Date(a.created_at))[0];
+  const now = new Date(), res = [];
+  bm.forEach(m => {
+    const d = formOf(m);
+    const classed = m.status === "مستقل" || /مستقل/.test(m.position || "") || (d && /مستقل/.test(d.membership_capacity || ""));
+    if(!classed) return;
+    const row = { name: m.name, hasForm: !!d, obstacles: [], stale: false };
+    if(d){
+      const sa = d.survey_answers || {};
+      Object.keys(INDEP_OBSTACLE).forEach(k => { if(sa[k] && sa[k].answer === true) row.obstacles.push(INDEP_OBSTACLE[k]); });
+      row.stale = (now - new Date(d.created_at)) > 365 * 86400000;
+    }
+    const start = m.join_date || (d && d.term_start);
+    if(start && (now - new Date(start)) / (365.25 * 86400000) > 9) row.obstacles.push("قضى أكثر من 9 سنوات في عضوية المجلس");
+    res.push(row);
+  });
+  return res;
+}
+
 async function gaAutoEvidence(){
   const co = currentCompanyId, now = new Date(), y1 = new Date(now.getFullYear()-1, now.getMonth(), now.getDate());
   const q = async (t, c) => { try { const r = await sb.from(t).select(c || "*").eq("company_id", co); return r.data || []; } catch(e){ return []; } };
@@ -1101,7 +1132,9 @@ async function gaAutoEvidence(){
   // ── Board
   const active = bm.filter(m => !/مستقيل|منتهي/.test(m.status || ""));
   const nonExec = active.filter(m => /غير تنفيذي/.test(m.is_executive || ""));
-  const indep = active.filter(m => m.status === "مستقل" || /مستقل/.test(m.position || ""));
+  const indepCheck = await govIndependenceCheck();
+  const indep = indepCheck.length ? indepCheck : active.filter(m => m.status === "مستقل" || /مستقل/.test(m.position || ""));
+  const indepBad = indepCheck.filter(r => r.obstacles.length), indepNoForm = indepCheck.filter(r => !r.hasForm);
   if(active.length){
     const isJSC = /مساهمة/.test(currentCompanyType || "");
     let s = active.length < 3 ? 2 : (nonExec.length + indep.length > active.length / 2 ? 3 : 2);
@@ -1111,7 +1144,9 @@ async function gaAutoEvidence(){
       if(indep.length === 0) { s = Math.min(s, 1); note += " لا يوجد عضو مستقل مسجَّل — وشركات المساهمة يُنتظر فيها وجود أعضاء مستقلين."; }
       else if(indep.length < need) { s = Math.min(s, 2); note += ` عدد المستقلين أقل من الحد المعتاد للشركات المدرجة (عضوان أو ثلث المجلس: ${need}).`; }
       else note += ` عدد المستقلين يفي بالحد المعتاد للمدرجة (${need}).`;
-      note += " تحقق من تصنيف الاستقلالية فعلياً.";
+      if(indepBad.length){ s = Math.min(s, 2); note += ` ⚠️ ${indepBad.length} من المصنَّفين مستقلين لديهم عوارض استقلال بحسب نموذج الإفصاح: ` + indepBad.map(r => `${r.name} (${r.obstacles.slice(0,2).join("، ")})`).join("؛ ") + "."; }
+      if(indepNoForm.length) note += ` ${indepNoForm.length} مستقل بلا نموذج إفصاح مكتمل، فلا يمكن التحقق من استقلاله.`;
+      if(!indepBad.length && !indepNoForm.length && indepCheck.length) note += " تم التحقق من نماذج الإفصاح: لا عوارض استقلال معلنة.";
     } else note += " الاستقلالية والخبرات لا تُقاس تلقائياً — راجعها.";
     put("board_composition", s, note);
   }

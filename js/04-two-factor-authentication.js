@@ -987,6 +987,17 @@ async function computeGovernanceAlerts(){
     }
   } catch(e){ console.error("matrix/policy alert check failed", e); }
 
+  // 4d) Members classed as independent who declared an independence obstacle (Art. 19) or have no disclosure form
+  try {
+    if(typeof govIndependenceCheck === "function"){
+      const ind = await govIndependenceCheck();
+      const bad = ind.filter(r => r.obstacles.length);
+      if(bad.length) alerts.push({ severity: "high", cta: "راجع الأعضاء", page: "members", text: `${bad.length} عضو مصنَّف «مستقلاً» لديه ما يعارض الاستقلال بحسب نموذج الإفصاح: ${bad.slice(0,2).map(r => r.name + " — " + r.obstacles[0]).join("؛ ")}.` });
+      const miss = ind.filter(r => !r.hasForm || r.stale);
+      if(miss.length) alerts.push({ severity: "medium", cta: "راجع الأعضاء", page: "members", text: `${miss.length} عضو مستقل بلا نموذج إفصاح حديث (يلزم تقييم استقلاله سنوياً).` });
+    }
+  } catch(e){ console.error("independence check failed", e); }
+
   // 5) Board decisions past their target date with no completion yet
   try {
     const { data: decisions } = await sb.from("board_decisions").select("*").eq("company_id", currentCompanyId).not("target_date","is",null).not("status","eq","منجز");
