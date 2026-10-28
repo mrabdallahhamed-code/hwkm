@@ -127,24 +127,27 @@ function renderSimpleDecisionsList(context){
     const showTracking = context === "manager";
     const actualStatus = showTracking ? computeSimpleDecisionStatus(d) : null;
     const [bg,fg] = actualStatus ? (statusColors[actualStatus]||statusColors["لم يبدأ"]) : [null,null];
-    return `<div class="card" style="margin:0">
-    <div class="card-body">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px">
-        <div style="font-size:13px;font-weight:700;color:var(--dark);flex:1">${orgEsc(d.decision_text)}</div>
-        <div style="display:flex;gap:6px;flex-shrink:0">
-          ${showTracking ? `<span style="font-size:10.5px;font-weight:800;padding:4px 10px;border-radius:20px;background:${bg};color:${fg};white-space:nowrap">${actualStatus}</span>` : ""}
-          ${d.signed_at ? '<span class="badge done"><span class="ico-i ico-check"></span>موقَّع</span>' : '<span class="badge pending">غير موقَّع</span>'}
+    const stCls = {"لم يبدأ":"st-new","قيد التنفيذ":"st-prog","منجز":"st-done","متأخر":"st-late"}[actualStatus]||"st-new";
+    return `<div class="card dcard">
+      <div class="dcard-top">
+        <div class="dcard-title">${orgEsc(d.decision_text)}</div>
+        <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap">
+          ${showTracking ? `<span class="dpill ${stCls}">${actualStatus}</span>` : ""}
+          ${d.signed_at ? '<span class="dpill st-done"><span class="ico-i ico-check"></span>موقَّع</span>' : '<span class="dpill st-new">غير موقَّع</span>'}
         </div>
       </div>
-      <div style="font-size:11px;color:var(--gray3);margin-bottom:8px">التاريخ: ${d.decision_date}${showTracking && d.target_date ? ` · الموعد المستهدف: ${d.target_date}` : ""}</div>
-      ${d.signed_at ? `<div style="font-size:11px;color:var(--gray3);margin-top:4px">وقّعه: ${orgEsc(d.signed_by_name||'')} — ${new Date(d.signed_at).toLocaleDateString('ar-SA-u-ca-gregory')}</div>
-        ${d.signature_image ? `<img src="${d.signature_image}" style="height:44px;margin-top:6px;border-top:1px solid var(--gray1);padding-top:6px"/>` : ''}`
-        : `<button class="btn-xs gold" onclick="openSimpleDecisionSignModal(${d.id})"><span class="ico-i ico-signature"></span>توقيع القرار</button>`}
-      ${showTracking && actualStatus !== "منجز" ? `<div style="display:flex;gap:8px;margin-top:8px">
-          <button class="btn-xs" style="background:#FEF3E2;color:var(--gold);border:none;border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer" onclick="updateSimpleDecisionStatus(${d.id},'قيد التنفيذ')">قيد التنفيذ</button>
-          <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer" onclick="updateSimpleDecisionStatus(${d.id},'منجز')"><span class="ico-i ico-check"></span>تحديد كمنجز</button>
-        </div>` : ""}
-    </div>
+      <div class="dcard-meta">
+        <span><span class="ico-i ico-calendar"></span><small>التاريخ</small> <b>${d.decision_date}</b></span>
+        ${showTracking && d.target_date ? `<span><span class="ico-i ico-clock"></span><small>الموعد المستهدف</small> <b>${d.target_date}</b></span>` : ""}
+        ${d.signed_at ? `<span><span class="ico-i ico-user"></span><small>وقّعه</small> <b>${orgEsc(d.signed_by_name||'')}</b> — ${new Date(d.signed_at).toLocaleDateString('ar-SA-u-ca-gregory')}</span>` : ""}
+      </div>
+      ${d.signed_at && d.signature_image ? `<img src="${d.signature_image}" style="height:44px;align-self:flex-start"/>` : ""}
+      <div class="dcard-actions">
+        ${d.signed_at ? "" : `<button class="btn-xs gold" onclick="openSimpleDecisionSignModal(${d.id})"><span class="ico-i ico-signature"></span>توقيع القرار</button>`}
+        ${showTracking && actualStatus !== "منجز" ? `
+          <button class="btn-xs sec" onclick="updateSimpleDecisionStatus(${d.id},'قيد التنفيذ')">قيد التنفيذ</button>
+          <button class="btn-xs sec dok" onclick="updateSimpleDecisionStatus(${d.id},'منجز')"><span class="ico-i ico-check"></span>تحديد كمنجز</button>` : ""}
+      </div>
   </div>`;
   }).join("");
 }
