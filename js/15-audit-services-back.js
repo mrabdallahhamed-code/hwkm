@@ -622,7 +622,7 @@ async function riskReportSave(requestId, submit){
   const payload = { report_content: content };
   const isFullOwner = currentUserProfile && currentUserProfile.is_platform_admin === true;
   if(submit){
-    if(isFullOwner){ payload.status = "تقرير نهائي جاهز"; payload.pending_final_approval = false; }
+    if(isFullOwner){ payload.status = "تقرير نهائي جاهز"; payload.pending_final_approval = false; content.approved_at = new Date().toISOString(); }
     else { const { data: ud } = await sb.auth.getUser(); payload.pending_final_approval = true; payload.staff_closed_by = ud && ud.user ? ud.user.email : null; }
   }
   const { error } = await sb.from("risk_requests").update(payload).eq("id", requestId);
@@ -654,6 +654,10 @@ async function uploadFinalRiskReport(requestId){
 }
 
 async function finalApproveRiskRequest(requestId, targetStatus){
+  try{
+    const { data: cur } = await sb.from("risk_requests").select("report_content").eq("id", requestId).single();
+    if(cur && cur.report_content) await sb.from("risk_requests").update({ report_content: Object.assign({}, cur.report_content, { approved_at: new Date().toISOString() }) }).eq("id", requestId);
+  }catch(e){}
   const { error } = await sb.from("risk_requests").update({ status: targetStatus, pending_final_approval: false, closed_at: targetStatus==="مغلق" ? new Date().toISOString() : null }).eq("id", requestId);
   if(error){ alert("تعذّر الاعتماد: " + error.message); return; }
   alert("تم الاعتماد النهائي ✅");

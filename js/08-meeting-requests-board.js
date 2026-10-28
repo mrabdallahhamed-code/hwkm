@@ -906,6 +906,7 @@ async function riskReportView(requestId){
   let coName = "";
   try{ const { data: c } = await sb.from("companies").select("name").eq("id", r.company_id).single(); coName = c ? c.name : ""; }catch(e){}
   const c = r.report_content, list = items || [];
+  const dstr0 = new Date().toLocaleDateString("ar-SA-u-ca-gregory",{day:"numeric",month:"long",year:"numeric"});
   const w = openPrintWindow(); if(!w){ alert("اسمح بالنوافذ المنبثقة للطباعة"); return; }
   const E = orgEsc, para = t => E(t||"").split(/\n+/).filter(Boolean).map(x => `<p>${x}</p>`).join("");
   const ul = a => (a||[]).length ? `<ol>${a.map(x => `<li>${E(x)}</li>`).join("")}</ol>` : "<p>—</p>";
@@ -918,6 +919,9 @@ async function riskReportView(requestId){
   mx += '</table><div class="axl">التأثير ← &nbsp;&nbsp;|&nbsp;&nbsp; ↑ الاحتمالية</div>';
   const reg = list.map((it,i) => { const inf = riskLevelInfo(it.likelihood, it.impact); return `<tr><td>${i+1}</td><td style="text-align:right">${E(it.description||"")}</td><td>${E(it.category||"—")}</td><td>${it.likelihood??"—"}</td><td>${it.impact??"—"}</td><td style="background:${inf.color};color:#fff;font-weight:700">${inf.label}</td></tr>`; }).join("");
   const plans = list.map((it,i) => `<tr><td>${i+1}</td><td style="text-align:right">${E(it.treatment_plan||"—")}</td><td>${E(it.responsible_person||"—")}</td><td>${E(it.target_close_date||"—")}</td></tr>`).join("");
+  let consName = r.assigned_consultant_email || "—";
+  try{ if(r.assigned_consultant_email){ const { data: cp } = await sb.from("user_profiles").select("full_name").ilike("email", r.assigned_consultant_email).maybeSingle(); if(cp && cp.full_name) consName = cp.full_name; } }catch(e){}
+  const approvedAt = (c.approved_at && !r.pending_final_approval && (r.status === "تقرير نهائي جاهز" || r.status === "مغلق")) ? new Date(c.approved_at).toLocaleDateString("ar-SA-u-ca-gregory",{day:"numeric",month:"long",year:"numeric"}) : ((!r.pending_final_approval && (r.status === "تقرير نهائي جاهز" || r.status === "مغلق")) ? dstr0 : "");
   const cnt = { "عالٍ جداً":0, "عالٍ":0, "متوسط":0, "منخفض":0 };
   list.forEach(it => { const l = riskLevelInfo(it.likelihood, it.impact).label; if(cnt[l] != null) cnt[l]++; });
   const stat = (n, t, col) => `<div class="st"><div class="n" style="color:${col}">${n}</div><div class="t">${t}</div></div>`;
@@ -951,7 +955,10 @@ async function riskReportView(requestId){
   .mx{width:auto;margin:6px auto 2px;direction:ltr;border-collapse:separate;border-spacing:3px}.mx td{width:62px;height:46px;border:none;border-radius:6px;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}.mx td.ax{background:none;width:26px;height:auto;color:#6B7690;font-weight:700}
   .dot{display:inline-block;width:20px;height:20px;line-height:20px;border-radius:50%;background:#fff;color:#0D2447;font-weight:800;font-size:11px;margin:1px}
   .axl{font-size:11px;color:#6B7690;font-weight:700}
-  .sig{display:flex;gap:40px;margin-top:46px;break-inside:avoid}.sig div{flex:1;border-top:1px solid #555;text-align:center;padding-top:6px;font-size:12px}
+  .esig{display:flex;gap:16px;margin-top:30px;break-inside:avoid}
+  .esig .box{flex:1;border:1.5px solid #1A3A6B;border-radius:10px;text-align:center;padding:12px 8px;background:#F8F9FC}
+  .esig .h{font-size:11px;color:#6B7690;font-weight:700}.esig .nm{font-size:15px;font-weight:800;margin:2px 0}.esig .sm{font-size:11.5px;color:#444}
+  .esig .ok{display:inline-block;margin-top:8px;border:1.5px solid #1B8A52;color:#1B8A52;border-radius:6px;padding:2px 12px;font-size:11.5px;font-weight:800;transform:rotate(-2deg)}
   .note{font-size:10.5px;color:#7a8296;margin-top:22px;border-top:1px solid #ddd;padding-top:8px}
   .foot{position:fixed;bottom:0;left:0;right:0;text-align:center;font-size:10px;color:#8a93a6;border-top:1px solid #e2e5ec;padding-top:4px;background:#fff}
   </style></head><body>
@@ -968,7 +975,11 @@ async function riskReportView(requestId){
   ${H("خطط المعالجة")}<table><thead><tr><th style="width:30px">#</th><th>الخطر</th><th>خطة المعالجة</th><th>المسؤول</th><th>الموعد المستهدف</th></tr></thead><tbody>${list.map((it,i) => `<tr><td>${i+1}</td><td class="l">${E(it.description||"")}</td><td class="l">${E(it.treatment_plan||"—")}</td><td>${E(it.responsible_person||"—")}</td><td style="white-space:nowrap">${E(it.target_close_date||"—")}</td></tr>`).join("")}</tbody></table>
   ${H("التوصيات")}${ul(c.recommendations)}
   ${H("الخاتمة")}${para(c.conclusion)}
-  <div class="sig"><div>المستشار المختص</div><div>اعتماد منصة حوكم</div></div>
+  <div class="esig">
+    <div class="box"><div class="h">أعدّه</div><div class="nm">${E(consName)}</div><div class="sm">مستشار المخاطر المختص</div><div class="ok">✔ توقيع إلكتروني</div></div>
+    <div class="box"><div class="h">اعتمده</div><div class="nm">منصة حوكم</div><div class="sm">${approvedAt ? "بتاريخ " + E(approvedAt) : "بانتظار الاعتماد النهائي"}</div><div class="ok" style="${approvedAt ? "" : "color:#B8610A;border-color:#B8610A"}">${approvedAt ? "✔ اعتماد إلكتروني" : "⏳ لم يُعتمد بعد"}</div></div>
+  </div>
+  <div style="font-size:10.5px;color:#6B7690;text-align:center;margin-top:6px">التوقيع والاعتماد إلكترونيان مسجَّلان في منصة حوكم برقم التقرير ${E(ref)}، وهما نافذان دون حاجة لتوقيع ورقي.</div>
   <div class="note">${c.ai ? "أُعدّت مسودة هذا التقرير بمساعدة الذكاء الاصطناعي ثم راجعها وعدّلها المستشار المختص. " : ""}يعتمد التقرير على المعلومات المقدَّمة من الشركة وقت التقييم، ولا يُغني عن المراجعة الدورية للمخاطر.</div>
   </body></html>`);
   w.document.close();
