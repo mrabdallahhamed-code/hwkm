@@ -863,8 +863,9 @@ function renderDashAuditStatus(items){
    instead, mapped to the shape they already expect. */
 async function fetchCompanyRisks(){
   try {
-    const { data: reqs } = await sb.from("risk_requests").select("id").eq("company_id", currentCompanyId);
-    const ids = (reqs||[]).map(r => r.id);
+    // لا تظهر المخاطر في لوحة التحكم والتنبيهات إلا بعد اعتماد التقرير النهائي من مالك المنصة
+    const { data: reqs } = await sb.from("risk_requests").select("id,status,pending_final_approval").eq("company_id", currentCompanyId);
+    const ids = (reqs||[]).filter(r => (r.status === "تقرير نهائي جاهز" || r.status === "مغلق") && !r.pending_final_approval).map(r => r.id);
     if(!ids.length) return [];
     const { data: items } = await sb.from("risk_items").select("*").in("request_id", ids);
     return (items||[]).map(it => {
@@ -874,7 +875,8 @@ async function fetchCompanyRisks(){
         impact: score >= 10 ? "عالٍ" : score >= 5 ? "متوسط" : "منخفض",
         probability: it.likelihood != null ? it.likelihood * 20 : null,
         status: it.action_status === "مكتمل" ? "مغلق" : it.action_status === "قيد التنفيذ" ? "متابعة" : "مراقبة",
-        owner: it.responsible_person, treatment_plan: it.treatment_plan, target_close_date: it.target_close_date
+        owner: it.responsible_person, treatment_plan: it.treatment_plan, target_close_date: it.target_close_date,
+        action_status: it.action_status || "معلّق"
       };
     });
   } catch(e){ console.error("fetchCompanyRisks failed", e); return []; }
@@ -938,6 +940,10 @@ async function computeGovernanceAlerts(){
     const late = open.filter(r => r.target_close_date && new Date(r.target_close_date) < today);
     if(late.length){
       alerts.push({ severity: "high", cta: "راجع المخاطر", text: `${late.length} ${late.length===1?'خطر تجاوز':'مخاطر تجاوزت'} موعد إغلاقها المستهدف دون إغلاق.`, page: "risks" });
+    }
+    const soon = open.filter(r => r.action_status !== "مكتمل" && r.target_close_date && new Date(r.target_close_date) >= today && (new Date(r.target_close_date) - today) <= 14*86400000);
+    if(soon.length){
+      alerts.push({ severity: "medium", cta: "تابع الخطط", text: `${soon.length} ${soon.length===1?'خطة معالجة يحين':'خطط معالجة يحين'} موعدها خلال 14 يومًا`, page: "risks" });
     }
   } catch(e){ console.error("risk alert check failed", e); }
 

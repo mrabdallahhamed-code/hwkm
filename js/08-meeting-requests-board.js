@@ -895,7 +895,47 @@ function riskLevelInfo(likelihood, impact){
   return { label:"منخفض", color:"#27AE60" };
 }
 
+/* متابعة خطط المعالجة: خطط المخاطر المعتمدة فقط، مرتبة بالمتأخر أولاً، وللمسؤول تحديث الحالة */
+async function loadRiskTreatments(){
+  const sec = document.getElementById("riskTreatmentSection"), body = document.getElementById("riskTreatmentBody");
+  if(!sec || !body) return;
+  let risks = [];
+  try{ risks = await fetchCompanyRisks(); }catch(e){}
+  if(!risks.length){ sec.style.display = "none"; return; }
+  sec.style.display = "";
+  const today = new Date(new Date().toDateString());
+  const info = r => {
+    const due = r.target_close_date ? new Date(r.target_close_date) : null;
+    const days = due ? Math.round((due - today) / 86400000) : null;
+    const done = r.action_status === "مكتمل";
+    const late = !done && due && days < 0;
+    const soon = !done && due && days >= 0 && days <= 14;
+    return { due, days, done, late, soon };
+  };
+  const rows = risks.map(r => ({ r, i: info(r) })).sort((a,b) => (b.i.late - a.i.late) || (b.i.soon - a.i.soon) || (a.i.done - b.i.done));
+  const cnt = { all: rows.length, late: rows.filter(x => x.i.late).length, prog: rows.filter(x => !x.i.done && x.r.action_status === "قيد التنفيذ").length, done: rows.filter(x => x.i.done).length };
+  const box = (n, t, c) => `<div style="flex:1;min-width:90px;background:#fff;border:1px solid var(--gray1);border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:900;color:${c}">${n}</div><div style="font-size:11px;color:var(--gray3)">${t}</div></div>`;
+  const stCol = { "معلّق":"#8A8F98", "قيد التنفيذ":"#D9822B", "مكتمل":"#1B8A52" };
+  body.innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${box(cnt.all,"إجمالي الخطط","var(--dark)")}${box(cnt.prog,"قيد التنفيذ","#D9822B")}${box(cnt.late,"متأخرة", cnt.late ? "var(--red)" : "var(--gray3)")}${box(cnt.done,"مكتملة","#1B8A52")}</div>
+  <div class="card"><div class="card-body" style="padding:0;overflow-x:auto"><table class="tbl">
+    <thead><tr><th>الخطر</th><th>خطة المعالجة</th><th>المسؤول</th><th>الموعد</th><th>الحالة</th></tr></thead>
+    <tbody>${rows.map(({r,i}) => `<tr>
+      <td style="font-weight:700;font-size:12px">${orgEsc(r.risk_name||"—")}<div style="font-size:10.5px;font-weight:400;color:var(--gray3)">التأثير: ${orgEsc(r.impact)}</div></td>
+      <td style="font-size:11.5px;max-width:240px">${orgEsc(r.treatment_plan||"— لا توجد خطة")}</td>
+      <td style="font-size:11.5px">${orgEsc(r.owner||"—")}</td>
+      <td style="font-size:11.5px;white-space:nowrap">${r.target_close_date ? orgEsc(r.target_close_date) : "—"}${i.late ? `<div style="color:var(--red);font-weight:800;font-size:10.5px">متأخرة ${Math.abs(i.days)} يوم</div>` : i.soon ? `<div style="color:#B8610A;font-weight:700;font-size:10.5px">بعد ${i.days} يوم</div>` : ""}</td>
+      <td><select class="fs" style="font-size:11px;padding:4px;color:${stCol[r.action_status]||'inherit'};font-weight:700" onchange="updateRiskTreatmentStatus(${r.id},this.value)">${["معلّق","قيد التنفيذ","مكتمل"].map(x => `<option ${r.action_status===x?"selected":""}>${x}</option>`).join("")}</select></td>
+    </tr>`).join("")}</tbody></table></div></div>`;
+}
+async function updateRiskTreatmentStatus(itemId, action_status){
+  const { error } = await sb.from("risk_items").update({ action_status }).eq("id", itemId);
+  if(error){ alert(/row-level security|permission denied/i.test(error.message||"") ? "ليست لديك صلاحية تحديث خطط المعالجة بهذا الحساب." : "تعذّر التحديث: " + error.message); }
+  else logActivity("تعديل", "خطة معالجة خطر", action_status, "");
+  loadRiskTreatments();
+}
+
 async function loadRisks(){
+  loadRiskTreatments();
   const grid = document.getElementById("riskServicesGrid");
   const tbody = document.getElementById("riskRequestsTbody");
   if(!grid || !tbody) return;
