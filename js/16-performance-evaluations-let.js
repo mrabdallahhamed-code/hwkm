@@ -1048,7 +1048,7 @@ async function openGovLinkPicker(type, id){
   let m = document.getElementById("m-govlink");
   if(!m){
     m = document.createElement("div"); m.className = "modal-bg"; m.id = "m-govlink";
-    m.innerHTML = '<div class="modal"><div class="modal-title">ربط بعناصر أخرى</div><div id="govlink-body"></div><div class="modal-foot"><button class="btn btn-ghost" onclick="closeGovLinkPicker()">إلغاء</button><button class="btn btn-gold" id="govlink-save">حفظ الروابط</button></div></div>';
+    m.innerHTML = '<div class="modal"><div class="modal-title">ربط بعناصر أخرى</div><div id="govlink-body"></div><div class="modal-foot"><button class="btn btn-ghost" onclick="closeGovLinkPicker()">إلغاء</button><button class="btn btn-gold" id="govlink-save">تأكيد الربط</button></div></div>';
     document.body.appendChild(m);
   }
   const body = document.getElementById("govlink-body");
