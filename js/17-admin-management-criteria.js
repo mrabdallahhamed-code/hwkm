@@ -90,6 +90,7 @@ async function submitPerfReview(evaluationId){
 
   const { error } = await sb.from("performance_evaluation_reviews").insert(payloads);
   if(error){ alert("تعذّر حفظ تقييمك: " + error.message); return; }
+  await perfMaybeAutoClose(evaluationId);
   const ev = perfCache.find(e=>e.id===evaluationId);
   if(ev) renderPerfReviewForm(ev);
 }

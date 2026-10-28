@@ -2,7 +2,7 @@
 let perfCache = [];
 const PERF_SCORE_LABELS = {1:"ضعيف",2:"مقبول",3:"جيد",4:"جيد جدًا",5:"ممتاز"};
 
-const PERF_AUTO_CRITERIA = ["الانضباط والالتزام (آلي)", "نسبة الحضور الفعلية (آلي)", "نسبة المشاركة بالتصويت (آلي)", "نسبة إنجاز القرارات الموكلة (آلي)"];
+const PERF_AUTO_CRITERIA = ["الانضباط والالتزام (آلي)", "نسبة الحضور الفعلية (آلي)", "نسبة المشاركة بالتصويت (آلي)", "نسبة إنجاز القرارات الموكلة (آلي)", "الانضباط بمواعيد التقارير (آلي)"];
 
 /* Board members eligible for evaluation — everyone with a linked account except executives
    (they get their own section, sourced from the org structure instead — see below). */
@@ -362,6 +362,56 @@ async function updateDecisionStatus(id, newStatus){
   loadDecisionTracking();
 }
 
+
+/* ══ AUTOMATIC CYCLE ══ When a manager opens the page: (1) open this year's evaluation for everyone eligible who
+   has none yet, with their system-computed scores; (2) refresh the system scores of evaluations still open;
+   (3) close an evaluation automatically once every assigned reviewer has submitted. Nothing here replaces what
+   reviewers score — it only removes the clicking around it. */
+let _perfAutoRunning = false;
+async function perfAutoCycle(boardPeople, execPeople){
+  if(_perfAutoRunning) return false; _perfAutoRunning = true;
+  let changed = false;
+  try {
+    const period = String(new Date().getFullYear());
+    const { data: evs } = await sb.from("performance_evaluations").select("*").eq("company_id", currentCompanyId);
+    const all = evs || [];
+    const people = [...(boardPeople||[]).map(p => ({ ...p, isExec:false })), ...(execPeople||[]).map(p => ({ ...p, isExec:true }))];
+    for(const p of people){
+      const mine = all.filter(e => e.evaluated_email === p.email);
+      const role = p.isExec ? "تنفيذي" : (p.role || "عضو مجلس");
+      if(!mine.some(e => String(e.period) === period)){
+        const auto = await perfComputeAuto(p.email, role);
+        const { data: ne, error } = await sb.from("performance_evaluations").insert([{
+          entity_name: p.name || p.email, entity_type: role === "تنفيذي" ? "تنفيذي" : "عضو مجلس", evaluated_email: p.email,
+          period, status: "مفتوح للتقييم", company_id: currentCompanyId, ...auto.payload }]).select().single();
+        if(!error && ne){ await perfWriteAuto(ne.id, auto.autoScores); changed = true; }
+      } else {
+        const open = mine.find(e => String(e.period) === period && e.status !== "مكتمل");
+        if(open){ const auto = await perfComputeAuto(p.email, role); await perfWriteAuto(open.id, auto.autoScores); }
+      }
+    }
+  } catch(e){ console.error("auto cycle failed", e); }
+  _perfAutoRunning = false;
+  return changed;
+}
+
+async function perfMaybeAutoClose(evaluationId){
+  try {
+    const { data: ev } = await sb.from("performance_evaluations").select("*").eq("id", evaluationId).single();
+    if(!ev || ev.status === "مكتمل" || !ev.evaluated_email) return false;
+    const audience = ev.entity_type === "تنفيذي" ? await getExecReviewerAudience() : await getPerfReviewerAudience(ev.evaluated_email);
+    if(!audience.length) return false;
+    const { data: revs } = await sb.from("performance_evaluation_reviews").select("*").eq("evaluation_id", evaluationId);
+    const done = new Set((revs||[]).filter(r => r.reviewer_email !== "system@hwkm.internal").map(r => r.reviewer_email));
+    if(!audience.every(a => done.has(a))) return false;
+    const avg = (revs||[]).reduce((x,r) => x + (r.score||0), 0) / (revs||[]).length;
+    const { error } = await sb.from("performance_evaluations").update({ score: avg, status: "مكتمل" }).eq("id", evaluationId);
+    if(error) return false;
+    logActivity("اعتماد", "تقييم أداء", ev.entity_name || "", `اعتُمدت النتيجة تلقائياً بعد اكتمال كل المقيّمين: ${avg.toFixed(1)}/5`);
+    return true;
+  } catch(e){ return false; }
+}
+
 async function loadPerf(){
   const isAdmin = await canSeePerfResults();
   const canManage = await canManagePerfCycles();
@@ -374,6 +424,7 @@ async function loadPerf(){
   if(boardResult.status === "rejected") console.error("board list failed", boardResult.reason);
   if(execResult.status === "rejected") console.error("exec list failed", execResult.reason);
 
+  if(canManage && !(currentCompanyType === "مؤسسة فردية")) await perfAutoCycle(boardPeople, execPeople);
   const { data: allEvals } = await sb.from("performance_evaluations").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
   perfCache = allEvals || [];
   const { data: userData } = await sb.auth.getUser();
@@ -479,18 +530,10 @@ async function confirmManualPerfAdd(){
   await savePerfFor(email, role);
 }
 
-async function savePerfFor(evaluated_email, manualRole){
-  const { data: person } = await sb.from("board_members").select("name").eq("company_id", currentCompanyId).eq("claimed_by_email", evaluated_email).maybeSingle();
-  const { data: profile } = await sb.from("user_profiles").select("full_name").eq("email", evaluated_email).maybeSingle();
-  const evaluated_role = manualRole || await getEvaluatedPersonRole(evaluated_email);
-  const entity_type = evaluated_role === "تنفيذي" ? "تنفيذي" : "عضو مجلس";
-  const period = String(new Date().getFullYear());
-  const entity_name = person?.name || profile?.full_name || evaluated_email;
-
-  if(!await uiConfirm(`فتح تقييم أداء جديد لـ"${entity_name}" لعام ${period}؟`)) return;
-
-  const payload = { entity_name, entity_type, evaluated_email, period, status: "مفتوح للتقييم", company_id: currentCompanyId };
-
+/* Computes every score the system can derive on its own from real records. Used when a cycle opens AND
+   every time the open evaluation is refreshed, so the automatic part never goes stale. */
+async function perfComputeAuto(evaluated_email, evaluated_role){
+  const payload = {};
   if(evaluated_role === "تنفيذي"){
     const { data: reports } = await sb.from("ceo_monthly_reports").select("period_label,timeliness_score,submitted_day_of_month")
       .eq("company_id", currentCompanyId).not("timeliness_score","is",null).order("created_at",{ascending:false}).limit(6);
@@ -504,6 +547,7 @@ async function savePerfFor(evaluated_email, manualRole){
       payload.auto_context_note = `متوسط درجة الانضباط بمواعيد رفع التقرير (آخر ${reports.length} تقارير): ${avg.toFixed(0)}%\n${interpretation}`;
     }
   }
+
 
   const autoScores = [];
   if(evaluated_role === "عضو مجلس" || evaluated_role === "رئيس مجلس"){
@@ -562,17 +606,58 @@ async function savePerfFor(evaluated_email, manualRole){
     }
   }
 
+
+  if(evaluated_role === "تنفيذي"){
+    const { data: reps } = await sb.from("ceo_monthly_reports").select("timeliness_score").eq("company_id", currentCompanyId).not("timeliness_score","is",null).order("created_at",{ascending:false}).limit(6);
+    if(reps && reps.length){
+      const avg = reps.reduce((x,y) => x + y.timeliness_score, 0) / reps.length;
+      autoScores.push({ criterion: "الانضباط بمواعيد التقارير (آلي)", score: 1 + (avg/100)*4, note: `متوسط الالتزام بمواعيد رفع التقرير الشهري (آخر ${reps.length} تقارير): ${avg.toFixed(0)}%.` });
+    }
+    const { data: asg } = await sb.from("board_decisions").select("status").eq("company_id", currentCompanyId).eq("responsible_email", evaluated_email);
+    if(asg && asg.length){
+      const done = asg.filter(d => d.status === "منجز").length;
+      autoScores.push({ criterion: "نسبة إنجاز القرارات الموكلة (آلي)", score: 1 + (done/asg.length)*4, note: `أنجز ${done} من ${asg.length} قرارًا مُوكَلًا إليه.` });
+    }
+  }
+  return { payload, autoScores };
+}
+
+async function perfWriteAuto(evaluationId, autoScores){
+  if(!autoScores.length) return;
+  // update existing system rows in place (never delete, never duplicate); insert only criteria not yet present
+  const { data: have } = await sb.from("performance_evaluation_reviews").select("id,criterion").eq("evaluation_id", evaluationId).eq("reviewer_email", "system@hwkm.internal");
+  const byCrit = {}; (have||[]).forEach(r => { byCrit[r.criterion] = r.id; });
+  const toInsert = [];
+  for(const a of autoScores){
+    const row = { score: Math.max(1, Math.min(5, Math.round(a.score))), notes: a.note };
+    if(byCrit[a.criterion]) await sb.from("performance_evaluation_reviews").update(row).eq("id", byCrit[a.criterion]);
+    else toInsert.push({ evaluation_id: evaluationId, reviewer_email: "system@hwkm.internal", reviewer_name: "النظام (تلقائي)", criterion: a.criterion, company_id: currentCompanyId, ...row });
+  }
+  if(toInsert.length) await sb.from("performance_evaluation_reviews").insert(toInsert);
+  const summary = autoScores.map(a => `${a.criterion.replace(" (آلي)","")}: ${a.note}`).join("\n");
+  await sb.from("performance_evaluations").update({ auto_context_note: summary }).eq("id", evaluationId);
+}
+
+async function savePerfFor(evaluated_email, manualRole){
+  const { data: person } = await sb.from("board_members").select("name").eq("company_id", currentCompanyId).eq("claimed_by_email", evaluated_email).maybeSingle();
+  const { data: profile } = await sb.from("user_profiles").select("full_name").eq("email", evaluated_email).maybeSingle();
+  const evaluated_role = manualRole || await getEvaluatedPersonRole(evaluated_email);
+  const entity_type = evaluated_role === "تنفيذي" ? "تنفيذي" : "عضو مجلس";
+  const period = String(new Date().getFullYear());
+  const entity_name = person?.name || profile?.full_name || evaluated_email;
+
+  if(!await uiConfirm(`فتح تقييم أداء جديد لـ"${entity_name}" لعام ${period}؟`)) return;
+
+  const payload = { entity_name, entity_type, evaluated_email, period, status: "مفتوح للتقييم", company_id: currentCompanyId };
+
+  const auto0 = await perfComputeAuto(evaluated_email, evaluated_role);
+  Object.assign(payload, auto0.payload);
+  const autoScores = auto0.autoScores;
+
   const { data: newEval, error } = await sb.from("performance_evaluations").insert([payload]).select().single();
   if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
 
-  if(autoScores.length){
-    await sb.from("performance_evaluation_reviews").insert(autoScores.map(a => ({
-      evaluation_id: newEval.id, reviewer_email: "system@hwkm.internal", reviewer_name: "النظام (تلقائي)",
-      criterion: a.criterion, score: Math.round(a.score), notes: a.note, company_id: currentCompanyId
-    })));
-    const summary = autoScores.map(a => `${a.criterion.replace(" (آلي)","")}: ${a.note}`).join("\n");
-    await sb.from("performance_evaluations").update({ auto_context_note: summary }).eq("id", newEval.id);
-  }
+  await perfWriteAuto(newEval.id, autoScores);
 
   loadPerf();
 }
