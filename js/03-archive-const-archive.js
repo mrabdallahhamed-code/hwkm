@@ -1106,11 +1106,13 @@ function renderCrBanner(){
   if(!b){
     b = document.createElement("div");
     b.id = "crBanner";
-    b.style.cssText = "background:#FFF4D6;color:#7A5A00;border-bottom:1px solid #E6C766;text-align:center;font-size:12.5px;font-weight:700;padding:8px 12px";
+    b.style.cssText = "background:#FFF4D6;color:#7A5A00;border-bottom:1px solid #E6C766;text-align:center;font-size:12.5px;font-weight:700;padding:8px 12px;position:sticky;z-index:399";
     const w = document.getElementById("appWrapper");
     const t = document.getElementById("trialBanner");
     w.insertBefore(b, t ? t.nextSibling : w.firstChild);
   }
+  const tb2 = document.getElementById("trialBanner");
+  b.style.top = (tb2 ? tb2.offsetHeight : 0) + "px";
   b.innerHTML = (isOwner
     ? '🪪 (للمالك) هذه الشركة لم تُدخل رقم السجل أو الرقم الموحد — غير قابلة للتوثيق بعد. '
     : '🪪 فضلاً أدخل رقم السجل التجاري أو الرقم الموحد ليكتمل توثيق شركتك. ')
