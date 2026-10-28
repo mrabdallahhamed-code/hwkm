@@ -937,6 +937,34 @@ async function computeGovernanceAlerts(){
     }
   } catch(e){ console.error("risk alert check failed", e); }
 
+  // 4b) Cross-links: risks whose linked policy/decision is stalled, and high risks nobody has covered
+  try {
+    const risks2 = (await fetchCompanyRisks()).filter(r => r.status !== "مغلق");
+    if(risks2.length){
+      const [lk, pol, dec] = await Promise.all([
+        sb.from("governance_links").select("*").eq("company_id", currentCompanyId),
+        sb.from("policies").select("id,policy_name,approval_date,target_approval_date").eq("company_id", currentCompanyId),
+        sb.from("board_decisions").select("id,target_date,status").eq("company_id", currentCompanyId)
+      ]);
+      const links = lk.data || [];
+      const today = new Date(new Date().toDateString());
+      const polLate = new Set((pol.data||[]).filter(p => !p.approval_date && p.target_approval_date && new Date(p.target_approval_date) < today).map(p => p.id));
+      const decLate = new Set((dec.data||[]).filter(d => d.status !== "منجز" && d.target_date && new Date(d.target_date) < today).map(d => d.id));
+      const relatedTo = (riskId) => links.filter(l => (l.source_type==="risk" && l.source_id===riskId) || (l.target_type==="risk" && l.target_id===riskId))
+        .map(l => (l.source_type==="risk" && l.source_id===riskId) ? { type:l.target_type, id:l.target_id } : { type:l.source_type, id:l.source_id });
+      const withLatePolicy = [], withLateDecision = [], uncovered = [];
+      risks2.forEach(r => {
+        const rel = relatedTo(r.id);
+        if(rel.some(x => x.type==="policy" && polLate.has(x.id))) withLatePolicy.push(r);
+        if(rel.some(x => x.type==="decision" && decLate.has(x.id))) withLateDecision.push(r);
+        if(r.impact === "عالٍ" && !rel.some(x => x.type==="policy" || x.type==="decision")) uncovered.push(r);
+      });
+      if(withLatePolicy.length) alerts.push({ severity: "high", cta: "راجع السياسات", text: `${withLatePolicy.length} ${withLatePolicy.length===1?'خطر مفتوح مرتبط':'مخاطر مفتوحة مرتبطة'} بسياسة متأخرة عن الاعتماد — معالجته معلّقة.`, page: "governance" });
+      if(withLateDecision.length) alerts.push({ severity: "high", cta: "راجع القرارات", text: `${withLateDecision.length} ${withLateDecision.length===1?'خطر مفتوح مرتبط':'مخاطر مفتوحة مرتبطة'} بقرار متأخر عن موعد تنفيذه.`, page: "decisiontracking" });
+      if(uncovered.length) alerts.push({ severity: "medium", cta: "اربطها الآن", text: `${uncovered.length} ${uncovered.length===1?'خطر عالي التأثير غير مرتبط':'مخاطر عالية التأثير غير مرتبطة'} بسياسة أو قرار — لا يوجد ما يعالجها بعد.`, page: "risks" });
+    }
+  } catch(e){ console.error("cross-link alert check failed", e); }
+
   // 5) Board decisions past their target date with no completion yet
   try {
     const { data: decisions } = await sb.from("board_decisions").select("*").eq("company_id", currentCompanyId).not("target_date","is",null).not("status","eq","منجز");
