@@ -937,3 +937,11 @@ div[style*="linear-gradient(135deg,var(--primary),var(--primary2))"][style*="bor
 .pcard .btn-xs.gold{background:var(--white);color:var(--primary3);border:1px solid var(--primary3);}
 .pcard .btn-xs.gold:hover{background:var(--primary3);color:#fff;box-shadow:none;}
 .pcard .btn-xs.primary{background:var(--offwhite);color:var(--primary);border:1px solid var(--gray2);}
+
+/* ── Calm palette for all cards (same treatment as policy cards) ── */
+.card .badge.pending,.card .badge.gold,.mc .badge.pending{background:var(--gray1);color:var(--gray3);border:1px solid var(--gray2);}
+.card .btn-xs.gold{background:var(--white);color:var(--primary3);border:1px solid var(--primary3);}
+.card .btn-xs.gold:hover{background:var(--primary3);color:#fff;box-shadow:none;}
+.card .btn-xs.primary{background:var(--offwhite);color:var(--primary);border:1px solid var(--gray2);}
+.card .btn-xs.primary:hover{background:var(--primary3);color:#fff;box-shadow:none;}
+.card .btn-xs.sec,.card .btn-xs{border-radius:8px;}
