@@ -883,8 +883,8 @@ function riskSeverityColor(impact, probability){
 }
 
 /* ══════════ RISK SERVICES (client-facing: browse, request, track, respond, rate) ══════════ */
-const RISK_STATUS_ORDER = ["تم الاستلام","قيد التحليل","قيد المراجعة الميدانية","تقرير نهائي جاهز","مغلق"];
-const RISK_STATUS_COLOR = { "تم الاستلام":"var(--primary)", "قيد التحليل":"var(--gold)", "قيد المراجعة الميدانية":"#8B2FC9", "تقرير نهائي جاهز":"var(--green)", "مغلق":"var(--gray3)" };
+const RISK_STATUS_ORDER = ["تم الاستلام","بانتظار رد العميل","قيد التحليل","قيد المراجعة الميدانية","تقرير نهائي جاهز","مغلق"];
+const RISK_STATUS_COLOR = { "تم الاستلام":"var(--primary)", "بانتظار رد العميل":"#D9822B", "قيد التحليل":"var(--gold)", "قيد المراجعة الميدانية":"#8B2FC9", "تقرير نهائي جاهز":"var(--green)", "مغلق":"var(--gray3)" };
 
 function riskLevelInfo(likelihood, impact){
   if(likelihood==null || impact==null) return { label:"—", color:"var(--gray3)" };
@@ -1032,11 +1032,11 @@ async function openRiskRequestDetail(requestId){
 
   const statusIdx = RISK_STATUS_ORDER.indexOf(r.status);
   const timeline = `<div style="display:flex;align-items:center;margin:14px 0">
-    ${RISK_STATUS_ORDER.slice(0,4).map((st,i) => {
+    ${RISK_STATUS_ORDER.slice(0,5).map((st,i) => {
       const done = i <= statusIdx;
-      return `<div style="display:flex;align-items:center;flex:${i<3?'1':'0'}">
+      return `<div style="display:flex;align-items:center;flex:${i<4?'1':'0'}">
         <div title="${st}" style="width:${i===statusIdx?'14px':'10px'};height:${i===statusIdx?'14px':'10px'};border-radius:50%;background:${done?RISK_STATUS_COLOR[st]:'var(--gray1)'};flex-shrink:0"></div>
-        ${i<3 ? `<div style="flex:1;height:3px;background:${i<statusIdx?'var(--green)':'var(--gray1)'};margin:0 2px"></div>` : ""}
+        ${i<4 ? `<div style="flex:1;height:3px;background:${i<statusIdx?'var(--green)':'var(--gray1)'};margin:0 2px"></div>` : ""}
       </div>`;
     }).join("")}
   </div><div style="text-align:center;font-size:11px;font-weight:700;color:${RISK_STATUS_COLOR[r.status]}">${r.status}</div>`;
@@ -1059,9 +1059,11 @@ async function openRiskRequestDetail(requestId){
 
   const chatHtml = (messages||[]).length ? messages.map(m => `<div style="margin-bottom:8px;text-align:${m.sender_email===r.requested_by_email?'left':'right'}">
     <div style="display:inline-block;max-width:80%;background:${m.sender_email===r.requested_by_email?'var(--primary)':'var(--offwhite)'};color:${m.sender_email===r.requested_by_email?'#fff':'var(--dark)'};border-radius:10px;padding:8px 12px;font-size:11.5px">
-      <b style="font-size:10px;opacity:0.8">${orgEsc(m.sender_name||m.sender_email)}</b><br>${m.message}
+      <b style="font-size:10px;opacity:0.8">${orgEsc(m.sender_name||m.sender_email)}</b><br><span style="white-space:pre-line">${orgEsc(m.message)}</span>
     </div>
   </div>`).join("") : '<div style="font-size:11px;color:var(--gray3);text-align:center">لا توجد رسائل بعد.</div>';
+
+  const awaitHtml = r.status === "بانتظار رد العميل" ? `<div style="background:#FFF4D6;border:1px solid #E6C766;border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:12.5px;line-height:1.9"><b>⏳ بانتظار ردّك</b><br>أرسل لك المستشار أسئلة أو طلبات في «التواصل مع فريق المخاطر» بالأسفل. نرجو الرد عليها ليبدأ العمل على تقييمك.</div>` : "";
 
   const ratingHtml = (r.status === "تقرير نهائي جاهز" || r.status === "مغلق") ? `
     <div class="sec-title" style="font-size:13px;margin-top:16px">⭐ تقييم الخدمة</div>
@@ -1075,6 +1077,7 @@ async function openRiskRequestDetail(requestId){
     </div></div>` : "";
 
   box.innerHTML = `
+    ${awaitHtml}
     ${timeline}
     <div class="sec-title" style="font-size:13px">🌡️ المصفوفة الحرارية لهذا الطلب</div>
     <div class="card"><div class="card-body">${renderRiskHeatMap(items)}</div></div>
@@ -1086,7 +1089,7 @@ async function openRiskRequestDetail(requestId){
     <div class="card"><div class="card-body">
       <div id="risk-chat-box" style="max-height:220px;overflow-y:auto;margin-bottom:10px">${chatHtml}</div>
       <div style="display:flex;gap:6px">
-        <input class="fi" id="risk-chat-input" placeholder="اكتب رسالتك..." style="flex:1;margin:0">
+        <textarea class="fi" id="risk-chat-input" rows="3" placeholder="اكتب رسالتك..." style="flex:1;margin:0"></textarea>
         <button class="btn-xs primary" onclick="sendRiskMessage(${requestId})">إرسال</button>
       </div>
     </div></div>
@@ -1107,6 +1110,7 @@ async function sendRiskMessage(requestId){
   }]);
   if(error){ alert("تعذّر إرسال الرسالة: " + error.message); return; }
   input.value = "";
+  await notifyOwnerNewRequest("رد جديد من العميل على طلب تقييم المخاطر", [["الرسالة", message.slice(0,300)]]);
   openRiskRequestDetail(requestId);
 }
 

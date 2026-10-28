@@ -319,6 +319,9 @@ function riskGuideData(r, items, messages){
     "تم الاستلام": [
       { label:"رد الاستلام وطلب المعلومات", text:`مرحباً ${nm}،\nشكراً لطلبك تقييم المخاطر عبر منصة حوكم. استلمنا طلبك وسنبدأ العمل عليه.\nلنبدأ بشكل صحيح نحتاج منك:\n1) نبذة عن نشاط الشركة وعدد الموظفين تقريباً.\n2) أهم 3 مخاوف أو مخاطر تقلقكم حالياً.\n3) أي ملفات متاحة (الهيكل التنظيمي، السياسات، تقارير سابقة).\nويسعدنا ترتيب مكالمة قصيرة (20 دقيقة) للتعرّف على شركتكم، فما الوقت المناسب لك؟\nفريق حوكم` }
     ],
+    "بانتظار رد العميل": [
+      { label:"تذكير بانتظار رد العميل", text:`مرحباً ${nm}،\nنذكّرك بطلبنا السابق للمعلومات اللازمة لبدء تقييم مخاطر شركتكم. لن نتمكن من البدء قبل وصول ردّك، وسنتابع الطلب فور استلامه. إن واجهتك صعوبة أخبرنا لنساعدك أو نرتب مكالمة قصيرة.\nفريق حوكم` }
+    ],
     "قيد التحليل": [
       { label:"تحديث: بدأ التحليل", text:`مرحباً ${nm}،\nبدأ فريقنا تحليل مخاطر شركتكم وتسجيلها وتقييم احتماليتها وتأثيرها. سنوافيك بالمصفوفة الحرارية قريباً، وسنتواصل معك إن احتجنا توضيحاً.\nفريق حوكم` }
     ],
@@ -333,7 +336,8 @@ function riskGuideData(r, items, messages){
     ]
   };
   const STEPS = {
-    "تم الاستلام": ["ردّ على العميل خلال يوم عمل (الرسالة الجاهزة بالأسفل)", "اتصل به أو أرسل واتساب للتعرّف على نشاطه", "كلّف مستشاراً بالطلب (بريده في الأعلى) ثم غيّر الحالة إلى «قيد التحليل»"],
+    "تم الاستلام": ["كلّف مستشاراً بالطلب (بريده في الأعلى ثم «حفظ الحالة والتكليف»)", "أرسل للعميل أسئلتك وطلباتك (الرسالة الجاهزة بالأسفل) بزر «أرسل وانتظر رد العميل»", "يتحوّل الطلب تلقائياً إلى «بانتظار رد العميل» ويُتابَع حتى يرد"],
+    "بانتظار رد العميل": ["العميل مطلوب منه الرد على أسئلتنا — لا عمل عليه الآن", "إن مرّ أكثر من 3 أيام بلا رد أرسل تذكيراً (الرسالة الجاهزة) أو اتصل به", "حين يرد غيّر الحالة إلى «قيد التحليل» وابدأ العمل"],
     "قيد التحليل": ["سجّل المخاطر التي تظهر من حديثك مع العميل وملفاته (قسم «إضافة خطر»)", "قيّم كل خطر: الاحتمالية والتأثير من 1 إلى 5 مع خطة معالجة ومسؤول", "عند اكتمال التسجيل غيّر الحالة إلى «قيد المراجعة الميدانية» أو اذهب للتقرير"],
     "قيد المراجعة الميدانية": ["تأكد مع العميل من صحة المخاطر والمعلومات", "عدّل المخاطر إن لزم", "جهّز التقرير النهائي وارفعه"],
     "تقرير نهائي جاهز": ["أبلغ العميل بجاهزية التقرير", "رتّب جلسة شرح النتائج", "بعد الشرح والرضا اغلق الطلب"],
@@ -349,13 +353,40 @@ function riskGuideHTML(r, items, messages){
   if(!g.hasStaffReply) alerts.push("لم يُرسل أي رد للعميل بعد");
   if(g.missing.length) alerts.push("بيانات ناقصة من العميل: " + g.missing.join("، "));
   if(unassigned) alerts.push("لم يُكلَّف مستشار بعد");
+  const lastStaff = [...(messages||[])].reverse().find(m => m.sender_email !== r.requested_by_email);
+  const lastClient = [...(messages||[])].reverse().find(m => m.sender_email === r.requested_by_email);
+  let replyBtn = "";
+  if(r.status === "بانتظار رد العميل"){
+    const ref = lastStaff ? new Date(lastStaff.created_at) : new Date(r.created_at);
+    const days = Math.floor((Date.now() - ref.getTime()) / 86400000);
+    if(lastClient && (!lastStaff || new Date(lastClient.created_at) > new Date(lastStaff.created_at))){
+      alerts.push("✅ ردّ العميل — يمكنك بدء العمل");
+      replyBtn = `<button class="btn-xs primary" style="margin:6px 0 0 6px" onclick="riskSetStatusQuick(${r.id},'قيد التحليل')">▶️ العميل ردّ — ابدأ التحليل</button>`;
+    } else if(days >= 3){ alerts.push(`تأخر ردّ العميل ${days} أيام — أرسل تذكيراً`); }
+    else alerts.push(`بانتظار العميل منذ ${days} يوم`);
+  }
   return `<div style="background:#F1F6FD;border:1px solid #BFD3EE;border-radius:10px;padding:12px 14px;margin-bottom:14px">
     <div style="font-weight:800;font-size:13px;color:var(--dark);margin-bottom:6px">🧭 ماذا نفعل الآن؟ — مرحلة «${orgEsc(r.status)}»</div>
     ${alerts.length ? `<div style="font-size:11.5px;color:#9A6200;background:#FFF4D6;border-radius:6px;padding:6px 10px;margin-bottom:8px">⚠️ ${alerts.map(orgEsc).join(" · ")}</div>` : ""}
     <ol style="margin:0 18px 8px 0;padding:0;font-size:12px;line-height:2">${g.steps.map(x => `<li>${orgEsc(x)}</li>`).join("")}</ol>
+    ${replyBtn}
+    ${r.status === "تم الاستلام" ? `<button class="btn-xs primary" style="margin:6px 0 0 6px" onclick="riskSendAndAwait(${r.id})">📤 أرسل الرسالة بخانة الرد وانتظر رد العميل</button>` : ""}
     ${g.templates.map((t,i) => `<button class="btn-xs primary" style="margin:2px 0 0 6px" onclick="riskUseTemplate(${i})">✍️ ضع «${orgEsc(t.label)}» في خانة الرد</button>`).join("")}
     ${r.client_name && g.templates.length ? '<div style="font-size:10.5px;color:var(--gray3);margin-top:6px">تُوضع الرسالة في خانة الرد بالأسفل لتعدّلها ثم تضغط «إرسال» — لا تُرسل تلقائياً.</div>' : ""}
   </div>`;
+}
+async function riskSetStatusQuick(requestId, status){
+  const { error } = await sb.from("risk_requests").update({ status }).eq("id", requestId);
+  if(error){ alert("تعذّر تغيير الحالة: " + error.message); return; }
+  logActivity("تعديل", "طلب تقييم مخاطر", "الحالة", status);
+  openRiskAdminDetail(requestId); if(typeof loadRiskAdmin === "function") try{ loadRiskAdmin(); }catch(e){}
+}
+async function riskSendAndAwait(requestId){
+  const inp = document.getElementById("rad-chat-input");
+  if(!inp || !inp.value.trim()){ alert("اكتب رسالتك للعميل في خانة الرد أولاً (أو اضغط زر الرسالة الجاهزة ثم عدّلها)."); return; }
+  if(!await uiConfirm("سيُرسَل نص خانة الرد للعميل ويتحوّل الطلب إلى «بانتظار رد العميل». متابعة؟")) return;
+  await sendRiskAdminMessage(requestId);
+  await riskSetStatusQuick(requestId, "بانتظار رد العميل");
 }
 function riskUseTemplate(i){
   const t = (_radCtx.templates||[])[i]; const inp = document.getElementById("rad-chat-input");
