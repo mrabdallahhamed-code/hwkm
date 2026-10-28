@@ -1062,7 +1062,7 @@ async function openGovLinkPicker(type, id){
     const list = cand[t] || [];
     return `<div class="sec-title" style="font-size:13px;margin-top:10px">${GOV_LINK_META[t].icon} ${GOV_LINK_META[t].label}</div>` +
       (list.length ? list.map(x => `<label class="glink-row"><input type="checkbox" class="glink-chk" data-type="${t}" data-id="${x.id}" ${have.has(t+":"+x.id)?"checked":""}> <span>${orgEsc(x.name).slice(0,90)}</span></label>`).join("")
-                   : '<div style="font-size:12px;color:var(--gray3);padding:6px 0">لا توجد عناصر.</div>');
+                   : `<div style="font-size:12px;color:var(--gray3);padding:6px 0">${t==="risk"?"لا توجد مخاطر بعد — تظهر هنا المخاطر المسجّلة في طلبات تقييم المخاطر.":t==="decision"?"لا توجد قرارات بعد — تظهر هنا القرارات المسجّلة من محاضر الاجتماعات (متابعة القرارات).":"لا توجد سياسات."}</div>`);
   }).join("");
   document.getElementById("govlink-save").onclick = () => saveGovLinks(type, id, existing);
 }
