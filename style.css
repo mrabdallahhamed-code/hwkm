@@ -970,14 +970,17 @@ div[style*="linear-gradient(135deg,var(--primary),var(--primary2))"][style*="bor
 .gal-chip{font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--gray1);color:var(--gray3)}
 .gal-chip-high{background:#F8E9E9;color:var(--red)}
 .gal-sec{font-size:12px;font-weight:700;color:var(--gray3);margin:12px 0 6px}
-.gal-row{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:8px;margin-bottom:6px;cursor:pointer;border:1px solid var(--gray1);background:var(--white);transition:background .15s}
-.gal-row:hover{background:var(--offwhite)}
-.gal-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;background:var(--gray2)}
-.gal-high{border-color:#E6C3C3;background:#FDF6F6}
-.gal-high .gal-dot{background:var(--red)}
-.gal-med .gal-dot{background:var(--gold2)}
-.gal-text{flex:1;font-size:13.5px;line-height:1.7;color:var(--dark)}
-.gal-cta{font-size:12.5px;font-weight:700;color:var(--primary3);white-space:nowrap}
+.gal-count{display:inline-block;min-width:20px;text-align:center;font-size:11px;font-weight:800;background:var(--gray1);color:var(--gray3);border-radius:10px;padding:0 6px;margin-right:4px}
+.gal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:10px}
+.gal-more{margin-top:0}
+.gal-row{display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:8px;padding:12px 14px;border-radius:10px;cursor:pointer;border:1px solid var(--gray1);border-right:4px solid var(--gold2);background:var(--white);transition:background .15s,box-shadow .15s}
+.gal-row:hover{background:var(--offwhite);box-shadow:0 2px 10px rgba(15,33,56,.07)}
+.gal-high{border-color:#EBCACA;border-right-color:var(--red);background:#FFFAFA}
+.gal-text{flex:1;font-size:13px;line-height:1.75;color:var(--dark)}
+.gal-cta{font-size:12px;font-weight:800;color:var(--primary3);white-space:nowrap;background:var(--offwhite);border-radius:6px;padding:3px 10px}
+.gal-high .gal-cta{background:#F8E9E9;color:var(--red)}
+.gal-toggle{background:none;border:none;color:var(--primary3);font-weight:700;font-size:12.5px;cursor:pointer;padding:2px 0 8px;font-family:inherit}
+@media(max-width:760px){.gal-grid{grid-template-columns:1fr}}
 .kpi{display:flex;flex-direction:column}
 .kpi-ins{margin-top:10px;display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px dashed var(--gray1)}
 .kst{align-self:flex-start;font-size:12px;font-weight:700;padding:2px 10px;border-radius:20px;border:1px solid transparent}
