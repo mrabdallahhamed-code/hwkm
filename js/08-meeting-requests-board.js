@@ -949,6 +949,9 @@ async function submitRiskRequest(){
   const scope = document.getElementById("rnr-scope").value.trim();
   const preferred_date = document.getElementById("rnr-date").value || null;
   const risk_types_needed = [...document.querySelectorAll(".rnr-risktype-chk:checked")].map(c=>c.value).join("، ");
+  if(!sector){ alert("الرجاء إدخال قطاع الشركة"); return; }
+  if(scope.length < 15){ alert("الرجاء وصف نطاق التقييم بوضوح (قسم أو عملية أو مشروع) في سطر أو سطرين على الأقل، ليتمكّن المستشار من فهم طلبك"); return; }
+  if(!risk_types_needed){ alert("الرجاء اختيار نوع واحد على الأقل من أنواع المخاطر المطلوب تحليلها"); return; }
 
   const filesInput = document.getElementById("rnr-files");
   const file_urls = [];

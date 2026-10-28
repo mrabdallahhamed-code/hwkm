@@ -599,11 +599,11 @@
     <input type="hidden" id="rnr-service-id" value=""/>
     <div class="fg"><label>الخدمة المطلوبة</label><div id="rnr-service-name" style="font-weight:800;color:var(--primary);font-size:13px;padding:6px 0"></div></div>
     <div class="row2">
-      <div class="fg"><label>اسم مقدّم الطلب</label><input class="fi" id="rnr-client-name"/></div>
-      <div class="fg"><label>القطاع</label><input class="fi" id="rnr-sector" placeholder="مثال: تجزئة، صناعي، خدمات..."/></div>
+      <div class="fg"><label>اسم مقدّم الطلب <span style="color:var(--red)">*</span></label><input class="fi" id="rnr-client-name"/></div>
+      <div class="fg"><label>القطاع <span style="color:var(--red)">*</span></label><input class="fi" id="rnr-sector" placeholder="مثال: تجزئة، صناعي، خدمات..."/></div>
     </div>
-    <div class="fg"><label>نطاق التقييم (قسم / عملية / مشروع)</label><textarea class="fi" id="rnr-scope" rows="2" placeholder="مثال: عمليات سلسلة الإمداد بالمستودع الرئيسي..."></textarea></div>
-    <div class="fg"><label>أنواع المخاطر المطلوب تحليلها</label>
+    <div class="fg"><label>نطاق التقييم (قسم / عملية / مشروع) <span style="color:var(--red)">*</span></label><textarea class="fi" id="rnr-scope" rows="2" placeholder="مثال: عمليات سلسلة الإمداد بالمستودع الرئيسي..."></textarea></div>
+    <div class="fg"><label>أنواع المخاطر المطلوب تحليلها <span style="color:var(--red)">*</span> <span style="font-weight:400;color:var(--gray3)">(اختر نوعاً واحداً على الأقل)</span></label>
       <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:11.5px" id="rnr-risk-types">
         <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" value="استراتيجية" class="rnr-risktype-chk"> استراتيجية</label>
         <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" value="تشغيلية" class="rnr-risktype-chk"> تشغيلية</label>
@@ -3881,7 +3881,7 @@
 <script src="js/05-annual-meeting-plan.js?v=3"></script>
 <script src="js/06-agm-cards-detail.js?v=2"></script>
 <script src="js/07-generic-announcement-engine.js?v=2"></script>
-<script src="js/08-meeting-requests-board.js?v=6"></script>
+<script src="js/08-meeting-requests-board.js?v=7"></script>
 <script src="js/09-compliance-let-compliancecache.js?v=2"></script>
 <script src="js/10-signing-documents-signature.js?v=3"></script>
 <script src="js/11-job-descriptions-draft.js?v=2"></script>
