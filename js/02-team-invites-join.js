@@ -645,7 +645,7 @@ async function rejectShareholderVerification(id){
    whatever the role would otherwise decide, for that one person and that one page. */
 const ALL_PAGE_IDS_FOR_OVERRIDES = ['procedures',
   'dashboard','users','meetings','members','risks','compliance','signing','committees','agm',
-  'governance','govassess','archive','structure','permissions','perf','voting','audit',
+  'governance','govassess','archive','structure','permissions','perf','voting','circulation','audit',
   'reports','appoint','consultants','announcements'
 ];
 let myPermissionOverrides = {}; // page_id -> 'view' | 'edit' | 'none', for the CURRENTLY LOGGED-IN person
@@ -1093,6 +1093,7 @@ function reloadCurrentPageData(){
   if(id==='structure'){ loadStructure(); renderApprovalStatus('structure','structureApprovalStatus'); }
   if(id==='permissions'){ loadPermissionsMatrix(); loadMatrixApprovalStatus(); }
   if(id==='voting') loadVotingPage();
+  if(id==='circulation') loadCirculation();
   if(id==='audit') loadAudit();
   if(id==='govassess'){ document.getElementById('govassessListView').style.display='block'; document.getElementById('govassessFormView').style.display='none'; loadGovAssessments(); }
   if(id==='consultants') loadConsultantsPage();

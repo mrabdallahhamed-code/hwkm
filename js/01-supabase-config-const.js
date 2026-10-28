@@ -679,7 +679,7 @@ const OWNER_ROLES = ['مالك','ممثل المالك'];
 const FULL_ACCESS_ROLES = ['مدير النظام'];
 function isFullAccessRole(r){ return FULL_ACCESS_ROLES.includes(r) || (r === getCurrentRole() && myPermissionOverrides && myPermissionOverrides['*'] === 'edit'); }
 
-const SHAREHOLDER_PAGES = ['agm','voting','signing'];
+const SHAREHOLDER_PAGES = ['agm','voting','signing','circulation'];
 let currentShareholdersSeeReports = false;   // يحدده مدير النظام/مالك المنصة لكل شركة
 // An employee starts with the least a staff member needs; the approver adds anything more per person
 // from the permissions page (a per-user override is checked before this list and always wins).
@@ -882,6 +882,7 @@ function isPageAllowed(pageId, role){
   }
   if(pageId === 'users') return role === 'مدير النظام';
   if(pageId === 'activitylog') return role === 'مدير النظام';
+  if(pageId === 'circulation' && !/مساهمة/.test(currentCompanyType || '')) return false;
   if(role === 'مساهم') return SHAREHOLDER_PAGES.includes(pageId) || (pageId === 'reports' && currentShareholdersSeeReports === true);
   if(role === 'موظف') return EMPLOYEE_PAGES.includes(pageId);
   if(currentCompanyType === 'مؤسسة فردية' && SOLE_PROP_HIDDEN_PAGES.includes(pageId)) return false;

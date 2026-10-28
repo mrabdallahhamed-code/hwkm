@@ -1171,6 +1171,7 @@ async function applyCompanyTypeVisibility(){
     }
     // These two nav items are NOT in any hidden-pages list (they are the replacement pages), so
     // without an explicit rule the default branch below would show them to every company.
+    if(pageId === 'circulation' && !/مساهمة/.test(currentCompanyType || '')){ item.style.display = 'none'; return; }
     if(pageId === 'managerdecisions' && !currentCompanyLLCSingleManager){ item.style.display = 'none'; return; }
     if(pageId === 'ownerdecisions' && !(currentCompanyLLCSingleOwner || isSoleProp)){ item.style.display = 'none'; return; }
     const moduleKey = MODULE_PAGE_MAP[pageId];

@@ -347,6 +347,7 @@
 
       <div class="nav-item" onclick="go('committees',this)"><span class="ni-icon ico ico-clipboard"></span><span class="ni-text">اللجان</span></div>
       <div class="nav-item" onclick="go('voting',this)"><span class="ni-icon ico ico-ballot"></span><span class="ni-text">التصويت الإلكتروني</span><div class="pulse"></div></div>
+      <div class="nav-item" data-page="circulation" onclick="go('circulation',this)"><span class="ni-icon ico ico-signature"></span><span class="ni-text">قرارات التمرير</span></div>
       <div class="nav-item" onclick="go('signing',this)"><span class="ni-icon ico ico-signature"></span><span class="ni-text">التوقيع الإلكتروني</span></div>
     </div>
   </div>
@@ -1368,6 +1369,15 @@
 </div>
 
 <!-- ══ VOTING ═════════════════════════════ -->
+<div id="p-circulation" class="page content">
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+    <span><span class="ico-i ico-signature"></span>قرارات التمرير</span>
+    <button class="btn btn-gold" id="circNewBtn" style="font-size:12px" onclick="circOpenNew()">+ قرار تمرير جديد</button>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:12px"><button class="btn-xs primary" id="circTabAgm" onclick="circSetTab('الجمعية العامة')">الجمعية العامة</button><button class="btn-xs sec" id="circTabBoard" onclick="circSetTab('مجلس الإدارة')">مجلس الإدارة</button></div>
+  <div id="circBody"></div>
+</div>
+
 <div id="p-voting" class="page content">
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
     <span><span class="ico-i ico-ballot"></span>التصويت الإلكتروني</span>
@@ -3864,9 +3874,9 @@
 
 <script>try{if(localStorage.getItem("hawkim_lang")==="en")document.write('<script src="i18n-en.js?v=dir1"><\/script>')}catch(e){}</script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=hwkmTsReady" async defer></script>
-<script src="js/01-supabase-config-const.js?v=5"></script>
-<script src="js/02-team-invites-join.js?v=55"></script>
-<script src="js/03-archive-const-archive.js?v=66"></script>
+<script src="js/01-supabase-config-const.js?v=6"></script>
+<script src="js/02-team-invites-join.js?v=56"></script>
+<script src="js/03-archive-const-archive.js?v=67"></script>
 <script src="js/04-two-factor-authentication.js?v=64"></script>
 <script src="js/05-annual-meeting-plan.js?v=3"></script>
 <script src="js/06-agm-cards-detail.js?v=2"></script>
@@ -3877,10 +3887,10 @@
 <script src="js/11-job-descriptions-draft.js?v=2"></script>
 <script src="js/12-email-notifications-supabase.js?v=6"></script>
 <script src="js/13-pdf-import-best.js?v=34"></script>
-<script src="js/14-votes-let-companysettings.js?v=10"></script>
+<script src="js/14-votes-let-companysettings.js?v=11"></script>
 <script src="js/15-audit-services-back.js?v=3"></script>
 <script src="js/16-performance-evaluations-let.js?v=33"></script>
-<script src="js/17-admin-management-criteria.js?v=45"></script>
+<script src="js/17-admin-management-criteria.js?v=46"></script>
 <script src="js/18-board-member-review.js?v=2"></script>
 <script src="js/19-official-agm-documents.js?v=3"></script>
 </body>
