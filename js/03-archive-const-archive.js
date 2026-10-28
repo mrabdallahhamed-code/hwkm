@@ -1100,7 +1100,8 @@ function renderTrialBanner(){
 let currentCompanyHasCr = true;
 function renderCrBanner(){
   let b = document.getElementById("crBanner");
-  const isAdmin = getCurrentRole() === "مدير النظام" && !(currentUserProfile && currentUserProfile.is_platform_admin === true);
+  const isOwner = !!(currentUserProfile && currentUserProfile.is_platform_admin === true);
+  const isAdmin = getCurrentRole() === "مدير النظام" || isOwner;
   if(currentCompanyHasCr || !isAdmin || !currentCompanyId){ if(b) b.remove(); return; }
   if(!b){
     b = document.createElement("div");
@@ -1110,7 +1111,10 @@ function renderCrBanner(){
     const t = document.getElementById("trialBanner");
     w.insertBefore(b, t ? t.nextSibling : w.firstChild);
   }
-  b.innerHTML = '🪪 فضلاً أدخل رقم السجل التجاري أو الرقم الموحد ليكتمل توثيق شركتك. <button class="btn-xs primary" style="margin-inline-start:8px" onclick="openEditCompanyModal()">إدخال الرقم الآن</button>';
+  b.innerHTML = (isOwner
+    ? '🪪 (للمالك) هذه الشركة لم تُدخل رقم السجل أو الرقم الموحد — غير قابلة للتوثيق بعد. '
+    : '🪪 فضلاً أدخل رقم السجل التجاري أو الرقم الموحد ليكتمل توثيق شركتك. ')
+    + '<button class="btn-xs primary" style="margin-inline-start:8px" onclick="openEditCompanyModal()">إدخال الرقم الآن</button>';
 }
 
 let companyTypeReadyPromise = null;
