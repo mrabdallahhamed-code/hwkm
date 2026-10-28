@@ -371,7 +371,7 @@ async function openRiskAdminDetail(requestId){
   const assigned = String(r.assigned_consultant_email || "").toLowerCase();
   const isConsultant = !!assigned && assigned === me;
   const canWork = isConsultant;
-  const sIdx = RISK_STATUS_ORDER.indexOf(r.status);
+  let sIdx = RISK_STATUS_ORDER.indexOf(r.status);
   const staffMsgs = (messages||[]).filter(m => m.sender_email !== r.requested_by_email);
   const clientMsgs = (messages||[]).filter(m => m.sender_email === r.requested_by_email);
   const firstStaff = staffMsgs[0], lastStaff = staffMsgs[staffMsgs.length-1], lastClient = clientMsgs[clientMsgs.length-1];
@@ -379,6 +379,11 @@ async function openRiskAdminDetail(requestId){
   const answeredQs = sentQs.filter(q => q.answer);
   const clientReplied = sentQs.length > 0 && answeredQs.length === sentQs.length;
   const workStage = sIdx >= RISK_STATUS_ORDER.indexOf("قيد التحليل") || clientReplied;
+  // أجاب العميل على كل الأسئلة: ننقل الطلب تلقائيًا إلى «قيد التحليل» (يشمل الطلبات الحالية)
+  if(clientReplied && (r.status === "بانتظار رد العميل" || r.status === "تم الاستلام") && (isOwner || isConsultant)){
+    const { error: stErr } = await sb.from("risk_requests").update({ status: "قيد التحليل" }).eq("id", requestId);
+    if(!stErr){ r.status = "قيد التحليل"; try{ loadRiskAdmin(); }catch(e){} }
+  }
   const done = r.status === "تقرير نهائي جاهز" || r.status === "مغلق";
   const stage = !assigned ? 1 : (!workStage ? 2 : (done ? 4 : 3));
   _radCur = { status: r.status, consultant: r.assigned_consultant_email || "", clientEmail: r.requested_by_email || "", clientName: r.client_name || "" };

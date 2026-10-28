@@ -1128,6 +1128,10 @@ async function submitRiskAnswers(requestId){
   if(r && r.assigned_consultant_email){
     try{ await sendNotificationEmail(r.assigned_consultant_email, "أجاب العميل على أسئلتك — طلب تقييم المخاطر", `<div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px"><h2 style="color:#1A3A6B">وصلت إجابات العميل</h2><p>أجاب العميل على ${filled.length} من أسئلتك. ادخل المنصة ← طلبات تحليل المخاطر لتبدأ التحليل.</p></div>`); }catch(e){}
   }
+  try{
+    const { data: left } = await sb.from("risk_questions").select("id").eq("request_id", requestId).eq("sent", true).is("answer", null);
+    if(left && !left.length) await sb.from("risk_requests").update({ status: "قيد التحليل" }).eq("id", requestId);
+  }catch(e){}
   await notifyOwnerNewRequest("إجابات العميل على أسئلة المستشار", [["عدد الإجابات", filled.length]]);
   alert("تم إرسال إجاباتك ✅ — سيبدأ المستشار العمل على تقييمك.");
   openRiskRequestDetail(requestId);
