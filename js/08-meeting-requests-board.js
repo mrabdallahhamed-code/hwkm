@@ -896,6 +896,53 @@ function riskLevelInfo(likelihood, impact){
 }
 
 /* متابعة خطط المعالجة: خطط المخاطر المعتمدة فقط، مرتبة بالمتأخر أولاً، وللمسؤول تحديث الحالة */
+/* عرض/طباعة تقرير المخاطر (من report_content) — يستخدمه المستشار والعميل */
+async function riskReportView(requestId){
+  const [{ data: r }, { data: items }] = await Promise.all([
+    sb.from("risk_requests").select("*").eq("id", requestId).single(),
+    sb.from("risk_items").select("*").eq("request_id", requestId).order("created_at",{ascending:true})
+  ]);
+  if(!r || !r.report_content){ alert("لا يوجد تقرير محفوظ لهذا الطلب بعد."); return; }
+  let coName = "";
+  try{ const { data: c } = await sb.from("companies").select("name").eq("id", r.company_id).single(); coName = c ? c.name : ""; }catch(e){}
+  const c = r.report_content, list = items || [];
+  const w = openPrintWindow(); if(!w){ alert("اسمح بالنوافذ المنبثقة للطباعة"); return; }
+  const E = orgEsc, para = t => E(t||"").split(/\n+/).filter(Boolean).map(x => `<p>${x}</p>`).join("");
+  const ul = a => (a||[]).length ? `<ol>${a.map(x => `<li>${E(x)}</li>`).join("")}</ol>` : "<p>—</p>";
+  const cells = {};
+  list.forEach((it,i) => { if(it.likelihood!=null && it.impact!=null){ const k = it.likelihood+"-"+it.impact; (cells[k] = cells[k] || []).push(i+1); } });
+  let mx = '<table class="mx"><tr><td class="ax"></td>' + [1,2,3,4,5].map(n => `<td class="ax">${n}</td>`).join("") + '</tr>';
+  for(let l=5; l>=1; l--){
+    mx += `<tr><td class="ax">${l}</td>` + [1,2,3,4,5].map(im => { const inf = riskLevelInfo(l, im); return `<td style="background:${inf.color}">${(cells[l+"-"+im]||[]).map(n => `<span class="dot">${n}</span>`).join("")}</td>`; }).join("") + "</tr>";
+  }
+  mx += '</table><div style="text-align:center;font-size:11px;color:#666">الاحتمالية ↑ — التأثير →</div>';
+  const reg = list.map((it,i) => { const inf = riskLevelInfo(it.likelihood, it.impact); return `<tr><td>${i+1}</td><td style="text-align:right">${E(it.description||"")}</td><td>${E(it.category||"—")}</td><td>${it.likelihood??"—"}</td><td>${it.impact??"—"}</td><td style="background:${inf.color};color:#fff;font-weight:700">${inf.label}</td></tr>`; }).join("");
+  const plans = list.map((it,i) => `<tr><td>${i+1}</td><td style="text-align:right">${E(it.treatment_plan||"—")}</td><td>${E(it.responsible_person||"—")}</td><td>${E(it.target_close_date||"—")}</td></tr>`).join("");
+  w.document.open();
+  w.document.write(`<html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>تقرير تقييم المخاطر</title><style>
+  body{font-family:Tajawal,Arial,sans-serif;padding:36px 46px;color:#0D2447;line-height:2;font-size:13.5px}
+  h1{font-size:24px;margin:0;text-align:center}h2{font-size:16px;border-right:5px solid #D4AF37;padding-right:10px;margin:26px 0 8px}
+  .sub{text-align:center;color:#666;font-size:12px;margin:4px 0 18px}.meta{border:1px solid #ccc;border-radius:8px;padding:10px 16px;background:#f8f9fc;font-size:12.5px}
+  table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #ccc;padding:6px;font-size:12px;text-align:center}th{background:#1A3A6B;color:#fff}
+  .mx{width:auto;margin:8px auto;direction:ltr}.mx td{width:54px;height:40px;border:2px solid #fff}.mx .ax{background:none;border:none;width:24px;height:auto;color:#666}
+  .dot{display:inline-block;width:18px;height:18px;line-height:18px;border-radius:50%;background:#fff;color:#333;font-weight:800;font-size:10.5px;margin:1px}
+  .note{font-size:11px;color:#777;margin-top:26px;border-top:1px solid #ddd;padding-top:8px}@media print{body{padding:10px 20px}}
+  </style></head><body>
+  <h1>تقرير تقييم المخاطر</h1><div class="sub">${E(coName)} — ${new Date().toLocaleDateString("ar-SA-u-ca-gregory",{day:"numeric",month:"long",year:"numeric"})}</div>
+  <div class="meta"><b>القطاع:</b> ${E(r.sector||"—")} &nbsp;|&nbsp; <b>نطاق التقييم:</b> ${E(r.scope||"—")} &nbsp;|&nbsp; <b>أنواع المخاطر:</b> ${E(r.risk_types_needed||"—")}</div>
+  <h2>الملخص التنفيذي</h2>${para(c.executive_summary)}
+  <h2>منهجية التقييم</h2>${para(c.methodology)}
+  <h2>المصفوفة الحرارية</h2>${mx}
+  <h2>سجل المخاطر</h2><table><thead><tr><th>#</th><th>الخطر</th><th>الفئة</th><th>الاحتمالية</th><th>التأثير</th><th>المستوى</th></tr></thead><tbody>${reg}</tbody></table>
+  <h2>أبرز النتائج</h2>${ul(c.key_findings)}
+  <h2>خطط المعالجة</h2><table><thead><tr><th>#</th><th>خطة المعالجة</th><th>المسؤول</th><th>الموعد المستهدف</th></tr></thead><tbody>${plans}</tbody></table>
+  <h2>التوصيات</h2>${ul(c.recommendations)}
+  <h2>الخاتمة</h2>${para(c.conclusion)}
+  <div class="note">${c.ai ? "أُعدّت مسودة هذا التقرير بمساعدة الذكاء الاصطناعي ثم راجعها وعدّلها المستشار المختص. " : ""}صدر عن منصة حوكم.</div>
+  </body></html>`);
+  w.document.close();
+}
+
 async function loadRiskTreatments(){
   const sec = document.getElementById("riskTreatmentSection"), body = document.getElementById("riskTreatmentBody");
   if(!sec || !body) return;
@@ -1137,7 +1184,7 @@ async function openRiskRequestDetail(requestId){
     <div class="sec-title" style="font-size:13px;margin-top:14px"><span class="ico-i ico-pin"></span>المخاطر المسجَّلة وخطط المعالجة</div>
     ${itemsHtml}
     <div class="sec-title" style="font-size:13px;margin-top:14px"><span class="ico-i ico-paperclip"></span>الملفات</div>
-    <div class="card"><div class="card-body">${filesHtml}${r.final_report_url ? `<a href="${r.final_report_url}" target="_blank" style="display:block;font-size:12px;color:var(--green);font-weight:700;margin-top:8px"><span class="ico-i ico-document"></span>تحميل التقرير النهائي</a>` : ""}</div></div>
+    <div class="card"><div class="card-body">${filesHtml}${(r.report_content && (r.status === "تقرير نهائي جاهز" || r.status === "مغلق") && !r.pending_final_approval) ? `<button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="riskReportView(${requestId})">📄 عرض تقرير المخاطر / طباعة PDF</button>` : ""}${r.final_report_url ? `<a href="${r.final_report_url}" target="_blank" style="display:block;font-size:12px;color:var(--green);font-weight:700;margin-top:8px"><span class="ico-i ico-document"></span>تحميل التقرير النهائي</a>` : ""}</div></div>
     <details style="margin-top:14px"><summary style="cursor:pointer;font-size:12.5px;font-weight:800"><span class="ico-i ico-message"></span> رسائل إضافية لفريق المخاطر</summary>
     <div class="card" style="margin-top:8px"><div class="card-body">
       <div id="risk-chat-box" style="max-height:220px;overflow-y:auto;margin-bottom:10px">${chatHtml}</div>

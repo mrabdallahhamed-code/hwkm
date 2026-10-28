@@ -386,7 +386,7 @@ async function openRiskAdminDetail(requestId){
   }
   const done = r.status === "تقرير نهائي جاهز" || r.status === "مغلق";
   const stage = !assigned ? 1 : (!workStage ? 2 : (done ? 4 : 3));
-  _radCur = { status: r.status, consultant: r.assigned_consultant_email || "", clientEmail: r.requested_by_email || "", clientName: r.client_name || "" };
+  _radCur = { reportAI: !!(r.report_content && r.report_content.ai), status: r.status, consultant: r.assigned_consultant_email || "", clientEmail: r.requested_by_email || "", clientName: r.client_name || "" };
 
   const stepper = `<div style="display:flex;gap:6px;margin-bottom:16px">${["تكليف مستشار","التواصل مع العميل","التحليل والمصفوفة","التقرير النهائي"].map((t,i) => {
     const n = i+1, on = n === stage, ok = n < stage;
@@ -497,6 +497,17 @@ async function openRiskAdminDetail(requestId){
     <div class="card"><div class="card-body">${addRiskForm}${itemsHtmlR}</div></div>
     <div class="sec-title" style="font-size:13px;margin-top:16px">🌡️ المصفوفة الحرارية</div>
     <div class="card"><div class="card-body">${renderRiskHeatMap(items)}</div></div>
+    ${canWork || (isOwner && r.report_content) ? `<div class="sec-title" style="font-size:13px;margin-top:16px">✨ تقرير المخاطر</div>
+    <div class="card"><div class="card-body">
+      ${canWork ? `<button class="btn btn-ghost" id="rad-ai-btn" style="width:100%;margin-bottom:10px" onclick="riskAIGenerate(${requestId})">✨ توليد مسودة التقرير بالذكاء الصناعي</button>
+      <div style="font-size:10.5px;color:var(--gray3);margin-bottom:10px">يُرسَل للذكاء الصناعي القطاع والنطاق والأسئلة وإجاباتها والمخاطر فقط، دون اسم الشركة أو أي أسماء. المسودة قابلة للتعديل، وأنت المسؤول عن محتوى التقرير.</div>` : ""}
+      ${["executive_summary|الملخص التنفيذي|4","methodology|منهجية التقييم|3","key_findings|أبرز النتائج (كل نتيجة في سطر)|5","recommendations|التوصيات (كل توصية في سطر)|5","conclusion|الخاتمة|2"].map(x => { const [k,t,n] = x.split("|"); const v = (r.report_content || {})[k]; const val = Array.isArray(v) ? v.join("\n") : (v||""); return `<label style="font-size:11.5px;font-weight:700">${t}</label><textarea class="fi" id="rad-rep-${k}" rows="${n}" ${canWork ? "" : "readonly"} style="margin:2px 0 8px">${orgEsc(val)}</textarea>`; }).join("")}
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${canWork ? `<button class="btn-xs primary" onclick="riskReportSave(${requestId},false)">💾 حفظ المسودة</button>
+        <button class="btn btn-gold" style="flex:1" onclick="riskReportSave(${requestId},true)">📤 اعتماد التقرير وإرساله للاعتماد النهائي</button>` : ""}
+        ${r.report_content ? `<button class="btn-xs sec" onclick="riskReportView(${requestId})">👁 معاينة / طباعة</button>` : ""}
+      </div>
+    </div></div>` : ""}
     <div class="sec-title" style="font-size:13px;margin-top:16px"><span class="ico-i ico-document"></span>التقرير النهائي</div>
     <div class="card"><div class="card-body">
       ${r.final_report_url ? `<a href="${r.final_report_url}" target="_blank" style="font-size:12px;color:var(--green);font-weight:700"><span class="ico-i ico-document"></span>عرض التقرير المرفوع</a>` : '<div style="font-size:11px;color:var(--gray3);margin-bottom:8px">لم يُرفع تقرير نهائي بعد.</div>'}
@@ -576,6 +587,49 @@ async function updateRiskItemStatus(itemId, action_status, requestId){
 async function deleteRiskItem(itemId, requestId){
   if(!await uiConfirm("حذف هذا الخطر؟")) return;
   await sb.from("risk_items").delete().eq("id", itemId);
+  openRiskAdminDetail(requestId);
+}
+
+function riskReportCollect(){
+  const g = k => (document.getElementById("rad-rep-"+k) || { value:"" }).value.trim();
+  const lines = k => g(k).split(/\n+/).map(x => x.replace(/^[-•\d.\s]+/, "").trim()).filter(Boolean);
+  return { executive_summary: g("executive_summary"), methodology: g("methodology"), key_findings: lines("key_findings"), recommendations: lines("recommendations"), conclusion: g("conclusion") };
+}
+async function riskAIGenerate(requestId){
+  if(!await uiConfirm("سيُرسَل القطاع ونطاق التقييم والأسئلة وإجاباتها والمخاطر (دون اسم الشركة أو أي أسماء) إلى خدمة ذكاء اصطناعي لتوليد مسودة التقرير، وستحل محل النصوص الحالية في الخانات. متابعة؟")) return;
+  const btn = document.getElementById("rad-ai-btn"); const old = btn ? btn.textContent : "";
+  if(btn){ btn.disabled = true; btn.textContent = "جارٍ توليد المسودة…"; }
+  try{
+    const { data: sd } = await sb.auth.getSession();
+    const token = sd && sd.session && sd.session.access_token;
+    if(!token){ alert("تعذّر التحقق من جلستك — سجّل دخولك من جديد."); return; }
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/generate-risk-report`, { method:"POST", headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+token }, body: JSON.stringify({ request_id: requestId }) });
+    const data = await res.json().catch(() => ({}));
+    if(!res.ok){ alert(data.error || "تعذّر توليد المسودة الآن."); return; }
+    const c = data.content || {};
+    const set = (k, v) => { const el = document.getElementById("rad-rep-"+k); if(el) el.value = Array.isArray(v) ? v.join("\n") : (v||""); };
+    ["executive_summary","methodology","key_findings","recommendations","conclusion"].forEach(k => set(k, c[k]));
+    window._radReportFromAI = true;
+    alert("تم توليد المسودة ✅ — راجعها وعدّلها، ثم اضغط «حفظ المسودة» أو «اعتماد التقرير».");
+  }catch(e){ alert("تعذّر الاتصال بالخدمة: " + e.message); }
+  finally{ if(btn){ btn.disabled = false; btn.textContent = old; } }
+}
+async function riskReportSave(requestId, submit){
+  const content = riskReportCollect();
+  if(!content.executive_summary || !content.key_findings.length){ alert("اكتب الملخص التنفيذي ونتيجة واحدة على الأقل، أو ولّد مسودة بالذكاء الصناعي أولاً."); return; }
+  content.ai = !!window._radReportFromAI || !!(_radCur && _radCur.reportAI);
+  if(submit && !await uiConfirm("سيُرسَل التقرير لاعتماد مالك المنصة ولن يظهر للعميل قبل اعتماده. متابعة؟")) return;
+  const payload = { report_content: content };
+  const isFullOwner = currentUserProfile && currentUserProfile.is_platform_admin === true;
+  if(submit){
+    if(isFullOwner){ payload.status = "تقرير نهائي جاهز"; payload.pending_final_approval = false; }
+    else { const { data: ud } = await sb.auth.getUser(); payload.pending_final_approval = true; payload.staff_closed_by = ud && ud.user ? ud.user.email : null; }
+  }
+  const { error } = await sb.from("risk_requests").update(payload).eq("id", requestId);
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  if(submit && !isFullOwner){ try{ await notifyOwnerNewRequest("تقرير مخاطر بانتظار اعتمادك", [["رقم الطلب", requestId]]); }catch(e){} }
+  alert(submit ? (isFullOwner ? "تم اعتماد التقرير ✅ وظهر للعميل" : "تم إرسال التقرير لاعتماد مالك المنصة ✅") : "تم حفظ المسودة ✅");
+  try{ loadRiskAdmin(); }catch(e){}
   openRiskAdminDetail(requestId);
 }
 
