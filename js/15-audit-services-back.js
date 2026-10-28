@@ -365,14 +365,18 @@ function riskGuideHTML(r, items, messages){
     } else if(days >= 3){ alerts.push(`تأخر ردّ العميل ${days} أيام — أرسل تذكيراً`); }
     else alerts.push(`بانتظار العميل منذ ${days} يوم`);
   }
-  return `<div style="background:#F1F6FD;border:1px solid #BFD3EE;border-radius:10px;padding:12px 14px;margin-bottom:14px">
-    <div style="font-weight:800;font-size:13px;color:var(--dark);margin-bottom:6px">🧭 ماذا نفعل الآن؟ — مرحلة «${orgEsc(r.status)}»</div>
-    ${alerts.length ? `<div style="font-size:11.5px;color:#9A6200;background:#FFF4D6;border-radius:6px;padding:6px 10px;margin-bottom:8px">⚠️ ${alerts.map(orgEsc).join(" · ")}</div>` : ""}
-    <ol style="margin:0 18px 8px 0;padding:0;font-size:12px;line-height:2">${g.steps.map(x => `<li>${orgEsc(x)}</li>`).join("")}</ol>
-    ${replyBtn}
-    ${r.status === "تم الاستلام" ? `<button class="btn-xs primary" style="margin:6px 0 0 6px" onclick="riskSendAndAwait(${r.id})">📤 أرسل الرسالة بخانة الرد وانتظر رد العميل</button>` : ""}
-    ${g.templates.map((t,i) => `<button class="btn-xs primary" style="margin:2px 0 0 6px" onclick="riskUseTemplate(${i})">✍️ ضع «${orgEsc(t.label)}» في خانة الرد</button>`).join("")}
-    ${r.client_name && g.templates.length ? '<div style="font-size:10.5px;color:var(--gray3);margin-top:6px">تُوضع الرسالة في خانة الرد بالأسفل لتعدّلها ثم تضغط «إرسال» — لا تُرسل تلقائياً.</div>' : ""}
+  const chip = t => `<span style="display:inline-block;background:#FFF4D6;color:#8A5A00;border:1px solid #F0D58A;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;margin:0 0 6px 6px">${orgEsc(t)}</span>`;
+  const step = (x,i) => `<div style="display:flex;gap:10px;align-items:flex-start;padding:6px 0"><span style="flex:0 0 22px;height:22px;border-radius:50%;background:var(--primary);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center">${i+1}</span><span style="font-size:12px;line-height:1.8;flex:1">${orgEsc(x)}</span></div>`;
+  const bigBtn = (onclick, label, primary) => `<button class="btn ${primary ? "btn-gold" : "btn-ghost"}" style="width:100%;margin-top:8px;font-size:12px;justify-content:center" onclick="${onclick}">${label}</button>`;
+  return `<div style="background:#F6F9FD;border:1px solid #CFDDF0;border-radius:12px;padding:14px;margin-bottom:16px">
+    <div style="font-weight:800;font-size:13.5px;color:var(--dark)">🧭 ماذا نفعل الآن؟</div>
+    <div style="font-size:11.5px;color:var(--gray3);margin:2px 0 10px">المرحلة الحالية: <b style="color:var(--primary)">${orgEsc(r.status)}</b></div>
+    ${alerts.length ? `<div style="margin-bottom:4px">${alerts.map(chip).join("")}</div>` : ""}
+    <div style="border-top:1px dashed #CFDDF0;margin-top:4px;padding-top:6px">${g.steps.map(step).join("")}</div>
+    ${replyBtn ? replyBtn.replace('class="btn-xs primary" style="margin:6px 0 0 6px"','class="btn btn-gold" style="width:100%;margin-top:8px;font-size:12px;justify-content:center"') : ""}
+    ${g.templates.map((t,i) => bigBtn(`riskUseTemplate(${i})`, `✍️ ${orgEsc(t.label)} — ضعها في خانة الرد`, false)).join("")}
+    ${r.status === "تم الاستلام" ? bigBtn(`riskSendAndAwait(${r.id})`, "📤 أرسل رسالة الرد وانتظر رد العميل", true) : ""}
+    ${g.templates.length ? '<div style="font-size:10.5px;color:var(--gray3);margin-top:8px;text-align:center">تُوضع الرسالة في خانة الرد (أسفل الصفحة) لتعدّلها، ولا تُرسَل إلا بضغطك.</div>' : ""}
   </div>`;
 }
 async function riskSetStatusQuick(requestId, status){
