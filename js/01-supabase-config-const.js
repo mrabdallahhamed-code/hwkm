@@ -1,3 +1,5 @@
+/* دالة تنظيف النصوص تُعرَّف مبكرًا حتى لا تفشل الشاشات التي تُحمَّل قبل ملف التوقيع (js/10) */
+function orgEsc(v){ return String(v ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch])); }
 /* ══════════ SUPABASE CONFIG ══════════ */
 const SUPABASE_URL = "https://omddnkofsdtwfjkxdktt.supabase.co";
 const SUPABASE_KEY = "sb_publishable_SbHWC7JAuyvXypZyJeiWkg_I9Y4gjbj";
