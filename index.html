@@ -300,6 +300,7 @@
     <div class="nav-item active" onclick="go('dashboard',this)">
       <span class="ni-icon ico ico-dashboard"></span><span class="ni-text">لوحة التحكم</span>
     </div>
+    <div class="nav-item" id="navMySub" onclick="openMySubscription()"><span class="ni-icon ico ico-package"></span><span class="ni-text">اشتراكي</span></div>
   </div>
 
   <div class="nav-group">
@@ -3398,6 +3399,13 @@
   </div>
 </div>
 
+<div class="modal-bg" id="m-my-sub">
+  <div class="modal">
+    <div class="modal-title"><span class="ico-i ico-package"></span>اشتراكي</div>
+    <div id="mySubBody"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-my-sub')">إغلاق</button></div>
+  </div>
+</div>
 <div class="modal-bg" id="m-activate-sub">
   <div class="modal">
     <div class="modal-title" id="mas-title-h"><span class="ico-i ico-check"></span>تفعيل الاشتراك</div>
@@ -3423,6 +3431,12 @@
       <input type="checkbox" id="mas-audit" style="width:16px;height:16px" onchange="clearSubPackageSelection('mas')" />
       <label for="mas-audit" style="margin:0;font-size:12px;cursor:pointer"><span class="ico-i ico-package"></span>المراجعة الداخلية</label>
     </div>
+    <div class="fg"><label>السعر المتفق عليه (ريال)</label><input type="number" id="mas-price" min="0" step="any" placeholder="مثال: 5000" /></div>
+    <div style="display:flex;gap:8px">
+      <div class="fg" style="flex:1"><label>دورة الفوترة</label><select id="mas-cycle"><option value="annual">سنوي</option><option value="monthly">شهري</option></select></div>
+      <div class="fg" style="flex:1"><label>بداية الاشتراك</label><input type="date" id="mas-start" /></div>
+    </div>
+    <p style="font-size:10.5px;color:var(--gray3);margin:-6px 0 10px">تاريخ النهاية يُحسب تلقائيًا من دورة الفوترة (سنة أو شهر من البداية).</p>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-activate-sub')">إلغاء</button><button class="btn btn-gold" onclick="activateSubscription()"><span class="ico-i ico-check"></span>تفعيل الاشتراك</button></div>
   </div>
 </div>
@@ -3876,9 +3890,9 @@
 
 <script>try{if(localStorage.getItem("hawkim_lang")==="en")document.write('<script src="i18n-en.js?v=dir1"><\/script>')}catch(e){}</script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=hwkmTsReady" async defer></script>
-<script src="js/01-supabase-config-const.js?v=7"></script>
+<script src="js/01-supabase-config-const.js?v=8"></script>
 <script src="js/02-team-invites-join.js?v=56"></script>
-<script src="js/03-archive-const-archive.js?v=76"></script>
+<script src="js/03-archive-const-archive.js?v=77"></script>
 <script src="js/04-two-factor-authentication.js?v=68"></script>
 <script src="js/05-annual-meeting-plan.js?v=3"></script>
 <script src="js/06-agm-cards-detail.js?v=2"></script>

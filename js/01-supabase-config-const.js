@@ -949,6 +949,8 @@ function isMutatingOnchange(val){
     || /^finalApproveSubscription\(/.test(val)
     || /^openNewGovAssessment\(/.test(val)
     || /^activateSubscription\(/.test(val)
+    || /^openMySubscription\(/.test(val)
+    || /^renewSubscription\(/.test(val)
     || /^cancelTrial\(/.test(val)
     || /^openCharterModal\(/.test(val)
     || /^saveCharter\(/.test(val)

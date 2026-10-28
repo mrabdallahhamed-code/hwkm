@@ -422,6 +422,10 @@ async function loadPlatformDashboard(){
     stat("🏢","إجمالي الشركات", all.length, "pd-first"), stat("📈","شركات مساهمة", countByType["مساهمة"]),
     stat("🤝","ذات مسؤولية محدودة", countByType["ذات مسؤولية محدودة"]), stat("👤","مؤسسات فردية", countByType["مؤسسة فردية"])
   ].join("");
+  const active = all.filter(c => c.subscription_ends_at && new Date(c.subscription_ends_at) > new Date());
+  const monthly = active.reduce((t,c) => t + (Number(c.subscription_price)||0) / (c.billing_cycle === "monthly" ? 1 : 12), 0);
+  const nf = n => Math.round(n).toLocaleString("en-US");
+  grid.innerHTML += stat("💰","إيراد شهري متوقع (ر.س)", nf(monthly)) + stat("📅","إيراد سنوي متوقع (ر.س)", nf(monthly*12)) + stat("✅","اشتراكات فعّالة", active.length);
   const auditCount = all.filter(c => c.module_internal_audit).length;
   const riskCount = all.filter(c => c.module_risk_management).length;
   modulesGrid.innerHTML = [
@@ -457,6 +461,7 @@ async function loadPlatformDashboard(){
       (ar.data||[]).forEach(x => { if(x.pending_final_approval) pendingApprove++; if(x.status === "تم الاستلام") pendingAssign++; });
     }catch(e){}
     const soon = inTrial.filter(x => x.days <= 7).length;
+    const subSoon = all.filter(c => !c.trial_ends_at && c.subscription_ends_at && Math.ceil((new Date(c.subscription_ends_at) - now)/86400000) <= 30).length;
     const unverified = all.filter(c => c.entity_verification !== "verified").length;
     const noCr = all.filter(c => !String(c.cr_number||"").trim()).length;
     const act = (n, label, page, tone) => `<div class="pd-act ${n ? tone : "ok"}" onclick="${page ? `go('${page}',null)` : ""}"><div class="pd-act-n">${n ? n : "✓"}</div><div class="pd-act-l">${label}</div></div>`;
@@ -464,6 +469,7 @@ async function loadPlatformDashboard(){
       act(pendingAssign, "طلبات جديدة بانتظار تكليف", "adminrequests", "red"),
       act(pendingApprove, "تقارير بانتظار اعتمادك", "adminrequests", "red"),
       act(soon, "تجارب تنتهي خلال 7 أيام", "", "amber"),
+      act(subSoon, "اشتراكات تنتهي خلال 30 يوم", "", "amber"),
       act(unverified, "كيانات غير موثّقة", "", "amber"),
       act(noCr, "شركات بلا رقم سجل", "", "amber")
     ].join("");
@@ -785,7 +791,7 @@ async function loadManageCompanies(){
           <div style="font-size:11px;color:var(--gray3);margin-top:2px">${c.company_type||"—"} · الوحدات: ${modules.length?modules.join("، "):"الأساسية فقط"}</div>
           <div style="font-size:10.5px;color:var(--gray3);margin-top:2px">رقم ${c.id} · أُنشئت ${c.created_at ? new Date(c.created_at).toLocaleString("ar-SA-u-ca-gregory") : "—"}${isDup ? ' <span style="color:var(--red);font-weight:800">· اسم مكرَّر — راجعها واحذف الزائدة</span>' : ""}</div>
         </div>
-        ${inTrial ? `<span class="badge pending"><span class="ico-i ico-package"></span>تجربة — متبقٍ ${daysLeft} يوم</span>` : c.trial_ends_at ? `<span class="badge urgent"><span class="ico-i ico-warning"></span>انتهت التجربة</span>` : hasPlan ? `<span class="badge done"><span class="ico-i ico-check"></span>مشترك</span>` : `<span class="badge urgent"><span class="ico-i ico-warning"></span>غير مفعَّل — بلا تجربة ولا اشتراك</span>`}
+        ${inTrial ? `<span class="badge pending"><span class="ico-i ico-package"></span>تجربة — متبقٍ ${daysLeft} يوم</span>` : c.trial_ends_at ? `<span class="badge urgent"><span class="ico-i ico-warning"></span>انتهت التجربة</span>` : hasPlan ? `<span class="badge done"><span class="ico-i ico-check"></span>مشترك${c.subscription_package ? " — " + orgEsc(c.subscription_package) : ""}${c.subscription_ends_at ? " · حتى " + new Date(c.subscription_ends_at).toLocaleDateString("ar-SA-u-ca-gregory") : ""}</span>${c.subscription_price != null ? ` <span class="pd-chip">${Number(c.subscription_price).toLocaleString("en-US")} ر.س / ${CYCLE_AR[c.billing_cycle]||""}</span>` : ""}${isOwner ? ` <button class="btn-xs" style="margin-inline-start:6px" onclick="renewSubscription(${c.id})">${c.subscription_ends_at ? "🔄 تجديد" : "📅 تحديد مدة الاشتراك"}</button>` : ""}` : `<span class="badge urgent"><span class="ico-i ico-warning"></span>غير مفعَّل — بلا تجربة ولا اشتراك</span>`}
       </div>
       ${c.pending_subscription_approval ? `<div style="background:#FEF3E2;border-radius:8px;padding:8px 10px;margin-top:8px;font-size:11px;color:var(--gold);font-weight:700"><span class="ico-i ico-dot"></span>اعتماد أولي من ${c.staff_activated_by||"—"} — بانتظار الاعتماد النهائي
         ${(currentUserProfile && currentUserProfile.is_platform_admin===true) ? `<button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:4px 10px;font-size:10.5px;cursor:pointer;margin-right:8px" onclick="finalApproveSubscription(${c.id})"><span class="ico-i ico-check"></span>اعتماد نهائي</button>` : ""}
@@ -807,6 +813,10 @@ function openActivateSubModal(companyId, companyName){
   document.getElementById("mas-title-h").textContent = "✅ تفعيل الاشتراك — " + companyName;
   document.getElementById("mas-audit").checked = false;
   document.getElementById("mas-risk").checked = false;
+  _masPkg = null; clearSubPackageSelection("mas");
+  document.getElementById("mas-price").value = "";
+  document.getElementById("mas-cycle").value = "annual";
+  document.getElementById("mas-start").value = new Date().toISOString().slice(0,10);
   openM("m-activate-sub");
 }
 
@@ -817,8 +827,13 @@ function openActivateSubModal(companyId, companyName){
    longer matches a named tier exactly). */
 const SUB_PACKAGES = { "ذاتي": { risk:false, audit:false }, "مدار": { risk:false, audit:false }, "شريك": { risk:true, audit:true }, "أساسية": { risk:false, audit:false }, "فضية": { risk:true, audit:false }, "ذهبية": { risk:true, audit:true } };
 
+let _masPkg = null;
 function selectSubPackage(prefix, pkg){
   const cfg = SUB_PACKAGES[pkg];
+  if(prefix === "mas"){
+    _masPkg = pkg;
+    const cy = document.getElementById("mas-cycle"); if(cy) cy.value = (pkg === "ذاتي") ? "annual" : "monthly";
+  }
   document.getElementById(`${prefix}-risk`).checked = cfg.risk;
   document.getElementById(`${prefix}-audit`).checked = cfg.audit;
   document.querySelectorAll(`#${prefix}-package-selector [data-pkg]`).forEach(btn => {
@@ -830,11 +845,25 @@ function selectSubPackage(prefix, pkg){
 }
 
 function clearSubPackageSelection(prefix){
+  if(prefix === "mas") _masPkg = null;
   document.querySelectorAll(`#${prefix}-package-selector [data-pkg]`).forEach(btn => {
     btn.style.background = "var(--gray1)"; btn.style.color = "var(--dark)"; btn.style.fontWeight = "600";
   });
 }
 
+const CYCLE_AR = { annual:"سنوي", monthly:"شهري" };
+function subEndFrom(startIso, cycle){
+  const d = new Date(startIso);
+  if(cycle === "monthly") d.setMonth(d.getMonth()+1); else d.setFullYear(d.getFullYear()+1);
+  return d.toISOString();
+}
+function subFields(){
+  const price = parseFloat(document.getElementById("mas-price").value);
+  const cycle = document.getElementById("mas-cycle").value || "annual";
+  const sv = document.getElementById("mas-start").value;
+  const start = sv ? new Date(sv + "T09:00:00").toISOString() : new Date().toISOString();
+  return { subscription_package: _masPkg, subscription_price: isNaN(price) ? null : price, billing_cycle: cycle, subscription_starts_at: start, subscription_ends_at: subEndFrom(start, cycle) };
+}
 async function activateSubscription(){
   const companyId = Number(document.getElementById("mas-company-id").value);
   const module_internal_audit = document.getElementById("mas-audit").checked;
@@ -846,7 +875,8 @@ async function activateSubscription(){
   if(!isFullOwner){
     const { error } = await sb.from("companies").update({
       pending_subscription_approval: true, staff_activated_by: myEmail,
-      module_internal_audit, module_risk_management // proposed selection, applied on final approval
+      module_internal_audit, module_risk_management, // proposed selection, applied on final approval
+      ...subFields()
     }).eq("id", companyId);
     if(error){ alert("تعذّر الحفظ: " + error.message); return; }
     alert("تم تسجيل اعتمادك الأولي ✅ — بانتظار الاعتماد النهائي من مالك المنصة قبل ما يُفعَّل فعليًا.");
@@ -855,7 +885,7 @@ async function activateSubscription(){
     return;
   }
 
-  const { error } = await sb.from("companies").update({ module_internal_audit, module_risk_management, trial_ends_at: null, converted_to_paid_at: new Date().toISOString(), pending_subscription_approval: false }).eq("id", companyId);
+  const { error } = await sb.from("companies").update({ module_internal_audit, module_risk_management, trial_ends_at: null, converted_to_paid_at: new Date().toISOString(), pending_subscription_approval: false, ...subFields() }).eq("id", companyId);
   if(error){ alert("تعذّر التفعيل: " + error.message); return; }
   logActivity("موافقة", "اشتراك", String(companyId), "تفعيل اشتراك مدفوع وإنهاء فترة التجربة");
   alert("تم تفعيل الاشتراك بنجاح ✅");
@@ -864,7 +894,15 @@ async function activateSubscription(){
 }
 
 async function finalApproveSubscription(companyId){
-  const { error } = await sb.from("companies").update({ trial_ends_at: null, converted_to_paid_at: new Date().toISOString(), pending_subscription_approval: false }).eq("id", companyId);
+  const extra = {};
+  try{
+    const { data: cc } = await sb.from("companies").select("billing_cycle,subscription_starts_at,subscription_ends_at").eq("id", companyId).single();
+    if(cc && !cc.subscription_ends_at){
+      const st = new Date().toISOString(); const cy = cc.billing_cycle || "annual";
+      extra.subscription_starts_at = st; extra.subscription_ends_at = subEndFrom(st, cy); extra.billing_cycle = cy;
+    }
+  }catch(e){}
+  const { error } = await sb.from("companies").update({ ...extra, trial_ends_at: null, converted_to_paid_at: new Date().toISOString(), pending_subscription_approval: false }).eq("id", companyId);
   if(error){ alert("تعذّر الاعتماد: " + error.message); return; }
   logActivity("موافقة", "اشتراك", String(companyId), "اعتماد نهائي لتفعيل الاشتراك");
   alert("تم الاعتماد النهائي وتفعيل الاشتراك ✅");
@@ -1112,25 +1150,92 @@ function updateBannerOffset(){
   if(cb) cb.style.top = (tb ? tb.offsetHeight : 0) + "px";
 }
 window.addEventListener("resize", () => { try{ updateBannerOffset(); }catch(e){} });
+let currentCompanySub = null;
+function subDaysLeft(){
+  if(!currentCompanySub || !currentCompanySub.ends) return null;
+  return Math.ceil((new Date(currentCompanySub.ends) - new Date()) / 86400000);
+}
 function renderTrialBanner(){
   let banner = document.getElementById("trialBanner");
-  if(!currentCompanyTrialEndsAt){
-    if(banner) banner.remove();
-    updateBannerOffset();
-    return;
+  const isAdmin = getCurrentRole() === "مدير النظام" || !!(currentUserProfile && currentUserProfile.is_platform_admin === true);
+  let msg = "", warn = false;
+  if(currentCompanyTrialEndsAt){
+    const d = Math.max(0, Math.ceil((new Date(currentCompanyTrialEndsAt) - new Date()) / 86400000));
+    msg = d > 0 ? `🎁 أنت بفترة تجريبية — متبقٍ ${d} يوم (كل الوحدات مفتوحة مؤقتًا)` + (d <= 7 ? " — اشترك الآن حتى لا ينقطع وصولك" : "")
+                : `⚠️ انتهت فترة الفترة التجريبية — تواصل معنا لتفعيل الاشتراك`;
+    warn = d <= 7;
+  } else {
+    const d = subDaysLeft();
+    if(d !== null && d <= 30 && isAdmin){
+      warn = true;
+      msg = d > 0 ? `⏳ ينتهي اشتراكك خلال ${d} يوم — جدّد الآن لاستمرار الخدمة` : `⚠️ انتهى اشتراكك — تواصل معنا لتجديده`;
+    }
   }
-  const daysLeft = Math.max(0, Math.ceil((new Date(currentCompanyTrialEndsAt) - new Date()) / 86400000));
+  if(!msg){ if(banner) banner.remove(); updateBannerOffset(); return; }
   if(!banner){
     banner = document.createElement("div");
     banner.id = "trialBanner";
-    banner.style.cssText = "background:linear-gradient(90deg,var(--gold),#D4AF37);color:#fff;text-align:center;font-size:12px;font-weight:700;padding:8px;position:sticky;top:0;z-index:400";
+    banner.style.cssText = "color:#fff;text-align:center;font-size:12px;font-weight:700;padding:8px;position:sticky;top:0;z-index:400;cursor:pointer";
+    banner.onclick = () => openMySubscription();
     const appWrapper = document.getElementById("appWrapper");
     appWrapper.insertBefore(banner, appWrapper.firstChild);
   }
-  banner.textContent = daysLeft > 0
-    ? `🎁 أنت بفترة تجريبية — متبقٍ ${daysLeft} يوم (كل الوحدات مفتوحة مؤقتًا)`
-    : `⚠️ انتهت فترة الفترة التجريبية — تواصل معنا لتفعيل الاشتراك`;
+  banner.style.background = warn ? "linear-gradient(90deg,#C0392B,#E0674F)" : "linear-gradient(90deg,var(--gold),#D4AF37)";
+  banner.textContent = msg + "  (اضغط للتفاصيل)";
   updateBannerOffset();
+}
+
+function openMySubscription(){
+  const s = currentCompanySub, b = document.getElementById("mySubBody");
+  if(!b) return;
+  const fmt = d => d ? new Date(d).toLocaleDateString("ar-SA-u-ca-gregory",{year:"numeric",month:"long",day:"numeric"}) : "—";
+  const row = (l,v) => `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--gray1);font-size:12.5px"><span style="color:var(--gray3)">${l}</span><b>${v}</b></div>`;
+  let h = "";
+  if(!s){ h = '<div class="pd-empty">تعذّر تحميل بيانات الاشتراك.</div>'; }
+  else if(s.trial){
+    const d = Math.max(0, Math.ceil((new Date(s.trial) - new Date()) / 86400000));
+    h = row("الحالة","🎁 فترة تجريبية") + row("تنتهي في", fmt(s.trial)) + row("المتبقي", d + " يوم") + row("الوحدات","كل الوحدات مفتوحة مؤقتًا")
+      + '<p style="font-size:12px;color:var(--gray3);margin-top:12px">لتفعيل الاشتراك تواصل معنا وسنفعّل الباقة المناسبة لك.</p>';
+  } else if(s.paid || s.ends){
+    const d = subDaysLeft();
+    const mods = ["الحوكمة والاجتماعات"].concat(s.risk ? ["إدارة المخاطر"] : [], s.audit ? ["المراجعة الداخلية"] : []).join("، ");
+    h = row("الحالة", d !== null && d < 0 ? "⚠️ منتهٍ" : "✅ مشترك") + row("الباقة", s.pkg || "مخصّصة") + row("الوحدات المتاحة", mods)
+      + (s.price != null ? row("قيمة الاشتراك", Number(s.price).toLocaleString("en-US") + " ريال / " + (CYCLE_AR[s.cycle]||"")) : "")
+      + row("بداية الاشتراك", fmt(s.starts)) + row("نهاية الاشتراك", fmt(s.ends))
+      + (d !== null ? row("المتبقي", d >= 0 ? d + " يوم" : "انتهى منذ " + (-d) + " يوم") : "");
+    if(d !== null && d <= 30) h += '<p style="font-size:12px;color:var(--red);margin-top:12px;font-weight:700">اشتراكك قارب على الانتهاء — تواصل معنا للتجديد.</p>';
+  } else {
+    h = row("الحالة","لا يوجد اشتراك مفعّل") + row("الوحدات","الحوكمة والاجتماعات (الأساسية)")
+      + '<p style="font-size:12px;color:var(--gray3);margin-top:12px">للاشتراك أو بدء تجربة مجانية تواصل معنا.</p>';
+  }
+  h += '<div style="margin-top:14px;font-size:12px">للاشتراك أو التجديد: <a href="mailto:info@hwkm.net" style="color:var(--gold);font-weight:700">info@hwkm.net</a></div>';
+  b.innerHTML = h;
+  openM("m-my-sub");
+}
+
+async function renewSubscription(companyId){
+  if(!(currentUserProfile && currentUserProfile.is_platform_admin === true)) return;
+  const { data: c } = await sb.from("companies").select("billing_cycle,subscription_ends_at,subscription_price,subscription_starts_at,converted_to_paid_at").eq("id", companyId).single();
+  if(!c) return;
+  const extra = {};
+  let cy = c.billing_cycle || "annual";
+  if(!c.subscription_ends_at){
+    // مشترك قديم بلا بيانات مدة: نسأل عن الدورة والسعر مرة واحدة
+    const a = prompt("دورة الفوترة لهذا المشترك؟ اكتب: سنوي أو شهري", "سنوي");
+    if(a === null) return;
+    cy = /شهر/.test(a) ? "monthly" : "annual";
+    const pr = prompt("السعر المتفق عليه بالريال (اتركه فارغًا لو غير معروف)", "");
+    if(pr === null) return;
+    if(pr.trim() !== "" && !isNaN(parseFloat(pr))) extra.subscription_price = parseFloat(pr);
+    extra.subscription_starts_at = c.converted_to_paid_at || new Date().toISOString();
+  }
+  const base = (c.subscription_ends_at && new Date(c.subscription_ends_at) > new Date()) ? c.subscription_ends_at : new Date().toISOString();
+  const ends = subEndFrom(base, cy);
+  if(!confirm("تجديد الاشتراك (" + (CYCLE_AR[cy]) + ") ليمتد حتى " + new Date(ends).toLocaleDateString("ar-SA-u-ca-gregory") + " ؟")) return;
+  const { error } = await sb.from("companies").update({ ...extra, subscription_ends_at: ends, billing_cycle: cy }).eq("id", companyId);
+  if(error){ alert("تعذّر التجديد: " + error.message); return; }
+  logActivity("تعديل", "اشتراك", String(companyId), "تجديد الاشتراك");
+  loadManageCompanies();
 }
 
 let currentCompanyHasCr = true;
@@ -1162,7 +1267,7 @@ function refreshCompanyTypeVisibility(){
 
 async function applyCompanyTypeVisibility(){
   if(!currentCompanyId) return;
-  const { data: c } = await sb.from("companies").select("company_type,module_internal_audit,module_risk_management,trial_ends_at,llc_single_manager,llc_single_owner,entity_verification,cr_number").eq("id", currentCompanyId).single();
+  const { data: c } = await sb.from("companies").select("company_type,module_internal_audit,module_risk_management,trial_ends_at,llc_single_manager,llc_single_owner,entity_verification,cr_number,subscription_package,subscription_price,billing_cycle,subscription_starts_at,subscription_ends_at,converted_to_paid_at").eq("id", currentCompanyId).single();
   currentCompanyType = c ? c.company_type : null;
   currentCompanyEntityVerified = !!(c && c.entity_verification === "verified");
   const inTrial = !!(c && c.trial_ends_at && new Date(c.trial_ends_at) > new Date());
@@ -1172,6 +1277,7 @@ async function applyCompanyTypeVisibility(){
     risk_management: inTrial || !!c?.module_risk_management
   };
   currentCompanyHasCr = !!(c && String(c.cr_number||"").trim());
+  currentCompanySub = c ? { pkg:c.subscription_package, price:c.subscription_price, cycle:c.billing_cycle, starts:c.subscription_starts_at, ends:c.subscription_ends_at, paid:c.converted_to_paid_at, trial:inTrial ? c.trial_ends_at : null, audit:!!c.module_internal_audit, risk:!!c.module_risk_management } : null;
   renderTrialBanner();
   renderCrBanner();
   const isSoleProp = currentCompanyType === "مؤسسة فردية";
