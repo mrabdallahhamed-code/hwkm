@@ -1000,3 +1000,13 @@ div[style*="linear-gradient(135deg,var(--primary),var(--primary2))"][style*="bor
 .kpi-val{margin-bottom:10px}
 .card,.two-col .card{border-right:1px solid var(--gray1) !important;border-radius:12px;}
 #stat-compliance2{font-size:20px}
+
+/* ── Progress card ── */
+.pg-wrap{display:flex;flex-direction:column;gap:16px;padding:4px 0}
+.pg-row{cursor:pointer}
+.pg-top{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;font-weight:700;color:var(--dark);margin-bottom:6px}
+.pg-top small{font-size:12.5px;font-weight:500;color:var(--gray3)}
+.pg-top small b{color:var(--dark)}
+.pg-track{height:9px;border-radius:6px;background:var(--gray1);overflow:hidden}
+.pg-fill{height:100%;border-radius:6px;transition:width .4s}
+.pg-good{background:var(--green)}.pg-mid{background:var(--primary3)}.pg-low{background:var(--gray2)}

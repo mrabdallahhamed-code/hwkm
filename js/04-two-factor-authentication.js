@@ -1172,13 +1172,29 @@ async function loadDashboard(){
 
   const alertsBox = document.getElementById("dashAlerts");
   if(alertsBox){
-    if(alerts.length===0){
-      alertsBox.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد تنبيهات حاليًا. كل شي على ما يرام ✅</div>';
-    } else {
-      alertsBox.innerHTML = alerts.slice(0,6).map(a =>
-        `<div class="alert-item"><div class="a-dot ${a.color}"></div><div><div class="a-text">${a.text}</div></div></div>`
-      ).join("");
-    }
+    const bar = (label, done, total, goPage) => {
+      if(!total) return `<div class="pg-row" onclick="go('${goPage}',null)"><div class="pg-top"><span>${label}</span><small>لا بيانات بعد</small></div><div class="pg-track"></div></div>`;
+      const p = Math.round(done/total*100);
+      const cls = p>=80?"pg-good":p>=50?"pg-mid":"pg-low";
+      return `<div class="pg-row" onclick="go('${goPage}',null)"><div class="pg-top"><span>${label}</span><small><b>${done}</b> من ${total} · ${p}%</small></div><div class="pg-track"><div class="pg-fill ${cls}" style="width:${p}%"></div></div></div>`;
+    };
+    const pol = policies;
+    const polDone = pol.filter(p => p.approval_date).length;
+    const signTot = signingDocs.length, signDone = signingDocs.filter(d => d.status === "مكتمل").length;
+    const cmpOk = compliance.filter(complianceIsOk).length;
+    const auditTot = auditItems.length, auditDone = auditItems.filter(i => i.status === "مغلقة").length;
+    let actTot = 0, actDone = 0;
+    try {
+      const { data: acts } = await sb.from("governance_actions").select("status").eq("company_id", currentCompanyId);
+      actTot = (acts||[]).length; actDone = (acts||[]).filter(x => x.status === "مغلق").length;
+    } catch(e){}
+    alertsBox.innerHTML = `<div class="pg-wrap">
+      ${bar("سياسات معتمدة", polDone, pol.length, "governance")}
+      ${bar("وثائق موقّعة بالكامل", signDone, signTot, "signing")}
+      ${bar("بنود امتثال ملتزمة", cmpOk, compliance.length, "compliance")}
+      ${bar("بنود تدقيق مغلقة", auditDone, auditTot, "audit")}
+      ${bar("إجراءات تصحيحية مُغلقة", actDone, actTot, "govassess")}
+    </div>`;
   }
   enhanceDashboardKpis({ quarterMeetings: quarterMeetings.length, completedQ, upcomingQ, pendingSigns: signingDocs.filter(d => d.status !== "مكتمل").length, approvedThisMonth, cmpSum, risksTotal: risks.length, openRisks: openRisks.length, highOpenRisks });
   applyDashboardEntityAdaptation();
