@@ -306,99 +306,14 @@ async function loadRiskAdmin(){
   </tr>`).join("");
 }
 
-/* دليل معالجة طلب تقييم المخاطر: يخبر الموظف ماذا يفعل الآن وبماذا يرد على العميل (رسائل جاهزة يعدّلها قبل الإرسال) */
-let _radCtx = { name:"", status:"" };
-function riskGuideData(r, items, messages){
-  const nm = (r.client_name || "").trim() || "العميل الكريم";
-  const missing = [];
-  if(!r.sector) missing.push("القطاع");
-  if(!r.scope) missing.push("نطاق التقييم");
-  if(!r.risk_types_needed) missing.push("أنواع المخاطر المطلوبة");
-  const hasStaffReply = (messages||[]).some(m => m.sender_email !== r.requested_by_email);
-  const T = {
-    "تم الاستلام": [
-      { label:"رد الاستلام وطلب المعلومات", text:`مرحباً ${nm}،\nشكراً لطلبك تقييم المخاطر عبر منصة حوكم. استلمنا طلبك وسنبدأ العمل عليه.\nلنبدأ بشكل صحيح نحتاج منك:\n1) نبذة عن نشاط الشركة وعدد الموظفين تقريباً.\n2) أهم 3 مخاوف أو مخاطر تقلقكم حالياً.\n3) أي ملفات متاحة (الهيكل التنظيمي، السياسات، تقارير سابقة).\nويسعدنا ترتيب مكالمة قصيرة (20 دقيقة) للتعرّف على شركتكم، فما الوقت المناسب لك؟\nفريق حوكم` }
-    ],
-    "بانتظار رد العميل": [
-      { label:"تذكير بانتظار رد العميل", text:`مرحباً ${nm}،\nنذكّرك بطلبنا السابق للمعلومات اللازمة لبدء تقييم مخاطر شركتكم. لن نتمكن من البدء قبل وصول ردّك، وسنتابع الطلب فور استلامه. إن واجهتك صعوبة أخبرنا لنساعدك أو نرتب مكالمة قصيرة.\nفريق حوكم` }
-    ],
-    "قيد التحليل": [
-      { label:"تحديث: بدأ التحليل", text:`مرحباً ${nm}،\nبدأ فريقنا تحليل مخاطر شركتكم وتسجيلها وتقييم احتماليتها وتأثيرها. سنوافيك بالمصفوفة الحرارية قريباً، وسنتواصل معك إن احتجنا توضيحاً.\nفريق حوكم` }
-    ],
-    "قيد المراجعة الميدانية": [
-      { label:"تحديث: المراجعة الميدانية", text:`مرحباً ${nm}،\nانتقل طلبك إلى مرحلة المراجعة الميدانية للتأكد من المخاطر المسجّلة. نرجو تزويدنا بالموعد المناسب وبالشخص الذي نتواصل معه في شركتكم.\nفريق حوكم` }
-    ],
-    "تقرير نهائي جاهز": [
-      { label:"التقرير النهائي جاهز", text:`مرحباً ${nm}،\nالتقرير النهائي لتقييم مخاطر شركتكم جاهز، وتجده في صفحة طلبك داخل المنصة مع المصفوفة الحرارية وخطط المعالجة المقترحة. يسعدنا ترتيب جلسة لشرح النتائج، فأخبرنا بالوقت المناسب.\nفريق حوكم` }
-    ],
-    "مغلق": [
-      { label:"إغلاق الطلب", text:`مرحباً ${nm}،\nتم إغلاق طلبك بعد تسليم التقرير. نرجو تقييم تجربتك معنا، ويمكنك فتح طلب جديد في أي وقت.\nفريق حوكم` }
-    ]
-  };
-  const STEPS = {
-    "تم الاستلام": ["كلّف مستشاراً بالطلب (بريده في الأعلى ثم «حفظ الحالة والتكليف»)", "أرسل للعميل أسئلتك وطلباتك (الرسالة الجاهزة بالأسفل) بزر «أرسل وانتظر رد العميل»", "يتحوّل الطلب تلقائياً إلى «بانتظار رد العميل» ويُتابَع حتى يرد"],
-    "بانتظار رد العميل": ["العميل مطلوب منه الرد على أسئلتنا — لا عمل عليه الآن", "إن مرّ أكثر من 3 أيام بلا رد أرسل تذكيراً (الرسالة الجاهزة) أو اتصل به", "حين يرد غيّر الحالة إلى «قيد التحليل» وابدأ العمل"],
-    "قيد التحليل": ["سجّل المخاطر التي تظهر من حديثك مع العميل وملفاته (قسم «إضافة خطر»)", "قيّم كل خطر: الاحتمالية والتأثير من 1 إلى 5 مع خطة معالجة ومسؤول", "عند اكتمال التسجيل غيّر الحالة إلى «قيد المراجعة الميدانية» أو اذهب للتقرير"],
-    "قيد المراجعة الميدانية": ["تأكد مع العميل من صحة المخاطر والمعلومات", "عدّل المخاطر إن لزم", "جهّز التقرير النهائي وارفعه"],
-    "تقرير نهائي جاهز": ["أبلغ العميل بجاهزية التقرير", "رتّب جلسة شرح النتائج", "بعد الشرح والرضا اغلق الطلب"],
-    "مغلق": ["الطلب مغلق — لا إجراء مطلوب"]
-  };
-  return { missing, hasStaffReply, templates: T[r.status] || [], steps: STEPS[r.status] || [], nm };
-}
-function riskGuideHTML(r, items, messages){
-  const g = riskGuideData(r, items, messages);
-  _radCtx = { name: g.nm, status: r.status, templates: g.templates };
-  const unassigned = !r.assigned_consultant_email;
-  const alerts = [];
-  if(!g.hasStaffReply) alerts.push("لم يُرسل أي رد للعميل بعد");
-  if(g.missing.length) alerts.push("بيانات ناقصة من العميل: " + g.missing.join("، "));
-  if(unassigned) alerts.push("لم يُكلَّف مستشار بعد");
-  const lastStaff = [...(messages||[])].reverse().find(m => m.sender_email !== r.requested_by_email);
-  const lastClient = [...(messages||[])].reverse().find(m => m.sender_email === r.requested_by_email);
-  let replyBtn = "";
-  if(r.status === "بانتظار رد العميل"){
-    const ref = lastStaff ? new Date(lastStaff.created_at) : new Date(r.created_at);
-    const days = Math.floor((Date.now() - ref.getTime()) / 86400000);
-    if(lastClient && (!lastStaff || new Date(lastClient.created_at) > new Date(lastStaff.created_at))){
-      alerts.push("✅ ردّ العميل — يمكنك بدء العمل");
-      replyBtn = `<button class="btn-xs primary" style="margin:6px 0 0 6px" onclick="riskSetStatusQuick(${r.id},'قيد التحليل')">▶️ العميل ردّ — ابدأ التحليل</button>`;
-    } else if(days >= 3){ alerts.push(`تأخر ردّ العميل ${days} أيام — أرسل تذكيراً`); }
-    else alerts.push(`بانتظار العميل منذ ${days} يوم`);
-  }
-  const chip = t => `<span style="display:inline-block;background:#FFF4D6;color:#8A5A00;border:1px solid #F0D58A;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;margin:0 0 6px 6px">${orgEsc(t)}</span>`;
-  const step = (x,i) => `<div style="display:flex;gap:10px;align-items:flex-start;padding:6px 0"><span style="flex:0 0 22px;height:22px;border-radius:50%;background:var(--primary);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center">${i+1}</span><span style="font-size:12px;line-height:1.8;flex:1">${orgEsc(x)}</span></div>`;
-  const bigBtn = (onclick, label, primary) => `<button class="btn ${primary ? "btn-gold" : "btn-ghost"}" style="width:100%;margin-top:8px;font-size:12px;justify-content:center" onclick="${onclick}">${label}</button>`;
-  return `<div style="background:#F6F9FD;border:1px solid #CFDDF0;border-radius:12px;padding:14px;margin-bottom:16px">
-    <div style="font-weight:800;font-size:13.5px;color:var(--dark)">🧭 ماذا نفعل الآن؟</div>
-    <div style="font-size:11.5px;color:var(--gray3);margin:2px 0 10px">المرحلة الحالية: <b style="color:var(--primary)">${orgEsc(r.status)}</b></div>
-    ${alerts.length ? `<div style="margin-bottom:4px">${alerts.map(chip).join("")}</div>` : ""}
-    <div style="border-top:1px dashed #CFDDF0;margin-top:4px;padding-top:6px">${g.steps.map(step).join("")}</div>
-    ${replyBtn ? replyBtn.replace('class="btn-xs primary" style="margin:6px 0 0 6px"','class="btn btn-gold" style="width:100%;margin-top:8px;font-size:12px;justify-content:center"') : ""}
-    ${g.templates.map((t,i) => bigBtn(`riskUseTemplate(${i})`, `✍️ ${orgEsc(t.label)} — ضعها في خانة الرد`, false)).join("")}
-    ${r.status === "تم الاستلام" ? bigBtn(`riskSendAndAwait(${r.id})`, "📤 أرسل رسالة الرد وانتظر رد العميل", true) : ""}
-    ${g.templates.length ? '<div style="font-size:10.5px;color:var(--gray3);margin-top:8px;text-align:center">تُوضع الرسالة في خانة الرد (أسفل الصفحة) لتعدّلها، ولا تُرسَل إلا بضغطك.</div>' : ""}
-  </div>`;
-}
 async function riskSetStatusQuick(requestId, status){
   const { error } = await sb.from("risk_requests").update({ status }).eq("id", requestId);
   if(error){ alert("تعذّر تغيير الحالة: " + error.message); return; }
   logActivity("تعديل", "طلب تقييم مخاطر", "الحالة", status);
   openRiskAdminDetail(requestId); if(typeof loadRiskAdmin === "function") try{ loadRiskAdmin(); }catch(e){}
 }
-async function riskSendAndAwait(requestId){
-  const inp = document.getElementById("rad-chat-input");
-  if(!inp || !inp.value.trim()){ alert("اكتب رسالتك للعميل في خانة الرد أولاً (أو اضغط زر الرسالة الجاهزة ثم عدّلها)."); return; }
-  if(!await uiConfirm("سيُرسَل نص خانة الرد للعميل ويتحوّل الطلب إلى «بانتظار رد العميل». متابعة؟")) return;
-  await sendRiskAdminMessage(requestId);
-  await riskSetStatusQuick(requestId, "بانتظار رد العميل");
-}
-function riskUseTemplate(i){
-  const t = (_radCtx.templates||[])[i]; const inp = document.getElementById("rad-chat-input");
-  if(!t || !inp) return;
-  inp.value = t.text;
-  inp.scrollIntoView({ behavior:"smooth", block:"center" }); inp.focus();
-}
 
+let _radCur = { status:"", consultant:"" };
 async function openRiskAdminDetail(requestId){
   const box = document.getElementById("rad-body");
   box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>';
@@ -415,7 +330,83 @@ async function openRiskAdminDetail(requestId){
 
   const filesHtml = (r.file_urls||[]).length ? r.file_urls.map(f => `<a href="${f.url}" target="_blank" style="display:block;font-size:11.5px;color:var(--primary);margin-bottom:4px"><span class="ico-i ico-paperclip"></span>${orgEsc(f.name)}</a>`).join("") : '<div style="font-size:11px;color:var(--gray3)">لا توجد ملفات مرفوعة من العميل.</div>';
 
-  const itemsHtml = (items||[]).length ? items.map(it => {
+  const chatHtml = (messages||[]).length ? messages.map(m => `<div style="margin-bottom:8px;text-align:${m.sender_email===r.requested_by_email?'right':'left'}">
+    <div style="display:inline-block;max-width:80%;background:${m.sender_email===r.requested_by_email?'var(--offwhite)':'var(--primary)'};color:${m.sender_email===r.requested_by_email?'var(--dark)':'#fff'};border-radius:10px;padding:8px 12px;font-size:11.5px">
+      <b style="font-size:10px;opacity:0.8">${orgEsc(m.sender_name||m.sender_email)}</b><br><span style="white-space:pre-line">${orgEsc(m.message)}</span>
+    </div>
+  </div>`).join("") : '<div style="font-size:11px;color:var(--gray3);text-align:center">لا توجد رسائل بعد.</div>';
+
+  const me = String((currentUserProfile && currentUserProfile.email) || "").toLowerCase();
+  const isOwner = !!(currentUserProfile && currentUserProfile.is_platform_admin === true);
+  const assigned = String(r.assigned_consultant_email || "").toLowerCase();
+  const isConsultant = !!assigned && assigned === me;
+  const canWork = isConsultant;
+  const sIdx = RISK_STATUS_ORDER.indexOf(r.status);
+  const staffMsgs = (messages||[]).filter(m => m.sender_email !== r.requested_by_email);
+  const clientMsgs = (messages||[]).filter(m => m.sender_email === r.requested_by_email);
+  const firstStaff = staffMsgs[0], lastStaff = staffMsgs[staffMsgs.length-1], lastClient = clientMsgs[clientMsgs.length-1];
+  const clientReplied = !!(firstStaff && clientMsgs.some(m => new Date(m.created_at) > new Date(firstStaff.created_at)));
+  const workStage = sIdx >= RISK_STATUS_ORDER.indexOf("قيد التحليل") || clientReplied;
+  const done = r.status === "تقرير نهائي جاهز" || r.status === "مغلق";
+  const stage = !assigned ? 1 : (!workStage ? 2 : (done ? 4 : 3));
+  _radCur = { status: r.status, consultant: r.assigned_consultant_email || "" };
+
+  const stepper = `<div style="display:flex;gap:6px;margin-bottom:16px">${["تكليف مستشار","التواصل مع العميل","التحليل والمصفوفة","التقرير النهائي"].map((t,i) => {
+    const n = i+1, on = n === stage, ok = n < stage;
+    return `<div style="flex:1;text-align:center"><div style="height:5px;border-radius:4px;background:${ok?'var(--green)':on?'var(--gold)':'var(--gray1)'}"></div><div style="font-size:10.5px;margin-top:5px;font-weight:${on?800:600};color:${on?'var(--dark)':'var(--gray3)'}">${ok?'✓ ':''}${n}. ${t}</div></div>`;
+  }).join("")}</div>`;
+
+  const approvalHtml = r.pending_final_approval ? `<div style="background:#FEF3E2;border:2px solid var(--gold);border-radius:10px;padding:12px;margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--gold)"><span class="ico-i ico-dot"></span>بانتظار الاعتماد النهائي — اعتمد أوليًا: ${orgEsc(r.staff_closed_by||"—")}</div>
+      ${isOwner ? `<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+        <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="finalApproveRiskRequest(${requestId}, 'تقرير نهائي جاهز')"><span class="ico-i ico-check"></span>اعتماد نهائي — تقرير جاهز</button>
+        <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="finalApproveRiskRequest(${requestId}, 'مغلق')"><span class="ico-i ico-check"></span>اعتماد نهائي — إغلاق كامل</button>
+      </div>` : `<div style="font-size:11px;color:var(--gray3);margin-top:4px">لن يظهر للعميل حتى يعتمده مالك المنصة.</div>`}
+    </div>` : "";
+
+  const requestCard = `<div class="sec-title" style="font-size:13px"><span class="ico-i ico-clipboard"></span>بيانات الطلب</div>
+    <div class="card"><div class="card-body" style="font-size:12px;line-height:2.1">
+      <div><b>مقدّم الطلب:</b> ${orgEsc(r.client_name||"—")} ${r.requested_by_email ? `<span style="color:var(--gray3);direction:ltr;display:inline-block">(${orgEsc(r.requested_by_email)})</span>` : ""}</div>
+      <div><b>القطاع:</b> ${orgEsc(r.sector||"—")}</div>
+      <div><b>نطاق التقييم:</b> ${orgEsc(r.scope||"—")}</div>
+      <div><b>أنواع المخاطر المطلوبة:</b> ${orgEsc(r.risk_types_needed||"—")}</div>
+      <div><b>الموعد المفضّل:</b> ${orgEsc(r.preferred_date||"—")}</div>
+      <div style="margin-top:6px">${filesHtml}</div>
+    </div></div>`;
+
+  // المرحلة 1: التكليف (مالك المنصة فقط)
+  const assignCard = stage === 1
+    ? (isOwner
+      ? `<div class="sec-title" style="font-size:13px;margin-top:16px">👤 تكليف مستشار</div>
+         <div class="card"><div class="card-body">
+           <div class="fg" style="margin:0"><label style="font-size:11px">بريد المستشار</label><input class="fi" id="rad-consultant" placeholder="consultant@email.com" style="direction:ltr;text-align:left"/></div>
+           <button class="btn btn-gold" style="width:100%;margin-top:10px" onclick="assignRiskConsultant(${requestId})">تكليف المستشار</button>
+         </div></div>`
+      : `<div class="card" style="margin-top:16px"><div class="card-body" style="font-size:12px;color:var(--gray3);text-align:center">بانتظار تكليف مستشار من مالك المنصة.</div></div>`)
+    : `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:12px"><span>👤 المستشار المكلَّف: <b style="direction:ltr;display:inline-block">${orgEsc(r.assigned_consultant_email)}</b></span>
+       ${isOwner ? `<details><summary style="cursor:pointer;color:var(--primary);font-size:11.5px">تغيير المستشار</summary><div style="display:flex;gap:6px;margin-top:6px"><input class="fi" id="rad-consultant" value="${orgEsc(r.assigned_consultant_email)}" style="direction:ltr;text-align:left;margin:0"/><button class="btn-xs primary" onclick="assignRiskConsultant(${requestId})">حفظ</button></div></details>` : ""}</div>`;
+
+  // المرحلة 2+: التواصل
+  const canChat = isOwner || isConsultant;
+  let waitChip = "";
+  if(r.status === "بانتظار رد العميل" && !clientReplied){
+    const days = Math.floor((Date.now() - new Date((lastStaff||r).created_at).getTime())/86400000);
+    waitChip = `<div style="background:#FFF4D6;border:1px solid #E6C766;border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:700;color:#8A5A00;margin-bottom:8px">⏳ بانتظار رد العميل منذ ${days} يوم${days>=3?' — تأخّر الرد':''}</div>`;
+  } else if(clientReplied && lastClient){
+    waitChip = `<div style="background:#E8F8EF;border:1px solid #A8DDBF;border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:700;color:#1B7F4B;margin-bottom:8px">✅ ردّ العميل — ${new Date(lastClient.created_at).toLocaleDateString("ar-SA-u-ca-gregory")}</div>`;
+  }
+  const sendLabel = (r.status === "تم الاستلام" && canChat) ? "إرسال الأسئلة للعميل" : "إرسال";
+  const chatCard = stage >= 2 ? `<div class="sec-title" style="font-size:13px;margin-top:16px"><span class="ico-i ico-message"></span>التواصل مع العميل</div>
+    <div class="card"><div class="card-body">
+      ${waitChip}
+      <div style="max-height:260px;overflow-y:auto;margin-bottom:10px">${chatHtml}</div>
+      ${canChat ? `<textarea class="fi" id="rad-chat-input" rows="4" placeholder="${r.status === "تم الاستلام" ? "اكتب أسئلتك وطلباتك للعميل (نبذة عن النشاط، الملفات المطلوبة، موعد مكالمة...)" : "اكتب ردًا للعميل..."}" style="margin:0"></textarea>
+      <button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="sendRiskAdminMessage(${requestId})">${sendLabel}</button>
+      ${(stage === 2 && r.status === "بانتظار رد العميل") ? `<button class="btn btn-ghost" style="width:100%;margin-top:6px;font-size:11.5px" onclick="riskSetStatusQuick(${requestId},'قيد التحليل')">العميل ردّ خارج المنصة — ابدأ التحليل</button>` : ""}` : ""}
+    </div></div>` : "";
+
+  // المرحلة 3+: التحليل
+  const itemsHtmlR = (items||[]).length ? items.map(it => {
     const lvl = riskLevelInfo(it.likelihood, it.impact);
     return `<div style="background:var(--offwhite);border-radius:8px;padding:10px;margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
@@ -423,71 +414,20 @@ async function openRiskAdminDetail(requestId){
         <span style="background:${lvl.color};color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;white-space:nowrap">${lvl.label}</span>
       </div>
       <div style="font-size:10.5px;color:var(--gray3);margin-top:4px">الفئة: ${orgEsc(it.category||"—")} · الاحتمالية: ${it.likelihood??"—"}/5 · التأثير: ${it.impact??"—"}/5</div>
-      <div style="display:flex;gap:6px;margin-top:6px">
+      ${canWork ? `<div style="display:flex;gap:6px;margin-top:6px">
         <select class="fs" style="font-size:11px;padding:4px" onchange="updateRiskItemStatus(${it.id},this.value,${requestId})">
-          <option ${it.action_status==='معلّق'?'selected':''}>معلّق</option>
-          <option ${it.action_status==='قيد التنفيذ'?'selected':''}>قيد التنفيذ</option>
-          <option ${it.action_status==='مكتمل'?'selected':''}>مكتمل</option>
+          <option ${it.action_status==='معلّق'?'selected':''}>معلّق</option><option ${it.action_status==='قيد التنفيذ'?'selected':''}>قيد التنفيذ</option><option ${it.action_status==='مكتمل'?'selected':''}>مكتمل</option>
         </select>
         <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:3px 8px;font-size:10.5px;cursor:pointer" onclick="deleteRiskItem(${it.id},${requestId})">حذف</button>
-      </div>
+      </div>` : `<div style="font-size:10.5px;margin-top:4px">الحالة: <b>${orgEsc(it.action_status||"—")}</b></div>`}
     </div>`;
   }).join("") : '<div style="font-size:11px;color:var(--gray3)">لا توجد مخاطر مضافة بعد.</div>';
 
-  const chatHtml = (messages||[]).length ? messages.map(m => `<div style="margin-bottom:8px;text-align:${m.sender_email===r.requested_by_email?'right':'left'}">
-    <div style="display:inline-block;max-width:80%;background:${m.sender_email===r.requested_by_email?'var(--offwhite)':'var(--primary)'};color:${m.sender_email===r.requested_by_email?'var(--dark)':'#fff'};border-radius:10px;padding:8px 12px;font-size:11.5px">
-      <b style="font-size:10px;opacity:0.8">${orgEsc(m.sender_name||m.sender_email)}</b><br><span style="white-space:pre-line">${orgEsc(m.message)}</span>
-    </div>
-  </div>`).join("") : '<div style="font-size:11px;color:var(--gray3);text-align:center">لا توجد رسائل بعد.</div>';
-
-  box.innerHTML = `
-    ${riskGuideHTML(r, items, messages)}
-    ${r.pending_final_approval ? `<div style="background:#FEF3E2;border:2px solid var(--gold);border-radius:10px;padding:12px;margin-bottom:14px">
-      <div style="font-size:12px;font-weight:700;color:var(--gold)"><span class="ico-i ico-dot"></span>بانتظار الاعتماد النهائي — اعتمد أوليًا: ${r.staff_closed_by||"—"}</div>
-      ${(currentUserProfile && currentUserProfile.is_platform_admin===true) ? `<div style="display:flex;gap:6px;margin-top:8px">
-        <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="finalApproveRiskRequest(${requestId}, 'تقرير نهائي جاهز')"><span class="ico-i ico-check"></span>اعتماد نهائي — تقرير جاهز</button>
-        <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="finalApproveRiskRequest(${requestId}, 'مغلق')"><span class="ico-i ico-check"></span>اعتماد نهائي — إغلاق كامل</button>
-      </div>` : `<div style="font-size:11px;color:var(--gray3);margin-top:4px">لن يظهر للعميل حتى يعتمده مالك المنصة.</div>`}
-    </div>` : ""}
-    <div class="row2">
-      <div class="fg"><label style="font-size:11px">الحالة</label>
-        <select class="fs" id="rad-status">
-          ${RISK_STATUS_ORDER.map(st=>`<option ${r.status===st?'selected':''}>${st}</option>`).join("")}
-        </select>
-      </div>
-      <div class="fg"><label style="font-size:11px">المستشار المكلَّف (إيميل)</label><input class="fi" id="rad-consultant" value="${orgEsc(r.assigned_consultant_email||'')}" placeholder="consultant@email.com"/></div>
-    </div>
-    <button class="btn btn-gold" style="width:100%;margin-bottom:14px" onclick="updateRiskRequestAdmin(${requestId})"><span class="ico-i ico-save"></span>حفظ الحالة والتكليف</button>
-
-    <div class="sec-title" style="font-size:13px"><span class="ico-i ico-clipboard"></span>بيانات الطلب</div>
-    <div class="card"><div class="card-body" style="font-size:11.5px;line-height:2">
-      <div><b>القطاع:</b> ${r.sector||"—"}</div>
-      <div><b>نطاق التقييم:</b> ${r.scope||"—"}</div>
-      <div><b>أنواع المخاطر المطلوبة:</b> ${r.risk_types_needed||"—"}</div>
-      <div><b>الموعد المفضّل:</b> ${r.preferred_date||"—"}</div>
-    </div></div>
-
-    <div class="sec-title" style="font-size:13px;margin-top:14px"><span class="ico-i ico-paperclip"></span>ملفات العميل</div>
-    <div class="card"><div class="card-body">${filesHtml}</div></div>
-
-    <div class="sec-title" style="font-size:13px;margin-top:14px">🌡️ المصفوفة الحرارية</div>
-    <div class="card"><div class="card-body">${renderRiskHeatMap(items)}</div></div>
-
-    <div class="sec-title" style="font-size:13px;margin-top:14px"><span class="ico-i ico-document"></span>التقرير النهائي</div>
-    <div class="card"><div class="card-body">
-      ${r.final_report_url ? `<a href="${r.final_report_url}" target="_blank" style="font-size:12px;color:var(--green);font-weight:700"><span class="ico-i ico-document"></span>عرض التقرير المرفوع</a>` : '<div style="font-size:11px;color:var(--gray3);margin-bottom:8px">لم يُرفع تقرير نهائي بعد.</div>'}
-      <input type="file" class="fi" id="rad-report-file" style="margin-top:8px"/>
-      <button class="btn-xs primary" style="margin-top:6px" onclick="uploadFinalRiskReport(${requestId})">رفع التقرير النهائي</button>
-    </div></div>
-
-    <div class="sec-title" style="font-size:13px;margin-top:14px"><span class="ico-i ico-pin"></span>إضافة خطر</div>
-    <div class="card"><div class="card-body">
+  const addRiskForm = canWork ? `
       <input class="fi" id="rad-item-desc" placeholder="وصف الخطر" style="margin-bottom:6px"/>
       <div class="row2">
         <input class="fi" id="rad-item-source" placeholder="مصدر الخطر" style="margin:0"/>
-        <select class="fs" id="rad-item-category" style="margin:0">
-          <option>استراتيجية</option><option>تشغيلية</option><option>مالية</option><option>امتثال / قانونية</option><option>سلامة / بيئية</option>
-        </select>
+        <select class="fs" id="rad-item-category" style="margin:0"><option>استراتيجية</option><option>تشغيلية</option><option>مالية</option><option>امتثال / قانونية</option><option>سلامة / بيئية</option></select>
       </div>
       <div class="row2" style="margin-top:6px">
         <div><label style="font-size:10.5px;color:var(--gray3)">الاحتمالية (1-5)</label><input type="number" min="1" max="5" class="fi" id="rad-item-likelihood" style="margin:0"/></div>
@@ -498,24 +438,44 @@ async function openRiskAdminDetail(requestId){
         <input class="fi" id="rad-item-responsible" placeholder="المسؤول عن التنفيذ" style="margin:0"/>
         <input type="date" class="fi" id="rad-item-target-date" style="margin:0"/>
       </div>
-      <button class="btn-xs primary" style="margin-top:8px" onclick="addRiskItem(${requestId})">إضافة الخطر</button>
-      ${itemsHtml}
-    </div></div>
+      <button class="btn btn-gold" style="width:100%;margin:8px 0 12px" onclick="addRiskItem(${requestId})">إضافة الخطر</button>` : "";
 
-    <div class="sec-title" style="font-size:13px;margin-top:14px"><span class="ico-i ico-message"></span>التواصل مع العميل</div>
+  const workCards = stage >= 3 ? `
+    <div class="sec-title" style="font-size:13px;margin-top:16px"><span class="ico-i ico-pin"></span>المخاطر المسجَّلة</div>
+    <div class="card"><div class="card-body">${addRiskForm}${itemsHtmlR}</div></div>
+    <div class="sec-title" style="font-size:13px;margin-top:16px">🌡️ المصفوفة الحرارية</div>
+    <div class="card"><div class="card-body">${renderRiskHeatMap(items)}</div></div>
+    <div class="sec-title" style="font-size:13px;margin-top:16px"><span class="ico-i ico-document"></span>التقرير النهائي</div>
     <div class="card"><div class="card-body">
-      <div style="max-height:200px;overflow-y:auto;margin-bottom:10px">${chatHtml}</div>
-      <div style="display:flex;gap:6px">
-        <textarea class="fi" id="rad-chat-input" rows="5" placeholder="اكتب ردًا للعميل..." style="flex:1;margin:0"></textarea>
-        <button class="btn-xs primary" onclick="sendRiskAdminMessage(${requestId})">إرسال</button>
-      </div>
+      ${r.final_report_url ? `<a href="${r.final_report_url}" target="_blank" style="font-size:12px;color:var(--green);font-weight:700"><span class="ico-i ico-document"></span>عرض التقرير المرفوع</a>` : '<div style="font-size:11px;color:var(--gray3);margin-bottom:8px">لم يُرفع تقرير نهائي بعد.</div>'}
+      ${canWork ? `<input type="file" class="fi" id="rad-report-file" style="margin-top:8px"/>
+      <button class="btn-xs primary" style="margin-top:6px" onclick="uploadFinalRiskReport(${requestId})">رفع التقرير النهائي</button>` : ""}
     </div></div>
-  `;
+    ${(canWork || isOwner) ? `<div class="sec-title" style="font-size:13px;margin-top:16px">المرحلة</div>
+    <div class="card"><div class="card-body">
+      <select class="fs" id="rad-status">${RISK_STATUS_ORDER.slice(2).map(st=>`<option ${r.status===st?'selected':''}>${st}</option>`).join("")}</select>
+      <button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="updateRiskRequestAdmin(${requestId})"><span class="ico-i ico-save"></span>حفظ المرحلة</button>
+      ${(!isOwner) ? '<div style="font-size:10.5px;color:var(--gray3);margin-top:6px">إنهاء الطلب (تقرير جاهز / مغلق) يحتاج اعتماد مالك المنصة قبل أن يظهر للعميل.</div>' : ""}
+    </div></div>` : ""}` : "";
+
+  box.innerHTML = `${stepper}${approvalHtml}${requestCard}${assignCard}${chatCard}${workCards}`;
+}
+
+async function assignRiskConsultant(requestId){
+  const el = document.getElementById("rad-consultant");
+  const email = el ? el.value.trim().toLowerCase() : "";
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ alert("أدخل بريد المستشار بشكل صحيح"); return; }
+  const { error } = await sb.from("risk_requests").update({ assigned_consultant_email: email }).eq("id", requestId);
+  if(error){ alert("تعذّر التكليف: " + error.message); return; }
+  logActivity("تكليف", "طلب تقييم مخاطر", email, "");
+  try{ await sendNotificationEmail(email, "تم تكليفك بطلب تقييم مخاطر جديد", `<div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px"><h2 style="color:#1A3A6B">طلب تقييم مخاطر جديد</h2><p>تم تكليفك بطلب تقييم مخاطر على منصة حوكم. ادخل المنصة ← الطلبات ← طلبات تحليل المخاطر، وأرسل للعميل أسئلتك وطلباتك لبدء العمل.</p></div>`); }catch(e){}
+  openRiskAdminDetail(requestId); try{ loadRiskAdmin(); }catch(e){}
 }
 
 async function updateRiskRequestAdmin(requestId){
-  const status = document.getElementById("rad-status").value;
-  const assigned_consultant_email = document.getElementById("rad-consultant").value.trim() || null;
+  const statusEl = document.getElementById("rad-status"), consEl = document.getElementById("rad-consultant");
+  const status = statusEl ? statusEl.value : _radCur.status;
+  const assigned_consultant_email = (consEl ? consEl.value.trim() : _radCur.consultant) || null;
   const isFullOwner = currentUserProfile && currentUserProfile.is_platform_admin === true;
   const isFinalStatus = status === "مغلق" || status === "تقرير نهائي جاهز";
 
@@ -606,6 +566,7 @@ async function sendRiskAdminMessage(requestId){
   }]);
   if(error){ alert("تعذّر الإرسال: " + error.message); return; }
   input.value = "";
+  if(_radCur.status === "تم الاستلام"){ await sb.from("risk_requests").update({ status: "بانتظار رد العميل" }).eq("id", requestId); try{ loadRiskAdmin(); }catch(e){} }
   openRiskAdminDetail(requestId);
 }
 
