@@ -1078,10 +1078,19 @@ let currentCompanyModules = { internal_audit: false, risk_management: false };
 let currentCompanyTrialEndsAt = null;
 const MODULE_PAGE_MAP = { audit: 'internal_audit', risks: 'risk_management' };
 
+/* الشريطان الثابتان (التجربة + رقم السجل) يدفعان الشريط العلوي لأسفل بدل أن يغطّياه */
+function updateBannerOffset(){
+  const h = ["trialBanner","crBanner"].reduce((a,id) => { const e = document.getElementById(id); return a + (e ? e.offsetHeight : 0); }, 0);
+  document.documentElement.style.setProperty("--banner-h", h + "px");
+  const cb = document.getElementById("crBanner"), tb = document.getElementById("trialBanner");
+  if(cb) cb.style.top = (tb ? tb.offsetHeight : 0) + "px";
+}
+window.addEventListener("resize", () => { try{ updateBannerOffset(); }catch(e){} });
 function renderTrialBanner(){
   let banner = document.getElementById("trialBanner");
   if(!currentCompanyTrialEndsAt){
     if(banner) banner.remove();
+    updateBannerOffset();
     return;
   }
   const daysLeft = Math.max(0, Math.ceil((new Date(currentCompanyTrialEndsAt) - new Date()) / 86400000));
@@ -1095,6 +1104,7 @@ function renderTrialBanner(){
   banner.textContent = daysLeft > 0
     ? `🎁 أنت بفترة تجريبية — متبقٍ ${daysLeft} يوم (كل الوحدات مفتوحة مؤقتًا)`
     : `⚠️ انتهت فترة الفترة التجريبية — تواصل معنا لتفعيل الاشتراك`;
+  updateBannerOffset();
 }
 
 let currentCompanyHasCr = true;
@@ -1102,7 +1112,7 @@ function renderCrBanner(){
   let b = document.getElementById("crBanner");
   const isOwner = !!(currentUserProfile && currentUserProfile.is_platform_admin === true);
   const isAdmin = getCurrentRole() === "مدير النظام" || isOwner;
-  if(currentCompanyHasCr || !isAdmin || !currentCompanyId){ if(b) b.remove(); return; }
+  if(currentCompanyHasCr || !isAdmin || !currentCompanyId){ if(b) b.remove(); updateBannerOffset(); return; }
   if(!b){
     b = document.createElement("div");
     b.id = "crBanner";
@@ -1111,12 +1121,11 @@ function renderCrBanner(){
     const t = document.getElementById("trialBanner");
     w.insertBefore(b, t ? t.nextSibling : w.firstChild);
   }
-  const tb2 = document.getElementById("trialBanner");
-  b.style.top = (tb2 ? tb2.offsetHeight : 0) + "px";
   b.innerHTML = (isOwner
     ? '🪪 (للمالك) هذه الشركة لم تُدخل رقم السجل أو الرقم الموحد — غير قابلة للتوثيق بعد. '
     : '🪪 فضلاً أدخل رقم السجل التجاري أو الرقم الموحد ليكتمل توثيق شركتك. ')
     + '<button class="btn-xs primary" style="margin-inline-start:8px" onclick="openEditCompanyModal()">إدخال الرقم الآن</button>';
+  updateBannerOffset();
 }
 
 let companyTypeReadyPromise = null;
