@@ -82,7 +82,7 @@ async function openAuditAdminDetail(requestId){
   </div>`).join("") : '<div style="font-size:11px;color:var(--gray3)">لا توجد ملاحظات مضافة بعد.</div>';
 
   const chatHtml = (messages||[]).length ? messages.map(m => `<div style="margin-bottom:8px;text-align:${m.sender_email===r.requested_by_email?'right':'left'}">
-    <div style="display:inline-block;max-width:80%;background:${m.sender_email===r.requested_by_email?'var(--offwhite)':'var(--primary)'};color:${m.sender_email===r.requested_by_email?'var(--dark)':'#fff'};border-radius:10px;padding:8px 12px;font-size:11.5px">
+    <div style="display:inline-block;max-width:80%;background:${m.sender_email===r.requested_by_email?'#E8F0FB':'#F1F1EC'};color:var(--dark);border-radius:10px;padding:8px 12px;font-size:11.5px">
       <b style="font-size:10px;opacity:0.8">${orgEsc(m.sender_name||m.sender_email)}</b><br><span style="white-space:pre-line">${orgEsc(m.message)}</span>
     </div>
   </div>`).join("") : '<div style="font-size:11px;color:var(--gray3);text-align:center">لا توجد رسائل بعد.</div>';
@@ -306,6 +306,34 @@ async function loadRiskAdmin(){
   </tr>`).join("");
 }
 
+async function riskAddQuestion(requestId, sugIdx){
+  const SUG = ["كم عدد الموظفين في الشركة؟","ما هو نشاط الشركة الرئيسي ومصادر إيراداتها؟","هل توجد سياسات وإجراءات مكتوبة؟ أرفقها إن وجدت","ما أهم 3 مخاطر تقلقكم حاليًا؟","هل حدثت خسائر أو حوادث كبيرة خلال آخر 3 سنوات؟","من الشخص المسؤول عن التواصل معنا في الشركة؟"];
+  const inp = document.getElementById("rad-q-input");
+  const question = sugIdx != null ? SUG[sugIdx] : (inp ? inp.value.trim() : "");
+  if(!question){ alert("اكتب السؤال أولاً"); return; }
+  const { count } = await sb.from("risk_questions").select("id", { count:"exact", head:true }).eq("request_id", requestId);
+  const { error } = await sb.from("risk_questions").insert([{ request_id: requestId, position: (count||0)+1, question, asked_by: String((currentUserProfile && currentUserProfile.email) || "").toLowerCase() }]);
+  if(error){ alert("تعذّر إضافة السؤال: " + error.message); return; }
+  openRiskAdminDetail(requestId);
+}
+async function riskDeleteQuestion(id, requestId){
+  const { error } = await sb.from("risk_questions").delete().eq("id", id).eq("sent", false);
+  if(error){ alert("تعذّر الحذف: " + error.message); return; }
+  openRiskAdminDetail(requestId);
+}
+async function riskSendQuestions(requestId){
+  if(!await uiConfirm("سيتم إرسال الأسئلة للعميل ويتحوّل الطلب إلى «بانتظار رد العميل». متابعة؟")) return;
+  const { error } = await sb.from("risk_questions").update({ sent: true, sent_at: new Date().toISOString() }).eq("request_id", requestId).eq("sent", false);
+  if(error){ alert("تعذّر الإرسال: " + error.message); return; }
+  if(_radCur.status === "تم الاستلام") await sb.from("risk_requests").update({ status: "بانتظار رد العميل" }).eq("id", requestId);
+  logActivity("إرسال", "أسئلة تقييم مخاطر", _radCur.clientName, "");
+  if(_radCur.clientEmail){
+    try{ await sendNotificationEmail(_radCur.clientEmail, "لديك أسئلة من المستشار — طلب تقييم المخاطر", `<div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px"><h2 style="color:#1A3A6B">أسئلة من مستشار المخاطر</h2><p>أرسل لك المستشار أسئلة لازمة لبدء تقييم مخاطر شركتك. ادخل منصة حوكم ← المخاطر ← طلبك، وأجب عن كل سؤال لنبدأ العمل.</p></div>`); }catch(e){}
+  }
+  alert("تم إرسال الأسئلة للعميل ✅");
+  try{ loadRiskAdmin(); }catch(e){}
+  openRiskAdminDetail(requestId);
+}
 async function riskSetStatusQuick(requestId, status){
   const { error } = await sb.from("risk_requests").update({ status }).eq("id", requestId);
   if(error){ alert("تعذّر تغيير الحالة: " + error.message); return; }
@@ -319,11 +347,13 @@ async function openRiskAdminDetail(requestId){
   box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>';
   openM("m-riskadmin-detail");
 
-  const [{ data: r }, { data: items }, { data: messages }] = await Promise.all([
+  const [{ data: r }, { data: items }, { data: messages }, qRes] = await Promise.all([
     sb.from("risk_requests").select("*").eq("id", requestId).single(),
     sb.from("risk_items").select("*").eq("request_id", requestId).order("created_at",{ascending:true}),
-    sb.from("risk_messages").select("*").eq("request_id", requestId).order("created_at",{ascending:true})
+    sb.from("risk_messages").select("*").eq("request_id", requestId).order("created_at",{ascending:true}),
+    sb.from("risk_questions").select("*").eq("request_id", requestId).order("position",{ascending:true}).order("id",{ascending:true})
   ]);
+  const qs = (qRes && qRes.data) || [];
   if(!r){ box.innerHTML = '<div style="color:var(--red);font-size:12px">تعذّر تحميل الطلب</div>'; return; }
 
   document.getElementById("rad-title-h").textContent = "⚠️ " + (r.client_name||"طلب تقييم مخاطر");
@@ -345,11 +375,13 @@ async function openRiskAdminDetail(requestId){
   const staffMsgs = (messages||[]).filter(m => m.sender_email !== r.requested_by_email);
   const clientMsgs = (messages||[]).filter(m => m.sender_email === r.requested_by_email);
   const firstStaff = staffMsgs[0], lastStaff = staffMsgs[staffMsgs.length-1], lastClient = clientMsgs[clientMsgs.length-1];
-  const clientReplied = !!(firstStaff && clientMsgs.some(m => new Date(m.created_at) > new Date(firstStaff.created_at)));
+  const sentQs = qs.filter(q => q.sent), draftQs = qs.filter(q => !q.sent);
+  const answeredQs = sentQs.filter(q => q.answer);
+  const clientReplied = sentQs.length > 0 && answeredQs.length === sentQs.length;
   const workStage = sIdx >= RISK_STATUS_ORDER.indexOf("قيد التحليل") || clientReplied;
   const done = r.status === "تقرير نهائي جاهز" || r.status === "مغلق";
   const stage = !assigned ? 1 : (!workStage ? 2 : (done ? 4 : 3));
-  _radCur = { status: r.status, consultant: r.assigned_consultant_email || "" };
+  _radCur = { status: r.status, consultant: r.assigned_consultant_email || "", clientEmail: r.requested_by_email || "", clientName: r.client_name || "" };
 
   const stepper = `<div style="display:flex;gap:6px;margin-bottom:16px">${["تكليف مستشار","التواصل مع العميل","التحليل والمصفوفة","التقرير النهائي"].map((t,i) => {
     const n = i+1, on = n === stage, ok = n < stage;
@@ -386,23 +418,38 @@ async function openRiskAdminDetail(requestId){
     : `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:12px"><span>👤 المستشار المكلَّف: <b style="direction:ltr;display:inline-block">${orgEsc(r.assigned_consultant_email)}</b></span>
        ${isOwner ? `<details><summary style="cursor:pointer;color:var(--primary);font-size:11.5px">تغيير المستشار</summary><div style="display:flex;gap:6px;margin-top:6px"><input class="fi" id="rad-consultant" value="${orgEsc(r.assigned_consultant_email)}" style="direction:ltr;text-align:left;margin:0"/><button class="btn-xs primary" onclick="assignRiskConsultant(${requestId})">حفظ</button></div></details>` : ""}</div>`;
 
-  // المرحلة 2+: التواصل
+  // المرحلة 2+: أسئلة المستشار وإجابات العميل
   const canChat = isOwner || isConsultant;
   let waitChip = "";
-  if(r.status === "بانتظار رد العميل" && !clientReplied){
-    const days = Math.floor((Date.now() - new Date((lastStaff||r).created_at).getTime())/86400000);
-    waitChip = `<div style="background:#FFF4D6;border:1px solid #E6C766;border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:700;color:#8A5A00;margin-bottom:8px">⏳ بانتظار رد العميل منذ ${days} يوم${days>=3?' — تأخّر الرد':''}</div>`;
-  } else if(clientReplied && lastClient){
-    waitChip = `<div style="background:#E8F8EF;border:1px solid #A8DDBF;border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:700;color:#1B7F4B;margin-bottom:8px">✅ ردّ العميل — ${new Date(lastClient.created_at).toLocaleDateString("ar-SA-u-ca-gregory")}</div>`;
+  if(sentQs.length && !clientReplied){
+    const days = Math.floor((Date.now() - new Date(sentQs[0].sent_at || r.created_at).getTime())/86400000);
+    waitChip = `<div style="background:#FFF4D6;border:1px solid #E6C766;border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:700;color:#8A5A00;margin-bottom:10px">⏳ بانتظار العميل — أجاب عن ${answeredQs.length} من ${sentQs.length} · منذ ${days} يوم${days>=3?' — تأخّر الرد':''}</div>`;
+  } else if(clientReplied){
+    waitChip = `<div style="background:#E8F8EF;border:1px solid #A8DDBF;border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:700;color:#1B7F4B;margin-bottom:10px">✅ أجاب العميل على جميع الأسئلة (${sentQs.length})</div>`;
   }
-  const sendLabel = (r.status === "تم الاستلام" && canChat) ? "إرسال الأسئلة للعميل" : "إرسال";
-  const chatCard = stage >= 2 ? `<div class="sec-title" style="font-size:13px;margin-top:16px"><span class="ico-i ico-message"></span>التواصل مع العميل</div>
+  const SUGGEST = ["كم عدد الموظفين في الشركة؟","ما هو نشاط الشركة الرئيسي ومصادر إيراداتها؟","هل توجد سياسات وإجراءات مكتوبة؟ أرفقها إن وجدت","ما أهم 3 مخاطر تقلقكم حاليًا؟","هل حدثت خسائر أو حوادث كبيرة خلال آخر 3 سنوات؟","من الشخص المسؤول عن التواصل معنا في الشركة؟"];
+  const qRow = (q,i) => `<div style="padding:10px 0;${i?'border-top:1px dashed var(--gray1);':''}">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+        <div style="font-size:12.5px;font-weight:800"><span style="display:inline-flex;width:22px;height:22px;border-radius:50%;background:${q.sent?'var(--primary)':'var(--gray3)'};color:#fff;font-size:11px;align-items:center;justify-content:center;margin-left:6px">${i+1}</span>${orgEsc(q.question)}</div>
+        ${(!q.sent && canChat) ? `<button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:2px 8px;cursor:pointer" onclick="riskDeleteQuestion(${q.id},${requestId})">✕</button>` : ""}
+      </div>
+      ${!q.sent ? '<div style="font-size:10.5px;color:var(--gray3);margin-top:4px">مسودة — لم تُرسل بعد</div>'
+        : q.answer ? `<div style="margin-top:6px;background:#EAF6EF;border-radius:8px;padding:8px 12px;font-size:12px;white-space:pre-line">${orgEsc(q.answer)}</div>`
+        : '<div style="margin-top:6px;font-size:11.5px;color:#B8610A">لم يُجب بعد</div>'}
+    </div>`;
+  const askForm = canChat ? `<div style="margin-top:10px">
+      <div style="display:flex;gap:6px"><input class="fi" id="rad-q-input" placeholder="اكتب سؤالاً للعميل ثم اضغط إضافة" style="margin:0;flex:1" onkeydown="if(event.key==='Enter'){riskAddQuestion(${requestId});}"/><button class="btn-xs primary" onclick="riskAddQuestion(${requestId})">إضافة سؤال</button></div>
+      <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">${SUGGEST.map((t,i)=>`<button class="btn-xs sec" style="font-size:10.5px" onclick="riskAddQuestion(${requestId},${i})">+ ${orgEsc(t)}</button>`).join("")}</div>
+      ${draftQs.length ? `<button class="btn btn-gold" style="width:100%;margin-top:12px" onclick="riskSendQuestions(${requestId})">📤 إرسال ${draftQs.length} ${draftQs.length>2?'أسئلة':'سؤال'} للعميل</button>` : ""}
+      ${(stage === 2 && sentQs.length && !clientReplied) ? `<button class="btn btn-ghost" style="width:100%;margin-top:6px;font-size:11.5px" onclick="riskSetStatusQuick(${requestId},'قيد التحليل')">العميل أجاب خارج المنصة — ابدأ التحليل</button>` : ""}
+    </div>` : "";
+  const oldChat = (messages||[]).length ? `<details style="margin-top:12px"><summary style="cursor:pointer;font-size:11.5px;color:var(--gray3)">رسائل إضافية (${messages.length})</summary><div style="margin-top:8px;max-height:220px;overflow-y:auto">${chatHtml}</div></details>` : "";
+  const chatCard = stage >= 2 ? `<div class="sec-title" style="font-size:13px;margin-top:16px">❓ أسئلة المستشار وإجابات العميل</div>
     <div class="card"><div class="card-body">
       ${waitChip}
-      <div style="max-height:260px;overflow-y:auto;margin-bottom:10px">${chatHtml}</div>
-      ${canChat ? `<textarea class="fi" id="rad-chat-input" rows="4" placeholder="${r.status === "تم الاستلام" ? "اكتب أسئلتك وطلباتك للعميل (نبذة عن النشاط، الملفات المطلوبة، موعد مكالمة...)" : "اكتب ردًا للعميل..."}" style="margin:0"></textarea>
-      <button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="sendRiskAdminMessage(${requestId})">${sendLabel}</button>
-      ${(stage === 2 && r.status === "بانتظار رد العميل") ? `<button class="btn btn-ghost" style="width:100%;margin-top:6px;font-size:11.5px" onclick="riskSetStatusQuick(${requestId},'قيد التحليل')">العميل ردّ خارج المنصة — ابدأ التحليل</button>` : ""}` : ""}
+      ${qs.length ? qs.map(qRow).join("") : '<div style="font-size:11.5px;color:var(--gray3);text-align:center;padding:6px 0">لم تُضف أسئلة بعد.</div>'}
+      ${askForm}
+      ${oldChat}
     </div></div>` : "";
 
   // المرحلة 3+: التحليل

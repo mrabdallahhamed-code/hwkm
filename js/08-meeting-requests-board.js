@@ -1019,13 +1019,15 @@ async function openRiskRequestDetail(requestId){
   box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>';
   openM("m-risk-request-detail");
 
-  const [{ data: r }, { data: items }, { data: messages }, { data: rating }] = await Promise.all([
+  const [{ data: r }, { data: items }, { data: messages }, { data: rating }, qRes] = await Promise.all([
     sb.from("risk_requests").select("*").eq("id", requestId).single(),
     sb.from("risk_items").select("*").eq("request_id", requestId).order("created_at",{ascending:true}),
     sb.from("risk_messages").select("*").eq("request_id", requestId).order("created_at",{ascending:true}),
-    sb.from("risk_ratings").select("*").eq("request_id", requestId).limit(1)
+    sb.from("risk_ratings").select("*").eq("request_id", requestId).limit(1),
+    sb.from("risk_questions").select("*").eq("request_id", requestId).eq("sent", true).order("position",{ascending:true}).order("id",{ascending:true})
   ]);
   if(!r){ box.innerHTML = '<div style="color:var(--red);font-size:12px">تعذّر تحميل الطلب</div>'; return; }
+  const questions = (qRes && qRes.data) || [];
 
   document.getElementById("rrd-title-h").textContent = "⚠️ " + (r.client_name||"طلب تقييم مخاطر");
   const existingRating = (rating||[])[0];
@@ -1058,12 +1060,23 @@ async function openRiskRequestDetail(requestId){
   const filesHtml = (r.file_urls||[]).length ? r.file_urls.map(f => `<a href="${f.url}" target="_blank" style="display:block;font-size:11.5px;color:var(--primary);margin-bottom:4px"><span class="ico-i ico-paperclip"></span>${orgEsc(f.name)}</a>`).join("") : '<div style="font-size:11px;color:var(--gray3)">لا توجد ملفات مرفوعة.</div>';
 
   const chatHtml = (messages||[]).length ? messages.map(m => `<div style="margin-bottom:8px;text-align:${m.sender_email===r.requested_by_email?'left':'right'}">
-    <div style="display:inline-block;max-width:80%;background:${m.sender_email===r.requested_by_email?'var(--primary)':'var(--offwhite)'};color:${m.sender_email===r.requested_by_email?'#fff':'var(--dark)'};border-radius:10px;padding:8px 12px;font-size:11.5px">
+    <div style="display:inline-block;max-width:80%;background:${m.sender_email===r.requested_by_email?'#E8F0FB':'#F1F1EC'};color:var(--dark);border-radius:10px;padding:8px 12px;font-size:11.5px">
       <b style="font-size:10px;opacity:0.8">${orgEsc(m.sender_name||m.sender_email)}</b><br><span style="white-space:pre-line">${orgEsc(m.message)}</span>
     </div>
   </div>`).join("") : '<div style="font-size:11px;color:var(--gray3);text-align:center">لا توجد رسائل بعد.</div>';
 
-  const awaitHtml = r.status === "بانتظار رد العميل" ? `<div style="background:#FFF4D6;border:1px solid #E6C766;border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:12.5px;line-height:1.9"><b>⏳ بانتظار ردّك</b><br>أرسل لك المستشار أسئلة أو طلبات في «التواصل مع فريق المخاطر» بالأسفل. نرجو الرد عليها ليبدأ العمل على تقييمك.</div>` : "";
+  const unanswered = questions.filter(q => !q.answer);
+  const qaHtml = questions.length ? `<div class="sec-title" style="font-size:13px;margin-top:6px">❓ أسئلة المستشار${unanswered.length ? ` <span style="font-size:11px;color:#B8610A;font-weight:700">— بانتظار ردّك على ${unanswered.length}</span>` : ' <span style="font-size:11px;color:var(--green);font-weight:700">— تمت الإجابة ✓</span>'}</div>
+    <div class="card" style="${unanswered.length ? 'border:1.5px solid #E6C766' : ''}"><div class="card-body">
+      ${unanswered.length ? '<div style="font-size:12px;color:#8A5A00;margin-bottom:10px">أجب عن كل سؤال ثم اضغط «إرسال الإجابات» ليبدأ المستشار العمل على تقييمك.</div>' : ""}
+      ${questions.map((q,i) => `<div style="padding:10px 0;${i? 'border-top:1px dashed var(--gray1);' : ''}">
+        <div style="font-size:12.5px;font-weight:800;color:var(--dark)"><span style="display:inline-flex;width:22px;height:22px;border-radius:50%;background:var(--primary);color:#fff;font-size:11px;align-items:center;justify-content:center;margin-left:6px">${i+1}</span>${orgEsc(q.question)}</div>
+        ${q.answer ? `<div style="margin-top:6px;background:#EAF6EF;border-radius:8px;padding:8px 12px;font-size:12px;white-space:pre-line">${orgEsc(q.answer)}</div>`
+          : `<textarea class="fi risk-ans-input" data-qid="${q.id}" rows="2" placeholder="اكتب إجابتك هنا..." style="margin-top:6px"></textarea>`}
+      </div>`).join("")}
+      ${unanswered.length ? `<button class="btn btn-gold" style="width:100%;margin-top:10px" onclick="submitRiskAnswers(${requestId})">إرسال الإجابات</button>` : ""}
+    </div></div>` : "";
+  const awaitHtml = "";
 
   const ratingHtml = (r.status === "تقرير نهائي جاهز" || r.status === "مغلق") ? `
     <div class="sec-title" style="font-size:13px;margin-top:16px">⭐ تقييم الخدمة</div>
@@ -1077,26 +1090,47 @@ async function openRiskRequestDetail(requestId){
     </div></div>` : "";
 
   box.innerHTML = `
-    ${awaitHtml}
     ${timeline}
+    ${qaHtml}
     <div class="sec-title" style="font-size:13px">🌡️ المصفوفة الحرارية لهذا الطلب</div>
     <div class="card"><div class="card-body">${renderRiskHeatMap(items)}</div></div>
     <div class="sec-title" style="font-size:13px;margin-top:14px"><span class="ico-i ico-pin"></span>المخاطر المسجَّلة وخطط المعالجة</div>
     ${itemsHtml}
     <div class="sec-title" style="font-size:13px;margin-top:14px"><span class="ico-i ico-paperclip"></span>الملفات</div>
     <div class="card"><div class="card-body">${filesHtml}${r.final_report_url ? `<a href="${r.final_report_url}" target="_blank" style="display:block;font-size:12px;color:var(--green);font-weight:700;margin-top:8px"><span class="ico-i ico-document"></span>تحميل التقرير النهائي</a>` : ""}</div></div>
-    <div class="sec-title" style="font-size:13px;margin-top:14px"><span class="ico-i ico-message"></span>التواصل مع فريق المخاطر</div>
-    <div class="card"><div class="card-body">
+    <details style="margin-top:14px"><summary style="cursor:pointer;font-size:12.5px;font-weight:800"><span class="ico-i ico-message"></span> رسائل إضافية لفريق المخاطر</summary>
+    <div class="card" style="margin-top:8px"><div class="card-body">
       <div id="risk-chat-box" style="max-height:220px;overflow-y:auto;margin-bottom:10px">${chatHtml}</div>
       <div style="display:flex;gap:6px">
         <textarea class="fi" id="risk-chat-input" rows="3" placeholder="اكتب رسالتك..." style="flex:1;margin:0"></textarea>
         <button class="btn-xs primary" onclick="sendRiskMessage(${requestId})">إرسال</button>
       </div>
-    </div></div>
+    </div></div></details>
     ${ratingHtml}
   `;
   window.currentRiskRatingValue = 0;
   (items||[]).forEach(it => renderGovLinks(`glk-risk-${it.id}`, 'risk', it.id));
+}
+
+async function submitRiskAnswers(requestId){
+  const inputs = [...document.querySelectorAll(".risk-ans-input")];
+  const filled = inputs.filter(t => t.value.trim());
+  if(!filled.length){ alert("اكتب إجابة سؤال واحد على الأقل"); return; }
+  if(filled.length < inputs.length && !await uiConfirm(`لم تُجب عن ${inputs.length - filled.length} سؤال. هل ترسل إجاباتك الحالية الآن؟ (يمكنك الرد على الباقي لاحقاً)`)) return;
+  const { data: userData } = await sb.auth.getUser();
+  const email = userData && userData.user ? userData.user.email : "";
+  const now = new Date().toISOString();
+  for(const t of filled){
+    const { error } = await sb.from("risk_questions").update({ answer: t.value.trim(), answered_by: email, answered_at: now }).eq("id", Number(t.dataset.qid));
+    if(error){ alert("تعذّر حفظ الإجابات: " + error.message); return; }
+  }
+  const { data: r } = await sb.from("risk_requests").select("assigned_consultant_email").eq("id", requestId).single();
+  if(r && r.assigned_consultant_email){
+    try{ await sendNotificationEmail(r.assigned_consultant_email, "أجاب العميل على أسئلتك — طلب تقييم المخاطر", `<div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px"><h2 style="color:#1A3A6B">وصلت إجابات العميل</h2><p>أجاب العميل على ${filled.length} من أسئلتك. ادخل المنصة ← طلبات تحليل المخاطر لتبدأ التحليل.</p></div>`); }catch(e){}
+  }
+  await notifyOwnerNewRequest("إجابات العميل على أسئلة المستشار", [["عدد الإجابات", filled.length]]);
+  alert("تم إرسال إجاباتك ✅ — سيبدأ المستشار العمل على تقييمك.");
+  openRiskRequestDetail(requestId);
 }
 
 async function sendRiskMessage(requestId){
