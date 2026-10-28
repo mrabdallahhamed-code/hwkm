@@ -1482,6 +1482,7 @@ function circOpenNew(){
     m.innerHTML = `<div class="modal"><div class="modal-title" id="circNewTitle">قرار تمرير جديد</div>
       <div class="fg"><label>عنوان القرار</label><input class="fi" id="cn-title"/></div>
       <div class="fg"><label>نص القرار</label><textarea class="fta" id="cn-text" rows="4" oninput="circSuggest()"></textarea></div>
+      <div id="cn-board-fields" class="fg" style="display:none"><label>سبب الاستعجال (يجوز التمرير في الأمور العاجلة فقط)</label><textarea class="fta" id="cn-urgent" rows="2"></textarea></div>
       <div id="cn-agm-fields">
         <div class="row2"><div class="fg"><label>نوع الجمعية</label><select class="fs" id="cn-kind" onchange="circSuggest()"><option>عادية</option><option>غير عادية</option></select></div>
         <div class="fg"><label style="display:block">قرار خاص (٧٥%)</label><label style="font-size:12px"><input type="checkbox" id="cn-special" onchange="circSuggest()"> زيادة/تخفيض رأس المال، تمديد المدة، حل، اندماج، تقسيم</label></div></div>
@@ -1494,6 +1495,8 @@ function circOpenNew(){
   const isAgm = circTab === "الجمعية العامة";
   document.getElementById("circNewTitle").textContent = isAgm ? "قرار تمرير للجمعية العامة" : "قرار تمرير لمجلس الإدارة";
   document.getElementById("cn-agm-fields").style.display = isAgm ? "" : "none";
+  document.getElementById("cn-board-fields").style.display = isAgm ? "none" : "";
+  document.getElementById("cn-urgent").value = "";
   ["cn-title","cn-text","cn-deadline"].forEach(i => document.getElementById(i).value = "");
   document.getElementById("cn-special").checked = false;
   circSuggest(true);
@@ -1502,7 +1505,7 @@ function circOpenNew(){
 function circSuggest(initial){
   const isAgm = circTab === "الجمعية العامة";
   const reqEl = document.getElementById("cn-req"), note = document.getElementById("cn-req-note");
-  if(!isAgm){ if(initial || !reqEl.value) reqEl.value = 50; note.textContent = "الافتراضي: أكثر من نصف أعضاء المجلس. غيّره إن نصّ نظام الشركة الأساس على غير ذلك."; return; }
+  if(!isAgm){ if(initial || !reqEl.value) reqEl.value = 50; reqEl.min = 50; note.textContent = "نظام الشركات: موافقة أغلبية أصوات الأعضاء (أكثر من 50%)، ما لم ينص النظام الأساس على نسبة أو عدد أكبر — يمكنك رفعها ولا يمكن خفضها."; return; }
   const kind = document.getElementById("cn-kind").value, text = document.getElementById("cn-text").value;
   const sp = document.getElementById("cn-special");
   if(AGM_SPECIAL_RE.test(text) && kind === "غير عادية") sp.checked = true;
@@ -1518,10 +1521,13 @@ async function circCreate(){
   if(!text){ alert("اكتب نص القرار"); return; }
   if(!req || req <= 0 || req > 100){ alert("النسبة المطلوبة غير صحيحة"); return; }
   const kind = isAgm ? document.getElementById("cn-kind").value : null;
+  const urgent = isAgm ? "" : document.getElementById("cn-urgent").value.trim();
+  if(!isAgm && !urgent){ alert("اكتب سبب الاستعجال: قرارات المجلس بالتمرير تجوز في الأمور العاجلة فقط."); return; }
+  if(!isAgm && req < 50){ alert("لا يجوز أن تقل النسبة عن أغلبية أصوات الأعضاء (50%)."); return; }
   if(isAgm && req < (kind === "غير عادية" ? 75 : 50)){ alert("النسبة أقل من الحد النظامي لقرار التمرير."); return; }
   if(isAgm && circIsListed()){ alert("قرارات التمرير للجمعية العامة لا تُتاح للشركات المدرجة."); return; }
   const { data: u } = await sb.auth.getUser();
-  const { error } = await sb.from("circulation_resolutions").insert([{ company_id: currentCompanyId, body: circTab, kind, title, resolution_text: text,
+  const { error } = await sb.from("circulation_resolutions").insert([{ company_id: currentCompanyId, body: circTab, kind, title, resolution_text: (urgent ? "سبب الاستعجال: " + urgent + "\n\n" : "") + text,
     special_matter: isAgm && document.getElementById("cn-special").checked, required_pct: req, deadline: dl ? new Date(dl).toISOString() : null, created_by: u && u.user ? u.user.email : null }]);
   if(error){ alert("تعذّر الإنشاء: " + error.message); return; }
   logActivity("إنشاء", "قرار تمرير", title, circTab);
