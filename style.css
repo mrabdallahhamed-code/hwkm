@@ -1016,3 +1016,10 @@ div[style*="linear-gradient(135deg,var(--primary),var(--primary2))"][style*="bor
 .glink-chip{font-size:12px;padding:3px 10px;border-radius:20px;background:var(--offwhite);border:1px solid var(--gray1);color:var(--gray3);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .glink-row{display:flex;gap:8px;align-items:flex-start;padding:7px 4px;font-size:13px;line-height:1.6;border-bottom:1px solid var(--gray1);cursor:pointer}
 .glink-row input{margin-top:5px}
+.glink-sug{font-style:normal;font-size:11px;font-weight:700;color:var(--primary3);background:#E8EEF7;border-radius:10px;padding:1px 8px;margin-inline-start:4px}
+.gn-top{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.gn-pct{font-size:30px;font-weight:900}
+.gn-lbl{font-size:13px;color:var(--gray3);line-height:1.5}
+.gn-row{font-size:13px;padding:5px 0;border-top:1px solid var(--gray1);color:var(--dark)}
+.gn-row b{color:var(--red);margin-inline-end:4px}
+.pg-good-t{color:var(--green)}.pg-mid-t{color:var(--primary3)}.pg-low-t{color:var(--gray3)}

@@ -395,14 +395,17 @@ function procRender(){
       return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--offwhite);border-radius:10px;padding:10px 14px;margin-bottom:6px">
         <div style="flex:1;min-width:220px"><b style="font-size:12.5px">${orgEsc(p.title)}</b>
           <span style="background:${st[0]};color:${st[1]};border-radius:10px;padding:1px 10px;font-size:10.5px;font-weight:800;margin-inline-start:8px">${orgEsc(p.status)}</span>
+          <div class="glinks" id="glk-procedure-${p.id}" data-glinks="procedure:${p.id}" style="margin:4px 0"></div>
           <div style="font-size:11px;color:var(--gray3)">النسخة ${p.version}.0 · ${n} خطوات · المصدر: ${orgEsc(p.source)}${p.status === "معتمد" && p.approved_at ? " · اعتُمد " + procFmt(p.approved_at) : ""}</div></div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="btn-xs primary" onclick="openProcedure(${p.id})">تعديل / عرض</button>
+          <button class="btn-xs" onclick="openGovLinkPicker('procedure',${p.id})">🔗 ربط</button>
           <button class="btn-xs" onclick="procOpenApproval(${p.id})">${p.status === "مسودة" ? "طلب اعتماد" : "مسار الاعتماد"}</button>
           <button class="btn-xs" onclick="procExportPDF(${p.id})">PDF</button>
           <button class="btn-xs" onclick="procPrint(${p.id})" title="ملف نصي قابل للبحث والتحديد">طباعة / PDF نصي</button>
           <button class="btn-xs" style="color:var(--red)" onclick="procDelete(${p.id})">حذف</button>
         </div></div>`; }).join("")}</div>`).join("");
+  procState.procs.forEach(p => { if(typeof renderGovLinks === "function") renderGovLinks(`glk-procedure-${p.id}`, "procedure", p.id); });
 }
 
 /* ── generation ── */

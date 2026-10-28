@@ -731,7 +731,7 @@ async function loadPermissionsMatrix(){
     rows += `<tr><td colspan="${colCount}" style="background:var(--offwhite);border-right:4px solid var(--gold);font-weight:800;color:var(--primary);font-size:12px;padding:10px 16px">${icon} ${cat}</td></tr>`;
     groups[cat].forEach(it => {
       rows += `<tr>
-        <td style="padding:10px 16px;font-size:12.5px;font-weight:600;color:var(--dark)">${orgEsc(it.item_name||"")}</td>`;
+        <td style="padding:10px 16px;font-size:12.5px;font-weight:600;color:var(--dark)">${orgEsc(it.item_name||"")} <button class="btn-xs sec" style="padding:2px 8px;font-size:11px;margin-inline-start:6px" onclick="openGovLinkPicker('authority',${it.id})" title="ربط ببنود أخرى">🔗</button><div class="glinks" id="glk-authority-${it.id}" data-glinks="authority:${it.id}" style="margin-top:4px"></div></td>`;
       permHoldersCache.forEach(h => {
         const key = it.id+'-'+h.id;
         const code = permCellsCache[key] || "";
@@ -748,6 +748,7 @@ async function loadPermissionsMatrix(){
     });
   });
   tbody.innerHTML = rows;
+  (typeof permItemsCache !== "undefined" ? permItemsCache : []).forEach(it => { if(typeof renderGovLinks === "function") renderGovLinks(`glk-authority-${it.id}`, "authority", it.id); });
 }
 
 async function savePermHolder(){

@@ -1255,6 +1255,7 @@ async function loadDashboard(){
   }
   enhanceDashboardKpis({ quarterMeetings: quarterMeetings.length, completedQ, upcomingQ, pendingSigns: signingDocs.filter(d => d.status !== "مكتمل").length, approvedThisMonth, cmpSum, risksTotal: risks.length, openRisks: openRisks.length, highOpenRisks, highNoPlan: openRisks.filter(r => r.impact === "عالٍ" && !(r.treatment_plan||"").trim()).length });
   applyDashboardEntityAdaptation();
+  if(typeof renderGovNetworkCard === "function") renderGovNetworkCard();
 }
 
 /* Dashboard KPI interpretation: every figure gets a plain status, the reason behind it and the next step,

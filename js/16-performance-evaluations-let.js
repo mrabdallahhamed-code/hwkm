@@ -1006,28 +1006,58 @@ function getPerfCriteria(entityType, personRole){
 /* ══════════ GOVERNANCE LINKS — risk ↔ policy ↔ decision ══════════
    One generic table (governance_links). A link is stored once, from whichever side it was made, and
    shown on both sides. Same-type links are not offered. */
-const GOV_LINK_META = { risk:{ label:"خطر", icon:"⚠️" }, policy:{ label:"سياسة", icon:"📜" }, decision:{ label:"قرار", icon:"✅" } };
+const GOV_LINK_META = { policy:{ label:"سياسة", icon:"📜" }, procedure:{ label:"إجراء", icon:"📋" }, authority:{ label:"صلاحية", icon:"🔑" }, risk:{ label:"خطر", icon:"⚠️" }, decision:{ label:"قرار", icon:"✅" } };
 
-async function govLinkCandidates(){
-  const [pol, dec, risks] = await Promise.all([
-    sb.from("policies").select("id,policy_name").eq("company_id", currentCompanyId),
+async function govLinkCandidatesRaw(){
+  const [pol, dec, risks, proc, auth] = await Promise.all([
+    sb.from("policies").select("id,policy_name,category").eq("company_id", currentCompanyId),
     sb.from("board_decisions").select("id,decision_text").eq("company_id", currentCompanyId),
-    fetchCompanyRisks()
+    fetchCompanyRisks(),
+    sb.from("procedures").select("id,title,department").eq("company_id", currentCompanyId),
+    sb.from("permission_items").select("id,item_name,category").eq("company_id", currentCompanyId)
   ]);
   return {
-    policy: (pol.data||[]).map(p => ({ id:p.id, name:p.policy_name||"" })),
-    decision: (dec.data||[]).map(d => ({ id:d.id, name:d.decision_text||"" })),
-    risk: (risks||[]).map(r => ({ id:r.id, name:r.risk_name||"" }))
+    policy: (pol.data||[]).map(p => ({ id:p.id, name:p.policy_name||"", cat:p.category||"" })),
+    decision: (dec.data||[]).map(d => ({ id:d.id, name:d.decision_text||"", cat:"" })),
+    risk: (risks||[]).map(r => ({ id:r.id, name:r.risk_name||"", cat:r.category||"" })),
+    procedure: (proc.data||[]).map(p => ({ id:p.id, name:p.title||"", cat:p.department||"" })),
+    authority: (auth.data||[]).map(a => ({ id:a.id, name:a.item_name||"", cat:a.category||"" }))
   };
 }
+let _govCache = { t:0, cand:null, links:null, co:null };
+function govCacheClear(){ _govCache = { t:0, cand:null, links:null, co:null }; }
+let _govInflight = null;
+async function govLoadAll(){
+  if(_govCache.cand && _govCache.co === currentCompanyId && Date.now() - _govCache.t < 8000) return _govCache;
+  if(_govInflight) return _govInflight;
+  _govInflight = (async () => {
+    try {
+      const [cand, lk] = await Promise.all([ govLinkCandidatesRaw(), sb.from("governance_links").select("*").eq("company_id", currentCompanyId) ]);
+      _govCache = { t: Date.now(), cand, links: lk.data || [], co: currentCompanyId };
+      return _govCache;
+    } finally { _govInflight = null; }
+  })();
+  return _govInflight;
+}
+async function govLinkCandidates(){ return (await govLoadAll()).cand; }
+/* Arabic-aware keyword overlap used to SUGGEST links (never to create them silently). */
+const GOV_STOP = new Set(["سياسه","سياسة","اجراء","إجراء","لائحه","لائحة","نظام","الشركه","الشركة","مع","على","علي","الى","إلى","من","في","عن","هذه","هذا","التي","الذي","او","أو","ثم","كل","بعد","قبل","عند","ذات","ذو","حول","بدون","وفق","حسب"]);
+function govTokens(txt){
+  return new Set(String(txt||"").replace(/[\u064B-\u0652\u0640]/g,"").replace(/[أإآ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه")
+    .split(/[^\u0621-\u064Aa-zA-Z0-9]+/).map(w => w.replace(/^(وال|بال|لل|ال|و)(?=.{3,})/,"")).filter(w => w.length >= 3 && !GOV_STOP.has(w)));
+}
+function govScore(a, b){
+  const ta = govTokens(a.name + " " + a.cat), tb = govTokens(b.name + " " + b.cat);
+  let n = 0; ta.forEach(w => { if(tb.has(w)) n++; });
+  return n;
+}
 async function govLinksFor(type, id){
-  const [a, b] = await Promise.all([
-    sb.from("governance_links").select("*").eq("company_id", currentCompanyId).eq("source_type", type).eq("source_id", id),
-    sb.from("governance_links").select("*").eq("company_id", currentCompanyId).eq("target_type", type).eq("target_id", id)
-  ]);
+  const { links } = await govLoadAll();
   const out = [];
-  (a.data||[]).forEach(l => out.push({ rowId:l.id, type:l.target_type, id:l.target_id }));
-  (b.data||[]).forEach(l => out.push({ rowId:l.id, type:l.source_type, id:l.source_id }));
+  links.forEach(l => {
+    if(l.source_type === type && String(l.source_id) === String(id)) out.push({ rowId:l.id, type:l.target_type, id:l.target_id });
+    else if(l.target_type === type && String(l.target_id) === String(id)) out.push({ rowId:l.id, type:l.source_type, id:l.source_id });
+  });
   return out;
 }
 async function renderGovLinks(boxId, type, id){
@@ -1056,18 +1086,20 @@ async function openGovLinkPicker(type, id){
   m.classList.add("open");
   const [cand, existing] = await Promise.all([govLinkCandidates(), govLinksFor(type, id)]);
   const have = new Set(existing.map(l => l.type + ":" + l.id));
-  if(!cand.policy.length && !cand.decision.length && !cand.risk.length){ body.innerHTML = '<div style="padding:16px;font-size:13px;color:var(--gray3)">لا توجد عناصر للربط بعد: أضف سياسة أو قراراً أو اطلب تقييم مخاطر أولاً.</div>'; return; }
+  if(!Object.values(cand).some(l => l.length)){ body.innerHTML = '<div style="padding:16px;font-size:13px;color:var(--gray3)">لا توجد عناصر للربط بعد: أضف سياسة أو قراراً أو اطلب تقييم مخاطر أولاً.</div>'; return; }
   const types = Object.keys(GOV_LINK_META).filter(t => t !== type);
+  const me = (cand[type]||[]).find(x => String(x.id) === String(id)) || { name:"", cat:"" };
   body.innerHTML = types.map(t => {
-    const list = cand[t] || [];
+    const list = (cand[t] || []).map(x => ({ ...x, _s: govScore(me, x) })).sort((a,b) => b._s - a._s);
     return `<div class="sec-title" style="font-size:13px;margin-top:10px">${GOV_LINK_META[t].icon} ${GOV_LINK_META[t].label}</div>` +
-      (list.length ? list.map(x => `<label class="glink-row"><input type="checkbox" class="glink-chk" data-type="${t}" data-id="${x.id}" ${have.has(t+":"+x.id)?"checked":""}> <span>${orgEsc(x.name).slice(0,90)}</span></label>`).join("")
-                   : `<div style="font-size:12px;color:var(--gray3);padding:6px 0">${t==="risk"?"لا توجد مخاطر بعد — تظهر هنا المخاطر المسجّلة في طلبات تقييم المخاطر.":t==="decision"?"لا توجد قرارات بعد — تظهر هنا القرارات المسجّلة من محاضر الاجتماعات (متابعة القرارات).":"لا توجد سياسات."}</div>`);
+      (list.length ? list.map(x => `<label class="glink-row"><input type="checkbox" class="glink-chk" data-type="${t}" data-id="${x.id}" ${have.has(t+":"+x.id)?"checked":""}> <span>${orgEsc(x.name).slice(0,90)}${x._s>0 && !have.has(t+":"+x.id) ? ' <em class="glink-sug">مقترح</em>' : ""}</span></label>`).join("")
+                   : `<div style="font-size:12px;color:var(--gray3);padding:6px 0">${t==="risk"?"لا توجد مخاطر بعد — تظهر هنا المخاطر المسجّلة في طلبات تقييم المخاطر.":t==="decision"?"لا توجد قرارات بعد — تظهر هنا القرارات المسجّلة من محاضر الاجتماعات (متابعة القرارات).":t==="procedure"?"لا توجد إجراءات بعد — تُولَّد من صفحة الإجراءات.":t==="authority"?"لا توجد بنود في مصفوفة الصلاحيات بعد.":"لا توجد سياسات."}</div>`);
   }).join("");
   document.getElementById("govlink-save").onclick = () => saveGovLinks(type, id, existing);
 }
 function closeGovLinkPicker(){ const m = document.getElementById("m-govlink"); if(m) m.classList.remove("open"); }
 async function saveGovLinks(type, id, existing){
+  govCacheClear();
   const chosen = [...document.querySelectorAll(".glink-chk:checked")].map(c => ({ type:c.dataset.type, id:Number(c.dataset.id) }));
   const key = x => x.type + ":" + x.id;
   const chosenKeys = new Set(chosen.map(key));
@@ -1081,7 +1113,76 @@ async function saveGovLinks(type, id, existing){
   }
   for(const r of toRemove){ await sb.from("governance_links").delete().eq("id", r.rowId); }
   logActivity("تعديل", "روابط الحوكمة", `${GOV_LINK_META[type].label} ${id}`, "");
+  govCacheClear();
   closeGovLinkPicker();
   alert(chosen.length ? `تم حفظ الروابط ✅ (${chosen.length})` : "تم إزالة الروابط ✅");
   document.querySelectorAll(`[data-glinks="${type}:${id}"]`).forEach(b => renderGovLinks(b.id, type, id));
+}
+
+/* ══════════ GOVERNANCE NETWORK: coverage + auto-suggest wizard ══════════
+   Coverage = how well the policy base is actually wired into how the company works:
+   a policy with no procedure and no authority item is "inactive on paper"; a procedure or an
+   authority item with no policy has no stated basis. The wizard proposes links from keyword
+   overlap and applies only what the user confirms. */
+async function govNetworkState(){
+  govCacheClear();
+  const { cand, links } = await govLoadAll();
+  const has = (type, id, otherType) => links.some(l =>
+    (l.source_type===type && String(l.source_id)===String(id) && l.target_type===otherType) ||
+    (l.target_type===type && String(l.target_id)===String(id) && l.source_type===otherType));
+  const policiesNoImpl = cand.policy.filter(p => !has("policy", p.id, "procedure") && !has("policy", p.id, "authority"));
+  const procNoPolicy = cand.procedure.filter(p => !has("procedure", p.id, "policy"));
+  const authNoPolicy = cand.authority.filter(a => !has("authority", a.id, "policy"));
+  const total = cand.policy.length + cand.procedure.length + cand.authority.length;
+  const bad = policiesNoImpl.length + procNoPolicy.length + authNoPolicy.length;
+  return { cand, links, policiesNoImpl, procNoPolicy, authNoPolicy, total, pct: total ? Math.round((total - bad) / total * 100) : null };
+}
+async function renderGovNetworkCard(){
+  const box = document.getElementById("dashGovNetwork"); if(!box) return;
+  let st; try { st = await govNetworkState(); } catch(e){ box.innerHTML = ""; return; }
+  if(!st.total){ box.innerHTML = '<div class="dash-empty"><span>أضف سياسات وإجراءات وبنود صلاحيات ليبدأ قياس الترابط.</span></div>'; return; }
+  const row = (n, text) => n ? `<div class="gn-row"><b>${n}</b> ${text}</div>` : "";
+  box.innerHTML = `<div class="gn-top"><div class="gn-pct ${st.pct>=80?"pg-good":st.pct>=50?"pg-mid":"pg-low"}-t">${st.pct}%</div><div class="gn-lbl">من عناصر الحوكمة مرتبطة بسند أو تطبيق</div></div>
+    ${row(st.policiesNoImpl.length, "سياسة بلا إجراء أو صلاحية تطبّقها (غير مفعّلة)")}
+    ${row(st.procNoPolicy.length, "إجراء بلا سياسة كمرجع")}
+    ${row(st.authNoPolicy.length, "بند صلاحية بلا سياسة كسند")}
+    <button class="btn-xs primary" style="margin-top:10px" onclick="openAutoLinkWizard()">✨ اقترح الروابط تلقائياً</button>`;
+}
+async function openAutoLinkWizard(){
+  let m = document.getElementById("m-autolink");
+  if(!m){
+    m = document.createElement("div"); m.className = "modal-bg"; m.id = "m-autolink";
+    m.innerHTML = '<div class="modal"><div class="modal-title">روابط مقترحة تلقائياً</div><div id="autolink-body"></div><div class="modal-foot"><button class="btn btn-ghost" onclick="document.getElementById(\'m-autolink\').classList.remove(\'open\')">إغلاق</button><button class="btn btn-gold" id="autolink-save">اعتماد المحدد</button></div></div>';
+    document.body.appendChild(m);
+  }
+  const body = document.getElementById("autolink-body");
+  body.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ تحليل التطابق...</div>';
+  m.classList.add("open");
+  const st = await govNetworkState();
+  const exists = (a, b) => st.links.some(l => (l.source_type===a.t && String(l.source_id)===String(a.x.id) && l.target_type===b.t && String(l.target_id)===String(b.x.id)) || (l.target_type===a.t && String(l.target_id)===String(a.x.id) && l.source_type===b.t && String(l.source_id)===String(b.x.id)));
+  const sug = [];
+  const pairs = [["policy","procedure"],["policy","authority"],["policy","risk"]];
+  pairs.forEach(([ta, tb]) => st.cand[ta].forEach(a => st.cand[tb].forEach(b => {
+    const sc = govScore(a, b);
+    if(sc >= 1 && !exists({t:ta,x:a},{t:tb,x:b})) sug.push({ ta, a, tb, b, sc });
+  })));
+  sug.sort((x,y) => y.sc - x.sc);
+  const top = sug.slice(0, 40);
+  if(!top.length){ body.innerHTML = '<div style="padding:16px;font-size:13px;color:var(--gray3)">لا توجد اقتراحات جديدة. أضف المزيد من السياسات والإجراءات أو اربط يدوياً من بطاقة كل عنصر.</div>'; document.getElementById("autolink-save").style.display = "none"; return; }
+  document.getElementById("autolink-save").style.display = "";
+  body.innerHTML = '<div style="font-size:12.5px;color:var(--gray3);margin-bottom:8px">الاقتراح مبني على تشابه الكلمات فقط. راجعه وأشّر على ما تراه صحيحاً.</div>' +
+    top.map((x,i) => `<label class="glink-row"><input type="checkbox" class="alink-chk" data-i="${i}" ${x.sc>=2?"checked":""}> <span>${GOV_LINK_META[x.ta].icon} ${orgEsc(x.a.name).slice(0,50)} ⇄ ${GOV_LINK_META[x.tb].icon} ${orgEsc(x.b.name).slice(0,50)}${x.sc>=2?' <em class="glink-sug">تطابق قوي</em>':""}</span></label>`).join("");
+  document.getElementById("autolink-save").onclick = async () => {
+    const chosen = [...document.querySelectorAll(".alink-chk:checked")].map(c => top[Number(c.dataset.i)]);
+    if(!chosen.length){ alert("لم تؤشّر على أي اقتراح"); return; }
+    const { data: u } = await sb.auth.getUser();
+    const email = u && u.user ? u.user.email : null;
+    const { error } = await sb.from("governance_links").insert(chosen.map(x => ({ company_id: currentCompanyId, source_type:x.ta, source_id:x.a.id, target_type:x.tb, target_id:x.b.id, created_by: email })));
+    if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+    logActivity("إنشاء", "روابط الحوكمة", `${chosen.length} رابط مقترح`, "");
+    govCacheClear();
+    alert(`تم ربط ${chosen.length} عنصر ✅`);
+    m.classList.remove("open");
+    renderGovNetworkCard();
+  };
 }
