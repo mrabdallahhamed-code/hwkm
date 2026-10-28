@@ -210,12 +210,16 @@ async function loadMyVoteHistory(){
 async function loadVoteResults(){
   const tbody = document.getElementById("voteResultsTbody");
   if(!tbody) return;
-  if(!currentVotingMeetingId){ tbody.innerHTML = emptyRowHTML(6, "لا توجد جمعية محددة."); return; }
+  if(!currentVotingMeetingId){ tbody.innerHTML = emptyRowHTML(7, "لا توجد جمعية محددة."); return; }
   const { data, error } = await sb.from("votes").select("*").eq("company_id", currentCompanyId).eq("meeting_id", currentVotingMeetingId).not("shareholder_name","is",null);
   if(error){ tbody.innerHTML = errorRowHTML(6, error.message); return; }
   const rows = data || [];
   if(rows.length===0){ tbody.innerHTML = emptyRowHTML(6, "لا توجد أصوات مسجّلة من المساهمين بعد."); return; }
   const totalShares = Number(companySettings.total_shares) || 0;
+  let agmTypeForRule = "";
+  try { const { data: mm } = await sb.from("meetings").select("agm_type").eq("id", currentVotingMeetingId).maybeSingle(); agmTypeForRule = (mm && mm.agm_type) || ""; } catch(e){}
+  let attendedShares = 0;
+  try { const { data: at } = await sb.from("agm_attendance").select("shares_asalah,shares_wakala").eq("meeting_id", currentVotingMeetingId); attendedShares = (at||[]).reduce((x,a) => x + (Number(a.shares_asalah)||0) + (Number(a.shares_wakala)||0), 0); } catch(e){}
   const byTopic = {};
   rows.forEach(v => {
     const t = v.topic || "—";
@@ -229,6 +233,8 @@ async function loadVoteResults(){
   tbody.innerHTML = Object.keys(byTopic).map(t => {
     const d = byTopic[t];
     const votedShares = d.yes + d.no + d.abs;
+    const represented = attendedShares > 0 ? Math.max(attendedShares, votedShares) : votedShares;
+    const ev = agmEvaluateTopic(agmTypeForRule, t, d.yes, represented);
     return `<tr>
       <td>${t}</td>
       <td style="text-align:center">${d.voters}</td>
@@ -236,6 +242,7 @@ async function loadVoteResults(){
       <td style="text-align:center;color:var(--green);font-weight:700">${pct(d.yes, votedShares)}</td>
       <td style="text-align:center;color:var(--red);font-weight:700">${pct(d.no, votedShares)}</td>
       <td style="text-align:center;color:var(--orange);font-weight:700">${pct(d.abs, votedShares)}</td>
+      <td style="text-align:center;font-size:11.5px;line-height:1.7"><b style="color:${ev.passed ? "var(--green)" : "var(--red)"}">${ev.passed ? "✅ مستوفٍ للأغلبية" : "❌ لم يبلغ الأغلبية"}</b><br>الموافقة ${ev.yesPct.toFixed(1)}% من الممثَّل — المطلوب ${ev.req.pct}%${attendedShares > 0 ? "" : "<br><small style=\"color:var(--gray3)\">محسوبة من الأصوات المسجّلة لعدم تسجيل حضور</small>"}</td>
     </tr>`;
   }).join("");
 }
@@ -1276,4 +1283,25 @@ async function restoreQuorumDefaults(){
   if(error){ alert("تعذّر الحفظ: " + error.message); return; }
   logActivity("تعديل", "إعداد الجمعية", "النصاب القانوني", "استعادة نظام الشركات");
   loadQuorumSettings();
+}
+
+
+/* ══ MAJORITY RULES FOR AGM RESOLUTIONS (Saudi Companies Law, Arts. 92–93) ══
+   Ordinary: a majority (more than half) of the voting rights REPRESENTED at the meeting.
+   Extraordinary: two-thirds of the represented rights — except capital increase/decrease, extending the
+   company's term, dissolving it early, merging or splitting it: three-quarters. Abstentions count as
+   represented, so they weigh against approval. A company's Articles may require more; use the
+   per-topic override below when they do. */
+const AGM_SPECIAL_RE = /زيادة\s*(رأس\s*)?المال|تخفيض\s*(رأس\s*)?المال|تخفيض\s*رأس|إطالة\s*مدة|تمديد\s*مدة|حل\s*الشركة|اندماج|الاندماج|دمج\s*الشركة|تقسيم\s*الشركة/;
+function agmRequiredMajority(agmType, topicText){
+  const ext = /غير\s*عادية/.test(agmType || "");
+  if(!ext) return { pct: 50, strict: true, label: "أغلبية حقوق التصويت الممثلة في الاجتماع (أكثر من 50%)" };
+  if(AGM_SPECIAL_RE.test(topicText || "")) return { pct: 75, strict: false, label: "ثلاثة أرباع حقوق التصويت الممثلة (75%) — قرار من القرارات الخاصة" };
+  return { pct: 66.67, strict: false, label: "ثلثا حقوق التصويت الممثلة (66.67%)" };
+}
+function agmEvaluateTopic(agmType, topicText, yesShares, represented){
+  const req = agmRequiredMajority(agmType, topicText);
+  const yesPct = represented > 0 ? (yesShares / represented) * 100 : 0;
+  const passed = represented > 0 && (req.strict ? yesPct > req.pct : yesPct + 1e-9 >= req.pct);
+  return { passed, yesPct, req };
 }

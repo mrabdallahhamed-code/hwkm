@@ -69,20 +69,26 @@ const OFFICIAL_DOC_TYPES = {
 
       const topicResults = topics.map(t => {
         const topicText = t.topic_text || t.topic || "";
-        let yes_pct, no_pct, abs_pct;
+        let yes_pct, no_pct, abs_pct, exactYes = null;
         if(t.manual_yes_pct != null || t.manual_no_pct != null || t.manual_abs_pct != null){
           yes_pct = Math.round(Number(t.manual_yes_pct)||0);
           no_pct = Math.round(Number(t.manual_no_pct)||0);
           abs_pct = Math.round(Number(t.manual_abs_pct)||0);
         } else {
           const relevant = votes.filter(v => v.topic === topicText);
-          const totalVotes = relevant.length || 1;
-          const yes = relevant.filter(v=>v.result==="موافق").length;
-          const no = relevant.filter(v=>v.result==="معارض").length;
-          const abs = relevant.filter(v=>v.result==="ممتنع").length;
-          yes_pct = Math.round(yes/totalVotes*100); no_pct = Math.round(no/totalVotes*100); abs_pct = Math.round(abs/totalVotes*100);
+          const sh = v => Number(v.shares_count) || 0;
+          const yesS = relevant.filter(v=>v.result==="موافق").reduce((x,v)=>x+sh(v),0);
+          const noS = relevant.filter(v=>v.result==="معارض").reduce((x,v)=>x+sh(v),0);
+          const absS = relevant.filter(v=>v.result==="ممتنع").reduce((x,v)=>x+sh(v),0);
+          const votedS = yesS + noS + absS;
+          const repS = Math.max(attendee_shares || 0, votedS) || 1;
+          yes_pct = Math.round(yesS/repS*100); no_pct = Math.round(noS/repS*100); abs_pct = Math.max(0, 100 - yes_pct - no_pct);
+          exactYes = yesS/repS*100;
         }
-        return { topic_text: topicText, yes_pct, no_pct, abs_pct, decision: yes_pct>=50 ? "تمت الموافقة" : "لم تتم الموافقة" };
+        const req = agmRequiredMajority(m.agm_type, topicText);
+        const yy = exactYes != null ? exactYes : yes_pct;
+        const ok = req.strict ? yy > req.pct : yy + 1e-9 >= req.pct;
+        return { topic_text: topicText, yes_pct, no_pct, abs_pct, decision: ok ? "تمت الموافقة" : "لم تتم الموافقة" };
       });
 
       b.wrapAndDraw(`محضر اجتماع الجمعية العامة ${m.agm_type||"العادية"}`, { align:"center", font:`bold ${16*b.scale}px Tajawal, Arial`, color:"#1A3A6B" });
