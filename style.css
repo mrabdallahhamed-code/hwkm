@@ -996,3 +996,7 @@ div[style*="linear-gradient(135deg,var(--primary),var(--primary2))"][style*="bor
 .sb-item.sb-alert .sb-val{color:var(--red)}
 .sb-item.sb-alert .sb-lbl::after{content:" ‹";font-weight:700;color:var(--primary3)}
 .dash-empty{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 2px;font-size:13px;color:var(--gray3)}
+.kpi-ins{margin-top:auto;}
+.kpi-val{margin-bottom:10px}
+.card,.two-col .card{border-right:1px solid var(--gray1) !important;border-radius:12px;}
+#stat-compliance2{font-size:20px}

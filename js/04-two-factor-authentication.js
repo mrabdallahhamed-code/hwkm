@@ -1222,6 +1222,7 @@ function enhanceDashboardKpis(c){
     else { const p=+m[1]; const f=document.getElementById("kpi-govassess-foot"); const why=f&&f.textContent?f.textContent:"نتيجة آخر تقييم"; put("kpi-govassess", p<50?"crit":p<75?"watch":"good", why, p<75?"اطّلع على الإجراءات التصحيحية":""); }
   }
   // stats bar: pending signatures becomes an actionable item
+  const sc = document.getElementById("stat-compliance2"); if(sc && (c.cmpSum.pct == null || /لم يُجرَ/.test(c.cmpSum.text||""))) sc.textContent = "غير مقيَّم";
   const ps = document.getElementById("stat-pending-signs"); const psb = ps ? ps.closest(".sb-item") : null;
   if(psb){ psb.style.cursor="pointer"; psb.onclick = () => go("signing", null); psb.classList.toggle("sb-alert", c.pendingSigns > 0); }
 }
