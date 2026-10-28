@@ -1019,6 +1019,7 @@ async function go(id, el){
   if(id==='structure'){ loadStructure(); renderApprovalStatus('structure','structureApprovalStatus'); }
   if(id==='permissions'){ loadPermissionsMatrix(); loadMatrixApprovalStatus(); }
   if(id==='voting') loadVotingPage();
+  if(id==='circulation') loadCirculation();
   if(id==='audit') loadAudit();
   if(id==='govassess'){ document.getElementById('govassessListView').style.display='block'; document.getElementById('govassessFormView').style.display='none'; loadGovAssessments(); }
   if(id==='consultants') loadConsultantsPage();
