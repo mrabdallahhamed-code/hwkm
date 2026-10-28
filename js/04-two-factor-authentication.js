@@ -811,7 +811,7 @@ async function loadNotifications(){
 function renderDashTopRisks(risks){
   const box = document.getElementById("dashTopRisks");
   if(!box) return;
-  if(risks.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد مخاطر مسجّلة بعد.</div>'; return; }
+  if(risks.length===0){ box.innerHTML = '<div class="dash-empty"><span>لم تُسجَّل مخاطر بعد.</span><button class="btn-xs primary" onclick="go(\'risks\',null)">سجّل أول خطر</button></div>'; return; }
   const severity = r => (r.impact==="عالٍ"?2:r.impact==="متوسط"?1:0) * 100 + (r.probability||0);
   const top = [...risks].sort((a,b)=>severity(b)-severity(a)).slice(0,5);
   box.innerHTML = top.map(r => {
@@ -829,7 +829,7 @@ function renderDashTopRisks(risks){
 function renderDashAuditStatus(items){
   const box = document.getElementById("dashAuditStatus");
   if(!box) return;
-  if(items.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد بنود تدقيق مسجّلة بعد.</div>'; return; }
+  if(items.length===0){ box.innerHTML = '<div class="dash-empty"><span>لا توجد بنود تدقيق مسجّلة بعد.</span><button class="btn-xs primary" onclick="go(\'audit\',null)">أضف بند تدقيق</button></div>'; return; }
   const open = items.filter(i=>i.status==="مفتوحة").length;
   const inProgress = items.filter(i=>i.status==="قيد المتابعة").length;
   const closed = items.filter(i=>i.status==="مغلقة").length;
@@ -895,7 +895,8 @@ async function computeGovernanceAlerts(){
     const { data: allApprovals } = await sb.from("governance_approvals").select("*").eq("company_id", currentCompanyId).not("status","eq","مكتملة").not("status","eq","مرفوضة");
     const stuck = (allApprovals||[]).filter(a => (a.document_type||"").startsWith("policy_") && Math.floor((Date.now()-new Date(a.created_at).getTime())/86400000) > deadlineDays);
     if(stuck.length){
-      alerts.push({ severity: "medium", text: `${stuck.length} ${stuck.length===1?'سياسة متأخرة':'سياسات متأخرة'} عن مهلة الاعتماد المحددة (${deadlineDays} يوم) — بانتظار خطوة من أحد الموقّعين.`, page: "governance" });
+      const maxLate = Math.max(...stuck.map(a => Math.floor((Date.now()-new Date(a.created_at).getTime())/86400000) - deadlineDays));
+      alerts.push({ severity: "high", cta: "راجع السياسات", text: `${stuck.length} ${stuck.length===1?'سياسة متأخرة':'سياسات متأخرة'} عن مهلة الاعتماد (${deadlineDays} يوم)، وأقدمها تجاوزت المهلة بـ ${maxLate} يوماً — بانتظار توقيع أحد الموقّعين.`, page: "governance" });
     }
   } catch(e){ console.error("policy deadline alert check failed", e); }
 
@@ -962,20 +963,23 @@ async function renderGovAlertsPanel(){
   const alerts = await computeGovernanceAlerts();
   if(alerts.length === 0){ panel.style.display = "none"; return; }
 
-  const sorted = [...alerts.filter(a=>a.severity==="high"), ...alerts.filter(a=>a.severity==="medium")];
-
+  const high = alerts.filter(a=>a.severity==="high");
+  const med = alerts.filter(a=>a.severity!=="high");
+  const row = a => `<div class="gal-row ${a.severity==='high'?'gal-high':'gal-med'}" onclick="go('${a.page}',null)">
+      <span class="gal-dot"></span>
+      <span class="gal-text">${a.text}</span>
+      <span class="gal-cta">${a.cta||"افتح"} ‹</span>
+    </div>`;
   panel.style.display = "block";
-  panel.innerHTML = `<div class="card" style="border-right:4px solid var(--gold);margin:0">
-    <div class="card-body">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <span class="ico ico-bolt" style="width:18px;height:18px;color:var(--gold)"></span>
-        <span style="font-weight:900;font-size:14px;color:var(--dark)">تنبيهات تستاهل انتباهكم (${alerts.length})</span>
-      </div>
-      ${sorted.map((a,i) => `<div onclick="go('${a.page}',null)" style="cursor:pointer;display:flex;align-items:flex-start;gap:9px;padding:9px 10px;background:${a.severity==='high'?'#FBEAEA':'#FEF3E2'};border-radius:8px;margin-bottom:7px">
-        <span class="ico ico-${a.severity==='high'?'warning':'clock'}" style="width:15px;height:15px;color:${a.severity==='high'?'var(--red)':'var(--gold)'};flex-shrink:0;margin-top:2px"></span>
-        <span style="font-size:12px;color:var(--dark);line-height:1.6">${a.text}</span>
-      </div>`).join("")}
+  panel.innerHTML = `<div class="card gal-card">
+    <div class="gal-head">
+      <span class="ico ico-bolt" style="width:18px;height:18px"></span>
+      <span class="gal-title">تنبيهات الحوكمة</span>
+      ${high.length ? `<span class="gal-chip gal-chip-high">${high.length} تحتاج تصرفاً الآن</span>` : ""}
+      ${med.length ? `<span class="gal-chip">${med.length} للعلم</span>` : ""}
     </div>
+    ${high.length ? `<div class="gal-sec">تحتاج تصرفاً الآن</div>${high.map(row).join("")}` : ""}
+    ${med.length ? `<div class="gal-sec">للعلم والمتابعة</div>${med.map(row).join("")}` : ""}
   </div>`;
 }
 
@@ -1176,7 +1180,50 @@ async function loadDashboard(){
       ).join("");
     }
   }
+  enhanceDashboardKpis({ quarterMeetings: quarterMeetings.length, completedQ, upcomingQ, pendingSigns: signingDocs.filter(d => d.status !== "مكتمل").length, approvedThisMonth, cmpSum, risksTotal: risks.length, openRisks: openRisks.length, highOpenRisks });
   applyDashboardEntityAdaptation();
+}
+
+/* Dashboard KPI interpretation: every figure gets a plain status, the reason behind it and the next step,
+   so an executive can decide from the card itself instead of guessing what "0%" or "—" means. */
+function enhanceDashboardKpis(c){
+  const put = (valId, st, why, act, valText) => {
+    const v = document.getElementById(valId); const k = v ? v.closest(".kpi") : null; if(!k) return;
+    if(valText !== undefined){ v.textContent = valText; v.classList.toggle("kpi-val-na", valText === "غير مقيَّم" || valText === "لا بيانات"); }
+    else v.classList.remove("kpi-val-na");
+    const foot = k.querySelector(".kpi-foot"); if(foot) foot.style.display = "none";
+    let ins = k.querySelector(".kpi-ins"); if(!ins){ ins = document.createElement("div"); ins.className = "kpi-ins"; k.appendChild(ins); }
+    const lbl = {good:"جيد", watch:"يحتاج متابعة", crit:"حرج", na:"غير مقيَّم"}[st];
+    ins.innerHTML = `<span class="kst kst-${st}">${lbl}</span><div class="kpi-why">${why}</div>${act ? `<div class="kpi-act">${act} ‹</div>` : ""}`;
+  };
+  // meetings
+  put("kpi-meetings-q", c.quarterMeetings ? "good" : "watch",
+    c.quarterMeetings ? `${c.completedQ} منعقدة و${c.upcomingQ} قادمة هذا الربع` : "لا توجد اجتماعات مجدولة لهذا الربع",
+    c.quarterMeetings ? "" : "جدولة اجتماع");
+  // minutes / signed documents
+  put("kpi-minutes", c.pendingSigns ? "watch" : "good",
+    c.pendingSigns ? `${c.pendingSigns} ${c.pendingSigns===1?'وثيقة تنتظر':'وثائق تنتظر'} توقيعاً · ${c.approvedThisMonth} اعتُمدت هذا الشهر` : `كل الوثائق موقّعة · ${c.approvedThisMonth} هذا الشهر`,
+    c.pendingSigns ? "افتح التوقيعات" : "");
+  // compliance
+  const unassessed = c.cmpSum.pct == null || /لم يُجرَ/.test(c.cmpSum.text||"");
+  if(c.cmpSum.pct == null) put("kpi-compliance","na","لا توجد بنود امتثال مسجّلة بعد","ابدأ بإضافة البنود","لا بيانات");
+  else if(unassessed) put("kpi-compliance","na",`${c.cmpSum.text.replace(" (لم يُجرَ تقييم بعد)","")} — بلا تقييم رسمي حتى الآن`,"ابدأ التقييم","غير مقيَّم");
+  else { const p=c.cmpSum.pct; put("kpi-compliance", p<50?"crit":p<80?"watch":"good", c.cmpSum.text, p<80?"راجع البنود غير المكتملة":"", p+"%"); }
+  // risks
+  if(!c.risksTotal) put("kpi-risks","na","لم تُسجَّل مخاطر بعد","سجّل أول خطر","لا بيانات");
+  else if(c.highOpenRisks) put("kpi-risks","crit",`${c.highOpenRisks} عالية التأثير ما زالت قيد المراقبة بلا خطة معالجة`,"راجع المخاطر");
+  else if(c.openRisks) put("kpi-risks","watch",`${c.openRisks} ${c.openRisks===1?'خطر مفتوح':'مخاطر مفتوحة'} متوسطة أو منخفضة التأثير`,"راجع المخاطر");
+  else put("kpi-risks","good","لا مخاطر مفتوحة حالياً","");
+  // governance effectiveness
+  const g = document.getElementById("kpi-govassess");
+  if(g){
+    const m = (g.textContent||"").match(/(\d+)%/);
+    if(!m) put("kpi-govassess","na","لم يُجرَ تقييم لفعالية الحوكمة بعد","ابدأ التقييم","غير مقيَّم");
+    else { const p=+m[1]; const f=document.getElementById("kpi-govassess-foot"); const why=f&&f.textContent?f.textContent:"نتيجة آخر تقييم"; put("kpi-govassess", p<50?"crit":p<75?"watch":"good", why, p<75?"اطّلع على الإجراءات التصحيحية":""); }
+  }
+  // stats bar: pending signatures becomes an actionable item
+  const ps = document.getElementById("stat-pending-signs"); const psb = ps ? ps.closest(".sb-item") : null;
+  if(psb){ psb.style.cursor="pointer"; psb.onclick = () => go("signing", null); psb.classList.toggle("sb-alert", c.pendingSigns > 0); }
 }
 function setText(id, val){ const el = document.getElementById(id); if(el) el.textContent = val; }
 
