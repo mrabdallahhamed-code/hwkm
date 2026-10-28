@@ -1092,7 +1092,7 @@ function govAutoLinkOnce(){
       st.links.forEach(l => { have.add(_govPairKey(l.source_type,l.source_id,l.target_type,l.target_id)); have.add(_govPairKey(l.target_type,l.target_id,l.source_type,l.source_id)); });
       const rows = [];
       st.cand.policy.forEach(p => ["procedure","authority","risk"].forEach(t => {
-        st.cand[t].map(b => ({ b, sc: govScore(p, b) })).filter(x => x.sc >= 2).sort((x,y) => y.sc - x.sc).slice(0, 6).forEach(({b}) => {
+        st.cand[t].map(b => ({ b, sc: govScore(p, b) })).filter(x => x.sc >= 1).sort((x,y) => y.sc - x.sc).slice(0, 8).forEach(({b}) => {
           const k = _govPairKey("policy",p.id,t,b.id);
           if(have.has(k) || dis.has(k)) return;
           rows.push({ company_id: co, source_type:"policy", source_id:p.id, target_type:t, target_id:b.id, created_by:"auto" });
@@ -1135,6 +1135,7 @@ async function openGovLinkPicker(type, id){
   const body = document.getElementById("govlink-body");
   body.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>';
   m.classList.add("open");
+  await govAutoLinkOnce();
   const [cand, existing] = await Promise.all([govLinkCandidates(), govLinksFor(type, id)]);
   const have = new Set(existing.map(l => l.type + ":" + l.id));
   if(!Object.values(cand).some(l => l.length)){ body.innerHTML = '<div style="padding:16px;font-size:13px;color:var(--gray3)">لا توجد عناصر للربط بعد: أضف سياسة أو قراراً أو اطلب تقييم مخاطر أولاً.</div>'; return; }
