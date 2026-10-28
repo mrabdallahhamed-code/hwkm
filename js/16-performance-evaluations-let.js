@@ -1071,8 +1071,44 @@ async function govLinksFor(type, id){
   });
   return out;
 }
+/* ══ AUTOMATIC LINKING ══ runs silently (at most once a minute per company): links each policy to the
+   procedures / authority items / risks whose wording genuinely matches (2+ rare shared words, max 6 per
+   type per policy). Covers existing data and anything added later. Links the user removed by hand are
+   remembered and never re-created. */
+const _govDismissKey = () => "govDismissed:" + currentCompanyId;
+function govDismissed(){ try { return new Set(JSON.parse(localStorage.getItem(_govDismissKey()) || "[]")); } catch(e){ return new Set(); } }
+function govDismissAdd(keys){ try { const d = govDismissed(); keys.forEach(k => d.add(k)); localStorage.setItem(_govDismissKey(), JSON.stringify([...d])); } catch(e){} }
+const _govPairKey = (a, ai, b, bi) => a + ":" + ai + ">" + b + ":" + bi;
+let _govAutoAt = {}, _govAutoP = null;
+function govAutoLinkOnce(){
+  const co = currentCompanyId; if(!co) return Promise.resolve();
+  if(_govAutoP && Date.now() - (_govAutoAt[co]||0) < 60000) return _govAutoP;
+  _govAutoAt[co] = Date.now();
+  _govAutoP = (async () => {
+    try {
+      const st = await govNetworkState();
+      const dis = govDismissed();
+      const have = new Set();
+      st.links.forEach(l => { have.add(_govPairKey(l.source_type,l.source_id,l.target_type,l.target_id)); have.add(_govPairKey(l.target_type,l.target_id,l.source_type,l.source_id)); });
+      const rows = [];
+      st.cand.policy.forEach(p => ["procedure","authority","risk"].forEach(t => {
+        st.cand[t].map(b => ({ b, sc: govScore(p, b) })).filter(x => x.sc >= 2).sort((x,y) => y.sc - x.sc).slice(0, 6).forEach(({b}) => {
+          const k = _govPairKey("policy",p.id,t,b.id);
+          if(have.has(k) || dis.has(k)) return;
+          rows.push({ company_id: co, source_type:"policy", source_id:p.id, target_type:t, target_id:b.id, created_by:"auto" });
+        });
+      }));
+      if(rows.length){
+        const { error } = await sb.from("governance_links").insert(rows);
+        if(!error){ govCacheClear(); _govAutoAt[co] = Date.now(); }
+      }
+    } catch(e){}
+  })();
+  return _govAutoP;
+}
 async function renderGovLinks(boxId, type, id){
   const box = document.getElementById(boxId); if(!box) return;
+  await govAutoLinkOnce();
   const links = await govLinksFor(type, id);
   if(!links.length){ box.innerHTML = ""; return; }
   box.innerHTML = '<span class="glink-chip">…</span>';
@@ -1084,10 +1120,10 @@ async function renderGovLinks(boxId, type, id){
   });
   const types = Object.keys(groups);
   if(!types.length){ box.innerHTML = ""; return; }
-  const total = types.reduce((n,t) => n + groups[t].length, 0);
-  const summary = types.map(t => `${GOV_LINK_META[t].icon} ${groups[t].length} ${GOV_LINK_META[t].label}`).join(" · ");
-  const detail = types.map(t => groups[t].map(x => `<div class="glink-det">${GOV_LINK_META[t].icon} ${orgEsc(x.name).slice(0,80)}</div>`).join("")).join("");
-  box.innerHTML = `<button type="button" class="glink-sum" onclick="this.nextElementSibling.classList.toggle('open')">🔗 مرتبطة بـ ${total}: ${summary} ▾</button><div class="glink-list">${detail}</div>`;
+  box.innerHTML = '<div class="glink-lbl">مربوطة بـ:</div>' + types.map(t => {
+    const det = groups[t].map(x => `<div class="glink-det">${orgEsc(x.name).slice(0,80)}</div>`).join("");
+    return `<div class="glink-grp"><button type="button" class="glink-sum" onclick="this.nextElementSibling.classList.toggle('open')">${GOV_LINK_META[t].icon} ${GOV_LINK_META[t].label} (${groups[t].length}) ▾</button><div class="glink-list">${det}</div></div>`;
+  }).join("");
 }
 async function openGovLinkPicker(type, id){
   let m = document.getElementById("m-govlink");
@@ -1139,6 +1175,7 @@ async function saveGovLinks(type, id, existing){
     const { error } = await sb.from("governance_links").insert(toAdd.map(c => ({ company_id: currentCompanyId, source_type:type, source_id:id, target_type:c.type, target_id:c.id, created_by: email })));
     if(error){ alert("تعذّر حفظ الروابط: " + error.message); return; }
   }
+  govDismissAdd(toRemove.map(r => type === 'policy' ? _govPairKey('policy',id,r.type,r.id) : _govPairKey(r.type,r.id,type,id)));
   for(const r of toRemove){ await sb.from("governance_links").delete().eq("id", r.rowId); }
   logActivity("تعديل", "روابط الحوكمة", `${GOV_LINK_META[type].label} ${id}`, "");
   govCacheClear();
@@ -1166,6 +1203,7 @@ async function govNetworkState(){
   return { cand, links, policiesNoImpl, procNoPolicy, authNoPolicy, total, pct: total ? Math.round((total - bad) / total * 100) : null };
 }
 async function renderGovNetworkCard(){
+  await govAutoLinkOnce();
   const box = document.getElementById("dashGovNetwork"); if(!box) return;
   let st; try { st = await govNetworkState(); } catch(e){ box.innerHTML = ""; return; }
   if(!st.total){ box.innerHTML = '<div class="dash-empty"><span>أضف سياسات وإجراءات وبنود صلاحيات ليبدأ قياس الترابط.</span></div>'; return; }
