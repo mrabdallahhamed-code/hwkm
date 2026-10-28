@@ -1034,6 +1034,7 @@ async function renderGovLinks(boxId, type, id){
   const box = document.getElementById(boxId); if(!box) return;
   const links = await govLinksFor(type, id);
   if(!links.length){ box.innerHTML = ""; return; }
+  box.innerHTML = '<span class="glink-chip">…</span>';
   const cand = await govLinkCandidates();
   box.innerHTML = links.map(l => {
     const item = (cand[l.type]||[]).find(x => String(x.id) === String(l.id));
@@ -1055,6 +1056,7 @@ async function openGovLinkPicker(type, id){
   m.classList.add("open");
   const [cand, existing] = await Promise.all([govLinkCandidates(), govLinksFor(type, id)]);
   const have = new Set(existing.map(l => l.type + ":" + l.id));
+  if(!cand.policy.length && !cand.decision.length && !cand.risk.length){ body.innerHTML = '<div style="padding:16px;font-size:13px;color:var(--gray3)">لا توجد عناصر للربط بعد: أضف سياسة أو قراراً أو اطلب تقييم مخاطر أولاً.</div>'; return; }
   const types = Object.keys(GOV_LINK_META).filter(t => t !== type);
   body.innerHTML = types.map(t => {
     const list = cand[t] || [];
@@ -1080,5 +1082,6 @@ async function saveGovLinks(type, id, existing){
   for(const r of toRemove){ await sb.from("governance_links").delete().eq("id", r.rowId); }
   logActivity("تعديل", "روابط الحوكمة", `${GOV_LINK_META[type].label} ${id}`, "");
   closeGovLinkPicker();
+  alert(chosen.length ? `تم حفظ الروابط ✅ (${chosen.length})` : "تم إزالة الروابط ✅");
   document.querySelectorAll(`[data-glinks="${type}:${id}"]`).forEach(b => renderGovLinks(b.id, type, id));
 }
