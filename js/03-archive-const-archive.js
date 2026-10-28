@@ -251,7 +251,7 @@ async function loadCompanyRequestPage(){
       </label>
     </div>
     <div class="row2">
-      <div class="fg"><label>رقم السجل التجاري</label><input class="fi" id="cr-cr-number"/></div>
+      <div class="fg"><label>رقم السجل التجاري أو الرقم الموحد <span style="color:var(--red)">*</span></label><input class="fi" id="cr-cr-number" inputmode="numeric" maxlength="10" placeholder="10 أرقام — مثال: 1010XXXXXX"/></div>
       <div class="fg"><label>تاريخ السجل</label><input type="date" class="fi" id="cr-cr-date"/></div>
     </div>
     <div class="fg"><label>الشخص المسؤول (أنت)</label><input class="fi" id="cr-resp-name" value="${orgEsc(currentUserProfile.full_name||'')}"/></div>
@@ -297,7 +297,8 @@ async function startInstantTrial(){
   const company_name = document.getElementById("cr-name").value.trim();
   if(!company_name){ alert("الرجاء إدخال اسم الشركة"); return; }
   const company_type = document.getElementById("cr-type").value;
-  const cr_number = document.getElementById("cr-cr-number").value.trim();
+  const cr_number = normCrNumber(document.getElementById("cr-cr-number").value);
+  if(!validCrNumber(cr_number)){ alert(CR_REQUIRED_MSG); return; }
   const cr_date = document.getElementById("cr-cr-date").value || null;
   const responsible_person = document.getElementById("cr-resp-name").value.trim();
   const responsible_phone = document.getElementById("cr-resp-phone").value.trim();
@@ -354,11 +355,17 @@ async function submitCompanyRequest(){
   try { await submitCompanyRequestImpl(); } finally { companyRequestLock = false; }
 }
 
+/* رقم السجل التجاري / الرقم الوطني الموحد: 10 أرقام، يتحقق منه فريق المنصة يدويًا مع وزارة التجارة */
+function normCrNumber(v){ return String(v||"").replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[^0-9]/g,""); }
+function validCrNumber(v){ return /^\d{10}$/.test(normCrNumber(v)); }
+const CR_REQUIRED_MSG = "رقم السجل التجاري أو الرقم الموحد إلزامي (10 أرقام) — نستخدمه لتوثيق شركتك مع وزارة التجارة.";
+
 async function submitCompanyRequestImpl(){
   const company_name = document.getElementById("cr-name").value.trim();
   if(!company_name){ alert("الرجاء إدخال اسم الشركة"); return; }
   const company_type = document.getElementById("cr-type").value;
-  const cr_number = document.getElementById("cr-cr-number").value.trim();
+  const cr_number = normCrNumber(document.getElementById("cr-cr-number").value);
+  if(!validCrNumber(cr_number)){ alert(CR_REQUIRED_MSG); return; }
   const cr_date = document.getElementById("cr-cr-date").value || null;
   const responsible_person = document.getElementById("cr-resp-name").value.trim();
   const responsible_phone = document.getElementById("cr-resp-phone").value.trim();
@@ -1015,7 +1022,8 @@ async function saveCompanyImpl(){
   const name = document.getElementById("mco-name").value.trim();
   if(!name){ alert("الرجاء إدخال اسم الشركة"); return; }
   const company_type = document.getElementById("mco-type").value;
-  const cr_number = document.getElementById("mco-cr-number").value.trim();
+  const cr_number = normCrNumber(document.getElementById("mco-cr-number").value);
+  if(cr_number && !validCrNumber(cr_number)){ alert("رقم السجل/الرقم الموحد يجب أن يكون 10 أرقام."); return; }
   const cr_date = document.getElementById("mco-cr-date").value || null;
   const business_activity = document.getElementById("mco-activity").value.trim();
   const company_size = document.getElementById("mco-size").value;
@@ -1043,6 +1051,7 @@ async function saveCompanyImpl(){
     if(error){ alert("تعذّر حفظ التعديلات: " + error.message); return; }
     closeM("m-company");
     await loadCompanies(Number(id));
+    if(typeof refreshCompanyTypeVisibility === "function") await refreshCompanyTypeVisibility();
     alert("تم تحديث بيانات الشركة ✅");
   } else {
     const { data: sameName } = await sb.from("companies").select("id").ilike("name", name);
@@ -1088,6 +1097,22 @@ function renderTrialBanner(){
     : `⚠️ انتهت فترة الفترة التجريبية — تواصل معنا لتفعيل الاشتراك`;
 }
 
+let currentCompanyHasCr = true;
+function renderCrBanner(){
+  let b = document.getElementById("crBanner");
+  const isAdmin = getCurrentRole() === "مدير النظام" && !(currentUserProfile && currentUserProfile.is_platform_admin === true);
+  if(currentCompanyHasCr || !isAdmin || !currentCompanyId){ if(b) b.remove(); return; }
+  if(!b){
+    b = document.createElement("div");
+    b.id = "crBanner";
+    b.style.cssText = "background:#FFF4D6;color:#7A5A00;border-bottom:1px solid #E6C766;text-align:center;font-size:12.5px;font-weight:700;padding:8px 12px";
+    const w = document.getElementById("appWrapper");
+    const t = document.getElementById("trialBanner");
+    w.insertBefore(b, t ? t.nextSibling : w.firstChild);
+  }
+  b.innerHTML = '🪪 فضلاً أدخل رقم السجل التجاري أو الرقم الموحد ليكتمل توثيق شركتك. <button class="btn-xs primary" style="margin-inline-start:8px" onclick="openEditCompanyModal()">إدخال الرقم الآن</button>';
+}
+
 let companyTypeReadyPromise = null;
 function refreshCompanyTypeVisibility(){
   companyTypeReadyPromise = applyCompanyTypeVisibility();
@@ -1096,7 +1121,7 @@ function refreshCompanyTypeVisibility(){
 
 async function applyCompanyTypeVisibility(){
   if(!currentCompanyId) return;
-  const { data: c } = await sb.from("companies").select("company_type,module_internal_audit,module_risk_management,trial_ends_at,llc_single_manager,llc_single_owner,entity_verification").eq("id", currentCompanyId).single();
+  const { data: c } = await sb.from("companies").select("company_type,module_internal_audit,module_risk_management,trial_ends_at,llc_single_manager,llc_single_owner,entity_verification,cr_number").eq("id", currentCompanyId).single();
   currentCompanyType = c ? c.company_type : null;
   currentCompanyEntityVerified = !!(c && c.entity_verification === "verified");
   const inTrial = !!(c && c.trial_ends_at && new Date(c.trial_ends_at) > new Date());
@@ -1105,7 +1130,9 @@ async function applyCompanyTypeVisibility(){
     internal_audit: inTrial || !!c?.module_internal_audit,
     risk_management: inTrial || !!c?.module_risk_management
   };
+  currentCompanyHasCr = !!(c && String(c.cr_number||"").trim());
   renderTrialBanner();
+  renderCrBanner();
   const isSoleProp = currentCompanyType === "مؤسسة فردية";
   const isLLCType = currentCompanyType === "ذات مسؤولية محدودة";
   const isLLCSingleManager = isLLCType && !!c?.llc_single_manager;
