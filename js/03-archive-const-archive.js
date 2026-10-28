@@ -336,7 +336,7 @@ async function startInstantTrial(){
         <p><b>المسؤول:</b> ${(currentUserProfile && currentUserProfile.full_name)||sessionEmail} (${sessionEmail})</p>
         <p>لا يوجد إجراء مطلوب منك — هذا إشعار فقط. التجربة مفعَّلة تلقائيًا لمدة 14 يومًا.</p>
       </div>`;
-      notifyPlatformAdmins(subject, html);
+      await Promise.race([ notifyPlatformAdmins(subject, html), new Promise(r => setTimeout(r, 6000)) ]);
     }
 
     (window.__nativeAlert||alert)("تم إنشاء شركتك وتفعيل تجربتك 🎉 — راح تدخل منصتك الآن مباشرة.");

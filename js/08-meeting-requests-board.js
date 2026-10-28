@@ -969,6 +969,7 @@ async function submitRiskRequest(){
   }]);
   if(error){ alert("تعذّر إرسال الطلب: " + error.message); return; }
   logActivity("إنشاء", "طلب تقييم مخاطر", client_name, "");
+  await notifyOwnerNewRequest("طلب تقييم مخاطر جديد", [["اسم مقدّم الطلب", client_name],["القطاع", sector],["نطاق التقييم", scope],["أنواع المخاطر", risk_types_needed],["عدد الملفات المرفقة", file_urls.length]]);
   alert("تم إرسال طلبك بنجاح ✅ — سيتواصل معك فريق المخاطر قريبًا.");
   closeM("m-risk-new-request");
   loadRisks();

@@ -975,6 +975,7 @@ async function requestService(providerId){
     provider_id: providerId, requested_by_name, requested_by_email: myEmail, status: SERVICE_STAGES[0], company_id: currentCompanyId
   }]);
   if(error){ alert("تعذّر إرسال الطلب: " + error.message); return; }
+  await notifyOwnerNewRequest("طلب خدمة من مزوّد جديد", [["اسم الطالب", requested_by_name],["رقم المزوّد", providerId]]);
   alert("وصل طلبك إلى فريق حوكم، وسيتواصلون معكم قريبًا.");
   loadAllRequestsHistory(false);
 }

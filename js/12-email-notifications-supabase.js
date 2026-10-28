@@ -103,6 +103,25 @@ async function notifyPlatformAdmins(subject, html){
   }
 }
 
+/* إشعار مالك المنصة بوصول طلب جديد (مخاطر / مراجعة / خدمة...). ننتظر الإرسال بحد أقصى 6 ثوانٍ
+   حتى لا يلغيه تحديث الصفحة أو إغلاقها، ولا نُظهر للعميل أي خطأ إن تعذّر. */
+async function notifyOwnerNewRequest(kindLabel, rows){
+  try{
+    let coName = "—";
+    try{ const { data: c } = await sb.from("companies").select("name,cr_number").eq("id", currentCompanyId).single(); if(c) coName = c.name + (c.cr_number ? " — س.ت: " + c.cr_number : " — بلا رقم سجل"); }catch(e){}
+    const esc = v => String(v == null || v === "" ? "—" : v).replace(/[&<>]/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[ch]));
+    const who = (currentUserProfile && (currentUserProfile.full_name || currentUserProfile.email)) || "";
+    const html = `<div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px">
+      <h2 style="color:#1A3A6B">📥 ${esc(kindLabel)}</h2>
+      <p><b>الشركة:</b> ${esc(coName)}</p>
+      <p><b>مقدّم الطلب:</b> ${esc(who)}</p>
+      ${(rows||[]).map(r => `<p><b>${esc(r[0])}:</b> ${esc(r[1])}</p>`).join("")}
+      <p style="color:#B8860B">ردّ على العميل خلال يوم عمل — افتح لوحة المنصة ← الطلبات.</p>
+    </div>`;
+    await Promise.race([ notifyPlatformAdmins("📥 " + kindLabel + " — " + coName, html), new Promise(r => setTimeout(r, 6000)) ]);
+  }catch(e){}
+}
+
 async function sendNotificationEmail(to, subject, html){
   try{
     const res = await fetch(`${SUPABASE_URL}/functions/v1/send-notification-email`, {

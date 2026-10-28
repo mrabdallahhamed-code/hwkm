@@ -955,6 +955,7 @@ async function submitAuditRequest(){
   }]);
   if(error){ alert("تعذّر إرسال الطلب: " + error.message); return; }
   logActivity("إنشاء", "طلب مراجعة", client_name, "");
+  await notifyOwnerNewRequest("طلب مراجعة جديد", [["اسم مقدّم الطلب", client_name],["القطاع", sector],["نطاق المراجعة", scope],["عدد الملفات المرفقة", file_urls.length]]);
   alert("تم إرسال طلبك بنجاح ✅ — سيتواصل معك فريق المراجعة قريبًا.");
   closeM("m-audit-new-request");
   loadAudit();
