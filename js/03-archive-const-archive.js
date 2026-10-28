@@ -358,7 +358,7 @@ async function submitCompanyRequest(){
 /* رقم السجل التجاري / الرقم الوطني الموحد: 10 أرقام، يتحقق منه فريق المنصة يدويًا مع وزارة التجارة */
 function normCrNumber(v){ return String(v||"").replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[^0-9]/g,""); }
 function validCrNumber(v){ return /^\d{10}$/.test(normCrNumber(v)); }
-const CR_REQUIRED_MSG = "رقم السجل التجاري أو الرقم الموحد إلزامي (10 أرقام) — نستخدمه لتوثيق شركتك مع وزارة التجارة.";
+const CR_REQUIRED_MSG = "رقم السجل التجاري أو الرقم الموحد إلزامي (10 أرقام) — لازم لتوثيق شركتك داخل المنصة.";
 
 async function submitCompanyRequestImpl(){
   const company_name = document.getElementById("cr-name").value.trim();
