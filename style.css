@@ -1023,3 +1023,9 @@ div[style*="linear-gradient(135deg,var(--primary),var(--primary2))"][style*="bor
 .gn-row{font-size:13px;padding:5px 0;border-top:1px solid var(--gray1);color:var(--dark)}
 .gn-row b{color:var(--red);margin-inline-end:4px}
 .pg-good-t{color:var(--green)}.pg-mid-t{color:var(--primary3)}.pg-low-t{color:var(--gray3)}
+.glink-hide{display:none !important}
+#m-govlink .modal{max-height:85vh;overflow-y:auto}
+.glink-sum{background:#f3f5f8;border:1px solid #e3e7ee;border-radius:10px;padding:7px 10px;font-size:12px;color:#44506a;cursor:pointer;width:100%;text-align:right;font-family:inherit}
+.glink-list{display:none;max-height:180px;overflow-y:auto;margin-top:6px}
+.glink-list.open{display:block}
+.glink-det{font-size:12px;color:#44506a;padding:4px 6px;border-bottom:1px solid #eef0f4}

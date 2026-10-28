@@ -1034,6 +1034,7 @@ async function govLoadAll(){
     try {
       const [cand, lk] = await Promise.all([ govLinkCandidatesRaw(), sb.from("governance_links").select("*").eq("company_id", currentCompanyId) ]);
       _govCache = { t: Date.now(), cand, links: lk.data || [], co: currentCompanyId };
+      govBuildDF(cand);
       return _govCache;
     } finally { _govInflight = null; }
   })();
@@ -1046,9 +1047,19 @@ function govTokens(txt){
   return new Set(String(txt||"").replace(/[\u064B-\u0652\u0640]/g,"").replace(/[أإآ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه")
     .split(/[^\u0621-\u064Aa-zA-Z0-9]+/).map(w => w.replace(/^(وال|بال|لل|ال|و)(?=.{3,})/,"")).filter(w => w.length >= 3 && !GOV_STOP.has(w)));
 }
+let _govDF = null;
+function govBuildDF(cand){
+  const df = {}; let n = 0;
+  Object.values(cand).forEach(list => list.forEach(x => { n++; govTokens(x.name + " " + x.cat).forEach(w => { df[w] = (df[w]||0) + 1; }); }));
+  _govDF = { df, n };
+}
+/* Number of RARE shared words (a word is rare if it appears in at most ~8% of all items): common words such as
+   "اعتماد" or "الموظف" appear everywhere and would make everything look related. */
 function govScore(a, b){
+  if(!_govDF) return 0;
   const ta = govTokens(a.name + " " + a.cat), tb = govTokens(b.name + " " + b.cat);
-  let n = 0; ta.forEach(w => { if(tb.has(w)) n++; });
+  const maxDf = Math.max(3, Math.round(_govDF.n * 0.08));
+  let n = 0; ta.forEach(w => { if(tb.has(w) && (_govDF.df[w]||0) <= maxDf) n++; });
   return n;
 }
 async function govLinksFor(type, id){
@@ -1066,13 +1077,17 @@ async function renderGovLinks(boxId, type, id){
   if(!links.length){ box.innerHTML = ""; return; }
   box.innerHTML = '<span class="glink-chip">…</span>';
   const cand = await govLinkCandidates();
-  box.innerHTML = links.map(l => {
+  const groups = {};
+  links.forEach(l => {
     const item = (cand[l.type]||[]).find(x => String(x.id) === String(l.id));
-    if(!item) return "";
-    const m = GOV_LINK_META[l.type];
-    const nm = orgEsc(item.name).slice(0, 60);
-    return `<span class="glink-chip" title="${orgEsc(item.name)}">${m.icon} ${m.label}: ${nm}</span>`;
-  }).join("");
+    if(item) (groups[l.type] = groups[l.type] || []).push(item);
+  });
+  const types = Object.keys(groups);
+  if(!types.length){ box.innerHTML = ""; return; }
+  const total = types.reduce((n,t) => n + groups[t].length, 0);
+  const summary = types.map(t => `${GOV_LINK_META[t].icon} ${groups[t].length} ${GOV_LINK_META[t].label}`).join(" · ");
+  const detail = types.map(t => groups[t].map(x => `<div class="glink-det">${GOV_LINK_META[t].icon} ${orgEsc(x.name).slice(0,80)}</div>`).join("")).join("");
+  box.innerHTML = `<button type="button" class="glink-sum" onclick="this.nextElementSibling.classList.toggle('open')">🔗 مرتبطة بـ ${total}: ${summary} ▾</button><div class="glink-list">${detail}</div>`;
 }
 async function openGovLinkPicker(type, id){
   let m = document.getElementById("m-govlink");
@@ -1089,12 +1104,25 @@ async function openGovLinkPicker(type, id){
   if(!Object.values(cand).some(l => l.length)){ body.innerHTML = '<div style="padding:16px;font-size:13px;color:var(--gray3)">لا توجد عناصر للربط بعد: أضف سياسة أو قراراً أو اطلب تقييم مخاطر أولاً.</div>'; return; }
   const types = Object.keys(GOV_LINK_META).filter(t => t !== type);
   const me = (cand[type]||[]).find(x => String(x.id) === String(id)) || { name:"", cat:"" };
-  body.innerHTML = types.map(t => {
+  body.innerHTML = '<input class="fi" id="glink-search" placeholder="ابحث للعثور على عنصر..." style="margin-bottom:6px"><div style="display:flex;gap:8px;margin-bottom:4px"><button class="btn-xs sec" id="glink-pick-sug" type="button">تحديد كل المقترحات</button><span id="glink-hint" style="font-size:12px;color:var(--gray3);align-self:center"></span></div>' + types.map(t => {
     const list = (cand[t] || []).map(x => ({ ...x, _s: govScore(me, x) })).sort((a,b) => b._s - a._s);
     return `<div class="sec-title" style="font-size:13px;margin-top:10px">${GOV_LINK_META[t].icon} ${GOV_LINK_META[t].label}</div>` +
-      (list.length ? list.map(x => `<label class="glink-row"><input type="checkbox" class="glink-chk" data-type="${t}" data-id="${x.id}" ${have.has(t+":"+x.id)?"checked":""}> <span>${orgEsc(x.name).slice(0,90)}${x._s>0 && !have.has(t+":"+x.id) ? ' <em class="glink-sug">مقترح</em>' : ""}</span></label>`).join("")
+      (list.length ? list.map(x => `<label class="glink-row" data-sug="${x._s>0||have.has(t+":"+x.id)?1:0}" data-txt="${orgEsc(x.name).toLowerCase()}"><input type="checkbox" class="glink-chk" data-type="${t}" data-id="${x.id}" ${have.has(t+":"+x.id)?"checked":""}> <span>${orgEsc(x.name).slice(0,90)}${x._s>0 && !have.has(t+":"+x.id) ? ' <em class="glink-sug">مقترح</em>' : ""}</span></label>`).join("")
                    : `<div style="font-size:12px;color:var(--gray3);padding:6px 0">${t==="risk"?"لا توجد مخاطر بعد — تظهر هنا المخاطر المسجّلة في طلبات تقييم المخاطر.":t==="decision"?"لا توجد قرارات بعد — تظهر هنا القرارات المسجّلة من محاضر الاجتماعات (متابعة القرارات).":t==="procedure"?"لا توجد إجراءات بعد — تُولَّد من صفحة الإجراءات.":t==="authority"?"لا توجد بنود في مصفوفة الصلاحيات بعد.":"لا توجد سياسات."}</div>`);
   }).join("");
+  const applyFilter = () => {
+    const q = (document.getElementById("glink-search").value||"").trim().toLowerCase();
+    let shown = 0, sug = 0;
+    body.querySelectorAll(".glink-row").forEach(r => {
+      const isSug = r.dataset.sug === "1"; if(isSug) sug++;
+      const ok = q ? r.dataset.txt.includes(q) : isSug;
+      r.classList.toggle("glink-hide", !ok); if(ok) shown++;
+    });
+    document.getElementById("glink-hint").textContent = q ? `${shown} نتيجة` : (sug ? `${sug} مقترح — استخدم البحث لعرض غيرها` : "لا توجد مقترحات — استخدم البحث");
+  };
+  document.getElementById("glink-search").oninput = applyFilter;
+  document.getElementById("glink-pick-sug").onclick = () => body.querySelectorAll('.glink-row[data-sug="1"] input').forEach(c => { c.checked = true; });
+  applyFilter();
   document.getElementById("govlink-save").onclick = () => saveGovLinks(type, id, existing);
 }
 function closeGovLinkPicker(){ const m = document.getElementById("m-govlink"); if(m) m.classList.remove("open"); }
