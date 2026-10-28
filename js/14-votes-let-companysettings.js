@@ -1442,7 +1442,7 @@ function circCardHTML(r, votes, ev, me, ctx){
     ${voteUI}
     ${canSee && votes.length ? `<details style="margin-top:10px"><summary style="cursor:pointer;font-size:12px">سجل الأصوات (${votes.length})</summary><div style="overflow-x:auto"><table class="tbl" style="margin-top:6px"><thead><tr><th>الاسم</th>${isAgm ? "<th>الأسهم</th>" : ""}<th>الصوت</th><th>الوقت</th></tr></thead><tbody>${rows}</tbody></table></div></details>` : ""}
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-      ${circCanPrint() ? `<button class="btn-xs sec" onclick="circPrint(${r.id})">🖨 سجل القرار</button>` : ""}
+      ${circCanPrint() ? `<button class="btn-xs sec" onclick="circPrint(${r.id})">${r.status === "معتمد" ? "📄 إصدار القرار" : "🖨 سجل القرار"}</button>` : ""}
       ${canSee && open ? `<button class="btn-xs sec" onclick="circCancel(${r.id})">إلغاء القرار</button>` : ""}
     </div>
   </div></div>`;
@@ -1545,6 +1545,32 @@ async function circPrint(id){
   const { data: bm } = await sb.from("board_members").select("status").eq("company_id", currentCompanyId);
   const ev = circEvaluate(r, v || [], { totalShares: co.total_shares, boardCount: (bm || []).filter(m => !/مستقيل|منتهي/.test(m.status || "")).length });
   const isAgm = r.body === "الجمعية العامة", fmt = n => Number(n).toLocaleString("ar-SA-u-ca-gregory");
+  if(r.status === "معتمد"){
+    const w2 = openPrintWindow(); if(!w2){ alert("اسمح بالنوافذ المنبثقة للطباعة"); return; }
+    const dt = new Date(r.closed_at || Date.now()), dstr = dt.toLocaleDateString("ar-SA-u-ca-gregory", { day:"numeric", month:"long", year:"numeric" });
+    const body = isAgm ? "الجمعية العامة " + (r.kind || "") : "مجلس الإدارة";
+    const yes = (v || []).filter(x => x.vote === "موافق");
+    const no = (v || []).filter(x => x.vote === "معارض").length, abs = (v || []).filter(x => x.vote === "ممتنع").length;
+    const ref = "ق.ت/" + dt.getFullYear() + "/" + String(r.id).padStart(3, "0");
+    const basis = isAgm
+      ? `وحيث إن الشركة غير مدرجة، وإعمالاً لأحكام نظام الشركات في شأن قرارات الجمعية العامة بالتمرير، وبناءً على ما ورد في نظام الشركة الأساس؛ فقد وافق على القرار الآتي مساهمون يمثلون <b>${ev.pctYes.toFixed(2)}%</b> من إجمالي حقوق التصويت (${fmt(ev.yesW)} من ${fmt(ev.base)} سهماً)، وهي نسبة تبلغ النصاب المقرَّر لهذا النوع من القرارات (${r.required_pct}%).`
+      : `وإعمالاً لأحكام نظام الشركات ونظام الشركة الأساس في شأن قرارات المجلس بالتمرير في الحالات المستعجلة، وبعد عرض القرار على جميع أعضاء المجلس كتابةً، دون أن يطلب أي منهم اجتماع المجلس لمناقشته؛ فقد وافق على القرار الآتي <b>${fmt(ev.yesW)}</b> من أصل <b>${fmt(ev.base)}</b> أعضاء، أي <b>${ev.pctYes.toFixed(2)}%</b> من إجمالي أعضاء المجلس (المطلوب ${r.required_pct}%).`;
+    w2.document.open();
+    w2.document.write(`<html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>قرار بالتمرير</title><style>body{font-family:Tajawal,Arial,sans-serif;padding:40px 50px;color:#0D2447;line-height:2.1;font-size:14px}h1{text-align:center;font-size:22px;margin:0}h2{text-align:center;font-size:15px;font-weight:600;margin:4px 0 18px;color:#555}.meta{display:flex;justify-content:space-between;border-top:3px solid #D4AF37;border-bottom:1px solid #ccc;padding:6px 0;font-size:13px}.dec{border:1px solid #1A3A6B;border-radius:6px;padding:14px 18px;margin:16px 0;background:#f8f9fc;white-space:pre-line}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #ccc;padding:6px;font-size:12px;text-align:center}th{background:#1A3A6B;color:#fff}.sig{display:flex;gap:40px;margin-top:60px}.sig div{flex:1;border-top:1px solid #555;text-align:center;padding-top:6px;font-size:12px}.foot{font-size:11px;color:#666;margin-top:20px}</style></head><body>
+    <h1>${orgEsc(co.name)}</h1><h2>قرار ${isAgm ? "الجمعية العامة" : "مجلس الإدارة"} بالتمرير</h2>
+    <div class="meta"><span><b>الرقم:</b> ${ref}</span><span><b>تاريخ الإصدار:</b> ${dstr}</span></div>
+    <p><b>الموضوع:</b> ${orgEsc(r.title)}</p>
+    <p>${basis}</p>
+    <p><b>نصّ القرار:</b></p>
+    <div class="dec">${orgEsc(r.resolution_text || r.title)}</div>
+    <p>وعليه، <b>صدر هذا القرار بالتمرير</b> ${isAgm ? "من الجمعية العامة" : "من مجلس الإدارة"} بتاريخ ${dstr}، ويُعدّ نافذاً من تاريخ صدوره، ${isAgm ? "ويُدوَّن في سجل قرارات الجمعية العامة" : "ويُعرض على المجلس في أول اجتماع تالٍ لإثباته في محضره"}.</p>
+    <p><b>نتيجة التصويت:</b> موافق ${fmt(yes.length)} · معارض ${fmt(no)} · ممتنع ${fmt(abs)}.</p>
+    <table><thead><tr><th>الاسم</th>${isAgm ? "<th>الأسهم</th>" : ""}<th>الصوت</th><th>وقت التصويت</th></tr></thead><tbody>${(v || []).map(x => `<tr><td>${orgEsc(x.voter_name || x.voter_email)}</td>${isAgm ? `<td>${fmt(x.shares || 0)}</td>` : ""}<td>${orgEsc(x.vote)}</td><td>${new Date(x.created_at).toLocaleString("ar-SA-u-ca-gregory")}</td></tr>`).join("")}</tbody></table>
+    <div class="sig"><div>رئيس ${isAgm ? "الجمعية" : "المجلس"}</div><div>${isAgm ? "أمين سر الجمعية" : "أمين سر المجلس"}</div></div>
+    <p class="foot">صدر هذا القرار إلكترونياً عبر منصة حوكم، والأصوات مسجَّلة بحسابات أصحابها ولا يمكن تعديلها بعد إرسالها.</p></body></html>`);
+    w2.document.close();
+    return;
+  }
   const w = openPrintWindow(); if(!w){ alert("اسمح بالنوافذ المنبثقة للطباعة"); return; }
   w.document.open();
   w.document.write(`<html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>سجل قرار بالتمرير</title><style>body{font-family:Tajawal,Arial,sans-serif;padding:30px;color:#0D2447;line-height:1.9}h1{font-size:20px;border-bottom:3px solid #D4AF37;padding-bottom:8px}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #ccc;padding:7px;font-size:12px;text-align:center}th{background:#1A3A6B;color:#fff}.sig{display:flex;gap:40px;margin-top:50px}.sig div{flex:1;border-top:1px solid #555;text-align:center;padding-top:6px;font-size:12px}</style></head><body>
