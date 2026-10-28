@@ -1101,9 +1101,19 @@ async function gaAutoEvidence(){
   // ── Board
   const active = bm.filter(m => !/مستقيل|منتهي/.test(m.status || ""));
   const nonExec = active.filter(m => /غير تنفيذي/.test(m.is_executive || ""));
+  const indep = active.filter(m => m.status === "مستقل" || /مستقل/.test(m.position || ""));
   if(active.length){
-    put("board_composition", active.length < 3 ? 2 : (nonExec.length > active.length / 2 ? 3 : 2),
-      `${active.length} أعضاء (${nonExec.length} غير تنفيذي). الاستقلالية والخبرات لا تُقاس تلقائياً — راجعها.`);
+    const isJSC = /مساهمة/.test(currentCompanyType || "");
+    let s = active.length < 3 ? 2 : (nonExec.length + indep.length > active.length / 2 ? 3 : 2);
+    let note = `${active.length} أعضاء (${nonExec.length} غير تنفيذي، ${indep.length} مستقل).`;
+    if(isJSC){
+      const need = Math.max(2, Math.ceil(active.length / 3));
+      if(indep.length === 0) { s = Math.min(s, 1); note += " لا يوجد عضو مستقل مسجَّل — وشركات المساهمة يُنتظر فيها وجود أعضاء مستقلين."; }
+      else if(indep.length < need) { s = Math.min(s, 2); note += ` عدد المستقلين أقل من الحد المعتاد للشركات المدرجة (عضوان أو ثلث المجلس: ${need}).`; }
+      else note += ` عدد المستقلين يفي بالحد المعتاد للمدرجة (${need}).`;
+      note += " تحقق من تصنيف الاستقلالية فعلياً.";
+    } else note += " الاستقلالية والخبرات لا تُقاس تلقائياً — راجعها.";
+    put("board_composition", s, note);
   }
   const boardMeets = mt.filter(m => /مجلس/.test(m.meeting_type || "") && !m.committee_id && recent(m.meeting_date));
   if(mt.length){
