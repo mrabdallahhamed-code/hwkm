@@ -931,3 +931,9 @@ div[style*="linear-gradient(135deg,var(--primary),var(--primary2))"][style*="bor
 .pcard .pol-cta{margin-top:0;padding:10px;font-size:12.5px}
 .pcard-del{align-self:flex-start;background:none;border:none;color:var(--gray3);font:inherit;font-size:11.5px;cursor:pointer;padding:2px 0}
 .pcard-del:hover{color:var(--red)}
+
+/* ── Policy cards: neutral status + calm main action (no cream/yellow) ── */
+.pcard .badge.pending,.pcard .badge.gold{background:var(--gray1);color:var(--gray3);border:1px solid var(--gray2);}
+.pcard .btn-xs.gold{background:var(--white);color:var(--primary3);border:1px solid var(--primary3);}
+.pcard .btn-xs.gold:hover{background:var(--primary3);color:#fff;box-shadow:none;}
+.pcard .btn-xs.primary{background:var(--offwhite);color:var(--primary);border:1px solid var(--gray2);}
