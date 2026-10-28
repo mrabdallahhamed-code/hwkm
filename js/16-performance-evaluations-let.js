@@ -323,9 +323,12 @@ function renderDecisionTrackingList(){
             <button class="btn-xs sec" onclick="updateDecisionStatus(${d.id},'قيد التنفيذ')">قيد التنفيذ</button>
             <button class="btn-xs sec dok" onclick="updateDecisionStatus(${d.id},'منجز')"><span class="ico-i ico-check"></span>تحديد كمنجز</button>
           ` : ""}
+          <button class="btn-xs sec" onclick="openGovLinkPicker('decision',${d.id})">🔗 ربط</button>
         </div>
+        <div class="glinks" id="glk-decision-${d.id}" data-glinks="decision:${d.id}"></div>
     </div>`;
   }).join("");
+  filtered.forEach(d => renderGovLinks(`glk-decision-${d.id}`, "decision", d.id));
 }
 
 async function openDecisionAssignModal(decisionId){
@@ -999,3 +1002,83 @@ function getPerfCriteria(entityType, personRole){
   return getPerfDefaultCriteria(roleKey);
 }
 
+
+/* ══════════ GOVERNANCE LINKS — risk ↔ policy ↔ decision ══════════
+   One generic table (governance_links). A link is stored once, from whichever side it was made, and
+   shown on both sides. Same-type links are not offered. */
+const GOV_LINK_META = { risk:{ label:"خطر", icon:"⚠️" }, policy:{ label:"سياسة", icon:"📜" }, decision:{ label:"قرار", icon:"✅" } };
+
+async function govLinkCandidates(){
+  const [pol, dec, risks] = await Promise.all([
+    sb.from("policies").select("id,policy_name").eq("company_id", currentCompanyId),
+    sb.from("board_decisions").select("id,decision_text").eq("company_id", currentCompanyId),
+    fetchCompanyRisks()
+  ]);
+  return {
+    policy: (pol.data||[]).map(p => ({ id:p.id, name:p.policy_name||"" })),
+    decision: (dec.data||[]).map(d => ({ id:d.id, name:d.decision_text||"" })),
+    risk: (risks||[]).map(r => ({ id:r.id, name:r.risk_name||"" }))
+  };
+}
+async function govLinksFor(type, id){
+  const [a, b] = await Promise.all([
+    sb.from("governance_links").select("*").eq("company_id", currentCompanyId).eq("source_type", type).eq("source_id", id),
+    sb.from("governance_links").select("*").eq("company_id", currentCompanyId).eq("target_type", type).eq("target_id", id)
+  ]);
+  const out = [];
+  (a.data||[]).forEach(l => out.push({ rowId:l.id, type:l.target_type, id:l.target_id }));
+  (b.data||[]).forEach(l => out.push({ rowId:l.id, type:l.source_type, id:l.source_id }));
+  return out;
+}
+async function renderGovLinks(boxId, type, id){
+  const box = document.getElementById(boxId); if(!box) return;
+  const links = await govLinksFor(type, id);
+  if(!links.length){ box.innerHTML = ""; return; }
+  const cand = await govLinkCandidates();
+  box.innerHTML = links.map(l => {
+    const item = (cand[l.type]||[]).find(x => String(x.id) === String(l.id));
+    if(!item) return "";
+    const m = GOV_LINK_META[l.type];
+    const nm = orgEsc(item.name).slice(0, 60);
+    return `<span class="glink-chip" title="${orgEsc(item.name)}">${m.icon} ${m.label}: ${nm}</span>`;
+  }).join("");
+}
+async function openGovLinkPicker(type, id){
+  let m = document.getElementById("m-govlink");
+  if(!m){
+    m = document.createElement("div"); m.className = "modal-bg"; m.id = "m-govlink";
+    m.innerHTML = '<div class="modal"><div class="modal-title">ربط بعناصر أخرى</div><div id="govlink-body"></div><div class="modal-foot"><button class="btn btn-ghost" onclick="closeGovLinkPicker()">إلغاء</button><button class="btn btn-gold" id="govlink-save">حفظ الروابط</button></div></div>';
+    document.body.appendChild(m);
+  }
+  const body = document.getElementById("govlink-body");
+  body.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">جارِ التحميل...</div>';
+  m.classList.add("open");
+  const [cand, existing] = await Promise.all([govLinkCandidates(), govLinksFor(type, id)]);
+  const have = new Set(existing.map(l => l.type + ":" + l.id));
+  const types = Object.keys(GOV_LINK_META).filter(t => t !== type);
+  body.innerHTML = types.map(t => {
+    const list = cand[t] || [];
+    return `<div class="sec-title" style="font-size:13px;margin-top:10px">${GOV_LINK_META[t].icon} ${GOV_LINK_META[t].label}</div>` +
+      (list.length ? list.map(x => `<label class="glink-row"><input type="checkbox" class="glink-chk" data-type="${t}" data-id="${x.id}" ${have.has(t+":"+x.id)?"checked":""}> <span>${orgEsc(x.name).slice(0,90)}</span></label>`).join("")
+                   : '<div style="font-size:12px;color:var(--gray3);padding:6px 0">لا توجد عناصر.</div>');
+  }).join("");
+  document.getElementById("govlink-save").onclick = () => saveGovLinks(type, id, existing);
+}
+function closeGovLinkPicker(){ const m = document.getElementById("m-govlink"); if(m) m.classList.remove("open"); }
+async function saveGovLinks(type, id, existing){
+  const chosen = [...document.querySelectorAll(".glink-chk:checked")].map(c => ({ type:c.dataset.type, id:Number(c.dataset.id) }));
+  const key = x => x.type + ":" + x.id;
+  const chosenKeys = new Set(chosen.map(key));
+  const toAdd = chosen.filter(c => !existing.some(e => key(e) === key(c)));
+  const toRemove = existing.filter(e => !chosenKeys.has(key(e)));
+  const { data: u } = await sb.auth.getUser();
+  const email = u && u.user ? u.user.email : null;
+  if(toAdd.length){
+    const { error } = await sb.from("governance_links").insert(toAdd.map(c => ({ company_id: currentCompanyId, source_type:type, source_id:id, target_type:c.type, target_id:c.id, created_by: email })));
+    if(error){ alert("تعذّر حفظ الروابط: " + error.message); return; }
+  }
+  for(const r of toRemove){ await sb.from("governance_links").delete().eq("id", r.rowId); }
+  logActivity("تعديل", "روابط الحوكمة", `${GOV_LINK_META[type].label} ${id}`, "");
+  closeGovLinkPicker();
+  document.querySelectorAll(`[data-glinks="${type}:${id}"]`).forEach(b => renderGovLinks(b.id, type, id));
+}

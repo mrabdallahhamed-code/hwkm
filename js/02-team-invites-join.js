@@ -1274,7 +1274,7 @@ async function loadReportsPage(){
     sb.from("compliance_items").select("*").eq("company_id", currentCompanyId),
     sb.from("committees").select("*").eq("company_id", currentCompanyId),
     sb.from("board_members").select("*").eq("company_id", currentCompanyId),
-    sb.from("risks").select("*").eq("company_id", currentCompanyId),
+    fetchCompanyRisks().then(d => ({ data: d })),
     sb.from("performance_evaluations").select("*").eq("company_id", currentCompanyId),
     sb.from("board_report_fields").select("*").eq("company_id", currentCompanyId).eq("year", currentYear),
     sb.from("meeting_attendance").select("*").eq("company_id", currentCompanyId),
@@ -1399,7 +1399,7 @@ async function generateAnnualReportPDF(){
     sb.from("compliance_items").select("*").eq("company_id", currentCompanyId),
     sb.from("committees").select("*").eq("company_id", currentCompanyId),
     sb.from("board_members").select("*").eq("company_id", currentCompanyId),
-    sb.from("risks").select("*").eq("company_id", currentCompanyId),
+    fetchCompanyRisks().then(d => ({ data: d })),
     sb.from("meeting_attendance").select("*").eq("company_id", currentCompanyId),
     sb.from("committee_members").select("*").eq("company_id", currentCompanyId)
   ]);

@@ -854,6 +854,28 @@ function renderDashAuditStatus(items){
    Performance/attendance items are only ever included for viewers who canSeePerfResults() —
    the panel is shared infrastructure, but it never leaks a confidentiality-restricted signal
    to someone who wouldn't otherwise be allowed to see it. */
+/* The company's risk register = the assessment items delivered through its risk-service requests
+   (risk_items). The old `risks` table has no entry screen anywhere, so the dashboard and alerts read this
+   instead, mapped to the shape they already expect. */
+async function fetchCompanyRisks(){
+  try {
+    const { data: reqs } = await sb.from("risk_requests").select("id").eq("company_id", currentCompanyId);
+    const ids = (reqs||[]).map(r => r.id);
+    if(!ids.length) return [];
+    const { data: items } = await sb.from("risk_items").select("*").in("request_id", ids);
+    return (items||[]).map(it => {
+      const score = (it.likelihood||0) * (it.impact||0);
+      return {
+        id: it.id, request_id: it.request_id, risk_name: it.description, category: it.category,
+        impact: score >= 10 ? "عالٍ" : score >= 5 ? "متوسط" : "منخفض",
+        probability: it.likelihood != null ? it.likelihood * 20 : null,
+        status: it.action_status === "مكتمل" ? "مغلق" : it.action_status === "قيد التنفيذ" ? "متابعة" : "مراقبة",
+        owner: it.responsible_person, treatment_plan: it.treatment_plan, target_close_date: it.target_close_date
+      };
+    });
+  } catch(e){ console.error("fetchCompanyRisks failed", e); return []; }
+}
+
 async function computeGovernanceAlerts(){
   const alerts = [];
   const govBodyLabel = getGovernanceBodyLabel();
@@ -900,11 +922,18 @@ async function computeGovernanceAlerts(){
     }
   } catch(e){ console.error("policy deadline alert check failed", e); }
 
-  // 4) High-impact risks that are still just "مراقبة" (i.e., no active treatment yet)
+  // 4) High-impact risks that are still open with no treatment plan, and treatments past their target date
   try {
-    const { data: risks } = await sb.from("risks").select("*").eq("company_id", currentCompanyId).eq("impact","عالٍ").eq("status","مراقبة");
-    if(risks && risks.length){
-      alerts.push({ severity: "high", text: `${risks.length} ${risks.length===1?'خطر عالي التأثير':'مخاطر عالية التأثير'} لسا بمرحلة "مراقبة" فقط — بلا خطة معالجة نشطة بعد.`, page: "risks" });
+    const risks = await fetchCompanyRisks();
+    const open = risks.filter(r => r.status !== "مغلق");
+    const noPlan = open.filter(r => r.impact === "عالٍ" && !(r.treatment_plan||"").trim());
+    if(noPlan.length){
+      alerts.push({ severity: "high", cta: "راجع المخاطر", text: `${noPlan.length} ${noPlan.length===1?'خطر عالي التأثير':'مخاطر عالية التأثير'} بلا خطة معالجة.`, page: "risks" });
+    }
+    const today = new Date(new Date().toDateString());
+    const late = open.filter(r => r.target_close_date && new Date(r.target_close_date) < today);
+    if(late.length){
+      alerts.push({ severity: "high", cta: "راجع المخاطر", text: `${late.length} ${late.length===1?'خطر تجاوز':'مخاطر تجاوزت'} موعد إغلاقها المستهدف دون إغلاق.`, page: "risks" });
     }
   } catch(e){ console.error("risk alert check failed", e); }
 
@@ -1027,7 +1056,7 @@ async function loadDashboard(){
   renderGovAlertsPanel(); // fire independently — a slow/failed alert check must never block the rest of the dashboard
   const [meetingsRes, risksRes, complianceRes, membersRes, committeesRes, signingRes, policiesRes, auditRes, govAssessRes] = await Promise.all([
     sb.from("meetings").select("*").eq("company_id", currentCompanyId),
-    sb.from("risks").select("*").eq("company_id", currentCompanyId),
+    fetchCompanyRisks().then(d => ({ data: d })),
     sb.from("compliance_items").select("*").eq("company_id", currentCompanyId),
     sb.from("board_members").select("*").eq("company_id", currentCompanyId),
     sb.from("committees").select("*").eq("company_id", currentCompanyId),
@@ -1146,7 +1175,7 @@ async function loadDashboard(){
     }
   }
   if(highOpenRisks){
-    alerts.push({ color:"red", text:`يوجد ${highOpenRisks} ${highOpenRisks===1?'خطر مصنّف':'مخاطر مصنّفة'} عالية الأولوية تحتاج خطة معالجة` });
+    alerts.push({ color:"red", text:`يوجد ${highOpenRisks} ${highOpenRisks===1?'خطر مصنّف':'مخاطر مصنّفة'} عالية الأولوية مفتوحة` });
   }
   const pendingSignCount = signingDocs.filter(d => d.status !== "مكتمل").length;
   if(pendingSignCount){
@@ -1196,7 +1225,7 @@ async function loadDashboard(){
       ${bar("إجراءات تصحيحية مُغلقة", actDone, actTot, "govassess")}
     </div>`;
   }
-  enhanceDashboardKpis({ quarterMeetings: quarterMeetings.length, completedQ, upcomingQ, pendingSigns: signingDocs.filter(d => d.status !== "مكتمل").length, approvedThisMonth, cmpSum, risksTotal: risks.length, openRisks: openRisks.length, highOpenRisks });
+  enhanceDashboardKpis({ quarterMeetings: quarterMeetings.length, completedQ, upcomingQ, pendingSigns: signingDocs.filter(d => d.status !== "مكتمل").length, approvedThisMonth, cmpSum, risksTotal: risks.length, openRisks: openRisks.length, highOpenRisks, highNoPlan: openRisks.filter(r => r.impact === "عالٍ" && !(r.treatment_plan||"").trim()).length });
   applyDashboardEntityAdaptation();
 }
 
@@ -1227,7 +1256,8 @@ function enhanceDashboardKpis(c){
   else { const p=c.cmpSum.pct; put("kpi-compliance", p<50?"crit":p<80?"watch":"good", c.cmpSum.text, p<80?"راجع البنود غير المكتملة":"", p+"%"); }
   // risks
   if(!c.risksTotal) put("kpi-risks","na","لم تُسجَّل مخاطر بعد","سجّل أول خطر","لا بيانات");
-  else if(c.highOpenRisks) put("kpi-risks","crit",`${c.highOpenRisks} عالية التأثير ما زالت قيد المراقبة بلا خطة معالجة`,"راجع المخاطر");
+  else if(c.highNoPlan) put("kpi-risks","crit",`${c.highNoPlan} عالية التأثير بلا خطة معالجة`,"راجع المخاطر");
+  else if(c.highOpenRisks) put("kpi-risks","watch",`${c.highOpenRisks} عالية التأثير ولها خطة معالجة قيد المتابعة`,"راجع المخاطر");
   else if(c.openRisks) put("kpi-risks","watch",`${c.openRisks} ${c.openRisks===1?'خطر مفتوح':'مخاطر مفتوحة'} متوسطة أو منخفضة التأثير`,"راجع المخاطر");
   else put("kpi-risks","good","لا مخاطر مفتوحة حالياً","");
   // governance effectiveness

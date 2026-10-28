@@ -481,7 +481,9 @@ function renderPoliciesFiltered(){
           <button class="btn-xs sec" onclick="editPolicy(${p.id})"><span class="ico-i ico-edit"></span>تعديل</button>
           <button class="btn-xs sec" onclick="openPolicyHistoryModal(${p.id})"><span class="ico-i ico-clock"></span>السجل</button>
           <button class="btn-xs sec" onclick="openPolComments(${p.id})">الملاحظات <span id="polcom-n-${p.id}"></span></button>
+          <button class="btn-xs sec" onclick="openGovLinkPicker('policy',${p.id})">🔗 ربط</button>
         </div>
+        <div class="glinks" id="glk-policy-${p.id}" data-glinks="policy:${p.id}"></div>
         <button class="btn-xs gold pol-cta" onclick="startPolicyGovernanceApproval(${p.id})"><span class="ico-i ico-upload"></span>بدء دورة اعتماد وتوقيع</button>
         <div id="policy-gov-status-${p.id}"></div>
         <button class="pcard-del" onclick="deletePolicy(${p.id})" title="حذف السياسة"><span class="ico-i ico-trash"></span>حذف</button>
@@ -490,7 +492,7 @@ function renderPoliciesFiltered(){
     html += `</div>`;
   });
   wrap.innerHTML = html;
-  list.forEach(p => loadPolicyApprovalStatus(p.id, `policy-gov-status-${p.id}`));
+  list.forEach(p => { loadPolicyApprovalStatus(p.id, `policy-gov-status-${p.id}`); renderGovLinks(`glk-policy-${p.id}`, 'policy', p.id); });
   polLoadBadges(list);
 }
 
@@ -1045,6 +1047,7 @@ async function openRiskRequestDetail(requestId){
       <div style="font-size:10.5px;color:var(--gray3);margin-top:4px">الفئة: ${orgEsc(it.category||"—")} · المصدر: ${it.source||"—"} · الاحتمالية: ${it.likelihood??"—"}/5 · التأثير: ${it.impact??"—"}/5</div>
       ${it.treatment_plan ? `<div style="font-size:11px;color:var(--teal);margin-top:6px"><b>خطة المعالجة:</b> ${it.treatment_plan}</div>` : ""}
       <div style="font-size:10.5px;color:var(--gray3);margin-top:4px">المسؤول: ${it.responsible_person||"—"} · الموعد المستهدف: ${it.target_close_date||"—"} · الحالة: <b style="color:${it.action_status==='مكتمل'?'var(--green)':'var(--gold)'}">${it.action_status}</b></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px"><button class="btn-xs sec" onclick="openGovLinkPicker('risk',${it.id})">🔗 ربط بسياسة أو قرار</button><div class="glinks" id="glk-risk-${it.id}" data-glinks="risk:${it.id}"></div></div>
     </div>`;
   }).join("") : '<div style="font-size:11.5px;color:var(--gray3)">لا توجد مخاطر مسجَّلة بعد.</div>';
 
@@ -1086,6 +1089,7 @@ async function openRiskRequestDetail(requestId){
     ${ratingHtml}
   `;
   window.currentRiskRatingValue = 0;
+  (items||[]).forEach(it => renderGovLinks(`glk-risk-${it.id}`, 'risk', it.id));
 }
 
 async function sendRiskMessage(requestId){
