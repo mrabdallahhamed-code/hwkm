@@ -1315,6 +1315,7 @@ function agmEvaluateTopic(agmType, topicText, yesShares, represented){
 let circTab = "الجمعية العامة";
 function circIsJSC(){ return /مساهمة/.test(currentCompanyType || ""); }
 function circIsListed(){ return currentCompanyType === "مساهمة مدرجة"; }
+function circCanPrint(){ const r = getCurrentRole(); return (currentUserProfile && currentUserProfile.is_platform_admin === true) || r === "مدير النظام" || ["سكرتير المجلس","سكرتير مجلس"].includes(r); }
 function circCanManage(){ const r = getCurrentRole(); return isFullAccessRole(r) || ["رئيس مجلس","سكرتير مجلس","سكرتير المجلس"].includes(r); }
 function circSetTab(t){ circTab = t; loadCirculation(); }
 
@@ -1441,7 +1442,7 @@ function circCardHTML(r, votes, ev, me, ctx){
     ${voteUI}
     ${canSee && votes.length ? `<details style="margin-top:10px"><summary style="cursor:pointer;font-size:12px">سجل الأصوات (${votes.length})</summary><div style="overflow-x:auto"><table class="tbl" style="margin-top:6px"><thead><tr><th>الاسم</th>${isAgm ? "<th>الأسهم</th>" : ""}<th>الصوت</th><th>الوقت</th></tr></thead><tbody>${rows}</tbody></table></div></details>` : ""}
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-      <button class="btn-xs sec" onclick="circPrint(${r.id})">🖨 سجل القرار</button>
+      ${circCanPrint() ? `<button class="btn-xs sec" onclick="circPrint(${r.id})">🖨 سجل القرار</button>` : ""}
       ${canSee && open ? `<button class="btn-xs sec" onclick="circCancel(${r.id})">إلغاء القرار</button>` : ""}
     </div>
   </div></div>`;
