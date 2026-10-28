@@ -1098,6 +1098,11 @@ function govAutoLinkOnce(){
           rows.push({ company_id: co, source_type:"policy", source_id:p.id, target_type:t, target_id:b.id, created_by:"auto" });
         });
       }));
+      st.cand.authority.filter(a => /^\s*-?\s*اعتماد.*(سياسات|لوائح|لائحة)/.test(a.name)).forEach(a => st.cand.policy.forEach(p => {
+        const k = _govPairKey("policy",p.id,"authority",a.id);
+        if(have.has(k) || dis.has(k) || rows.some(r => r.source_id===p.id && r.target_id===a.id && r.target_type==="authority")) return;
+        rows.push({ company_id: co, source_type:"policy", source_id:p.id, target_type:"authority", target_id:a.id, created_by:"auto" });
+      }));
       if(rows.length){
         const { error } = await sb.from("governance_links").insert(rows);
         if(!error){ govCacheClear(); _govAutoAt[co] = Date.now(); }
@@ -1252,4 +1257,49 @@ async function openAutoLinkWizard(){
     m.classList.remove("open");
     renderGovNetworkCard();
   };
+}
+
+
+/* ══ INSTANT APPROVAL CHECK ══ shown right when someone sets who approves an item in the authority matrix
+   (or changes a policy's approval level) — not as a standing dashboard alert. */
+function govApprovalNeed(lvl){
+  const noBoard = currentCompanyType === "مؤسسة فردية" || currentCompanyLLCSingleManager || currentCompanyLLCSingleOwner;
+  return lvl === "جمعية عامة" ? { re:/جمعية|مساهم|شركاء/, word:"الجمعية العامة" }
+    : lvl === "داخلية" ? { re:/حوكم|تنفيذي|ادارة|إدارة|مدير/, word:"الحوكمة أو الإدارة التنفيذية" }
+    : noBoard ? { re:/مالك|مدير/, word:"المالك/المدير" } : { re:/مجلس|لجنة|رئيس المجلس|عضو/, word:"مجلس الإدارة" };
+}
+function govNotice(msg){
+  let n = document.getElementById("govNotice");
+  if(!n){ n = document.createElement("div"); n.id = "govNotice"; n.className = "gov-toast"; n.onclick = () => n.classList.remove("open"); document.body.appendChild(n); }
+  n.innerHTML = msg + '<div style="font-size:11px;opacity:.7;margin-top:6px">اضغط للإغلاق</div>';
+  n.classList.add("open"); clearTimeout(n._t); n._t = setTimeout(() => n.classList.remove("open"), 20000);
+}
+async function govCheckApprovalNow(itemId){
+  try {
+    const co = currentCompanyId;
+    const [pol, it, hd, lk] = await Promise.all([
+      sb.from("policies").select("id,policy_name,approval_level").eq("company_id", co),
+      sb.from("permission_items").select("id,item_name").eq("company_id", co),
+      sb.from("permission_holders").select("id,name").eq("company_id", co),
+      sb.from("governance_links").select("*").eq("company_id", co)
+    ]);
+    const items = (it.data||[]).filter(x => (!itemId || String(x.id) === String(itemId)) && /^\s*-?\s*اعتماد/.test(x.item_name||""));
+    if(!items.length || !(pol.data||[]).length) return;
+    const cells = (await sb.from("permission_cells").select("item_id,holder_id,code").in("item_id", items.map(x => x.id))).data || [];
+    const hn = {}; (hd.data||[]).forEach(h => hn[h.id] = h.name || "");
+    const msgs = [], seen = new Set();
+    items.forEach(item => {
+      const apprs = cells.filter(c => c.item_id === item.id && c.code === "ع").map(c => hn[c.holder_id]).filter(Boolean);
+      if(!apprs.length) return;
+      const general = /(سياسات|لوائح|لائحة)/.test(item.item_name);
+      const linked = new Set((lk.data||[]).filter(l => (l.source_type==="policy" && l.target_type==="authority" && l.target_id===item.id) || (l.target_type==="policy" && l.source_type==="authority" && l.source_id===item.id)).map(l => l.source_type==="policy" ? l.source_id : l.target_id));
+      const bad = (pol.data||[]).filter(p => (general || linked.has(p.id)) && !apprs.some(a => govApprovalNeed(p.approval_level || "مجلس الإدارة").re.test(a)));
+      if(!bad.length) return;
+      const key = item.item_name.trim() + "|" + apprs.join(",");
+      if(seen.has(key)) return; seen.add(key);
+      const need = [...new Set(bad.map(p => govApprovalNeed(p.approval_level || "مجلس الإدارة").word))].join(" / ");
+      msgs.push(`«${orgEsc(item.item_name)}» اعتماده بيد: <b>${orgEsc(apprs.join("، "))}</b>، بينما السياسات (${orgEsc(bad.slice(0,3).map(p => p.policy_name).join("، "))}${bad.length>3?" …":""}) تتطلب اعتماد <b>${need}</b>.`);
+    });
+    if(msgs.length) govNotice("⚠️ <b>مراجعة مقترحة — قد يكون هذا خروجاً عن الصلاحيات</b><br>" + msgs.slice(0,3).join("<br><br>"));
+  } catch(e){ console.error("approval check failed", e); }
 }

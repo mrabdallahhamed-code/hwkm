@@ -979,27 +979,6 @@ async function computeGovernanceAlerts(){
       const cells = (await sb.from("permission_cells").select("item_id,holder_id,code").in("item_id", items.map(x=>x.id))).data || [];
       const hName = {}; (hd.data||[]).forEach(h => hName[h.id] = h.name || "");
       const iById = {}; items.forEach(x => iById[x.id] = x);
-      const noBoard = currentCompanyType === "مؤسسة فردية" || currentCompanyLLCSingleManager || currentCompanyLLCSingleOwner;
-      const need = lvl => lvl === "جمعية عامة" ? { re:/جمعية|مساهم|شركاء/, word:"الجمعية العامة" }
-        : lvl === "داخلية" ? { re:/حوكم|تنفيذي|ادارة|إدارة|مدير/, word:"الحوكمة أو الإدارة التنفيذية" }
-        : noBoard ? { re:/مالك|مدير/, word:"المالك/المدير" } : { re:/مجلس|لجنة|رئيس المجلس|عضو/, word:"مجلس الإدارة" };
-      const mism = [], none = [], seenK = new Set();
-      links.forEach(l => {
-        const pid = l.source_type==="policy" ? l.source_id : l.target_id;
-        const oid = l.source_type==="policy" ? l.target_id : l.source_id;
-        const otype = l.source_type==="policy" ? l.target_type : l.source_type;
-        if(otype !== "authority") return;
-        const p = (pol.data||[]).find(x => x.id === pid), item = iById[oid];
-        if(!p || !item || !/^\s*-?\s*اعتماد/.test(item.item_name||"")) return;
-        const apprs = cells.filter(c => c.item_id === oid && c.code === "ع").map(c => hName[c.holder_id]).filter(Boolean);
-        const dk = p.id + "|" + (item.item_name||"").trim(); if(seenK.has(dk)) return; seenK.add(dk);
-        const n = need(p.approval_level || "مجلس الإدارة");
-        if(!apprs.length) none.push({ p, item });
-        else if(!apprs.some(a => n.re.test(a))) mism.push({ p, item, apprs, n });
-      });
-      mism.slice(0,3).forEach(m => alerts.push({ severity:"high", cta:"راجع المصفوفة", page:"permissions", text:`مراجعة مقترحة: سياسة «${m.p.policy_name}» تتطلب اعتماد ${m.n.word}، لكن مصفوفة الصلاحيات تجعل «${m.item.item_name}» بيد: ${m.apprs.join("، ")}. قد يكون هناك خروج عن الصلاحيات.` }));
-      if(mism.length > 3) alerts.push({ severity:"high", cta:"راجع المصفوفة", page:"permissions", text:`وهناك ${mism.length-3} حالات أخرى من اختلاف جهة الاعتماد بين السياسات ومصفوفة الصلاحيات.` });
-      if(none.length) alerts.push({ severity:"medium", cta:"راجع المصفوفة", page:"permissions", text:`${none.length} بند اعتماد مرتبط بسياسة ولا توجد جهة محدَّدة بالرمز (ع) تعتمده في مصفوفة الصلاحيات.` });
       // policy late/unapproved → the procedures and authority items built on it need review
       const today2 = new Date(new Date().toDateString());
       const lateIds = new Set((pol.data||[]).filter(p => !p.approval_date && p.target_approval_date && new Date(p.target_approval_date) < today2).map(p => p.id));

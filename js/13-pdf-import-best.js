@@ -1049,6 +1049,7 @@ async function savePermItemEdit(){
   }
 
   closeM("m-perm-item-edit");
+  govCheckApprovalNow(id);
   await loadPermissionsMatrix();
   renderPermItemsManageList();
 }
@@ -1057,6 +1058,8 @@ async function savePermItem(){
   const item_name = document.getElementById("mpi-name").value.trim();
   if(!item_name){ alert("الرجاء إدخال نص البند"); return; }
   const category = document.getElementById("mpi-category").value;
+  const normN = x => String(x||"").replace(/[\s\-–:]+/g," ").trim();
+  if((permItemsCache||[]).some(x => normN(x.item_name) === normN(item_name))){ alert("هذا البند موجود مسبقاً في المصفوفة — لن يُضاف مكرراً."); return; }
 
   const { data: newItem, error } = await sb.from("permission_items")
     .insert([{ item_name, category, company_id: currentCompanyId, sort_order: permItemsCache.length }])
@@ -1082,6 +1085,7 @@ async function savePermItem(){
 
   document.getElementById("mpi-name").value = "";
   closeM("m-perm-item");
+  govCheckApprovalNow(newItem.id);
   loadPermissionsMatrix();
 
   if(await uiConfirm(`تم إضافة البند "${item_name}" ✅\n\nهل تريد إشعار الفريق بالبريد الإلكتروني؟`)){
@@ -1102,7 +1106,8 @@ async function deletePermItem(id){
 async function savePermCell(itemId, holderId, code){
   const { error } = await sb.from("permission_cells")
     .upsert([{ item_id: itemId, holder_id: holderId, code, company_id: currentCompanyId }], { onConflict: 'item_id,holder_id' });
-  if(error){ alert("تعذّر الحفظ: " + error.message); }
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  if(code === "ع") govCheckApprovalNow(itemId);
 }
 
 async function generatePermissionsReport(){
@@ -1143,3 +1148,36 @@ async function generatePermissionsReport(){
   w.document.close();
 }
 
+
+
+/* Remove duplicate authority items (same text): keep the one with the most assignments, move over any
+   assignment the others had, and delete the extras. Asks first. */
+async function permDedupe(){
+  const { data: items } = await sb.from("permission_items").select("id,item_name").eq("company_id", currentCompanyId);
+  const norm = x => String(x||"").replace(/[\s\-–:]+/g," ").trim();
+  const groups = {}; (items||[]).forEach(i => { (groups[norm(i.item_name)] = groups[norm(i.item_name)] || []).push(i); });
+  const dups = Object.values(groups).filter(g => g.length > 1);
+  if(!dups.length){ alert("لا توجد بنود مكرّرة ✅"); return; }
+  const extra = dups.reduce((n,g) => n + g.length - 1, 0);
+  if(!await uiConfirm(`وُجد ${dups.length} بند مكرّر (${extra} نسخة زائدة). سيُبقي النظام نسخة واحدة من كل بند بصلاحياتها، ويحذف النسخ الزائدة نهائياً. متابعة؟`)) return;
+  const ids = items.map(i => i.id);
+  const { data: cells } = await sb.from("permission_cells").select("*").in("item_id", ids);
+  for(const g of dups){
+    const cnt = id => (cells||[]).filter(c => c.item_id === id).length;
+    g.sort((a,b) => cnt(b.id) - cnt(a.id) || a.id - b.id);
+    const keep = g[0];
+    for(const d of g.slice(1)){
+      for(const c of (cells||[]).filter(c => c.item_id === d.id)){
+        const has = (cells||[]).some(k => k.item_id === keep.id && k.holder_id === c.holder_id);
+        if(!has) await sb.from("permission_cells").update({ item_id: keep.id }).eq("id", c.id);
+      }
+      await sb.from("governance_links").delete().eq("company_id", currentCompanyId).or(`and(source_type.eq.authority,source_id.eq.${d.id}),and(target_type.eq.authority,target_id.eq.${d.id})`);
+      await sb.from("permission_cells").delete().eq("item_id", d.id);
+      await sb.from("permission_items").delete().eq("id", d.id);
+    }
+  }
+  logActivity("حذف", "مصفوفة الصلاحيات", `${extra} بند مكرر`, "");
+  govCacheClear();
+  await loadPermissionsMatrix(); renderPermItemsManageList();
+  alert(`تم حذف ${extra} بند مكرر ✅`);
+}
