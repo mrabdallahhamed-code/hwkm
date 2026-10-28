@@ -915,30 +915,61 @@ async function riskReportView(requestId){
   for(let l=5; l>=1; l--){
     mx += `<tr><td class="ax">${l}</td>` + [1,2,3,4,5].map(im => { const inf = riskLevelInfo(l, im); return `<td style="background:${inf.color}">${(cells[l+"-"+im]||[]).map(n => `<span class="dot">${n}</span>`).join("")}</td>`; }).join("") + "</tr>";
   }
-  mx += '</table><div style="text-align:center;font-size:11px;color:#666">الاحتمالية ↑ — التأثير →</div>';
+  mx += '</table><div class="axl">التأثير ← &nbsp;&nbsp;|&nbsp;&nbsp; ↑ الاحتمالية</div>';
   const reg = list.map((it,i) => { const inf = riskLevelInfo(it.likelihood, it.impact); return `<tr><td>${i+1}</td><td style="text-align:right">${E(it.description||"")}</td><td>${E(it.category||"—")}</td><td>${it.likelihood??"—"}</td><td>${it.impact??"—"}</td><td style="background:${inf.color};color:#fff;font-weight:700">${inf.label}</td></tr>`; }).join("");
   const plans = list.map((it,i) => `<tr><td>${i+1}</td><td style="text-align:right">${E(it.treatment_plan||"—")}</td><td>${E(it.responsible_person||"—")}</td><td>${E(it.target_close_date||"—")}</td></tr>`).join("");
+  const cnt = { "عالٍ جداً":0, "عالٍ":0, "متوسط":0, "منخفض":0 };
+  list.forEach(it => { const l = riskLevelInfo(it.likelihood, it.impact).label; if(cnt[l] != null) cnt[l]++; });
+  const stat = (n, t, col) => `<div class="st"><div class="n" style="color:${col}">${n}</div><div class="t">${t}</div></div>`;
+  const dstr = new Date().toLocaleDateString("ar-SA-u-ca-gregory",{day:"numeric",month:"long",year:"numeric"});
+  const ref = "RSK-" + new Date().getFullYear() + "-" + String(requestId).padStart(4,"0");
+  let sec = 0; const H = t => `<h2><span class="no">${++sec}</span>${t}</h2>`;
   w.document.open();
-  w.document.write(`<html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>تقرير تقييم المخاطر</title><style>
-  body{font-family:Tajawal,Arial,sans-serif;padding:36px 46px;color:#0D2447;line-height:2;font-size:13.5px}
-  h1{font-size:24px;margin:0;text-align:center}h2{font-size:16px;border-right:5px solid #D4AF37;padding-right:10px;margin:26px 0 8px}
-  .sub{text-align:center;color:#666;font-size:12px;margin:4px 0 18px}.meta{border:1px solid #ccc;border-radius:8px;padding:10px 16px;background:#f8f9fc;font-size:12.5px}
-  table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #ccc;padding:6px;font-size:12px;text-align:center}th{background:#1A3A6B;color:#fff}
-  .mx{width:auto;margin:8px auto;direction:ltr}.mx td{width:54px;height:40px;border:2px solid #fff}.mx .ax{background:none;border:none;width:24px;height:auto;color:#666}
-  .dot{display:inline-block;width:18px;height:18px;line-height:18px;border-radius:50%;background:#fff;color:#333;font-weight:800;font-size:10.5px;margin:1px}
-  .note{font-size:11px;color:#777;margin-top:26px;border-top:1px solid #ddd;padding-top:8px}@media print{body{padding:10px 20px}}
+  w.document.write(`<html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>تقرير تقييم المخاطر — ${E(coName)}</title><style>
+  @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+  @page{size:A4;margin:14mm 13mm 18mm}
+  *{box-sizing:border-box}
+  body{font-family:Tajawal,Arial,sans-serif;color:#0D2447;line-height:1.95;font-size:13px;margin:0;padding:0 4px}
+  .hero{background:#0D2447;color:#fff;border-radius:10px;padding:22px 26px;margin-bottom:14px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .hero .brand{color:#D4AF37;font-weight:800;font-size:13px;letter-spacing:.5px}
+  .hero h1{font-size:25px;margin:6px 0 2px}.hero .co{font-size:15px;font-weight:700}
+  .hero .meta2{display:flex;gap:22px;flex-wrap:wrap;margin-top:10px;font-size:11.5px;color:#C9D4E6}
+  .info{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+  .info div{border:1px solid #D9DEE8;border-radius:8px;padding:7px 12px;background:#F8F9FC;font-size:12px;break-inside:avoid}
+  .info b{display:block;color:#6B7690;font-size:10.5px;font-weight:700}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:6px}
+  .st{border:1px solid #D9DEE8;border-radius:10px;text-align:center;padding:8px 4px;break-inside:avoid}.st .n{font-size:24px;font-weight:800;line-height:1.3}.st .t{font-size:11px;color:#6B7690}
+  h2{font-size:15.5px;margin:20px 0 6px;display:flex;align-items:center;gap:8px;break-after:avoid;page-break-after:avoid}
+  h2 .no{display:inline-flex;width:24px;height:24px;border-radius:50%;background:#D4AF37;color:#0D2447;font-size:12px;font-weight:800;align-items:center;justify-content:center;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  p{margin:0 0 6px;text-align:justify}ol{margin:4px 0;padding-right:22px}li{margin-bottom:4px;break-inside:avoid}
+  table{width:100%;border-collapse:collapse;margin-top:6px}thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}
+  th,td{border:1px solid #D0D6E2;padding:6px 8px;font-size:11.5px;text-align:center;vertical-align:middle}
+  th{background:#1A3A6B;color:#fff;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  td.l{text-align:right}
+  .chip{display:inline-block;border-radius:12px;padding:1px 10px;color:#fff;font-weight:700;font-size:11px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .mxw{break-inside:avoid;text-align:center;margin-top:6px}
+  .mx{width:auto;margin:6px auto 2px;direction:ltr;border-collapse:separate;border-spacing:3px}.mx td{width:62px;height:46px;border:none;border-radius:6px;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}.mx td.ax{background:none;width:26px;height:auto;color:#6B7690;font-weight:700}
+  .dot{display:inline-block;width:20px;height:20px;line-height:20px;border-radius:50%;background:#fff;color:#0D2447;font-weight:800;font-size:11px;margin:1px}
+  .axl{font-size:11px;color:#6B7690;font-weight:700}
+  .sig{display:flex;gap:40px;margin-top:46px;break-inside:avoid}.sig div{flex:1;border-top:1px solid #555;text-align:center;padding-top:6px;font-size:12px}
+  .note{font-size:10.5px;color:#7a8296;margin-top:22px;border-top:1px solid #ddd;padding-top:8px}
+  .foot{position:fixed;bottom:0;left:0;right:0;text-align:center;font-size:10px;color:#8a93a6;border-top:1px solid #e2e5ec;padding-top:4px;background:#fff}
   </style></head><body>
-  <h1>تقرير تقييم المخاطر</h1><div class="sub">${E(coName)} — ${new Date().toLocaleDateString("ar-SA-u-ca-gregory",{day:"numeric",month:"long",year:"numeric"})}</div>
-  <div class="meta"><b>القطاع:</b> ${E(r.sector||"—")} &nbsp;|&nbsp; <b>نطاق التقييم:</b> ${E(r.scope||"—")} &nbsp;|&nbsp; <b>أنواع المخاطر:</b> ${E(r.risk_types_needed||"—")}</div>
-  <h2>الملخص التنفيذي</h2>${para(c.executive_summary)}
-  <h2>منهجية التقييم</h2>${para(c.methodology)}
-  <h2>المصفوفة الحرارية</h2>${mx}
-  <h2>سجل المخاطر</h2><table><thead><tr><th>#</th><th>الخطر</th><th>الفئة</th><th>الاحتمالية</th><th>التأثير</th><th>المستوى</th></tr></thead><tbody>${reg}</tbody></table>
-  <h2>أبرز النتائج</h2>${ul(c.key_findings)}
-  <h2>خطط المعالجة</h2><table><thead><tr><th>#</th><th>خطة المعالجة</th><th>المسؤول</th><th>الموعد المستهدف</th></tr></thead><tbody>${plans}</tbody></table>
-  <h2>التوصيات</h2>${ul(c.recommendations)}
-  <h2>الخاتمة</h2>${para(c.conclusion)}
-  <div class="note">${c.ai ? "أُعدّت مسودة هذا التقرير بمساعدة الذكاء الاصطناعي ثم راجعها وعدّلها المستشار المختص. " : ""}صدر عن منصة حوكم.</div>
+  <div class="foot">${E(ref)} — تقرير تقييم المخاطر — ${E(coName)} — سرّي</div>
+  <div class="hero"><div class="brand">حوكم · HWKM</div><h1>تقرير تقييم المخاطر المؤسسية</h1><div class="co">${E(coName)}</div>
+    <div class="meta2"><span>رقم التقرير: ${E(ref)}</span><span>تاريخ الإصدار: ${dstr}</span></div></div>
+  <div class="info"><div><b>القطاع</b>${E(r.sector||"—")}</div><div><b>نطاق التقييم</b>${E(r.scope||"—")}</div><div><b>أنواع المخاطر المطلوبة</b>${E(r.risk_types_needed||"—")}</div></div>
+  <div class="stats">${stat(cnt["عالٍ جداً"],"عالٍ جداً","#C0392B")}${stat(cnt["عالٍ"],"عالٍ","#E67E22")}${stat(cnt["متوسط"],"متوسط","#D4A60A")}${stat(cnt["منخفض"],"منخفض","#27AE60")}</div>
+  ${H("الملخص التنفيذي")}${para(c.executive_summary)}
+  ${H("منهجية التقييم")}${para(c.methodology)}
+  ${H("المصفوفة الحرارية")}<div class="mxw">${mx}</div>
+  ${H("سجل المخاطر")}<table><thead><tr><th style="width:30px">#</th><th>الخطر</th><th>الفئة</th><th>الاحتمالية</th><th>التأثير</th><th>المستوى</th></tr></thead><tbody>${list.map((it,i) => { const inf = riskLevelInfo(it.likelihood, it.impact); return `<tr><td>${i+1}</td><td class="l">${E(it.description||"")}</td><td>${E(it.category||"—")}</td><td>${it.likelihood??"—"}</td><td>${it.impact??"—"}</td><td><span class="chip" style="background:${inf.color}">${inf.label}</span></td></tr>`; }).join("")}</tbody></table>
+  ${H("أبرز النتائج")}${ul(c.key_findings)}
+  ${H("خطط المعالجة")}<table><thead><tr><th style="width:30px">#</th><th>الخطر</th><th>خطة المعالجة</th><th>المسؤول</th><th>الموعد المستهدف</th></tr></thead><tbody>${list.map((it,i) => `<tr><td>${i+1}</td><td class="l">${E(it.description||"")}</td><td class="l">${E(it.treatment_plan||"—")}</td><td>${E(it.responsible_person||"—")}</td><td style="white-space:nowrap">${E(it.target_close_date||"—")}</td></tr>`).join("")}</tbody></table>
+  ${H("التوصيات")}${ul(c.recommendations)}
+  ${H("الخاتمة")}${para(c.conclusion)}
+  <div class="sig"><div>المستشار المختص</div><div>اعتماد منصة حوكم</div></div>
+  <div class="note">${c.ai ? "أُعدّت مسودة هذا التقرير بمساعدة الذكاء الاصطناعي ثم راجعها وعدّلها المستشار المختص. " : ""}يعتمد التقرير على المعلومات المقدَّمة من الشركة وقت التقييم، ولا يُغني عن المراجعة الدورية للمخاطر.</div>
   </body></html>`);
   w.document.close();
 }
