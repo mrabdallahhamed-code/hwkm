@@ -407,40 +407,66 @@ async function submitCompanyRequestImpl(){
 async function loadPlatformDashboard(){
   const grid = document.getElementById("platformDashGrid");
   const modulesGrid = document.getElementById("platformModulesGrid");
-  const trialsTbody = document.getElementById("platformTrialsTbody");
+  const trialsList = document.getElementById("platformTrialsList");
   if(!grid) return;
 
   const { data: companies, error } = await sb.from("companies").select("*");
-  if(error){ grid.innerHTML = `<div style="color:var(--red);font-size:12px;grid-column:1/-1">${error.message}</div>`; return; }
+  if(error){ grid.innerHTML = `<div style="color:var(--red);font-size:12px">${error.message}</div>`; return; }
   const all = companies || [];
+  const upd = document.getElementById("pdUpdated"); if(upd) upd.textContent = "آخر تحديث: " + new Date().toLocaleTimeString("ar-SA-u-ca-gregory",{hour:"2-digit",minute:"2-digit"});
 
   const countByType = { "مساهمة": 0, "ذات مسؤولية محدودة": 0, "مؤسسة فردية": 0 };
   all.forEach(c => { const k = (c.company_type||"").indexOf("مساهمة") === 0 ? "مساهمة" : c.company_type; if(countByType[k] !== undefined) countByType[k]++; });
-
-  const cards = [
-    { icon:"🏢", label:"إجمالي الشركات", val: all.length, color:"blue" },
-    { icon:"📈", label:"شركات مساهمة", val: countByType["مساهمة"], color:"gold" },
-    { icon:"🤝", label:"ذات مسؤولية محدودة", val: countByType["ذات مسؤولية محدودة"], color:"green" },
-    { icon:"👤", label:"مؤسسات فردية", val: countByType["مؤسسة فردية"], color:"red" }
-  ];
-  grid.innerHTML = cards.map(c => `<div class="kpi ${c.color}"><div class="kpi-stripe"></div><div class="kpi-label">${c.label}</div><div class="kpi-val">${c.val}</div><div class="kpi-icon">${c.icon}</div></div>`).join("");
-
+  const stat = (icon, label, val, cls) => `<div class="pd-stat ${cls||""}"><span class="pd-stat-ico">${icon}</span><div><div class="pd-stat-val">${val}</div><div class="pd-stat-lbl">${label}</div></div></div>`;
+  grid.innerHTML = [
+    stat("🏢","إجمالي الشركات", all.length, "pd-first"), stat("📈","شركات مساهمة", countByType["مساهمة"]),
+    stat("🤝","ذات مسؤولية محدودة", countByType["ذات مسؤولية محدودة"]), stat("👤","مؤسسات فردية", countByType["مؤسسة فردية"])
+  ].join("");
   const auditCount = all.filter(c => c.module_internal_audit).length;
   const riskCount = all.filter(c => c.module_risk_management).length;
   modulesGrid.innerHTML = [
-    { icon:"🏛️", label:"الحوكمة والاجتماعات (أساسية)", val: all.length, color:"blue" },
-    { icon:"🔍", label:"المراجعة الداخلية", val: auditCount, color:"gold" },
-    { icon:"⚠️", label:"إدارة المخاطر", val: riskCount, color:"red" }
-  ].map(c => `<div class="kpi ${c.color}"><div class="kpi-stripe"></div><div class="kpi-label">${c.label}</div><div class="kpi-val">${c.val}</div><div class="kpi-icon">${c.icon}</div></div>`).join("");
+    stat("🏛️","الحوكمة والاجتماعات", all.length), stat("🔍","المراجعة الداخلية", auditCount), stat("⚠️","إدارة المخاطر", riskCount)
+  ].join("");
 
-  const inTrial = all.filter(c => c.trial_ends_at && new Date(c.trial_ends_at) > new Date());
-  if(inTrial.length === 0){
-    trialsTbody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد شركات بفترة تجربة نشطة.</td></tr>';
+  const now = new Date();
+  const inTrial = all.filter(c => c.trial_ends_at && new Date(c.trial_ends_at) > now)
+    .map(c => ({ c, days: Math.max(0, Math.ceil((new Date(c.trial_ends_at) - now) / 86400000)) })).sort((x,y) => x.days - y.days);
+  const tc = document.getElementById("pdTrialCount"); if(tc) tc.textContent = inTrial.length || "";
+  if(!inTrial.length){
+    trialsList.innerHTML = '<div class="pd-empty">لا توجد شركات بفترة تجربة نشطة.</div>';
   } else {
-    trialsTbody.innerHTML = inTrial.map(c => {
-      const daysLeft = Math.max(0, Math.ceil((new Date(c.trial_ends_at) - new Date()) / 86400000));
-      return `<tr><td>${orgEsc(c.name)}</td><td>${daysLeft} يوم</td></tr>`;
+    trialsList.innerHTML = inTrial.map(({c, days}) => {
+      const tone = days <= 3 ? "red" : days <= 7 ? "amber" : "green";
+      const pct = Math.max(4, Math.min(100, Math.round(days / 14 * 100)));
+      return `<div class="pd-trial"><div class="pd-trial-main"><div class="pd-trial-name">${orgEsc(c.name)}</div>
+        <div class="pd-trial-meta">${orgEsc(c.company_type||"—")}${c.responsible_person ? " · " + orgEsc(c.responsible_person) : ""}${c.responsible_phone ? ` · <span style="direction:ltr;display:inline-block">${orgEsc(c.responsible_phone)}</span>` : ""}${c.cr_number ? "" : ' · <span class="pd-chip red">بلا رقم سجل</span>'}</div></div>
+        <div class="pd-trial-days ${tone}"><b>${days}</b> يوم<div class="pd-bar"><i style="width:${pct}%"></i></div></div></div>`;
     }).join("");
+  }
+
+  // مركز عمل المالك: ما ينتظر قراراً أو تصرفاً منك
+  const actions = document.getElementById("pdActions");
+  if(actions){
+    let pendingAssign = 0, pendingApprove = 0;
+    try{
+      const [rr, ar] = await Promise.all([
+        sb.from("risk_requests").select("status,assigned_consultant_email,pending_final_approval"),
+        sb.from("audit_requests").select("status,pending_final_approval")
+      ]);
+      (rr.data||[]).forEach(x => { if(x.pending_final_approval) pendingApprove++; if(x.status === "تم الاستلام" && !x.assigned_consultant_email) pendingAssign++; });
+      (ar.data||[]).forEach(x => { if(x.pending_final_approval) pendingApprove++; if(x.status === "تم الاستلام") pendingAssign++; });
+    }catch(e){}
+    const soon = inTrial.filter(x => x.days <= 7).length;
+    const unverified = all.filter(c => c.entity_verification !== "verified").length;
+    const noCr = all.filter(c => !String(c.cr_number||"").trim()).length;
+    const act = (n, label, page, tone) => `<div class="pd-act ${n ? tone : "ok"}" onclick="${page ? `go('${page}',null)` : ""}"><div class="pd-act-n">${n ? n : "✓"}</div><div class="pd-act-l">${label}</div></div>`;
+    actions.innerHTML = [
+      act(pendingAssign, "طلبات جديدة بانتظار تكليف", "adminrequests", "red"),
+      act(pendingApprove, "تقارير بانتظار اعتمادك", "adminrequests", "red"),
+      act(soon, "تجارب تنتهي خلال 7 أيام", "", "amber"),
+      act(unverified, "كيانات غير موثّقة", "", "amber"),
+      act(noCr, "شركات بلا رقم سجل", "", "amber")
+    ].join("");
   }
 
   renderEntityVerificationTable(all);
@@ -464,16 +490,16 @@ async function loadPlatformDashboard(){
 function renderEntityVerificationTable(all){
   const tb = document.getElementById("platformEntityTbody");
   if(!tb) return;
-  const badge = (st) => st === "verified" ? '<span style="color:var(--green);font-weight:700">موثّق ✅</span>'
-    : st === "rejected" ? '<span style="color:var(--red);font-weight:700">مرفوض ⛔</span>'
-    : '<span style="color:var(--gold);font-weight:700">غير موثّق ⏳</span>';
+  const badge = (st) => st === "verified" ? '<span class="pd-chip green">موثّق ✓</span>'
+    : st === "rejected" ? '<span class="pd-chip red">مرفوض</span>'
+    : '<span class="pd-chip amber">غير موثّق</span>';
   const rank = c => (c.entity_verification === "verified" ? 2 : 0) + ((c.company_type||"").indexOf("مدرجة") > 0 && c.company_type.indexOf("غير") < 0 ? 0 : 1);
   const rows = (all||[]).slice().sort((a,b) => rank(a) - rank(b) || new Date(b.created_at) - new Date(a.created_at));
   if(!rows.length){ tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد شركات.</td></tr>'; return; }
   tb.innerHTML = rows.map(c => `<tr>
     <td>${orgEsc(c.name)}</td>
     <td>${orgEsc(c.company_type||"—")}</td>
-    <td>${orgEsc(c.cr_number||"—")}</td>
+    <td>${(() => { const n = String(c.cr_number||"").trim(); if(!n) return '<span class="pd-chip red">بلا رقم</span>'; return /^\d{10}$/.test(n) ? `<span style="direction:ltr;display:inline-block">${orgEsc(n)}</span>` : `<span style="direction:ltr;display:inline-block">${orgEsc(n)}</span> <span class="pd-chip red">غير صالح</span>`; })()}</td>
     <td>${orgEsc(c.responsible_person||"—")}<div style="font-size:10.5px;color:var(--gray3);direction:ltr;text-align:right">${orgEsc(c.responsible_phone||"")}${c.responsible_email ? "<br>" + orgEsc(c.responsible_email) : ""}</div></td>
     <td>${badge(c.entity_verification)}</td>
     <td style="white-space:nowrap">

@@ -48,7 +48,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.1" onerror="document.write('<script src=&quot;https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2&quot;><\/script>')"></script>
-<link rel="stylesheet" href="style.css?v=23">
+<link rel="stylesheet" href="style.css?v=25">
 <script src="https://unpkg.com/pizzip@3.2.0/dist/pizzip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://unpkg.com/docxtemplater@3.69.0/build/docxtemplater.js"></script>
@@ -1967,35 +1967,32 @@
 <!-- ══ ADMIN REQUESTS (merged: company requests + subscriptions + audit requests) ══ -->
 <!-- ══ PLATFORM OVERVIEW (owner-only aggregate pages) ══════ -->
 <div id="p-platformdashboard" class="page content">
-  <div class="sec-title"><span class="ico-i ico-dashboard"></span>لوحة تحكم مالك المنصة</div>
-  <div id="platformDashGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:24px">
-    <div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">جارِ التحميل...</div>
+  <div class="pd-head"><div class="pd-title"><span class="ico-i ico-dashboard"></span>لوحة تحكم مالك المنصة</div><div class="pd-sub" id="pdUpdated"></div></div>
+
+  <div class="pd-sec">يحتاج منك الآن</div>
+  <div id="pdActions" class="pd-actions"><div class="pd-loading">جارِ التحميل...</div></div>
+
+  <div class="pd-sec">نظرة عامة</div>
+  <div class="card pd-strip">
+    <div id="platformDashGrid" class="pd-stats"><div class="pd-loading">جارِ التحميل...</div></div>
+    <div class="pd-divider"></div>
+    <div id="platformModulesGrid" class="pd-stats"></div>
   </div>
 
-  <div class="sec-title" style="font-size:15px"><span class="ico-i ico-package"></span>الاشتراك بالوحدات</div>
-  <div id="platformModulesGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:24px"></div>
+  <div class="pd-sec">الشركات بفترة تجربة <span class="pd-count" id="pdTrialCount"></span></div>
+  <div id="platformTrialsList" class="pd-trials"><div class="pd-loading">جارِ التحميل...</div></div>
 
-  <div class="sec-title" style="font-size:15px"><span class="ico-i ico-package"></span>الشركات بفترة تجربة</div>
-  <div class="card" style="margin-bottom:24px">
-    <div class="card-body" style="padding:0">
-      <table class="tbl">
-        <thead><tr><th>الشركة</th><th>تنتهي بعد</th></tr></thead>
-        <tbody id="platformTrialsTbody"><tr><td colspan="2" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="sec-title" style="font-size:15px"><span class="ico-i ico-shield"></span>توثيق نوع الكيان</div>
-  <div class="card" style="margin-bottom:24px">
-    <div class="card-body" style="padding:0">
-      <table class="tbl">
+  <div class="pd-sec">توثيق نوع الكيان</div>
+  <div class="card" style="margin-bottom:24px;overflow:hidden">
+    <div class="card-body" style="padding:0;overflow-x:auto">
+      <table class="tbl pd-tbl">
         <thead><tr><th>الشركة</th><th>النوع</th><th>رقم السجل</th><th>المسؤول والتواصل</th><th>الحالة</th><th>إجراء</th></tr></thead>
         <tbody id="platformEntityTbody"><tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ التحميل...</td></tr></tbody>
       </table>
     </div>
   </div>
 
-  <div class="sec-title" style="font-size:15px">⏱️ متوسط أيام التحول من تجربة إلى اشتراك مدفوع</div>
+  <div class="pd-sec">⏱️ متوسط أيام التحول من تجربة إلى اشتراك مدفوع</div>
   <div class="card"><div class="card-body" style="text-align:center;padding:20px">
     <div style="font-size:32px;font-weight:900;color:var(--primary)" id="platformAvgConversionDays">—</div>
     <div style="font-size:11px;color:var(--gray3);margin-top:4px" id="platformConversionSubtext">جارِ الحساب...</div>
@@ -3881,7 +3878,7 @@
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=hwkmTsReady" async defer></script>
 <script src="js/01-supabase-config-const.js?v=7"></script>
 <script src="js/02-team-invites-join.js?v=56"></script>
-<script src="js/03-archive-const-archive.js?v=74"></script>
+<script src="js/03-archive-const-archive.js?v=76"></script>
 <script src="js/04-two-factor-authentication.js?v=68"></script>
 <script src="js/05-annual-meeting-plan.js?v=3"></script>
 <script src="js/06-agm-cards-detail.js?v=2"></script>
