@@ -1134,12 +1134,12 @@ async function gaAutoEvidence(){
   // ── Committees
   const comScore = re => {
     const c = com.find(x => re.test(x.committee_name || ""));
-    if(!c) return { s: 1, n: "لا توجد لجنة بهذا الاسم في المنصة." };
+    if(!c) return null; // a committee may simply not be required for this company — leave it to the assessor
     const meets = mt.filter(m => String(m.committee_id) === String(c.id) && recent(m.meeting_date)).length;
     const s = 2 + (c.charter_approved_date ? 1 : 0) + (meets > 0 ? 1 : 0);
     return { s, n: `اللجنة موجودة؛ ${c.charter_approved_date ? "الميثاق معتمد" : "بلا ميثاق معتمد"}؛ ${meets} اجتماع خلال 12 شهراً. الاستقلالية والتقارير تحتاج حكمك.` };
   };
-  [["audit_committee",/مراجعة/],["risk_committee",/مخاطر/],["nom_rem_committee",/ترشيح|مكافآت|مكافات/],["governance_committee",/حوكمة/]].forEach(([k, re]) => { const r = comScore(re); put(k, r.s, r.n); });
+  [["audit_committee",/مراجعة/],["risk_committee",/مخاطر/],["nom_rem_committee",/ترشيح|مكافآت|مكافات/],["governance_committee",/حوكمة/]].forEach(([k, re]) => { const r = comScore(re); if(r) put(k, r.s, r.n); });
   // ── Risk
   if(risks.length){
     const share = f => Math.round(risks.filter(f).length / risks.length * 100);
