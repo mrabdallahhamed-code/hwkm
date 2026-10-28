@@ -66,7 +66,7 @@ async function saveAgmStrict(on){
 }
 async function loadVotingPage(){
   const isOverseer = getCurrentRole() === 'مدير النظام';
-  if(isOverseer){ loadAgmStrictToggle(); loadShReportsToggle(); }
+  if(isOverseer){ loadAgmStrictToggle(); loadShReportsToggle(); loadQuorumSettings(); }
   const selfSection = document.getElementById("voterSelfSection");
   if(selfSection) selfSection.style.display = isOverseer ? "none" : "block";
   const adminSection = document.getElementById("voterAdminSection");
@@ -1235,4 +1235,45 @@ async function gaApplyAutoEvidence(){
     if(box) box.innerHTML = `<div style="background:#eef4fb;border:1px solid #cfe0f2;border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.9;margin-bottom:14px">⚡ <b>عُبّئ ${filled} معياراً من أصل ${total} تلقائياً</b> من سجلات المنصة${kept ? ` (وتُرك ${kept} كما أدخلتَه)` : ""}.<br>الدرجات التلقائية مبنية على الأدلة المسجَّلة فقط وتحمل علامة <b>[تلقائي]</b> في الملاحظات — راجعها وعدّل ما تراه. أما المعايير الفارغة (الاستقلالية، جودة النقاش، المراجعة الخارجية، مؤشرات المخاطر…) فتحتاج حكمك أنت.</div>`;
   } catch(e){ alert("تعذّر قراءة البيانات: " + e.message); }
   if(btn){ btn.disabled = false; btn.textContent = "⚡ تعبئة تلقائية من بيانات المنصة"; }
+}
+
+
+/* ══ AGM QUORUM SETTINGS — default = Saudi Companies Law (Arts. 92–93); editable per company where the
+   Articles of Association set a different (permitted) figure ══ */
+const QUORUM_LAW = { agm_ordinary_quorum_1: 25, agm_ordinary_quorum_2: 0, agm_extraordinary_quorum_1: 50, agm_extraordinary_quorum_2: 25, agm_extraordinary_quorum_3: 0, board_quorum_percentage: 50 };
+const QUORUM_FIELDS = { "qs-o1":"agm_ordinary_quorum_1", "qs-o2":"agm_ordinary_quorum_2", "qs-e1":"agm_extraordinary_quorum_1", "qs-e2":"agm_extraordinary_quorum_2", "qs-e3":"agm_extraordinary_quorum_3", "qs-b":"board_quorum_percentage" };
+async function loadQuorumSettings(){
+  const row = document.getElementById("quorumSettingsRow"); if(!row || !currentCompanyId) return;
+  const { data, error } = await sb.from("companies").select("agm_ordinary_quorum_1,agm_ordinary_quorum_2,agm_extraordinary_quorum_1,agm_extraordinary_quorum_2,agm_extraordinary_quorum_3,board_quorum_percentage").eq("id", currentCompanyId).maybeSingle();
+  if(error || !data){ row.style.display = "none"; return; }
+  let custom = false;
+  Object.entries(QUORUM_FIELDS).forEach(([id, col]) => {
+    const v = data[col] != null ? Number(data[col]) : QUORUM_LAW[col];
+    document.getElementById(id).value = v;
+    if(v !== QUORUM_LAW[col]) custom = true;
+  });
+  const src = document.getElementById("quorumSettingsSrc");
+  src.innerHTML = custom ? "المصدر الحالي: <b style=\"color:#b0701c\">النظام الأساس للشركة (قيم معدّلة)</b>" : "المصدر الحالي: <b style=\"color:var(--green)\">نظام الشركات (الافتراضي)</b>";
+  row.style.display = "block";
+}
+async function saveQuorumSettings(){
+  const upd = {}; const bad = [];
+  Object.entries(QUORUM_FIELDS).forEach(([id, col]) => {
+    const el = document.getElementById(id), v = Number(el.value);
+    if(el.value === "" || isNaN(v) || v < Number(el.min) || v > Number(el.max)) bad.push(el.previousElementSibling.textContent + ` (من ${el.min} إلى ${el.max})`);
+    upd[col] = v;
+  });
+  if(bad.length){ alert("قيمة خارج الحدود النظامية:\n- " + bad.join("\n- ")); return; }
+  const { error } = await sb.from("companies").update(upd).eq("id", currentCompanyId);
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  logActivity("تعديل", "إعداد الجمعية", "النصاب القانوني", Object.entries(upd).map(([k,v]) => `${k}=${v}`).join("، "));
+  alert("تم حفظ النصاب ✅ — يسري على الجمعيات والاجتماعات القادمة.");
+  loadQuorumSettings();
+}
+async function restoreQuorumDefaults(){
+  if(!await uiConfirm("استعادة النصاب إلى ما نص عليه نظام الشركات؟")) return;
+  const { error } = await sb.from("companies").update(QUORUM_LAW).eq("id", currentCompanyId);
+  if(error){ alert("تعذّر الحفظ: " + error.message); return; }
+  logActivity("تعديل", "إعداد الجمعية", "النصاب القانوني", "استعادة نظام الشركات");
+  loadQuorumSettings();
 }

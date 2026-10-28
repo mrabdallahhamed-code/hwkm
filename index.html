@@ -1427,6 +1427,24 @@
       <div id="agmStrictRow" style="display:none;margin-bottom:10px">
         <label class="set-row"><span class="set-txt"><b>تصويت صارم:</b><small>يُحتسب وزن كل صوت من سجل المساهمين المرتبط بحساب المصوّت فقط، ولا يُقبل أي اسم أو عدد أسهم من غيره. يُنصح بتفعيله قبل فتح التصويت في أي جمعية.</small></span><input type="checkbox" class="sw" id="agmStrictToggle" onchange="saveAgmStrict(this.checked)"></label>
       </div>
+      <div id="quorumSettingsRow" style="display:none;margin-bottom:12px;border:1px solid #e6e9ef;border-radius:12px;padding:12px 14px;background:#fff">
+        <div style="font-weight:800;font-size:13px;margin-bottom:4px">النصاب القانوني للجمعيات العامة</div>
+        <div id="quorumSettingsSrc" style="font-size:12px;color:var(--gray3);margin-bottom:10px"></div>
+        <div class="row2">
+          <div class="fg"><label>العادية — الاجتماع الأول (%)</label><input type="number" class="fi" id="qs-o1" min="25" max="50" step="0.01"/></div>
+          <div class="fg"><label>العادية — الاجتماع الثاني (%)</label><input type="number" class="fi" id="qs-o2" min="0" max="50" step="0.01"/></div>
+        </div>
+        <div class="row2">
+          <div class="fg"><label>غير العادية — الأول (%)</label><input type="number" class="fi" id="qs-e1" min="50" max="66.67" step="0.01"/></div>
+          <div class="fg"><label>غير العادية — الثاني (%)</label><input type="number" class="fi" id="qs-e2" min="25" max="66.67" step="0.01"/></div>
+        </div>
+        <div class="row2">
+          <div class="fg"><label>غير العادية — الثالث (%)</label><input type="number" class="fi" id="qs-e3" min="0" max="66.67" step="0.01"/></div>
+          <div class="fg"><label>مجلس الإدارة — نسبة الحضور (%)</label><input type="number" class="fi" id="qs-b" min="1" max="100" step="0.01"/></div>
+        </div>
+        <div style="font-size:11.5px;color:var(--gray3);line-height:1.8;margin:6px 0 10px">الافتراضي هو ما نص عليه نظام الشركات: العادية 25% ثم بمن حضر، وغير العادية 50% ثم 25% ثم بمن حضر. يجوز للنظام الأساس رفع النسب بحدود النظام (العادية حتى 50%، وغير العادية حتى ثلثي الأسهم). عدّلها فقط إن نص نظامكم الأساس على غير ذلك.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-gold" onclick="saveQuorumSettings()">حفظ النصاب</button><button class="btn btn-ghost" onclick="restoreQuorumDefaults()">استعادة نظام الشركات</button></div>
+      </div>
       <div id="shReportsRow" style="display:none;margin-bottom:10px">
         <label class="set-row"><span class="set-txt"><b>إظهار «تقارير الحوكمة» للمساهمين:</b><small>عند التفعيل تظهر صفحة التقارير في قائمة المساهمين بهذه الشركة، وعند الإيقاف تختفي. فعّلها فقط حين تحتاجها الجمعية.</small></span><input type="checkbox" class="sw" id="shReportsToggle" onchange="saveShReports(this.checked)"></label>
       </div>
@@ -3859,7 +3877,7 @@
 <script src="js/11-job-descriptions-draft.js?v=2"></script>
 <script src="js/12-email-notifications-supabase.js?v=6"></script>
 <script src="js/13-pdf-import-best.js?v=34"></script>
-<script src="js/14-votes-let-companysettings.js?v=8"></script>
+<script src="js/14-votes-let-companysettings.js?v=9"></script>
 <script src="js/15-audit-services-back.js?v=3"></script>
 <script src="js/16-performance-evaluations-let.js?v=33"></script>
 <script src="js/17-admin-management-criteria.js?v=45"></script>
