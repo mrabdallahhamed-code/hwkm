@@ -623,7 +623,11 @@ async function saveMember(){
   const { error } = id
     ? await sb.from("board_members").update(payload).eq("id", id)
     : await sb.from("board_members").insert([payload]);
-  if(error){ alert("خطأ أثناء الحفظ: " + error.message); return; }
+  if(error){
+    const rls = /row-level security|permission denied/i.test(error.message||"");
+    alert(rls ? "ليست لديك صلاحية تعديل أعضاء المجلس بهذا الحساب.\nصلاحيتك هنا «عرض فقط». اطلب من مدير النظام منحك صلاحية «تعديل» على صفحة الأعضاء." : "خطأ أثناء الحفظ: " + error.message);
+    return;
+  }
 
   document.getElementById("mm-id").value = "";
   document.getElementById("mm-title").textContent = "👤 إضافة عضو مجلس إدارة";
