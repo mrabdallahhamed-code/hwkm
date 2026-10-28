@@ -983,7 +983,7 @@ async function computeGovernanceAlerts(){
       const need = lvl => lvl === "جمعية عامة" ? { re:/جمعية|مساهم|شركاء/, word:"الجمعية العامة" }
         : lvl === "داخلية" ? { re:/حوكم|تنفيذي|ادارة|إدارة|مدير/, word:"الحوكمة أو الإدارة التنفيذية" }
         : noBoard ? { re:/مالك|مدير/, word:"المالك/المدير" } : { re:/مجلس|لجنة|رئيس المجلس|عضو/, word:"مجلس الإدارة" };
-      const mism = [], none = [];
+      const mism = [], none = [], seenK = new Set();
       links.forEach(l => {
         const pid = l.source_type==="policy" ? l.source_id : l.target_id;
         const oid = l.source_type==="policy" ? l.target_id : l.source_id;
@@ -992,6 +992,7 @@ async function computeGovernanceAlerts(){
         const p = (pol.data||[]).find(x => x.id === pid), item = iById[oid];
         if(!p || !item || !/^\s*-?\s*اعتماد/.test(item.item_name||"")) return;
         const apprs = cells.filter(c => c.item_id === oid && c.code === "ع").map(c => hName[c.holder_id]).filter(Boolean);
+        const dk = p.id + "|" + (item.item_name||"").trim(); if(seenK.has(dk)) return; seenK.add(dk);
         const n = need(p.approval_level || "مجلس الإدارة");
         if(!apprs.length) none.push({ p, item });
         else if(!apprs.some(a => n.re.test(a))) mism.push({ p, item, apprs, n });
