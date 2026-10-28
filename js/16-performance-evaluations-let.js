@@ -302,25 +302,25 @@ function renderDecisionTrackingList(){
     const meetingLabel = d._meeting ? `${d._meeting.meeting_type||"اجتماع"} — ${d._meeting.meeting_date||""}` : "—";
     const isResponsible = currentUserProfile && d.responsible_email === currentUserProfile.email;
 
-    return `<div class="card" style="margin:0">
-      <div class="card-body">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px">
-          <div style="font-size:13px;font-weight:700;color:var(--dark);flex:1">${orgEsc(d.decision_text||"")}</div>
-          <span style="font-size:10.5px;font-weight:800;padding:4px 10px;border-radius:20px;background:${bg};color:${fg};white-space:nowrap">${actualStatus}</span>
+    const stCls = {"لم يبدأ":"st-new","قيد التنفيذ":"st-prog","منجز":"st-done","متأخر":"st-late"}[actualStatus]||"st-new";
+    const who = orgEsc(d.responsible_email ? (decisionTrackingPeople.find(p=>p.email===d.responsible_email)?.name || d.responsible_email) : "غير محدَّد");
+    return `<div class="card dcard">
+        <div class="dcard-top">
+          <div class="dcard-title">${orgEsc(d.decision_text||"")}</div>
+          <span class="dpill ${stCls}">${actualStatus}</span>
         </div>
-        <div style="font-size:11px;color:var(--gray3);margin-bottom:10px">من: ${meetingLabel}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:14px;font-size:11.5px;color:var(--gray3);margin-bottom:10px">
-          <span><span class="ico-i ico-user"></span>المسؤول: ${orgEsc(d.responsible_email ? (decisionTrackingPeople.find(p=>p.email===d.responsible_email)?.name || d.responsible_email) : "غير محدَّد")}</span>
-          <span><span class="ico-i ico-calendar"></span>الموعد: ${d.target_date || "غير محدَّد"}</span>
+        <div class="dcard-src">من: ${meetingLabel}</div>
+        <div class="dcard-meta">
+          <span><span class="ico-i ico-user"></span><small>المسؤول</small> <b>${who}</b></span>
+          <span><span class="ico-i ico-calendar"></span><small>الموعد</small> <b>${d.target_date || "غير محدَّد"}</b></span>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          ${canManage ? `<button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer" onclick="openDecisionAssignModal(${d.id})"><span class="ico-i ico-edit"></span>تحديد المسؤول/الموعد</button>` : ""}
+        <div class="dcard-actions">
+          ${canManage ? `<button class="btn-xs sec" onclick="openDecisionAssignModal(${d.id})"><span class="ico-i ico-edit"></span>تحديد المسؤول/الموعد</button>` : ""}
           ${(canManage || isResponsible) && actualStatus !== "منجز" ? `
-            <button class="btn-xs" style="background:#FEF3E2;color:var(--gold);border:none;border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer" onclick="updateDecisionStatus(${d.id},'قيد التنفيذ')">قيد التنفيذ</button>
-            <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer" onclick="updateDecisionStatus(${d.id},'منجز')"><span class="ico-i ico-check"></span>تحديد كمنجز</button>
+            <button class="btn-xs sec" onclick="updateDecisionStatus(${d.id},'قيد التنفيذ')">قيد التنفيذ</button>
+            <button class="btn-xs sec dok" onclick="updateDecisionStatus(${d.id},'منجز')"><span class="ico-i ico-check"></span>تحديد كمنجز</button>
           ` : ""}
         </div>
-      </div>
     </div>`;
   }).join("");
 }
