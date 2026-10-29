@@ -3,9 +3,9 @@ function applyAdminRequestsTabVisibility(){
   const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
   const teamModule = currentUserProfile && currentUserProfile.platform_team_module;
   const tabVisibility = { companyrequests: true, managecompanies: true, auditadmin: true, riskadmin: true, providers: true };
-  if(!isPlatformAdmin && teamModule && teamModule !== 'حوكمة'){
-    tabVisibility.auditadmin = (teamModule === 'تدقيق داخلي');
-    tabVisibility.riskadmin = (teamModule === 'مخاطر');
+  if(!isPlatformAdmin && teamModule && !teamHas(teamModule,'حوكمة')){
+    tabVisibility.auditadmin = teamHas(teamModule,'تدقيق داخلي');
+    tabVisibility.riskadmin = teamHas(teamModule,'مخاطر');
   }
   document.querySelectorAll(".adminreq-tab-btn").forEach(btn => {
     btn.style.display = tabVisibility[btn.dataset.tab] ? '' : 'none';

@@ -536,7 +536,9 @@ async function setEntityVerification(companyId, status){
 async function assignPlatformTeamModule(){
   const email = document.getElementById("pts-email").value.trim();
   if(!email){ alert("الرجاء إدخال البريد الإلكتروني"); return; }
-  const platform_team_module = document.getElementById("pts-module").value;
+  const picked = [...document.querySelectorAll(".pts-mod-chk:checked")].map(c => c.value);
+  if(!picked.length){ alert("اختر تخصصًا واحدًا على الأقل"); return; }
+  const platform_team_module = picked.includes("حوكمة") ? "حوكمة" : picked.join("،");
   const { data: existing, error: findErr } = await sb.from("user_profiles").select("*").ilike("email", likeEsc(email)).maybeSingle();
   if(findErr || !existing){ alert("لا يوجد حساب مسجّل بهذا البريد الإلكتروني — لازم يسجّل حساب بالمنصة أولًا."); return; }
   const { error } = await sb.from("user_profiles").update({ platform_team_module }).ilike("email", likeEsc(email));

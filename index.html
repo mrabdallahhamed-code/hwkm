@@ -2026,12 +2026,12 @@
       <div class="row2">
         <div class="fg"><label>البريد الإلكتروني</label><input class="fi" id="pts-email" placeholder="employee@email.com"/></div>
         <div class="fg"><label>التخصص</label>
-          <select class="fs" id="pts-module">
-            <option value="تدقيق داخلي">تدقيق داخلي</option>
-            <option value="حوكمة">حوكمة (صلاحية كاملة بكل الأقسام)</option>
-            <option value="مخاطر">مخاطر</option>
-            <option value="التزام">التزام</option>
-          </select>
+          <div id="pts-module" style="display:flex;flex-direction:column;gap:6px;font-size:12.5px">
+            <label style="display:flex;gap:8px;align-items:center;margin:0"><input type="checkbox" class="pts-mod-chk" value="تدقيق داخلي"/>تدقيق داخلي</label>
+            <label style="display:flex;gap:8px;align-items:center;margin:0"><input type="checkbox" class="pts-mod-chk" value="مخاطر"/>مخاطر</label>
+            <label style="display:flex;gap:8px;align-items:center;margin:0"><input type="checkbox" class="pts-mod-chk" value="التزام"/>التزام</label>
+            <label style="display:flex;gap:8px;align-items:center;margin:0"><input type="checkbox" class="pts-mod-chk" value="حوكمة"/>حوكمة (صلاحية كاملة بكل الأقسام — تغني عن البقية)</label>
+          </div>
         </div>
       </div>
       <button class="btn btn-gold" style="width:100%" onclick="assignPlatformTeamModule()"><span class="ico-i ico-check"></span>تعيين التخصص</button>
@@ -3915,9 +3915,9 @@
 
 <script>try{if(localStorage.getItem("hawkim_lang")==="en")document.write('<script src="i18n-en.js?v=dir1"><\/script>')}catch(e){}</script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=hwkmTsReady" async defer></script>
-<script src="js/01-supabase-config-const.js?v=14"></script>
+<script src="js/01-supabase-config-const.js?v=15"></script>
 <script src="js/02-team-invites-join.js?v=58"></script>
-<script src="js/03-archive-const-archive.js?v=85"></script>
+<script src="js/03-archive-const-archive.js?v=86"></script>
 <script src="js/04-two-factor-authentication.js?v=69"></script>
 <script src="js/05-annual-meeting-plan.js?v=3"></script>
 <script src="js/06-agm-cards-detail.js?v=2"></script>
@@ -3929,7 +3929,7 @@
 <script src="js/12-email-notifications-supabase.js?v=8"></script>
 <script src="js/13-pdf-import-best.js?v=34"></script>
 <script src="js/14-votes-let-companysettings.js?v=16"></script>
-<script src="js/15-audit-services-back.js?v=14"></script>
+<script src="js/15-audit-services-back.js?v=15"></script>
 <script src="js/16-performance-evaluations-let.js?v=33"></script>
 <script src="js/17-admin-management-criteria.js?v=50"></script>
 <script src="js/18-board-member-review.js?v=3"></script>

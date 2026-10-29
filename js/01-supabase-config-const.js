@@ -694,6 +694,10 @@ const EMPLOYEE_PAGES = ['dashboard','governance','signing'];
 // they touch inside a company is either read-only (governance context, since it informs their
 // work) or fully blocked, per the page-group map below.
 const PLATFORM_TEAM_FULL_PAGE = { 'تدقيق داخلي':'audit', 'مخاطر':'risks', 'التزام':'compliance' };
+/* الموظف قد يحمل أكثر من تخصص، مفصولة بـ «،» مثل: تدقيق داخلي،مخاطر */
+function teamModules(v){ return String(v||'').split(/[،,]/).map(x => x.trim()).filter(Boolean); }
+function teamHas(v, name){ const m = teamModules(v); return m.includes('حوكمة') || m.includes(name); }
+function teamFullPages(v){ return teamModules(v).map(x => PLATFORM_TEAM_FULL_PAGE[x]).filter(Boolean); }
 // Governance staff are the one exception — full access everywhere, same as a real "مدير النظام".
 const GOVERNANCE_VIEW_ONLY_PAGES = ['governance','govassess','structure','members','permissions','reports','dashboard','appoint','perf'];
 
@@ -711,8 +715,8 @@ function getCurrentRole(){
   // isPageAllowed() blocks everything else outright.
   const teamModule = currentUserProfile && currentUserProfile.platform_team_module;
   if(teamModule){
-    if(teamModule === 'حوكمة') return 'مدير النظام';
-    if(currentPageId === PLATFORM_TEAM_FULL_PAGE[teamModule]) return 'مدير النظام';
+    if(teamHas(teamModule,'حوكمة')) return 'مدير النظام';
+    if(teamFullPages(teamModule).includes(currentPageId)) return 'مدير النظام';
     if(GOVERNANCE_VIEW_ONLY_PAGES.includes(currentPageId)) return 'عضو مجلس';
     return 'عضو مجلس'; // isPageAllowed() is what actually blocks pages outside their scope
   }
@@ -817,10 +821,10 @@ async function applyRolePermissions(){
   document.querySelectorAll('.nav-item').forEach(item=>{ item.style.display = ''; });
   await refreshCompanyTypeVisibility();
 
-  if(isPlatformTeamMember && teamModule !== 'حوكمة'){
+  if(isPlatformTeamMember && !teamHas(teamModule,'حوكمة')){
     // Narrow specialty inside a company: hide every nav item outside their own module and the
     // governance-adjacent read-only set, matching exactly what isPageAllowed() would block.
-    const allowedPages = [PLATFORM_TEAM_FULL_PAGE[teamModule], ...GOVERNANCE_VIEW_ONLY_PAGES];
+    const allowedPages = [...teamFullPages(teamModule), ...GOVERNANCE_VIEW_ONLY_PAGES];
     document.querySelectorAll('#companyNavGroups .nav-item').forEach(item => {
       const pageId = item.getAttribute('onclick')?.match(/go\('([a-z]+)'/)?.[1];
       if(pageId && !allowedPages.includes(pageId)) item.style.display = 'none';
@@ -879,8 +883,8 @@ function isPageAllowed(pageId, role){
   // A narrow-specialty team member (audit/risk/compliance) is blocked from any company page
   // outside their own module and the governance-adjacent read-only set — "حوكمة" staff are the
   // one specialty exempted from this, since their whole job is full-breadth access.
-  if(teamModule && teamModule !== 'حوكمة' && !isPlatformAdmin){
-    const allowedPages = [PLATFORM_TEAM_FULL_PAGE[teamModule], ...GOVERNANCE_VIEW_ONLY_PAGES];
+  if(teamModule && !teamHas(teamModule,'حوكمة') && !isPlatformAdmin){
+    const allowedPages = [...teamFullPages(teamModule), ...GOVERNANCE_VIEW_ONLY_PAGES];
     if(!allowedPages.includes(pageId)) return false;
   }
   if(pageId === 'users') return role === 'مدير النظام';
