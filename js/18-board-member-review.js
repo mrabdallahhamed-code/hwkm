@@ -259,9 +259,9 @@ function arabicDayName(dateStr){
   return ARABIC_DAY_NAMES[d.getDay()];
 }
 
-/* مالك المنصة / مدير النظام: إعادة فتح التصويت لمساهم وقّع بطاقته (لتصحيح خطأ) */
+/* إدارة حوكم / مدير النظام: إعادة فتح التصويت لمساهم وقّع بطاقته (لتصحيح خطأ) */
 async function reopenVoterVoting(shareholderName){
-  if(getCurrentRole() !== 'مدير النظام'){ alert("هذا الإجراء لمدير النظام أو مالك المنصة فقط."); return; }
+  if(getCurrentRole() !== 'مدير النظام'){ alert("هذا الإجراء لمدير النظام أو إدارة حوكم فقط."); return; }
   if(!currentVotingMeetingId){ alert("تعذّر تحديد الجمعية الحالية"); return; }
   if(!await uiConfirm(`فتح التصويت للتعديل للمساهم "${shareholderName}"؟\nسيستطيع تغيير تصويته ثم يوقّع بطاقته من جديد، وتُسجَّل العملية باسمك.`)) return;
   const reason = await uiPrompt("سبب إعادة الفتح (مثلًا: خطأ في الاختيار):", "");

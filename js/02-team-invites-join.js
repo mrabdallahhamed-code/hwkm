@@ -510,7 +510,7 @@ async function logActivity(action_type, entity_type, entity_label, details){
 }
 
 /* دخول فريق المنصة إلى بيانات شركة عميل: يُسجَّل في سجل نشاط الشركة ليراه مديروها (مرة لكل شركة في الجلسة).
-   لا يُسجَّل إلا لمن ليس عضوًا في الشركة (مالك المنصة أو فريقها)، ولا يعطّل أي عمل إن فشل التسجيل. */
+   لا يُسجَّل إلا لمن ليس عضوًا في الشركة (إدارة حوكم أو فريقها)، ولا يعطّل أي عمل إن فشل التسجيل. */
 const _platformAccessLogged = new Set();
 function logPlatformStaffAccess(){
   try{
@@ -521,7 +521,7 @@ function logPlatformStaffAccess(){
     const key = String(currentCompanyId);
     if(_platformAccessLogged.has(key)) return;
     _platformAccessLogged.add(key);
-    const who = currentUserProfile.is_platform_admin === true ? "مالك المنصة" : ("فريق المنصة — " + currentUserProfile.platform_team_module);
+    const who = currentUserProfile.is_platform_admin === true ? "إدارة حوكم" : ("فريق المنصة — " + currentUserProfile.platform_team_module);
     logActivity("دخول", "دخول فريق المنصة", who, "دخول فريق المنصة إلى بيانات الشركة للدعم أو الإدارة");
   }catch(e){}
 }

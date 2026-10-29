@@ -682,7 +682,7 @@ const FULL_ACCESS_ROLES = ['مدير النظام'];
 function isFullAccessRole(r){ return FULL_ACCESS_ROLES.includes(r) || (r === getCurrentRole() && myPermissionOverrides && myPermissionOverrides['*'] === 'edit'); }
 
 const SHAREHOLDER_PAGES = ['agm','voting','signing','circulation'];
-let currentShareholdersSeeReports = false;   // يحدده مدير النظام/مالك المنصة لكل شركة
+let currentShareholdersSeeReports = false;   // يحدده مدير النظام/إدارة حوكم لكل شركة
 // An employee starts with the least a staff member needs; the approver adds anything more per person
 // from the permissions page (a per-user override is checked before this list and always wins).
 const EMPLOYEE_PAGES = ['dashboard','governance','signing'];
@@ -767,7 +767,7 @@ async function applyRolePermissions(){
   const avEl = document.getElementById('sidebarUserAv');
   const displayName = currentUserProfile ? (currentUserProfile.full_name || currentUserProfile.email || "مستخدم") : "مستخدم";
   if(nameEl) nameEl.textContent = displayName;
-  if(roleEl) roleEl.textContent = isPlatformAdmin ? "مالك المنصة" : (isPlatformTeamMember ? `فريق المنصة — ${teamModule}` : (hasNoCompany ? "بانتظار ربط شركة" : role));
+  if(roleEl) roleEl.textContent = isPlatformAdmin ? "إدارة حوكم" : (isPlatformTeamMember ? `فريق المنصة — ${teamModule}` : (hasNoCompany ? "بانتظار ربط شركة" : role));
   if(avEl) avEl.textContent = displayName.trim().charAt(0) || "م";
 
   const btnAddCompany = document.getElementById('btnAddCompany');
@@ -830,7 +830,7 @@ async function applyRolePermissions(){
 
   if(isShareholder){
     // المساهم: القائمة الجانبية تبقى لكن بثلاث صفحات فقط (الجمعية، التصويت، التوقيع)،
-    // وتُضاف «تقارير الحوكمة» فقط إذا أذن بها مدير النظام أو مالك المنصة لهذه الشركة.
+    // وتُضاف «تقارير الحوكمة» فقط إذا أذن بها مدير النظام أو إدارة حوكم لهذه الشركة.
     currentShareholdersSeeReports = false;
     try{
       const { data: shFlag } = await sb.from("companies").select("shareholders_see_reports").eq("id", currentCompanyId).maybeSingle();

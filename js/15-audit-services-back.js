@@ -93,7 +93,7 @@ async function openAuditAdminDetail(requestId){
       ${(currentUserProfile && currentUserProfile.is_platform_admin===true) ? `<div style="display:flex;gap:6px;margin-top:8px">
         <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="finalApproveAuditRequest(${requestId}, 'تقرير نهائي جاهز')"><span class="ico-i ico-check"></span>اعتماد نهائي — تقرير جاهز</button>
         <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="finalApproveAuditRequest(${requestId}, 'مغلق')"><span class="ico-i ico-check"></span>اعتماد نهائي — إغلاق كامل</button>
-      </div>` : `<div style="font-size:11px;color:var(--gray3);margin-top:4px">لن يظهر للعميل حتى يعتمده مالك المنصة.</div>`}
+      </div>` : `<div style="font-size:11px;color:var(--gray3);margin-top:4px">لن يظهر للعميل حتى يعتمده إدارة حوكم.</div>`}
     </div>` : ""}
     <div class="row2">
       <div class="fg"><label style="font-size:11px">الحالة</label>
@@ -168,7 +168,7 @@ async function updateAuditRequestAdmin(requestId){
     const myEmail = userData && userData.user ? userData.user.email : null;
     const { error } = await sb.from("audit_requests").update({ assigned_reviewer_email, pending_final_approval: true, staff_closed_by: myEmail }).eq("id", requestId);
     if(error){ alert("تعذّر الحفظ: " + error.message); return; }
-    alert("تم حفظ التغييرات — إنهاء الطلب يحتاج اعتماد نهائي من مالك المنصة قبل ما يظهر للعميل.");
+    alert("تم حفظ التغييرات — إنهاء الطلب يحتاج اعتماد نهائي من إدارة حوكم قبل ما يظهر للعميل.");
     loadAuditAdmin();
     openAuditAdminDetail(requestId);
     return;
@@ -219,7 +219,7 @@ async function uploadFinalAuditReport(requestId){
     const myEmail = userData && userData.user ? userData.user.email : null;
     const { error } = await sb.from("audit_requests").update({ final_report_url: url, ...summaryFields, pending_final_approval: true, staff_closed_by: myEmail }).eq("id", requestId);
     if(error){ alert("تعذّر الحفظ: " + error.message); return; }
-    alert("تم رفع التقرير والملخّص ✅ — بانتظار اعتماد مالك المنصة قبل ما يظهر للعميل.");
+    alert("تم رفع التقرير والملخّص ✅ — بانتظار اعتماد إدارة حوكم قبل ما يظهر للعميل.");
     openAuditAdminDetail(requestId);
     return;
   }
@@ -398,7 +398,7 @@ async function openRiskAdminDetail(requestId){
       ${isOwner ? `<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
         <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="finalApproveRiskRequest(${requestId}, 'تقرير نهائي جاهز')"><span class="ico-i ico-check"></span>اعتماد نهائي — تقرير جاهز</button>
         <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="finalApproveRiskRequest(${requestId}, 'مغلق')"><span class="ico-i ico-check"></span>اعتماد نهائي — إغلاق كامل</button>
-      </div>` : `<div style="font-size:11px;color:var(--gray3);margin-top:4px">لن يظهر للعميل حتى يعتمده مالك المنصة.</div>`}
+      </div>` : `<div style="font-size:11px;color:var(--gray3);margin-top:4px">لن يظهر للعميل حتى يعتمده إدارة حوكم.</div>`}
     </div>` : "";
 
   const requestCard = `<div class="sec-title" style="font-size:13px"><span class="ico-i ico-clipboard"></span>بيانات الطلب</div>
@@ -411,7 +411,7 @@ async function openRiskAdminDetail(requestId){
       <div style="margin-top:6px">${filesHtml}</div>
     </div></div>`;
 
-  // المرحلة 1: التكليف (مالك المنصة فقط)
+  // المرحلة 1: التكليف (إدارة حوكم فقط)
   const assignCard = stage === 1
     ? (isOwner
       ? `<div class="sec-title" style="font-size:13px;margin-top:16px">👤 تكليف مستشار</div>
@@ -419,7 +419,7 @@ async function openRiskAdminDetail(requestId){
            <div class="fg" style="margin:0"><label style="font-size:11px">بريد المستشار</label><input class="fi" id="rad-consultant" placeholder="consultant@email.com" style="direction:ltr;text-align:left"/></div>
            <button class="btn btn-gold" style="width:100%;margin-top:10px" onclick="assignRiskConsultant(${requestId})">تكليف المستشار</button>
          </div></div>`
-      : `<div class="card" style="margin-top:16px"><div class="card-body" style="font-size:12px;color:var(--gray3);text-align:center">بانتظار تكليف مستشار من مالك المنصة.</div></div>`)
+      : `<div class="card" style="margin-top:16px"><div class="card-body" style="font-size:12px;color:var(--gray3);text-align:center">بانتظار تكليف مستشار من إدارة حوكم.</div></div>`)
     : `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:12px"><span>👤 المستشار المكلَّف: <b style="direction:ltr;display:inline-block">${orgEsc(r.assigned_consultant_email)}</b></span>
        ${isOwner ? `<details><summary style="cursor:pointer;color:var(--primary);font-size:11.5px">تغيير المستشار</summary><div style="display:flex;gap:6px;margin-top:6px"><input class="fi" id="rad-consultant" value="${orgEsc(r.assigned_consultant_email)}" style="direction:ltr;text-align:left;margin:0"/><button class="btn-xs primary" onclick="assignRiskConsultant(${requestId})">حفظ</button></div></details>` : ""}</div>`;
 
@@ -518,7 +518,7 @@ async function openRiskAdminDetail(requestId){
     <div class="card"><div class="card-body">
       <select class="fs" id="rad-status">${RISK_STATUS_ORDER.slice(2).map(st=>`<option ${r.status===st?'selected':''}>${st}</option>`).join("")}</select>
       <button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="updateRiskRequestAdmin(${requestId})"><span class="ico-i ico-save"></span>حفظ المرحلة</button>
-      ${(!isOwner) ? '<div style="font-size:10.5px;color:var(--gray3);margin-top:6px">إنهاء الطلب (تقرير جاهز / مغلق) يحتاج اعتماد مالك المنصة قبل أن يظهر للعميل.</div>' : ""}
+      ${(!isOwner) ? '<div style="font-size:10.5px;color:var(--gray3);margin-top:6px">إنهاء الطلب (تقرير جاهز / مغلق) يحتاج اعتماد إدارة حوكم قبل أن يظهر للعميل.</div>' : ""}
     </div></div>` : ""}` : "";
 
   box.innerHTML = `${stepper}${approvalHtml}${requestCard}${assignCard}${chatCard}${workCards}`;
@@ -547,7 +547,7 @@ async function updateRiskRequestAdmin(requestId){
     const myEmail = userData && userData.user ? userData.user.email : null;
     const { error } = await sb.from("risk_requests").update({ assigned_consultant_email, pending_final_approval: true, staff_closed_by: myEmail }).eq("id", requestId);
     if(error){ alert("تعذّر الحفظ: " + error.message); return; }
-    alert("تم حفظ التغييرات — إنهاء الطلب يحتاج اعتماد نهائي من مالك المنصة قبل ما يظهر للعميل.");
+    alert("تم حفظ التغييرات — إنهاء الطلب يحتاج اعتماد نهائي من إدارة حوكم قبل ما يظهر للعميل.");
     loadRiskAdmin();
     openRiskAdminDetail(requestId);
     return;
@@ -618,7 +618,7 @@ async function riskReportSave(requestId, submit){
   const content = riskReportCollect();
   if(!content.executive_summary || !content.key_findings.length){ alert("اكتب الملخص التنفيذي ونتيجة واحدة على الأقل، أو ولّد مسودة بالذكاء الصناعي أولاً."); return; }
   content.ai = !!window._radReportFromAI || !!(_radCur && _radCur.reportAI);
-  if(submit && !await uiConfirm("سيُرسَل التقرير لاعتماد مالك المنصة ولن يظهر للعميل قبل اعتماده. متابعة؟")) return;
+  if(submit && !await uiConfirm("سيُرسَل التقرير لاعتماد إدارة حوكم ولن يظهر للعميل قبل اعتماده. متابعة؟")) return;
   const payload = { report_content: content };
   const isFullOwner = currentUserProfile && currentUserProfile.is_platform_admin === true;
   if(submit){
@@ -628,7 +628,7 @@ async function riskReportSave(requestId, submit){
   const { error } = await sb.from("risk_requests").update(payload).eq("id", requestId);
   if(error){ alert("تعذّر الحفظ: " + error.message); return; }
   if(submit && !isFullOwner){ try{ await notifyOwnerNewRequest("تقرير مخاطر بانتظار اعتمادك", [["رقم الطلب", requestId]]); }catch(e){} }
-  alert(submit ? (isFullOwner ? "تم اعتماد التقرير ✅ وظهر للعميل" : "تم إرسال التقرير لاعتماد مالك المنصة ✅") : "تم حفظ المسودة ✅");
+  alert(submit ? (isFullOwner ? "تم اعتماد التقرير ✅ وظهر للعميل" : "تم إرسال التقرير لاعتماد إدارة حوكم ✅") : "تم حفظ المسودة ✅");
   try{ loadRiskAdmin(); }catch(e){}
   openRiskAdminDetail(requestId);
 }
@@ -643,7 +643,7 @@ async function uploadFinalRiskReport(requestId){
     const myEmail = userData && userData.user ? userData.user.email : null;
     const { error } = await sb.from("risk_requests").update({ final_report_url: url, pending_final_approval: true, staff_closed_by: myEmail }).eq("id", requestId);
     if(error){ alert("تعذّر الحفظ: " + error.message); return; }
-    alert("تم رفع التقرير ✅ — بانتظار اعتماد مالك المنصة قبل ما يظهر للعميل.");
+    alert("تم رفع التقرير ✅ — بانتظار اعتماد إدارة حوكم قبل ما يظهر للعميل.");
     openRiskAdminDetail(requestId);
     return;
   }

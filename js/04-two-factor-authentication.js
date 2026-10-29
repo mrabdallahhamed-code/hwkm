@@ -863,7 +863,7 @@ function renderDashAuditStatus(items){
    instead, mapped to the shape they already expect. */
 async function fetchCompanyRisks(){
   try {
-    // لا تظهر المخاطر في لوحة التحكم والتنبيهات إلا بعد اعتماد التقرير النهائي من مالك المنصة
+    // لا تظهر المخاطر في لوحة التحكم والتنبيهات إلا بعد اعتماد التقرير النهائي من إدارة حوكم
     const { data: reqs } = await sb.from("risk_requests").select("id,status,pending_final_approval").eq("company_id", currentCompanyId);
     const ids = (reqs||[]).filter(r => (r.status === "تقرير نهائي جاهز" || r.status === "مغلق") && !r.pending_final_approval).map(r => r.id);
     if(!ids.length) return [];

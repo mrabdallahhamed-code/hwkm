@@ -217,7 +217,7 @@ async function loadCompanyRequestPage(){
     box.innerHTML = `<div style="text-align:center;padding:20px">
       <div style="font-size:40px;margin-bottom:10px">⏳</div>
       <div style="font-size:15px;font-weight:800;color:var(--dark);margin-bottom:6px">طلبك قيد المراجعة</div>
-      <div style="font-size:12.5px;color:var(--gray3);line-height:1.8">تم إرسال طلب إدراج "<b>${orgEsc(latest.company_name)}</b>" وهو الآن بانتظار موافقة مالك المنصة.<br>بمجرد الموافقة، سجّل خروج ثم دخول من جديد وستجد شركتك جاهزة.</div>
+      <div style="font-size:12.5px;color:var(--gray3);line-height:1.8">تم إرسال طلب إدراج "<b>${orgEsc(latest.company_name)}</b>" وهو الآن بانتظار موافقة إدارة حوكم.<br>بمجرد الموافقة، سجّل خروج ثم دخول من جديد وستجد شركتك جاهزة.</div>
     </div>`;
     return;
   }
@@ -419,7 +419,7 @@ async function loadPlatformDashboard(){
   all.forEach(c => { const k = (c.company_type||"").indexOf("مساهمة") === 0 ? "مساهمة" : c.company_type; if(countByType[k] !== undefined) countByType[k]++; });
   const stat = (icon, label, val, cls) => `<div class="pd-stat ${cls||""}"><span class="pd-stat-ico">${icon}</span><div><div class="pd-stat-val">${val}</div><div class="pd-stat-lbl">${label}</div></div></div>`;
   const total = all.length || 1;
-  const segs = [["مساهمة","شركات مساهمة","#1D3E64"],["ذات مسؤولية محدودة","ذات مسؤولية محدودة","#2D7A6B"],["مؤسسة فردية","مؤسسات فردية","#8A9BB5"]];
+  const segs = [["مساهمة","شركات مساهمة","#2F6FD0"],["ذات مسؤولية محدودة","ذات مسؤولية محدودة","#16A085"],["مؤسسة فردية","مؤسسات فردية","#E0752D"]];
   grid.innerHTML = `<div class="pd-dist-bar">${segs.map(([k,,col]) => countByType[k] ? `<i style="width:${countByType[k]/total*100}%;background:${col}"></i>` : "").join("")}</div>
     <div class="pd-dist-legend">${segs.map(([k,l,col]) => `<div class="pd-dist-item"><span class="pd-dot" style="background:${col}"></span><span class="pd-dist-l">${l}</span><b>${countByType[k]}</b></div>`).join("")}</div>`;
   const active = all.filter(c => c.subscription_ends_at && new Date(c.subscription_ends_at) > new Date());
@@ -429,15 +429,15 @@ async function loadPlatformDashboard(){
   const auditCount = all.filter(c => c.module_internal_audit).length;
   const riskCount = all.filter(c => c.module_risk_management).length;
   const mod = (ico, label, n, col) => `<div class="pd-mod"><div class="pd-mod-top"><span class="pd-mod-ico" style="background:${col}1A">${ico}</span><span class="pd-mod-l">${label}</span><b>${n}<small> / ${all.length}</small></b></div><div class="pd-mod-bar"><i style="width:${all.length ? n/all.length*100 : 0}%;background:${col}"></i></div></div>`;
-  modulesGrid.innerHTML = mod("🏛️","الحوكمة والاجتماعات", all.length, "#1D3E64") + mod("🔍","المراجعة الداخلية", auditCount, "#2D7A6B") + mod("⚠️","إدارة المخاطر", riskCount, "#B5651D");
+  modulesGrid.innerHTML = mod("🏛️","الحوكمة والاجتماعات", all.length, "#2F6FD0") + mod("🔍","المراجعة الداخلية", auditCount, "#16A085") + mod("⚠️","إدارة المخاطر", riskCount, "#E0752D");
   const hero = document.getElementById("pdHeroStats");
 
   const now = new Date();
   const inTrial = all.filter(c => c.trial_ends_at && new Date(c.trial_ends_at) > now)
     .map(c => ({ c, days: Math.max(0, Math.ceil((new Date(c.trial_ends_at) - now) / 86400000)) })).sort((x,y) => x.days - y.days);
   if(hero){
-    const h = (n,l) => `<div class="pd-hero-k"><b>${n}</b><span>${l}</span></div>`;
-    hero.innerHTML = h(all.length,"شركة على المنصة") + h(active.length,"اشتراك فعّال") + h(inTrial.length,"في فترة تجربة") + h(nf(monthly),"إيراد شهري متوقع (ر.س)");
+    const h = (n,l,c) => `<div class="pd-hero-k" style="--k:${c}"><b>${n}</b><span>${l}</span></div>`;
+    hero.innerHTML = h(all.length,"شركة على المنصة","#6FB1FF") + h(active.length,"اشتراك فعّال","#5FE3B5") + h(inTrial.length,"في فترة تجربة","#FFC46B") + h(nf(monthly),"إيراد شهري متوقع (ر.س)","#C3A6FF");
   }
   const tc = document.getElementById("pdTrialCount"); if(tc) tc.textContent = inTrial.length || "";
   if(!inTrial.length){
@@ -468,7 +468,8 @@ async function loadPlatformDashboard(){
     const subSoon = all.filter(c => !c.trial_ends_at && c.subscription_ends_at && Math.ceil((new Date(c.subscription_ends_at) - now)/86400000) <= 30).length;
     const unverified = all.filter(c => c.entity_verification !== "verified").length;
     const noCr = all.filter(c => !String(c.cr_number||"").trim()).length;
-    const act = (n, label, page, tone, ico) => `<div class="pd-act ${n ? tone : "ok"}" onclick="${page ? `go('${page}',null)` : ""}"><span class="pd-act-ico">${n ? ico : "✓"}</span><div class="pd-act-n">${n}</div><div class="pd-act-l">${label}</div></div>`;
+    const COLS = {"📥": "#D64545", "📝": "#E0752D", "⏳": "#D4A017", "🔔": "#7C5CC4", "🛡️": "#2D7A6B", "🪪": "#2F6FD0"};
+    const act = (n, label, page, tone, ico) => `<div class="pd-act ${n ? tone : "ok"}" style="--c:${n ? COLS[ico] : "#27AE60"}" onclick="${page ? `go('${page}',null)` : ""}"><span class="pd-act-ico">${n ? ico : "✓"}</span><div class="pd-act-n">${n}</div><div class="pd-act-l">${label}</div></div>`;
     actions.innerHTML = [
       act(pendingAssign, "طلبات جديدة بانتظار تكليف", "adminrequests", "red", "📥"),
       act(pendingApprove, "تقارير بانتظار اعتمادك", "adminrequests", "red", "📝"),
@@ -494,7 +495,7 @@ async function loadPlatformDashboard(){
   }
 }
 
-/* توثيق نوع الكيان: يراجعه مالك المنصة يدويًا (السجل التجاري + قائمة الشركات المدرجة في تداول).
+/* توثيق نوع الكيان: يراجعه إدارة حوكم يدويًا (السجل التجاري + قائمة الشركات المدرجة في تداول).
    الخادم يمنع أي مستخدم غير مالك/فريق المنصة من تغيير الحالة، ويعيدها لـ"غير موثّق" تلقائيًا
    إذا تغيّر نوع الشركة أو اسمها أو رقم سجلها. */
 function renderEntityVerificationTable(all){
@@ -723,7 +724,7 @@ function deleteFromCompanyModal(){
 }
 
 async function deleteCompanyPermanently(id){
-  if(!(currentUserProfile && currentUserProfile.is_platform_admin === true)){ alert("هذه العملية لمالك المنصة فقط"); return; }
+  if(!(currentUserProfile && currentUserProfile.is_platform_admin === true)){ alert("هذه العملية لإدارة حوكم فقط"); return; }
   let c = manageCompaniesCache.find(x => x.id === id);
   if(!c){ const r = await sb.from("companies").select("id,name,company_type,created_at").eq("id", id).maybeSingle(); c = r.data; }
   if(!c){ alert("تعذّر تحميل بيانات الشركة"); return; }
@@ -883,7 +884,7 @@ async function activateSubscription(){
       ...subFields()
     }).eq("id", companyId);
     if(error){ alert("تعذّر الحفظ: " + error.message); return; }
-    alert("تم تسجيل اعتمادك الأولي ✅ — بانتظار الاعتماد النهائي من مالك المنصة قبل ما يُفعَّل فعليًا.");
+    alert("تم تسجيل اعتمادك الأولي ✅ — بانتظار الاعتماد النهائي من إدارة حوكم قبل ما يُفعَّل فعليًا.");
     closeM("m-activate-sub");
     loadManageCompanies();
     return;
@@ -1004,7 +1005,7 @@ async function approveCompanyRequest(requestId){
       requested_modules: { internal_audit: module_internal_audit, risk_management: module_risk_management, trial: isTrial, trial_days: trialDays }
     }).eq("id", requestId);
     if(error){ alert("تعذّر حفظ الاعتماد الأولي: " + error.message); return; }
-    alert("تم تسجيل اعتمادك الأولي ✅ — بانتظار الاعتماد النهائي من مالك المنصة.");
+    alert("تم تسجيل اعتمادك الأولي ✅ — بانتظار الاعتماد النهائي من إدارة حوكم.");
     closeM("m-approve-company");
     loadCompanyRequestsReview();
     return;
@@ -1034,7 +1035,7 @@ async function approveCompanyRequest(requestId){
     payment_confirmed, payment_confirmed_at: payment_confirmed ? new Date().toISOString() : null,
     requested_modules: { internal_audit: module_internal_audit, risk_management: module_risk_management }
   }).eq("id", requestId);
-  await sb.from("activity_log").insert([{ company_id: newCompany.id, actor_email: myEmail, actor_name: "مالك المنصة", action_type: "إنشاء", entity_type: "شركة", entity_label: newCompany.name, details: "تمت الموافقة على طلب الإدراج" }]);
+  await sb.from("activity_log").insert([{ company_id: newCompany.id, actor_email: myEmail, actor_name: "إدارة حوكم", action_type: "إنشاء", entity_type: "شركة", entity_label: newCompany.name, details: "تمت الموافقة على طلب الإدراج" }]);
 
   // Give the new company a ready-made starting point: clone every template an admin has
   // marked as a platform default, instead of leaving their document templates page empty.
