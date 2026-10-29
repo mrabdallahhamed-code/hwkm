@@ -7,6 +7,12 @@ function applyAdminRequestsTabVisibility(){
     tabVisibility.auditadmin = teamHas(teamModule,'تدقيق داخلي');
     tabVisibility.riskadmin = teamHas(teamModule,'مخاطر');
   }
+  // صلاحية مخصّصة لكل شخص: «بدون وصول» تخفي التبويب، و«عرض/تعديل» تُظهره حتى لو تخصصه لا يشمله
+  ["auditadmin","riskadmin"].forEach(id => {
+    const ov = (typeof myPermissionOverrides === "object" && myPermissionOverrides) ? myPermissionOverrides[id] : null;
+    if(ov === "none") tabVisibility[id] = false;
+    else if(ov === "view" || ov === "edit") tabVisibility[id] = true;
+  });
   document.querySelectorAll(".adminreq-tab-btn").forEach(btn => {
     btn.style.display = tabVisibility[btn.dataset.tab] ? '' : 'none';
   });
