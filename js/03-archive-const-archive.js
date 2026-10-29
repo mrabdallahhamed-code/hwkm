@@ -707,7 +707,14 @@ async function saveTrialDays(){
   const days = parseInt(document.getElementById("mtd-days").value, 10);
   if(!days || days < 1 || days > 365){ alert("اكتب عدد أيام بين 1 و 365"); return; }
   const trial_ends_at = new Date(Date.now() + days*86400000).toISOString();
-  const { error } = await sb.from("companies").update({ trial_ends_at, module_internal_audit: true, module_risk_management: true }).eq("id", id);
+  const cc = manageCompaniesCache.find(x => x.id === id);
+  const wasPaid = !!(cc && (cc.converted_to_paid_at || cc.subscription_ends_at) && !(cc.trial_ends_at && new Date(cc.trial_ends_at) > new Date()));
+  const patch = { trial_ends_at, module_internal_audit: true, module_risk_management: true };
+  if(wasPaid){
+    if(!await uiConfirm(`هذه الشركة مشتركة. سيتم إرجاعها لفترة تجريبية ${days} يوم، ويُمسح اشتراكها الحالي (الباقة والسعر والتواريخ). متابعة؟`)) return;
+    Object.assign(patch, { converted_to_paid_at: null, pending_subscription_approval: false, subscription_package: null, subscription_price: null, billing_cycle: null, subscription_starts_at: null, subscription_ends_at: null });
+  }
+  const { error } = await sb.from("companies").update(patch).eq("id", id);
   if(error){ alert("تعذّر حفظ التجربة: " + error.message); return; }
   logActivity("تعديل", "اشتراك", String(id), "تحديد فترة تجريبية " + days + " يوم");
   closeM("m-trial-days");
@@ -819,7 +826,8 @@ async function loadManageCompanies(){
       </div>` : ""}
       ${(!inTrial && !c.trial_ends_at && !hasPlan) || isOwner ? `<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
         ${(!inTrial && !c.trial_ends_at && !hasPlan) ? `<button class="btn-xs" style="background:#FEF3E2;color:var(--gold);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="startTrialForCompany(${c.id})"><span class="ico-i ico-bolt"></span>بدء فترة تجريبية</button>` : ""}
-        ${(isOwner && hasPlan && !inTrial) ? `<button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="openActivateSubModal(${c.id},'${orgEsc(c.name.replace(/'/g,""))}',true)">✏️ تعديل الاشتراك</button>` : ""}
+        ${(isOwner && hasPlan && !inTrial) ? `<button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="openActivateSubModal(${c.id},'${orgEsc(c.name.replace(/'/g,""))}',true)">✏️ تعديل الاشتراك</button>
+        <button class="btn-xs" style="background:#EEF1F6;color:var(--primary);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="startTrialForCompany(${c.id})">↩️ إرجاع لفترة تجريبية</button>` : ""}
         ${isOwner ? `<button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="deleteCompanyPermanently(${c.id})"><span class="ico-i ico-trash"></span>حذف الشركة نهائياً</button>` : ""}
       </div>` : ""}
     </div></div>`;
