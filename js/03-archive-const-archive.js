@@ -459,10 +459,10 @@ async function loadPlatformDashboard(){
     try{
       const [rr, ar] = await Promise.all([
         sb.from("risk_requests").select("status,assigned_consultant_email,pending_final_approval"),
-        sb.from("audit_requests").select("status,pending_final_approval")
+        sb.from("audit_requests").select("status,assigned_reviewer_email,pending_final_approval")
       ]);
       (rr.data||[]).forEach(x => { if(x.pending_final_approval) pendingApprove++; if(x.status === "تم الاستلام" && !x.assigned_consultant_email) pendingAssign++; });
-      (ar.data||[]).forEach(x => { if(x.pending_final_approval) pendingApprove++; if(x.status === "تم الاستلام") pendingAssign++; });
+      (ar.data||[]).forEach(x => { if(x.pending_final_approval) pendingApprove++; if(x.status === "تم الاستلام" && !x.assigned_reviewer_email) pendingAssign++; });
     }catch(e){}
     const soon = inTrial.filter(x => x.days <= 7).length;
     const subSoon = all.filter(c => !c.trial_ends_at && c.subscription_ends_at && Math.ceil((new Date(c.subscription_ends_at) - now)/86400000) <= 30).length;

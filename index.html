@@ -1512,12 +1512,12 @@
     <div class="fg"><label>الخدمة المطلوبة</label><div id="anr-service-name" style="font-weight:800;color:var(--primary);font-size:13px;padding:6px 0"></div></div>
     <div class="row2">
       <div class="fg"><label>اسم مقدّم الطلب</label><input class="fi" id="anr-client-name"/></div>
-      <div class="fg"><label>القطاع</label><input class="fi" id="anr-sector" placeholder="مثال: تجزئة، صناعي، خدمات..."/></div>
+      <div class="fg"><label>القطاع <span style="color:var(--red)">*</span></label><input class="fi" id="anr-sector" placeholder="مثال: تجزئة، صناعي، خدمات..."/></div>
     </div>
     <div class="fg"><label>حجم المؤسسة</label>
       <select class="fs" id="anr-org-size"><option>صغيرة (أقل من 50 موظف)</option><option>متوسطة (50-250 موظف)</option><option>كبيرة (أكثر من 250 موظف)</option></select>
     </div>
-    <div class="fg"><label>نطاق المراجعة المطلوب</label><textarea class="fi" id="anr-scope" rows="3" placeholder="مثال: المراجعة على مستوى إدارة المشتريات والمخزون..."></textarea></div>
+    <div class="fg"><label>نطاق المراجعة المطلوب <span style="color:var(--red)">*</span></label><textarea class="fi" id="anr-scope" rows="3" placeholder="مثال: المراجعة على مستوى إدارة المشتريات والمخزون..."></textarea></div>
     <div class="fg"><label>الملفات الداعمة (اختياري — إجراءات، تقارير سابقة...)</label><input type="file" class="fi" id="anr-files" multiple/></div>
     <div class="fg"><label>الموعد المبدئي المفضّل</label><input type="date" class="fi" id="anr-date"/></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-audit-new-request')">إلغاء</button><button class="btn btn-gold" onclick="submitAuditRequest()"><span class="ico-i ico-check"></span>إرسال الطلب</button></div>
@@ -3917,7 +3917,7 @@
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=hwkmTsReady" async defer></script>
 <script src="js/01-supabase-config-const.js?v=13"></script>
 <script src="js/02-team-invites-join.js?v=58"></script>
-<script src="js/03-archive-const-archive.js?v=83"></script>
+<script src="js/03-archive-const-archive.js?v=84"></script>
 <script src="js/04-two-factor-authentication.js?v=69"></script>
 <script src="js/05-annual-meeting-plan.js?v=3"></script>
 <script src="js/06-agm-cards-detail.js?v=2"></script>
@@ -3928,8 +3928,8 @@
 <script src="js/11-job-descriptions-draft.js?v=2"></script>
 <script src="js/12-email-notifications-supabase.js?v=8"></script>
 <script src="js/13-pdf-import-best.js?v=34"></script>
-<script src="js/14-votes-let-companysettings.js?v=15"></script>
-<script src="js/15-audit-services-back.js?v=13"></script>
+<script src="js/14-votes-let-companysettings.js?v=16"></script>
+<script src="js/15-audit-services-back.js?v=14"></script>
 <script src="js/16-performance-evaluations-let.js?v=33"></script>
 <script src="js/17-admin-management-criteria.js?v=50"></script>
 <script src="js/18-board-member-review.js?v=3"></script>
