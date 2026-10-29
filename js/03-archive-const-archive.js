@@ -693,13 +693,24 @@ async function loadPlatformActivity(){
 /* ══════════ PLATFORM OWNER: trial start + permanent delete ══════════ */
 let manageCompaniesCache = [];
 
-async function startTrialForCompany(id){
+function startTrialForCompany(id){
   const c = manageCompaniesCache.find(x => x.id === id);
   if(!c) return;
-  if(!await uiConfirm(`بدء فترة تجريبية 14 يوماً للشركة "${c.name}" (كل الوحدات مفتوحة)؟`)) return;
-  const trial_ends_at = new Date(Date.now() + 14*86400000).toISOString();
+  document.getElementById("mtd-company-id").value = id;
+  document.getElementById("mtd-title").textContent = "🎁 فترة تجريبية — " + c.name;
+  document.getElementById("mtd-days").value = 14;
+  openM("m-trial-days");
+}
+function setTrialQuick(n){ document.getElementById("mtd-days").value = n; }
+async function saveTrialDays(){
+  const id = Number(document.getElementById("mtd-company-id").value);
+  const days = parseInt(document.getElementById("mtd-days").value, 10);
+  if(!days || days < 1 || days > 365){ alert("اكتب عدد أيام بين 1 و 365"); return; }
+  const trial_ends_at = new Date(Date.now() + days*86400000).toISOString();
   const { error } = await sb.from("companies").update({ trial_ends_at, module_internal_audit: true, module_risk_management: true }).eq("id", id);
-  if(error){ alert("تعذّر بدء التجربة: " + error.message); return; }
+  if(error){ alert("تعذّر حفظ التجربة: " + error.message); return; }
+  logActivity("تعديل", "اشتراك", String(id), "تحديد فترة تجريبية " + days + " يوم");
+  closeM("m-trial-days");
   loadManageCompanies();
 }
 
@@ -804,24 +815,40 @@ async function loadManageCompanies(){
       ${(inTrial || (c.trial_ends_at && !inTrial)) ? `<div style="display:flex;gap:6px;margin-top:10px">
         <button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="openActivateSubModal(${c.id},'${orgEsc(c.name.replace(/'/g,""))}')"><span class="ico-i ico-check"></span>تفعيل الاشتراك</button>
         <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="cancelTrial(${c.id},'${orgEsc(c.name.replace(/'/g,""))}')"><span class="ico-i ico-xcircle"></span>إلغاء التجربة</button>
+        <button class="btn-xs" style="background:#EEF1F6;color:var(--primary);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="startTrialForCompany(${c.id})">📅 تعديل مدة التجربة</button>
       </div>` : ""}
       ${(!inTrial && !c.trial_ends_at && !hasPlan) || isOwner ? `<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
-        ${(!inTrial && !c.trial_ends_at && !hasPlan) ? `<button class="btn-xs" style="background:#FEF3E2;color:var(--gold);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="startTrialForCompany(${c.id})"><span class="ico-i ico-bolt"></span>بدء تجربة 14 يوم</button>` : ""}
+        ${(!inTrial && !c.trial_ends_at && !hasPlan) ? `<button class="btn-xs" style="background:#FEF3E2;color:var(--gold);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="startTrialForCompany(${c.id})"><span class="ico-i ico-bolt"></span>بدء فترة تجريبية</button>` : ""}
+        ${(isOwner && hasPlan && !inTrial) ? `<button class="btn-xs" style="background:#E8F8EF;color:var(--green);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="openActivateSubModal(${c.id},'${orgEsc(c.name.replace(/'/g,""))}',true)">✏️ تعديل الاشتراك</button>` : ""}
         ${isOwner ? `<button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer" onclick="deleteCompanyPermanently(${c.id})"><span class="ico-i ico-trash"></span>حذف الشركة نهائياً</button>` : ""}
       </div>` : ""}
     </div></div>`;
   }).join("");
 }
 
-function openActivateSubModal(companyId, companyName){
+function openActivateSubModal(companyId, companyName, edit){
   document.getElementById("mas-company-id").value = companyId;
-  document.getElementById("mas-title-h").textContent = "✅ تفعيل الاشتراك — " + companyName;
+  window._masEdit = !!edit;
+  document.getElementById("mas-title-h").textContent = (edit ? "✏️ تعديل الاشتراك — " : "✅ تفعيل الاشتراك — ") + companyName;
+  document.getElementById("mas-end").value = "";
   document.getElementById("mas-audit").checked = false;
   document.getElementById("mas-risk").checked = false;
   _masPkg = null; clearSubPackageSelection("mas");
   document.getElementById("mas-price").value = "";
   document.getElementById("mas-cycle").value = "annual";
   document.getElementById("mas-start").value = new Date().toISOString().slice(0,10);
+  if(edit){
+    const c = manageCompaniesCache.find(x => x.id === companyId);
+    if(c){
+      document.getElementById("mas-audit").checked = !!c.module_internal_audit;
+      document.getElementById("mas-risk").checked = !!c.module_risk_management;
+      if(c.subscription_package && SUB_PACKAGES[c.subscription_package]) selectSubPackage("mas", c.subscription_package);
+      if(c.subscription_price != null) document.getElementById("mas-price").value = c.subscription_price;
+      if(c.billing_cycle) document.getElementById("mas-cycle").value = c.billing_cycle;
+      if(c.subscription_starts_at) document.getElementById("mas-start").value = c.subscription_starts_at.slice(0,10);
+      if(c.subscription_ends_at) document.getElementById("mas-end").value = c.subscription_ends_at.slice(0,10);
+    }
+  }
   openM("m-activate-sub");
 }
 
@@ -867,7 +894,9 @@ function subFields(){
   const cycle = document.getElementById("mas-cycle").value || "annual";
   const sv = document.getElementById("mas-start").value;
   const start = sv ? new Date(sv + "T09:00:00").toISOString() : new Date().toISOString();
-  return { subscription_package: _masPkg, subscription_price: isNaN(price) ? null : price, billing_cycle: cycle, subscription_starts_at: start, subscription_ends_at: subEndFrom(start, cycle) };
+  const ev = document.getElementById("mas-end").value;
+  const end = ev ? new Date(ev + "T09:00:00").toISOString() : subEndFrom(start, cycle);
+  return { subscription_package: _masPkg, subscription_price: isNaN(price) ? null : price, billing_cycle: cycle, subscription_starts_at: start, subscription_ends_at: end };
 }
 async function activateSubscription(){
   const companyId = Number(document.getElementById("mas-company-id").value);
@@ -890,7 +919,7 @@ async function activateSubscription(){
     return;
   }
 
-  const { error } = await sb.from("companies").update({ module_internal_audit, module_risk_management, trial_ends_at: null, converted_to_paid_at: new Date().toISOString(), pending_subscription_approval: false, ...subFields() }).eq("id", companyId);
+  const { error } = await sb.from("companies").update({ module_internal_audit, module_risk_management, trial_ends_at: null, ...(window._masEdit ? {} : { converted_to_paid_at: new Date().toISOString() }), pending_subscription_approval: false, ...subFields() }).eq("id", companyId);
   if(error){ alert("تعذّر التفعيل: " + error.message); return; }
   logActivity("موافقة", "اشتراك", String(companyId), "تفعيل اشتراك مدفوع وإنهاء فترة التجربة");
   alert("تم تفعيل الاشتراك بنجاح ✅");

@@ -3415,6 +3415,21 @@
   </div>
 </div>
 
+<div class="modal-bg" id="m-trial-days">
+  <div class="modal">
+    <div class="modal-title" id="mtd-title">فترة تجريبية</div>
+    <input type="hidden" id="mtd-company-id" value="" />
+    <div class="fg"><label>مدة التجربة (بالأيام) — تبدأ من اليوم</label><input type="number" id="mtd-days" min="1" max="365" value="14" /></div>
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <button type="button" class="btn-xs" onclick="setTrialQuick(7)">7 أيام</button>
+      <button type="button" class="btn-xs" onclick="setTrialQuick(14)">14 يوم</button>
+      <button type="button" class="btn-xs" onclick="setTrialQuick(30)">30 يوم</button>
+      <button type="button" class="btn-xs" onclick="setTrialQuick(60)">60 يوم</button>
+    </div>
+    <p style="font-size:10.5px;color:var(--gray3);margin-bottom:10px">كل الوحدات تُفتح طوال التجربة. إن كانت الشركة في تجربة فستُستبدل مدتها بالمدة الجديدة.</p>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-trial-days')">إلغاء</button><button class="btn btn-gold" onclick="saveTrialDays()">حفظ</button></div>
+  </div>
+</div>
 <div class="modal-bg" id="m-activate-sub">
   <div class="modal">
     <div class="modal-title" id="mas-title-h"><span class="ico-i ico-check"></span>تفعيل الاشتراك</div>
@@ -3445,7 +3460,8 @@
       <div class="fg" style="flex:1"><label>دورة الفوترة</label><select id="mas-cycle"><option value="annual">سنوي</option><option value="monthly">شهري</option></select></div>
       <div class="fg" style="flex:1"><label>بداية الاشتراك</label><input type="date" id="mas-start" /></div>
     </div>
-    <p style="font-size:10.5px;color:var(--gray3);margin:-6px 0 10px">تاريخ النهاية يُحسب تلقائيًا من دورة الفوترة (سنة أو شهر من البداية).</p>
+    <div class="fg"><label>نهاية الاشتراك (اختياري)</label><input type="date" id="mas-end" /></div>
+    <p style="font-size:10.5px;color:var(--gray3);margin:-6px 0 10px">اترك النهاية فارغة ليُحسب التاريخ تلقائيًا من دورة الفوترة (سنة أو شهر من البداية)، أو اكتب تاريخًا مخصصًا.</p>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-activate-sub')">إلغاء</button><button class="btn btn-gold" onclick="activateSubscription()"><span class="ico-i ico-check"></span>تفعيل الاشتراك</button></div>
   </div>
 </div>
@@ -3899,9 +3915,9 @@
 
 <script>try{if(localStorage.getItem("hawkim_lang")==="en")document.write('<script src="i18n-en.js?v=dir1"><\/script>')}catch(e){}</script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=hwkmTsReady" async defer></script>
-<script src="js/01-supabase-config-const.js?v=12"></script>
+<script src="js/01-supabase-config-const.js?v=13"></script>
 <script src="js/02-team-invites-join.js?v=58"></script>
-<script src="js/03-archive-const-archive.js?v=81"></script>
+<script src="js/03-archive-const-archive.js?v=82"></script>
 <script src="js/04-two-factor-authentication.js?v=69"></script>
 <script src="js/05-annual-meeting-plan.js?v=3"></script>
 <script src="js/06-agm-cards-detail.js?v=2"></script>
