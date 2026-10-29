@@ -1113,3 +1113,17 @@ div[style*="linear-gradient(135deg,var(--primary),var(--primary2))"][style*="bor
 .pd-act-n,.pd-act.red .pd-act-n,.pd-act.amber .pd-act-n{color:var(--c)}
 .pd-act.ok{opacity:.8}.pd-act.ok .pd-act-l{color:#1B8A52}
 .pd-panel{border-top:3px solid #2F6FD0}.pd-two>div:last-child .pd-panel{border-top-color:#16A085}
+
+/* صفحة اشتراكي */
+.ms-hero{display:flex;justify-content:space-between;align-items:center;gap:16px;border-radius:18px;padding:24px 28px;color:#fff;margin:6px 0 16px}
+.ms-hero.green{background:linear-gradient(120deg,#0F2138,#1F6F78)}.ms-hero.gold{background:linear-gradient(120deg,#0F2138,#8A6A22)}.ms-hero.red{background:linear-gradient(120deg,#0F2138,#A63A3A)}.ms-hero.gray{background:linear-gradient(120deg,#0F2138,#4A5870)}
+.ms-badge{font-size:20px;font-weight:900}.ms-sub{font-size:12.5px;opacity:.75;margin-top:4px}
+.ms-big{text-align:center;background:rgba(255,255,255,.12);border-radius:14px;padding:12px 24px}.ms-big b{display:block;font-size:40px;font-weight:900;line-height:1.1}.ms-big span{font-size:12px;opacity:.8}
+.ms-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.ms-cell{background:#fff;border:1px solid #E7E3D9;border-radius:14px;padding:14px 16px}.ms-cell span{display:block;font-size:11.5px;color:var(--gray3);margin-bottom:4px}.ms-cell b{font-size:15px;color:var(--primary)}
+.ms-note{margin-top:14px;background:#EEF3FA;color:#1D3E64;border-radius:12px;padding:12px 16px;font-size:13px;font-weight:700}
+.ms-contact{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.ms-btn{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #E7E3D9;border-radius:14px;padding:14px 16px;text-decoration:none;color:var(--dark);transition:box-shadow .15s}
+.ms-btn:hover{box-shadow:0 6px 18px rgba(15,33,56,.1)}.ms-btn>span{font-size:24px}.ms-btn b{display:block;font-size:14px}.ms-btn small{color:var(--gray3);font-size:12px}
+.ms-btn.wa{border-color:#BFE6CF;background:#F3FBF6}
+@media(max-width:700px){.ms-hero{flex-direction:column;align-items:flex-start}}

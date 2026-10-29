@@ -1190,32 +1190,45 @@ function renderTrialBanner(){
   updateBannerOffset();
 }
 
-function openMySubscription(){
+function openMySubscription(){ go('mysub', document.getElementById('navMySub')); }
+function renderMySubscription(){
   const s = currentCompanySub, b = document.getElementById("mySubBody");
   if(!b) return;
   const fmt = d => d ? new Date(d).toLocaleDateString("ar-SA-u-ca-gregory",{year:"numeric",month:"long",day:"numeric"}) : "—";
-  const row = (l,v) => `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--gray1);font-size:12.5px"><span style="color:var(--gray3)">${l}</span><b>${v}</b></div>`;
-  let h = "";
-  if(!s){ h = '<div class="pd-empty">تعذّر تحميل بيانات الاشتراك.</div>'; }
+  const cell = (l,v) => `<div class="ms-cell"><span>${l}</span><b>${v}</b></div>`;
+  let tone = "gray", badge = "لا يوجد اشتراك", big = "—", bigl = "", cells = "", note = "";
+  if(!s){ note = "تعذّر تحميل بيانات الاشتراك."; }
   else if(s.trial){
     const d = Math.max(0, Math.ceil((new Date(s.trial) - new Date()) / 86400000));
-    h = row("الحالة","🎁 فترة تجريبية") + row("تنتهي في", fmt(s.trial)) + row("المتبقي", d + " يوم") + row("الوحدات","كل الوحدات مفتوحة مؤقتًا")
-      + '<p style="font-size:12px;color:var(--gray3);margin-top:12px">لتفعيل الاشتراك تواصل معنا وسنفعّل الباقة المناسبة لك.</p>';
+    tone = d <= 7 ? "red" : "gold"; badge = "🎁 فترة تجريبية"; big = d; bigl = "يوم متبقٍ";
+    cells = cell("تنتهي في", fmt(s.trial)) + cell("الوحدات","كل الوحدات مفتوحة مؤقتًا");
+    note = "لتفعيل الاشتراك بعد التجربة تواصل معنا وسنفعّل الباقة المناسبة لك.";
   } else if(s.paid || s.ends){
     const d = subDaysLeft();
+    const expired = d !== null && d < 0;
+    tone = expired ? "red" : (d !== null && d <= 30 ? "gold" : "green");
+    badge = expired ? "⚠️ اشتراك منتهٍ" : "✅ اشتراك فعّال";
+    big = d === null ? "—" : Math.abs(d); bigl = d === null ? "" : (expired ? "يوم منذ الانتهاء" : "يوم متبقٍ");
     const mods = ["الحوكمة والاجتماعات"].concat(s.risk ? ["إدارة المخاطر"] : [], s.audit ? ["المراجعة الداخلية"] : []).join("، ");
-    h = row("الحالة", d !== null && d < 0 ? "⚠️ منتهٍ" : "✅ مشترك") + row("الباقة", s.pkg || "مخصّصة") + row("الوحدات المتاحة", mods)
-      + (s.price != null ? row("قيمة الاشتراك", Number(s.price).toLocaleString("en-US") + " ريال / " + (CYCLE_AR[s.cycle]||"")) : "")
-      + row("بداية الاشتراك", fmt(s.starts)) + row("نهاية الاشتراك", fmt(s.ends))
-      + (d !== null ? row("المتبقي", d >= 0 ? d + " يوم" : "انتهى منذ " + (-d) + " يوم") : "");
-    if(d !== null && d <= 30) h += '<p style="font-size:12px;color:var(--red);margin-top:12px;font-weight:700">اشتراكك قارب على الانتهاء — تواصل معنا للتجديد.</p>';
+    cells = cell("الباقة", s.pkg || "مخصّصة") + cell("الوحدات المتاحة", mods)
+      + (s.price != null ? cell("قيمة الاشتراك", Number(s.price).toLocaleString("en-US") + " ريال / " + (CYCLE_AR[s.cycle]||"")) : "")
+      + cell("بداية الاشتراك", fmt(s.starts)) + cell("نهاية الاشتراك", fmt(s.ends));
+    if(d !== null && d <= 30) note = "اشتراكك قارب على الانتهاء — تواصل معنا للتجديد حتى لا تنقطع الخدمة.";
   } else {
-    h = row("الحالة","لا يوجد اشتراك مفعّل") + row("الوحدات","الحوكمة والاجتماعات (الأساسية)")
-      + '<p style="font-size:12px;color:var(--gray3);margin-top:12px">للاشتراك أو بدء تجربة مجانية تواصل معنا.</p>';
+    cells = cell("الوحدات","الحوكمة والاجتماعات (الأساسية)");
+    note = "للاشتراك أو بدء تجربة مجانية تواصل معنا.";
   }
-  h += '<div style="margin-top:14px;font-size:12px">للاشتراك أو التجديد: <a href="mailto:info@hwkm.net" style="color:var(--gold);font-weight:700">info@hwkm.net</a></div>';
-  b.innerHTML = h;
-  openM("m-my-sub");
+  b.innerHTML = `<div class="pd-head"><div class="pd-title"><span class="ico-i ico-package"></span>اشتراكي</div></div>
+    <div class="ms-hero ${tone}"><div><div class="ms-badge">${badge}</div><div class="ms-sub">${(() => { const sw = document.getElementById("companySwitcher"); return sw && sw.selectedOptions[0] ? orgEsc(sw.selectedOptions[0].textContent) : ""; })()}</div></div>
+      <div class="ms-big"><b>${big}</b><span>${bigl}</span></div></div>
+    <div class="ms-grid">${cells}</div>
+    ${note ? `<div class="ms-note">${note}</div>` : ""}
+    <div class="pd-sec">تواصل معنا</div>
+    <div class="ms-contact">
+      <a class="ms-btn wa" href="https://wa.me/966509015864" target="_blank" rel="noopener"><span>💬</span><div><b>واتساب</b><small dir="ltr">+966 50 901 5864</small></div></a>
+      <a class="ms-btn" href="tel:+966509015864"><span>📞</span><div><b>اتصال</b><small dir="ltr">+966 50 901 5864</small></div></a>
+      <a class="ms-btn" href="mailto:info@hwkm.net"><span>✉️</span><div><b>البريد</b><small>info@hwkm.net</small></div></a>
+    </div>`;
 }
 
 async function renewSubscription(companyId){

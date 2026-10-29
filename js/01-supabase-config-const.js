@@ -866,6 +866,7 @@ function isPageAllowed(pageId, role){
   const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
   const teamModule = currentUserProfile && currentUserProfile.platform_team_module;
   const hasNoCompany = currentUserProfile && userMemberships.length === 0;
+  if(pageId === 'mysub') return true;
   if(pageId === 'adminrequests') return isPlatformAdmin || !!teamModule;
   if(pageId === 'platformdashboard' || pageId === 'platformcompanies') return isPlatformAdmin;
   if(pageId === 'platformusers') return isPlatformAdmin;
