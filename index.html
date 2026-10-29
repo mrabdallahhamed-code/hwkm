@@ -48,7 +48,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.1" onerror="document.write('<script src=&quot;https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2&quot;><\/script>')"></script>
-<link rel="stylesheet" href="style.css?v=25">
+<link rel="stylesheet" href="style.css?v=26">
 <script src="https://unpkg.com/pizzip@3.2.0/dist/pizzip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://unpkg.com/docxtemplater@3.69.0/build/docxtemplater.js"></script>
@@ -1969,18 +1969,24 @@
 <!-- ══ ADMIN REQUESTS (merged: company requests + subscriptions + audit requests) ══ -->
 <!-- ══ PLATFORM OVERVIEW (owner-only aggregate pages) ══════ -->
 <div id="p-platformdashboard" class="page content">
-  <div class="pd-head"><div class="pd-title"><span class="ico-i ico-dashboard"></span>لوحة تحكم مالك المنصة</div><div class="pd-sub" id="pdUpdated"></div></div>
+  <div class="pd-hero">
+    <div class="pd-hero-top"><div><div class="pd-hero-title">لوحة تحكم مالك المنصة</div><div class="pd-hero-sub">نظرة سريعة على حوكم — ما يحتاج قرارك وأرقام المنصة</div></div><div class="pd-hero-upd" id="pdUpdated"></div></div>
+    <div class="pd-hero-stats" id="pdHeroStats"></div>
+  </div>
 
   <div class="pd-sec">يحتاج منك الآن</div>
   <div id="pdActions" class="pd-actions"><div class="pd-loading">جارِ التحميل...</div></div>
 
-  <div class="pd-sec">نظرة عامة</div>
-  <div class="card pd-strip">
-    <div id="platformDashGrid" class="pd-stats"><div class="pd-loading">جارِ التحميل...</div></div>
-    <div class="pd-divider"></div>
-    <div id="platformModulesGrid" class="pd-stats"></div>
+  <div class="pd-two">
+    <div>
+      <div class="pd-sec">توزيع الكيانات</div>
+      <div class="card pd-panel"><div id="platformDashGrid"><div class="pd-loading">جارِ التحميل...</div></div></div>
+    </div>
+    <div>
+      <div class="pd-sec">الوحدات المفعّلة</div>
+      <div class="card pd-panel"><div id="platformModulesGrid"></div></div>
+    </div>
   </div>
-
 </div>
 
 <div id="p-platformcompanies" class="page content">
@@ -3900,7 +3906,7 @@
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=hwkmTsReady" async defer></script>
 <script src="js/01-supabase-config-const.js?v=9"></script>
 <script src="js/02-team-invites-join.js?v=57"></script>
-<script src="js/03-archive-const-archive.js?v=78"></script>
+<script src="js/03-archive-const-archive.js?v=79"></script>
 <script src="js/04-two-factor-authentication.js?v=68"></script>
 <script src="js/05-annual-meeting-plan.js?v=3"></script>
 <script src="js/06-agm-cards-detail.js?v=2"></script>

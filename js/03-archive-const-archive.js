@@ -418,23 +418,27 @@ async function loadPlatformDashboard(){
   const countByType = { "مساهمة": 0, "ذات مسؤولية محدودة": 0, "مؤسسة فردية": 0 };
   all.forEach(c => { const k = (c.company_type||"").indexOf("مساهمة") === 0 ? "مساهمة" : c.company_type; if(countByType[k] !== undefined) countByType[k]++; });
   const stat = (icon, label, val, cls) => `<div class="pd-stat ${cls||""}"><span class="pd-stat-ico">${icon}</span><div><div class="pd-stat-val">${val}</div><div class="pd-stat-lbl">${label}</div></div></div>`;
-  grid.innerHTML = [
-    stat("🏢","إجمالي الشركات", all.length, "pd-first"), stat("📈","شركات مساهمة", countByType["مساهمة"]),
-    stat("🤝","ذات مسؤولية محدودة", countByType["ذات مسؤولية محدودة"]), stat("👤","مؤسسات فردية", countByType["مؤسسة فردية"])
-  ].join("");
+  const total = all.length || 1;
+  const segs = [["مساهمة","شركات مساهمة","#1D3E64"],["ذات مسؤولية محدودة","ذات مسؤولية محدودة","#2D7A6B"],["مؤسسة فردية","مؤسسات فردية","#8A9BB5"]];
+  grid.innerHTML = `<div class="pd-dist-bar">${segs.map(([k,,col]) => countByType[k] ? `<i style="width:${countByType[k]/total*100}%;background:${col}"></i>` : "").join("")}</div>
+    <div class="pd-dist-legend">${segs.map(([k,l,col]) => `<div class="pd-dist-item"><span class="pd-dot" style="background:${col}"></span><span class="pd-dist-l">${l}</span><b>${countByType[k]}</b></div>`).join("")}</div>`;
   const active = all.filter(c => c.subscription_ends_at && new Date(c.subscription_ends_at) > new Date());
   const monthly = active.reduce((t,c) => t + (Number(c.subscription_price)||0) / (c.billing_cycle === "monthly" ? 1 : 12), 0);
   const nf = n => Math.round(n).toLocaleString("en-US");
   const rg = document.getElementById("pcRevenueGrid"); if(rg) rg.innerHTML = stat("💰","إيراد شهري متوقع (ر.س)", nf(monthly)) + stat("📅","إيراد سنوي متوقع (ر.س)", nf(monthly*12)) + stat("✅","اشتراكات فعّالة", active.length);
   const auditCount = all.filter(c => c.module_internal_audit).length;
   const riskCount = all.filter(c => c.module_risk_management).length;
-  modulesGrid.innerHTML = [
-    stat("🏛️","الحوكمة والاجتماعات", all.length), stat("🔍","المراجعة الداخلية", auditCount), stat("⚠️","إدارة المخاطر", riskCount)
-  ].join("");
+  const mod = (ico, label, n, col) => `<div class="pd-mod"><div class="pd-mod-top"><span class="pd-mod-ico" style="background:${col}1A">${ico}</span><span class="pd-mod-l">${label}</span><b>${n}<small> / ${all.length}</small></b></div><div class="pd-mod-bar"><i style="width:${all.length ? n/all.length*100 : 0}%;background:${col}"></i></div></div>`;
+  modulesGrid.innerHTML = mod("🏛️","الحوكمة والاجتماعات", all.length, "#1D3E64") + mod("🔍","المراجعة الداخلية", auditCount, "#2D7A6B") + mod("⚠️","إدارة المخاطر", riskCount, "#B5651D");
+  const hero = document.getElementById("pdHeroStats");
 
   const now = new Date();
   const inTrial = all.filter(c => c.trial_ends_at && new Date(c.trial_ends_at) > now)
     .map(c => ({ c, days: Math.max(0, Math.ceil((new Date(c.trial_ends_at) - now) / 86400000)) })).sort((x,y) => x.days - y.days);
+  if(hero){
+    const h = (n,l) => `<div class="pd-hero-k"><b>${n}</b><span>${l}</span></div>`;
+    hero.innerHTML = h(all.length,"شركة على المنصة") + h(active.length,"اشتراك فعّال") + h(inTrial.length,"في فترة تجربة") + h(nf(monthly),"إيراد شهري متوقع (ر.س)");
+  }
   const tc = document.getElementById("pdTrialCount"); if(tc) tc.textContent = inTrial.length || "";
   if(!inTrial.length){
     trialsList.innerHTML = '<div class="pd-empty">لا توجد شركات بفترة تجربة نشطة.</div>';
@@ -464,14 +468,14 @@ async function loadPlatformDashboard(){
     const subSoon = all.filter(c => !c.trial_ends_at && c.subscription_ends_at && Math.ceil((new Date(c.subscription_ends_at) - now)/86400000) <= 30).length;
     const unverified = all.filter(c => c.entity_verification !== "verified").length;
     const noCr = all.filter(c => !String(c.cr_number||"").trim()).length;
-    const act = (n, label, page, tone) => `<div class="pd-act ${n ? tone : "ok"}" onclick="${page ? `go('${page}',null)` : ""}"><div class="pd-act-n">${n ? n : "✓"}</div><div class="pd-act-l">${label}</div></div>`;
+    const act = (n, label, page, tone, ico) => `<div class="pd-act ${n ? tone : "ok"}" onclick="${page ? `go('${page}',null)` : ""}"><span class="pd-act-ico">${n ? ico : "✓"}</span><div class="pd-act-n">${n}</div><div class="pd-act-l">${label}</div></div>`;
     actions.innerHTML = [
-      act(pendingAssign, "طلبات جديدة بانتظار تكليف", "adminrequests", "red"),
-      act(pendingApprove, "تقارير بانتظار اعتمادك", "adminrequests", "red"),
-      act(soon, "تجارب تنتهي خلال 7 أيام", "", "amber"),
-      act(subSoon, "اشتراكات تنتهي خلال 30 يوم", "", "amber"),
-      act(unverified, "كيانات غير موثّقة", "", "amber"),
-      act(noCr, "شركات بلا رقم سجل", "", "amber")
+      act(pendingAssign, "طلبات جديدة بانتظار تكليف", "adminrequests", "red", "📥"),
+      act(pendingApprove, "تقارير بانتظار اعتمادك", "adminrequests", "red", "📝"),
+      act(soon, "تجارب تنتهي خلال 7 أيام", "", "amber", "⏳"),
+      act(subSoon, "اشتراكات تنتهي خلال 30 يوم", "", "amber", "🔔"),
+      act(unverified, "كيانات غير موثّقة", "", "amber", "🛡️"),
+      act(noCr, "شركات بلا رقم سجل", "", "amber", "🪪")
     ].join("");
   }
 
