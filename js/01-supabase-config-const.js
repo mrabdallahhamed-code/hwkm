@@ -784,11 +784,11 @@ async function applyRolePermissions(){
     document.getElementById('companyNavGroups').style.display = 'none';
     document.querySelectorAll('#platformOverviewNavGroup .nav-item').forEach(item=>{
       const pageId = item.getAttribute('onclick')?.match(/go\('([a-z]+)'/)?.[1];
-      const ownerOnly = ['platformdashboard','platformusers','platformactivity'];
+      const ownerOnly = ['platformdashboard','platformcompanies','platformusers','platformactivity'];
       item.style.display = (isPlatformTeamMember && ownerOnly.includes(pageId)) ? 'none' : '';
     });
     const landingPage = isPlatformTeamMember ? 'adminrequests' : 'platformdashboard';
-    const validPages = isPlatformTeamMember ? ['adminrequests'] : ['platformdashboard','platformusers','platformactivity','adminrequests'];
+    const validPages = isPlatformTeamMember ? ['adminrequests'] : ['platformdashboard','platformcompanies','platformusers','platformactivity','adminrequests'];
     if(!validPages.includes(currentPageId)){
       go(landingPage);
     }
@@ -867,7 +867,7 @@ function isPageAllowed(pageId, role){
   const teamModule = currentUserProfile && currentUserProfile.platform_team_module;
   const hasNoCompany = currentUserProfile && userMemberships.length === 0;
   if(pageId === 'adminrequests') return isPlatformAdmin || !!teamModule;
-  if(pageId === 'platformdashboard') return isPlatformAdmin;
+  if(pageId === 'platformdashboard' || pageId === 'platformcompanies') return isPlatformAdmin;
   if(pageId === 'platformusers') return isPlatformAdmin;
   if(pageId === 'platformactivity') return isPlatformAdmin;
   if(pageId === 'companyrequests') return isPlatformAdmin;

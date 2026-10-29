@@ -663,7 +663,7 @@ async function loadMyPermissionOverrides(){
   results.forEach(({ data }) => (data||[]).forEach(r => { myPermissionOverrides[r.page_id] = r.access_level; }));
 }
 
-const PLATFORM_LEVEL_PAGE_IDS = ['platformdashboard','platformusers','platformactivity','adminrequests','companyrequests','managecompanies','auditadmin'];
+const PLATFORM_LEVEL_PAGE_IDS = ['platformdashboard','platformcompanies','platformusers','platformactivity','adminrequests','companyrequests','managecompanies','auditadmin'];
 
 /* ══════════ ADMIN UI: grant/revoke a specific person's access, page by page ══════════ */
 let permOverrideDraftEmail = null;
@@ -685,7 +685,7 @@ async function openUserPermissionOverridesModal(email, displayName, scopeCompany
 }
 
 const PLATFORM_LEVEL_PAGE_TITLES = {
-  platformdashboard: "لوحة تحكم المنصة", platformusers: "فريق المنصة والمستخدمين",
+  platformdashboard: "لوحة تحكم المنصة", platformcompanies: "الشركات", platformusers: "فريق المنصة والمستخدمين",
   platformactivity: "سجل نشاط المنصة", adminrequests: "إدارة الطلبات",
   companyrequests: "طلبات إدراج الشركات", managecompanies: "إدارة الشركات", auditadmin: "إدارة خدمات المراجعة/المخاطر"
 };
@@ -1069,7 +1069,7 @@ async function switchCompany(id){
   await refreshCompanyTypeVisibility();
   logPlatformStaffAccess();
   checkPendingApprovalBadges();
-  const platformOnlyPages = ['adminrequests','platformdashboard','platformusers','platformactivity'];
+  const platformOnlyPages = ['adminrequests','platformdashboard','platformcompanies','platformusers','platformactivity'];
   if(platformOnlyPages.includes(currentPageId)){
     go('dashboard');
   } else {
@@ -1112,7 +1112,7 @@ function reloadCurrentPageData(){
   if(id==='shareholders') loadShareholders();
   if(id==='indicators') loadIndicatorsReport();
   if(id==='adminrequests'){ switchAdminRequestsTab('companyrequests'); loadCompanyRequestsReview(); loadManageCompanies(); loadAuditAdmin(); loadRiskAdmin(); }
-  if(id==='platformdashboard') loadPlatformDashboard();
+  if(id==='platformdashboard' || id==='platformcompanies') loadPlatformDashboard();
   if(id==='platformusers') loadPlatformUsers();
   if(id==='platformactivity') loadPlatformActivity();
 }

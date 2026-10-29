@@ -289,6 +289,7 @@
   <div id="platformOverviewNavGroup" class="nav-group" style="display:none">
     <div class="nav-group-label">مالك المنصة — نظرة عامة</div>
     <div class="nav-item" onclick="go('platformdashboard',this)"><span class="ni-icon ico ico-dashboard"></span><span class="ni-text">لوحة التحكم</span></div>
+    <div class="nav-item" onclick="go('platformcompanies',this)"><span class="ni-icon ico ico-building"></span><span class="ni-text">الشركات</span></div>
     <div class="nav-item" onclick="go('platformusers',this)"><span class="ni-icon ico ico-shield"></span><span class="ni-text">إدارة الصلاحيات</span></div>
     <div class="nav-item" onclick="go('platformactivity',this)"><span class="ni-icon ico ico-scroll"></span><span class="ni-text">سجل النشاط</span></div>
     <div class="nav-item" onclick="go('adminrequests',this)"><span class="ni-icon ico ico-inbox"></span><span class="ni-text">إدارة الطلبات</span></div>
@@ -1979,6 +1980,13 @@
     <div class="pd-divider"></div>
     <div id="platformModulesGrid" class="pd-stats"></div>
   </div>
+
+</div>
+
+<div id="p-platformcompanies" class="page content">
+  <div class="pd-head"><div class="pd-title"><span class="ico-i ico-building"></span>الشركات</div></div>
+  <div class="pd-sec">الإيرادات والاشتراكات</div>
+  <div class="card pd-strip"><div id="pcRevenueGrid" class="pd-stats"><div class="pd-loading">جارِ التحميل...</div></div></div>
 
   <div class="pd-sec">الشركات بفترة تجربة <span class="pd-count" id="pdTrialCount"></span></div>
   <div id="platformTrialsList" class="pd-trials"><div class="pd-loading">جارِ التحميل...</div></div>
@@ -3890,9 +3898,9 @@
 
 <script>try{if(localStorage.getItem("hawkim_lang")==="en")document.write('<script src="i18n-en.js?v=dir1"><\/script>')}catch(e){}</script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=hwkmTsReady" async defer></script>
-<script src="js/01-supabase-config-const.js?v=8"></script>
-<script src="js/02-team-invites-join.js?v=56"></script>
-<script src="js/03-archive-const-archive.js?v=77"></script>
+<script src="js/01-supabase-config-const.js?v=9"></script>
+<script src="js/02-team-invites-join.js?v=57"></script>
+<script src="js/03-archive-const-archive.js?v=78"></script>
 <script src="js/04-two-factor-authentication.js?v=68"></script>
 <script src="js/05-annual-meeting-plan.js?v=3"></script>
 <script src="js/06-agm-cards-detail.js?v=2"></script>
@@ -3906,7 +3914,7 @@
 <script src="js/14-votes-let-companysettings.js?v=15"></script>
 <script src="js/15-audit-services-back.js?v=12"></script>
 <script src="js/16-performance-evaluations-let.js?v=33"></script>
-<script src="js/17-admin-management-criteria.js?v=47"></script>
+<script src="js/17-admin-management-criteria.js?v=48"></script>
 <script src="js/18-board-member-review.js?v=2"></script>
 <script src="js/19-official-agm-documents.js?v=3"></script>
 </body>

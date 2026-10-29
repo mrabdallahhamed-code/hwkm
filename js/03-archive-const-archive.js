@@ -425,7 +425,7 @@ async function loadPlatformDashboard(){
   const active = all.filter(c => c.subscription_ends_at && new Date(c.subscription_ends_at) > new Date());
   const monthly = active.reduce((t,c) => t + (Number(c.subscription_price)||0) / (c.billing_cycle === "monthly" ? 1 : 12), 0);
   const nf = n => Math.round(n).toLocaleString("en-US");
-  grid.innerHTML += stat("💰","إيراد شهري متوقع (ر.س)", nf(monthly)) + stat("📅","إيراد سنوي متوقع (ر.س)", nf(monthly*12)) + stat("✅","اشتراكات فعّالة", active.length);
+  const rg = document.getElementById("pcRevenueGrid"); if(rg) rg.innerHTML = stat("💰","إيراد شهري متوقع (ر.س)", nf(monthly)) + stat("📅","إيراد سنوي متوقع (ر.س)", nf(monthly*12)) + stat("✅","اشتراكات فعّالة", active.length);
   const auditCount = all.filter(c => c.module_internal_audit).length;
   const riskCount = all.filter(c => c.module_risk_management).length;
   modulesGrid.innerHTML = [

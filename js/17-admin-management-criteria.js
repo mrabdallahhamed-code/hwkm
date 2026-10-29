@@ -118,6 +118,7 @@ const titles={
   reports:['تقارير الحوكمة','تقارير الأداء والامتثال والحوكمة'],
   appoint:['طلب تعيين عضو','طلب تعيين عضو مجلس إدارة أو عضو لجنة متخصصة'],
   consultants:['الاستشارات','الاستشارات القانونية والإدارية وعقودها'],
+  platformcompanies:['الشركات','الإيرادات المتوقعة والتجارب وتوثيق الكيانات'],
   platformdashboard:['لوحة تحكم مالك المنصة','نظرة شاملة على الشركات والاشتراكات'],
   platformusers:['فريق المنصة والمستخدمون','إدارة فريق المنصة وصلاحياته'],
   platformactivity:['سجل نشاط المنصة','آخر العمليات على مستوى كل الشركات'],
@@ -1004,7 +1005,7 @@ async function go(id, el){
   if(id==='shareholders') loadShareholders();
   if(id==='indicators') loadIndicatorsReport();
   if(id==='adminrequests'){ switchAdminRequestsTab('companyrequests'); loadCompanyRequestsReview(); loadManageCompanies(); loadAuditAdmin(); loadRiskAdmin(); }
-  if(id==='platformdashboard') loadPlatformDashboard();
+  if(id==='platformdashboard' || id==='platformcompanies') loadPlatformDashboard();
   if(id==='platformusers') loadPlatformUsers();
   if(id==='platformactivity') loadPlatformActivity();
   if(id==='members') loadMembers();
