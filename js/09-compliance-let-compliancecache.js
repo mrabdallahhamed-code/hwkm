@@ -15,6 +15,8 @@ let complianceCache = [];
      type, copied into each company. A copied obligation can be marked "not applicable" but not
      deleted, so the next sync does not bring it back. */
 const CMP_ENTITIES = ["مساهمة مدرجة","مساهمة غير مدرجة","ذات مسؤولية محدودة","مؤسسة فردية"];
+const CMP_DEPARTMENTS = ["الموارد البشرية","المالية والمحاسبة","الشؤون القانونية","أمانة المجلس والحوكمة","الامتثال والحوكمة","العمليات والمرافق","تقنية المعلومات"];
+function cmpDeptOptions(sel, blank){ return (blank ? `<option value="">${blank}</option>` : "") + CMP_DEPARTMENTS.map(d => `<option ${d===sel?"selected":""}>${d}</option>`).join(""); }
 const CMP_FREQS = ["سنوي","نصف سنوي","ربع سنوي","شهري","مرة واحدة","عند الحدوث"];
 const CMP_STATUSES = ["ملتزم","جارٍ","مجدول","غير ملتزم","غير منطبق"];
 const CMP_STATUS_STYLE = {
@@ -125,7 +127,7 @@ async function cmpSyncFromLibrary(){
   if(!toAdd.length) return { added: 0, first: false, missingTables: false };
   const rows = toAdd.map(l => ({
     company_id: currentCompanyId, item_name: l.title, authority: l.authority, regulation_ref: l.regulation_ref,
-    frequency: l.frequency, due_hint: l.due_hint, source: "library", library_id: l.id, status: "مجدول"
+    frequency: l.frequency, due_hint: l.due_hint, owner_department: l.owner_department || null, source: "library", library_id: l.id, status: "مجدول"
   }));
   const { error } = await sb.from("compliance_items").insert(rows);
   if(error){ if(error.code !== "23505") console.warn("compliance sync insert failed", error); return { added: 0, first: false, missingTables: false }; }
@@ -498,7 +500,11 @@ function renderComplianceTable(){
   if(!tbody) return;
   if(complianceCache.length === 0){ tbody.innerHTML = emptyRowHTML(7, 'لا توجد التزامات بعد. اضغط "+ إضافة بند".'); return; }
   const f = document.getElementById("cmp-filter") ? document.getElementById("cmp-filter").value : "";
+  const dsel = document.getElementById("cmp-dept-filter");
+  if(dsel && !dsel.dataset.ready){ dsel.innerHTML = cmpDeptOptions("", "كل الإدارات"); dsel.dataset.ready = "1"; }
+  const df = dsel ? dsel.value : "";
   const rows = complianceCache.filter(i => {
+    if(df && i.owner_department !== df) return false;
     const s = complianceDerivedStatus(i);
     if(f === "late") return s === "متأخر";
     if(f === "open") return ["جارٍ","مجدول","غير ملتزم","متأخر"].includes(s);
@@ -521,7 +527,7 @@ function renderComplianceTable(){
       <td>${gaEsc(i.authority||"—")}${i.regulation_ref ? `<div style="font-size:10.5px;color:var(--gray3)">${gaEsc(i.regulation_ref)}</div>` : ""}</td>
       <td style="font-size:11.5px">${gaEsc(i.frequency||"—")}</td>
       <td style="font-size:11.5px;${s==="متأخر" ? "color:var(--red);font-weight:800" : ""}">${i.due_date||'<span style="color:var(--gray3)">غير محدد</span>'}</td>
-      <td style="font-size:11.5px">${gaEsc(cmpOwnerName(i.owner_email))}</td>
+      <td style="font-size:11.5px">${i.owner_department ? `<span style="display:inline-block;background:#E6EEF8;color:var(--primary);border-radius:10px;padding:1px 9px;font-size:10.5px;font-weight:800;margin-bottom:2px">${gaEsc(i.owner_department)}</span><br>` : ""}${gaEsc(cmpOwnerName(i.owner_email))}</td>
       <td><span style="font-size:10.5px;font-weight:800;padding:3px 10px;border-radius:20px;background:${bg};color:${fg};white-space:nowrap">${gaEsc(s)}</span></td>
       <td><div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">
         <button class="btn-xs primary" onclick="editCompliance(${i.id})">تعديل</button>
@@ -556,6 +562,7 @@ function openNewComplianceItem(){
   document.getElementById("mc-hint-row").style.display = "none";
   document.getElementById("mc-desc-row").style.display = "none";
   cmpFillOwnerSelect(null);
+  document.getElementById("mc-dept").innerHTML = cmpDeptOptions("", "— غير محدَّدة —");
   cmpLockLibraryFields(false);
   openM("m-compliance");
 }
@@ -579,6 +586,7 @@ function editCompliance(id){
   document.getElementById("mc-desc-row").style.display = desc ? "block" : "none";
   document.getElementById("mc-desc").textContent = desc || "";
   cmpFillOwnerSelect(c.owner_email);
+  document.getElementById("mc-dept").innerHTML = cmpDeptOptions(c.owner_department || "", "— غير محدَّدة —");
   cmpLockLibraryFields(c.source === "library");
   openM("m-compliance");
 }
@@ -592,6 +600,7 @@ async function saveCompliance(){
   const payload = {
     due_date: document.getElementById("mc-duedate").value || null,
     owner_email: document.getElementById("mc-owner").value || null,
+    owner_department: document.getElementById("mc-dept").value || null,
     status: document.getElementById("mc-status").value,
     evidence_note: document.getElementById("mc-evidence").value.trim() || null
   };
@@ -669,7 +678,7 @@ async function cmpLoadLibrary(){
     <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap">
       <div style="flex:1;min-width:200px">
         <div style="font-size:12.5px;font-weight:800;color:var(--dark)">${gaEsc(l.title)}</div>
-        <div style="font-size:11px;color:var(--gray3);margin-top:2px">${gaEsc(l.authority||"—")}${l.regulation_ref ? " · " + gaEsc(l.regulation_ref) : ""} · ${gaEsc(l.frequency||"")}</div>
+        <div style="font-size:11px;color:var(--gray3);margin-top:2px">${l.owner_department ? `<b style="color:var(--primary)">${gaEsc(l.owner_department)}</b> · ` : ""}${gaEsc(l.authority||"—")}${l.regulation_ref ? " · " + gaEsc(l.regulation_ref) : ""} · ${gaEsc(l.frequency||"")}</div>
         <div style="margin-top:5px;display:flex;gap:4px;flex-wrap:wrap">${(l.entity_types||[]).map(t => `<span style="font-size:9.5px;background:#E6EEF8;color:var(--primary);border-radius:10px;padding:1px 8px">${gaEsc(short[t]||t)}</span>`).join("")}${l.board_only ? '<span style="font-size:9.5px;background:#FEF3E2;color:var(--gold);border-radius:10px;padding:1px 8px">للمجلس فقط</span>' : ""}${l.verified ? '<span style="font-size:9.5px;background:#E8F8EF;color:var(--green);border-radius:10px;padding:1px 8px">مراجَع</span>' : '<span style="font-size:9.5px;background:#FEF3E2;color:var(--gold);border-radius:10px;padding:1px 8px">غير مراجَع</span>'}${l.is_active ? "" : '<span style="font-size:9.5px;background:#F1F1F1;color:var(--gray3);border-radius:10px;padding:1px 8px">موقوف</span>'}</div>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -692,6 +701,7 @@ function openCmpLibEdit(id){
   document.getElementById("cl-ref").value = l ? (l.regulation_ref||"") : "";
   document.getElementById("cl-freq").value = l ? l.frequency : "سنوي";
   document.getElementById("cl-hint").value = l ? (l.due_hint||"") : "";
+  document.getElementById("cl-dept").innerHTML = cmpDeptOptions(l ? (l.owner_department||"") : "", "— غير محدَّدة —");
   document.getElementById("cl-desc").value = l ? (l.description||"") : "";
   document.getElementById("cl-boardonly").checked = l ? !!l.board_only : false;
   document.getElementById("cl-active").checked = l ? !!l.is_active : true;
@@ -710,7 +720,8 @@ async function saveCmpLibEntry(){
     frequency: document.getElementById("cl-freq").value, due_hint: document.getElementById("cl-hint").value.trim() || null,
     description: document.getElementById("cl-desc").value.trim() || null, entity_types,
     board_only: document.getElementById("cl-boardonly").checked, is_active: document.getElementById("cl-active").checked,
-    verified: document.getElementById("cl-verified").checked
+    verified: document.getElementById("cl-verified").checked,
+    owner_department: document.getElementById("cl-dept").value || null
   };
   const { error } = id ? await sb.from("compliance_library").update(payload).eq("id", id) : await sb.from("compliance_library").insert([payload]);
   if(error){ alert("تعذّر الحفظ: " + error.message); return; }

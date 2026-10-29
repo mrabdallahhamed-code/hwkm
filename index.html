@@ -2466,6 +2466,7 @@
     <div class="modal-title"><span class="ico-i ico-clipboard"></span>قائمة التزامات الشركة</div>
     <p style="font-size:11px;color:var(--gray3);line-height:1.8;margin-bottom:10px">هذي البنود هي التي يُبنى منها التقييم. حدّد لكل بند موعده ومسؤوله، وعلّم ما لا ينطبق عليكم (يخرج من التقييمات القادمة).</p>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <select class="fs" id="cmp-dept-filter" style="margin:0;width:170px;font-size:12px;padding:6px 10px" onchange="renderComplianceTable()"></select>
       <select class="fs" id="cmp-filter" style="margin:0;width:170px;font-size:12px;padding:6px 10px" onchange="renderComplianceTable()">
         <option value="">الكل</option><option value="late">المتأخرة</option><option value="open">المفتوحة</option>
         <option value="ok">الملتزم بها</option><option value="na">غير المنطبقة</option>
@@ -2499,6 +2500,7 @@
     </div>
     <div class="fg" id="mc-hint-row" style="display:none"><label>ملاحظة الموعد (من المكتبة)</label><div id="mc-hint" style="font-size:11.5px;color:var(--gray3)"></div></div>
     <div class="row2">
+      <div class="fg"><label>الإدارة المسؤولة</label><select class="fs" id="mc-dept"></select></div>
       <div class="fg"><label>المسؤول</label><select class="fs" id="mc-owner"></select></div>
       <div class="fg"><label>الحالة</label><select class="fs" id="mc-status"></select></div>
     </div>
@@ -2538,6 +2540,8 @@
     <div class="row2">
       <div class="fg"><label>الدورية</label><select class="fs" id="cl-freq"></select></div>
       <div class="fg"><label>ملاحظة الموعد</label><input class="fi" id="cl-hint"/></div>
+    </div>
+    <div class="fg"><label>الإدارة المسؤولة</label><select class="fs" id="cl-dept"></select>
     </div>
     <div class="fg"><label>إرشاد للعميل (اختياري)</label><textarea class="fta" id="cl-desc" rows="2"></textarea></div>
     <div class="fg"><label>يسري على</label>
@@ -3923,7 +3927,7 @@
 <script src="js/06-agm-cards-detail.js?v=2"></script>
 <script src="js/07-generic-announcement-engine.js?v=2"></script>
 <script src="js/08-meeting-requests-board.js?v=15"></script>
-<script src="js/09-compliance-let-compliancecache.js?v=3"></script>
+<script src="js/09-compliance-let-compliancecache.js?v=4"></script>
 <script src="js/10-signing-documents-signature.js?v=3"></script>
 <script src="js/11-job-descriptions-draft.js?v=2"></script>
 <script src="js/12-email-notifications-supabase.js?v=8"></script>
