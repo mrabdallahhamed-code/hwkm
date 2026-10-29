@@ -1213,17 +1213,28 @@ function renderTrialBanner(){
       msg = d > 0 ? `⏳ ينتهي اشتراكك خلال ${d} يوم — جدّد الآن لاستمرار الخدمة` : `⚠️ انتهى اشتراكك — تواصل معنا لتجديده`;
     }
   }
-  if(!msg){ if(banner) banner.remove(); updateBannerOffset(); return; }
+  const dkey = "hwkm_tb_" + currentCompanyId;
+  let dismissed = false; try{ dismissed = sessionStorage.getItem(dkey) === "1"; }catch(e){}
+  if(!msg || dismissed){ if(banner) banner.remove(); updateBannerOffset(); return; }
   if(!banner){
     banner = document.createElement("div");
     banner.id = "trialBanner";
-    banner.style.cssText = "color:#fff;text-align:center;font-size:12px;font-weight:700;padding:8px;position:sticky;top:0;z-index:400;cursor:pointer";
-    banner.onclick = () => openMySubscription();
+    banner.style.cssText = "display:flex;align-items:center;justify-content:center;gap:12px;font-size:12px;font-weight:600;padding:6px 12px;position:sticky;top:0;z-index:400;border-bottom:1px solid";
     const appWrapper = document.getElementById("appWrapper");
     appWrapper.insertBefore(banner, appWrapper.firstChild);
   }
-  banner.style.background = warn ? "linear-gradient(90deg,#C0392B,#E0674F)" : "linear-gradient(90deg,var(--gold),#D4AF37)";
-  banner.textContent = msg + "  (اضغط للتفاصيل)";
+  banner.style.background = warn ? "#FFF3E6" : "#EEF3FA";
+  banner.style.color = warn ? "#8A4B12" : "#1D3E64";
+  banner.style.borderBottomColor = warn ? "#F0D2B0" : "#D3DEEE";
+  banner.innerHTML = `<span style="cursor:pointer" onclick="dismissTrialBanner();openMySubscription()">${msg} — <u>التفاصيل</u></span><button type="button" aria-label="إغلاق" onclick="dismissTrialBanner()" style="border:none;background:none;color:inherit;font-size:15px;cursor:pointer;line-height:1;opacity:.7">✕</button>`;
+  updateBannerOffset();
+  // يظهر عند الدخول ثم يختفي وحده بعد لحظات
+  clearTimeout(window._tbTimer);
+  window._tbTimer = setTimeout(() => { try{ dismissTrialBanner(); }catch(e){} }, 9000);
+}
+function dismissTrialBanner(){
+  try{ sessionStorage.setItem("hwkm_tb_" + currentCompanyId, "1"); }catch(e){}
+  const b = document.getElementById("trialBanner"); if(b) b.remove();
   updateBannerOffset();
 }
 
