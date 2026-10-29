@@ -998,7 +998,9 @@ async function openAuditRequestDetail(requestId){
     <div style="font-size:11px;font-weight:700;color:var(--primary)"><span class="ico-i ico-pin"></span>ملاحظة المراجع</div>
     <div style="font-size:12px;color:var(--dark);margin:4px 0">${orgEsc(f.finding_text)}</div>
     <div style="font-size:10px;color:${f.status==='مغلقة'?'var(--green)':'var(--gray3)'};margin-bottom:6px">الحالة: ${f.status}</div>
+    ${(()=>{ if(f.status==='مغلقة'||!f.target_date) return ""; const d = Math.round((new Date(f.target_date) - new Date(new Date().toDateString()))/86400000); return d<0 ? `<div style="font-size:11px;color:var(--red);font-weight:800;margin-bottom:6px">متأخرة ${-d} يوم عن الموعد</div>` : d<=14 ? `<div style="font-size:11px;color:#B8610A;font-weight:700;margin-bottom:6px">يحين موعدها بعد ${d} يوم</div>` : ""; })()}
     <textarea class="fi" id="finding-resp-${f.id}" rows="2" placeholder="اكتب ردك أو الإجراء التصحيحي..." style="font-size:11.5px">${orgEsc(f.client_response||"")}</textarea>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><input class="fi" id="finding-own-${f.id}" placeholder="المسؤول عن التنفيذ" value="${orgEsc(f.responsible_person||"")}" style="flex:1;min-width:140px;margin:0;font-size:11.5px"><input class="fi" type="date" id="finding-date-${f.id}" value="${f.target_date||""}" title="الموعد المستهدف للتنفيذ" style="width:150px;margin:0;font-size:11.5px"></div>
     <button class="btn-xs primary" style="margin-top:6px" onclick="submitFindingResponse(${f.id},${requestId})">إرسال الرد</button>
   </div>`).join("") : '<div style="font-size:11.5px;color:var(--gray3)">لا توجد ملاحظات بعد.</div>';
 
@@ -1169,7 +1171,7 @@ async function auditReportView(requestId){
 
 async function submitFindingResponse(findingId, requestId){
   const val = document.getElementById(`finding-resp-${findingId}`).value.trim();
-  const { error } = await sb.from("audit_findings").update({ client_response: val }).eq("id", findingId);
+  const { error } = await sb.from("audit_findings").update({ client_response: val, responsible_person: (document.getElementById(`finding-own-${findingId}`)||{}).value?.trim() || null, target_date: (document.getElementById(`finding-date-${findingId}`)||{}).value || null }).eq("id", findingId);
   if(error){ alert("تعذّر إرسال الرد: " + error.message); return; }
   alert("تم إرسال ردك ✅");
   openAuditRequestDetail(requestId);

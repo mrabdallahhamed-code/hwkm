@@ -469,14 +469,15 @@ async function loadPlatformDashboard(){
     const unverified = all.filter(c => c.entity_verification !== "verified").length;
     const noCr = all.filter(c => !String(c.cr_number||"").trim()).length;
     const COLS = {"📥": "#D64545", "📝": "#E0752D", "⏳": "#D4A017", "🔔": "#7C5CC4", "🛡️": "#2D7A6B", "🪪": "#2F6FD0"};
-    const act = (n, label, page, tone, ico) => `<div class="pd-act ${n ? tone : "ok"}" style="--c:${n ? COLS[ico] : "#27AE60"}" onclick="${page ? `go('${page}',null)` : ""}"><span class="pd-act-ico">${n ? ico : "✓"}</span><div class="pd-act-n">${n}</div><div class="pd-act-l">${label}</div></div>`;
+    window._pdData = { all, inTrial, now };
+    const act = (n, label, page, tone, ico) => `<div class="pd-act ${n ? tone : "ok"}" style="--c:${n ? COLS[ico] : "#27AE60"}" onclick="${page ? (page.startsWith("list:") ? `pdShowList('${page.slice(5)}')` : `go('${page}',null)`) : ""}"><span class="pd-act-ico">${n ? ico : "✓"}</span><div class="pd-act-n">${n}</div><div class="pd-act-l">${label}</div></div>`;
     actions.innerHTML = [
       act(pendingAssign, "طلبات جديدة بانتظار تكليف", "adminrequests", "red", "📥"),
       act(pendingApprove, "تقارير بانتظار اعتمادك", "adminrequests", "red", "📝"),
-      act(soon, "تجارب تنتهي خلال 7 أيام", "", "amber", "⏳"),
-      act(subSoon, "اشتراكات تنتهي خلال 30 يوم", "", "amber", "🔔"),
-      act(unverified, "كيانات غير موثّقة", "", "amber", "🛡️"),
-      act(noCr, "شركات بلا رقم سجل", "", "amber", "🪪")
+      act(soon, "تجارب تنتهي خلال 7 أيام", "list:trial", "amber", "⏳"),
+      act(subSoon, "اشتراكات تنتهي خلال 30 يوم", "list:sub", "amber", "🔔"),
+      act(unverified, "كيانات غير موثّقة", "list:unver", "amber", "🛡️"),
+      act(noCr, "شركات بلا رقم سجل", "list:nocr", "amber", "🪪")
     ].join("");
   }
 
@@ -493,6 +494,23 @@ async function loadPlatformDashboard(){
     avgEl.textContent = Math.round(totalDays/converted.length) + " يوم";
     subEl.textContent = `بناءً على ${converted.length} شركة تحوّلت لاشتراك مدفوع`;
   }
+}
+
+/* عند الضغط على بطاقة في مركز عمل المالك: تظهر الشركات المعنيّة فقط تحت البطاقات */
+function pdShowList(kind){
+  const d = window._pdData; const box = document.getElementById("pdFilterList"); if(!d || !box) return;
+  const day = x => Math.ceil((new Date(x) - d.now) / 86400000);
+  const T = {
+    trial: ["⏳ تجارب تنتهي خلال 7 أيام", d.inTrial.filter(x => x.days <= 7).map(x => ({ c: x.c, note: `تنتهي بعد ${x.days} يوم` }))],
+    sub: ["🔔 اشتراكات تنتهي خلال 30 يوم", d.all.filter(c => !c.trial_ends_at && c.subscription_ends_at && day(c.subscription_ends_at) <= 30).map(c => ({ c, note: day(c.subscription_ends_at) < 0 ? `انتهى منذ ${-day(c.subscription_ends_at)} يوم` : `ينتهي بعد ${day(c.subscription_ends_at)} يوم` }))],
+    unver: ["🛡️ كيانات غير موثّقة", d.all.filter(c => c.entity_verification !== "verified").map(c => ({ c, note: "راجع السجل التجاري ثم وثّق من جدول التوثيق أدناه" }))],
+    nocr: ["🪪 شركات بلا رقم سجل", d.all.filter(c => !String(c.cr_number||"").trim()).map(c => ({ c, note: "تواصل مع المسؤول لطلب رقم السجل" }))]
+  }[kind];
+  if(!T){ return; }
+  const rows = T[1];
+  box.style.display = "";
+  box.innerHTML = `<div class="card" style="margin:12px 0"><div class="card-head"><span class="card-title">${T[0]} (${rows.length})</span><button class="btn-xs" onclick="document.getElementById('pdFilterList').style.display='none'">إغلاق</button></div><div class="card-body">${rows.length ? rows.map(({c, note}) => `<div class="pd-trial" style="margin-bottom:8px"><div class="pd-trial-main"><div class="pd-trial-name">${orgEsc(c.name)}</div><div class="pd-trial-meta">${orgEsc(c.company_type||"—")}${c.responsible_person ? " · " + orgEsc(c.responsible_person) : ""}${c.responsible_phone ? ` · <span style="direction:ltr;display:inline-block">${orgEsc(c.responsible_phone)}</span>` : ""}</div></div><div style="font-size:12px;font-weight:700;color:#B8610A">${note}</div></div>`).join("") : '<div class="pd-empty">لا توجد شركات.</div>'}</div></div>`;
+  box.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 /* توثيق نوع الكيان: يراجعه إدارة حوكم يدويًا (السجل التجاري + قائمة الشركات المدرجة في تداول).

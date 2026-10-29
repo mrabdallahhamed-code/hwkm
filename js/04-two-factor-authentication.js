@@ -947,6 +947,21 @@ async function computeGovernanceAlerts(){
     }
   } catch(e){ console.error("risk alert check failed", e); }
 
+  // 4a) Internal-audit findings: corrective actions past / near their target date, not yet closed by the auditor
+  try {
+    const { data: aReqs } = await sb.from("audit_requests").select("id,status,pending_final_approval").eq("company_id", currentCompanyId);
+    const aIds = (aReqs||[]).filter(r => (r.status === "تقرير نهائي جاهز" || r.status === "مغلق") && !r.pending_final_approval).map(r => r.id);
+    if(aIds.length){
+      const { data: fs } = await sb.from("audit_findings").select("id,status,target_date").in("request_id", aIds).not("target_date","is",null);
+      const openF = (fs||[]).filter(f => f.status !== "مغلقة");
+      const tdy = new Date(new Date().toDateString());
+      const aLate = openF.filter(f => new Date(f.target_date) < tdy);
+      const aSoon = openF.filter(f => new Date(f.target_date) >= tdy && (new Date(f.target_date) - tdy) <= 14*86400000);
+      if(aLate.length) alerts.push({ severity: "high", cta: "راجع الملاحظات", text: `${aLate.length} ${aLate.length===1?'إجراء تصحيحي من المراجعة الداخلية متأخر':'إجراءات تصحيحية من المراجعة الداخلية متأخرة'} عن موعدها.`, page: "audit" });
+      if(aSoon.length) alerts.push({ severity: "medium", cta: "تابع الإجراءات", text: `${aSoon.length} ${aSoon.length===1?'إجراء تصحيحي من المراجعة الداخلية يحين':'إجراءات تصحيحية من المراجعة الداخلية يحين'} موعدها خلال 14 يومًا.`, page: "audit" });
+    }
+  } catch(e){ console.error("audit finding alert check failed", e); }
+
   // 4b) Cross-links: risks whose linked policy/decision is stalled, and high risks nobody has covered
   try {
     const risks2 = (await fetchCompanyRisks()).filter(r => r.status !== "مغلق");

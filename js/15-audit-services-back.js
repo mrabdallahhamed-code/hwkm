@@ -207,6 +207,7 @@ async function openAuditAdminDetail(requestId){
 
   const findingsHtml = (findings||[]).length ? findings.map(f => `<div style="background:var(--offwhite);border-radius:8px;padding:10px;margin-bottom:8px">
     <div style="font-size:12px;color:var(--dark)">${orgEsc(f.finding_text)}</div>
+    <div style="font-size:10.5px;color:var(--gray3);margin-top:4px">المسؤول: ${orgEsc(f.responsible_person||"—")} · الموعد: ${f.target_date||"—"}</div>
     ${f.client_response ? `<div style="font-size:11px;color:var(--teal);margin-top:6px"><b>رد العميل:</b> ${orgEsc(f.client_response)}</div>` : '<div style="font-size:10px;color:var(--gray3);margin-top:4px">بانتظار رد العميل.</div>'}
     ${canWork ? `<div style="display:flex;gap:6px;margin-top:6px;align-items:center">
       <select class="fs" style="font-size:11px;padding:4px" onchange="updateFindingStatus(${f.id},this.value,${requestId})">
@@ -222,6 +223,7 @@ async function openAuditAdminDetail(requestId){
     <div class="sec-title" style="font-size:13px;margin-top:16px"><span class="ico-i ico-pin"></span>ملاحظات المراجعة</div>
     <div class="card"><div class="card-body">
       ${canWork ? `<textarea class="fi" id="aad-new-finding" rows="2" placeholder="اكتب ملاحظة المراجعة..."></textarea>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><input class="fi" id="aad-new-finding-owner" placeholder="المسؤول عن التصحيح (اختياري)" style="flex:1;min-width:150px;margin:0"><input class="fi" type="date" id="aad-new-finding-date" title="الموعد المستهدف" style="width:160px;margin:0"></div>
       <button class="btn btn-gold" style="width:100%;margin:8px 0 12px" onclick="addAuditFinding(${requestId})">إضافة الملاحظة</button>` : ""}
       ${findingsHtml}
     </div></div>
@@ -366,7 +368,9 @@ async function addAuditFinding(requestId){
   const el = document.getElementById("aad-new-finding");
   const finding_text = el.value.trim();
   if(!finding_text) return;
-  const { error } = await sb.from("audit_findings").insert([{ request_id: requestId, finding_text }]);
+  const responsible_person = (document.getElementById("aad-new-finding-owner")||{}).value?.trim() || null;
+  const target_date = (document.getElementById("aad-new-finding-date")||{}).value || null;
+  const { error } = await sb.from("audit_findings").insert([{ request_id: requestId, finding_text, responsible_person, target_date }]);
   if(error){ alert("تعذّر الإضافة: " + error.message); return; }
   openAuditAdminDetail(requestId);
 }
