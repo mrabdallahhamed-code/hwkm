@@ -977,7 +977,7 @@ async function riskReportView(requestId){
   ${H("الخاتمة")}${para(c.conclusion)}
   <div class="esig">
     <div class="box"><div class="h">أعدّه</div><div class="nm">${E(consName)}</div><div class="sm">مستشار المخاطر المختص</div><div class="ok">✔ توقيع إلكتروني</div></div>
-    <div class="box"><div class="h">اعتمده</div><div class="nm">منصة حوكم</div><div class="sm">${approvedAt ? "بتاريخ " + E(approvedAt) : "بانتظار الاعتماد النهائي"}</div><div class="ok" style="${approvedAt ? "" : "color:#B8610A;border-color:#B8610A"}">${approvedAt ? "✔ اعتماد إلكتروني" : "⏳ لم يُعتمد بعد"}</div></div>
+    <div class="box"><div class="h">اعتمده</div><div class="nm">إدارة حوكم</div><div class="sm">الرئيس التنفيذي${approvedAt ? " — " + E(approvedAt) : " — بانتظار الاعتماد النهائي"}</div><div class="ok" style="${approvedAt ? "" : "color:#B8610A;border-color:#B8610A"}">${approvedAt ? "✔ اعتماد إلكتروني" : "⏳ لم يُعتمد بعد"}</div></div>
   </div>
   <div style="font-size:10.5px;color:#6B7690;text-align:center;margin-top:6px">التوقيع والاعتماد إلكترونيان مسجَّلان في منصة حوكم برقم التقرير ${E(ref)}، وهما نافذان دون حاجة لتوقيع ورقي.</div>
   <div class="note">${c.ai ? "أُعدّت مسودة هذا التقرير بمساعدة الذكاء الاصطناعي ثم راجعها وعدّلها المستشار المختص. " : ""}يعتمد التقرير على المعلومات المقدَّمة من الشركة وقت التقييم، ولا يُغني عن المراجعة الدورية للمخاطر.</div>
