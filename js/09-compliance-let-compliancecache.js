@@ -663,7 +663,8 @@ async function cmpLoadLibrary(){
   if(!cmpLibraryCache.length){ list.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:16px">المكتبة فارغة. شغّل ملف HWKM-compliance-v2.sql لإضافة القائمة الأولية، أو أضف التزاماً، أو استورد دفعة.</div>'; return; }
   const unver = cmpLibraryCache.filter(l => !l.verified).length;
   const short = { "مساهمة مدرجة":"مدرجة", "مساهمة غير مدرجة":"غير مدرجة", "ذات مسؤولية محدودة":"ذ.م.م", "مؤسسة فردية":"فردية" };
-  list.innerHTML = `<div style="font-size:11.5px;color:var(--gray3);margin-bottom:8px">${cmpLibraryCache.length} التزاماً · <b style="color:${unver ? "var(--gold)" : "var(--green)"}">${unver} غير مراجَع</b></div>` +
+  list.innerHTML = `<div style="font-size:11.5px;color:var(--gray3);margin-bottom:8px">${cmpLibraryCache.length} التزاماً · <b style="color:${unver ? "var(--gold)" : "var(--green)"}">${unver} غير مراجَع</b></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">${CMP_ENTITIES.map(en => { const n = cmpLibraryCache.filter(l => l.is_active && (l.entity_types||[]).includes(en)).length; return `<span style="background:${n ? "#E6EEF8" : "#FBEAEA"};color:${n ? "var(--primary)" : "var(--red)"};border-radius:12px;padding:3px 12px;font-size:11.5px;font-weight:800">${en}: ${n}${n ? "" : " — فارغ!"}</span>`; }).join("")}</div>` +
     cmpLibraryCache.map(l => `<div style="border:1px solid var(--gray1);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:${l.is_active ? "#fff" : "var(--offwhite)"};opacity:${l.is_active ? 1 : 0.7}">
     <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap">
       <div style="flex:1;min-width:200px">
