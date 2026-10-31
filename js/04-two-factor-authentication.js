@@ -1072,10 +1072,33 @@ async function computeGovernanceAlerts(){
   return alerts;
 }
 
+/* بانر لوحة التحكم: اسم الشركة والتاريخ وعدد ما يحتاج تصرفًا — يقرأ مما هو معروض أصلًا ولا يضيف استعلامات */
+function updateDashHero(alerts){
+  const nameEl = document.getElementById("cdHeroName"); if(!nameEl) return;
+  const sw = document.getElementById("companySwitcher");
+  const nm = sw && sw.selectedOptions && sw.selectedOptions[0] ? sw.selectedOptions[0].textContent.trim() : "";
+  nameEl.textContent = nm || "شركتك";
+  const h = new Date().getHours();
+  const hi = document.getElementById("cdHeroHi"); if(hi) hi.textContent = h < 12 ? "صباح الخير" : h < 18 ? "مساء الخير" : "مساء الخير";
+  const meta = document.getElementById("cdHeroMeta");
+  if(meta) meta.textContent = [currentCompanyType, new Date().toLocaleDateString("ar-SA-u-ca-gregory", { weekday:"long", day:"numeric", month:"long", year:"numeric" })].filter(Boolean).join(" · ");
+  if(alerts){
+    window._cdAlerts = alerts;
+  }
+  const a = window._cdAlerts;
+  const box = document.getElementById("cdHeroPills"); if(!box || !a) return;
+  const high = a.filter(x => x.severity === "high").length, med = a.length - high;
+  const pill = (n, label, tone) => `<div class="cd-pill ${n ? tone : "ok"}" onclick="var e=document.getElementById('govAlertsPanel'); if(e && e.style.display!=='none') e.scrollIntoView({behavior:'smooth',block:'start'})"><b>${n}</b><span>${label}</span></div>`;
+  box.innerHTML = (high + med === 0)
+    ? `<div class="cd-pill ok"><b>✓</b><span>لا شيء يحتاج تصرفًا الآن</span></div>`
+    : pill(high, "تحتاج تصرفًا الآن", "red") + pill(med, "للعلم والمتابعة", "amber");
+}
+
 async function renderGovAlertsPanel(){
   const panel = document.getElementById("govAlertsPanel");
   if(!panel) return;
   const alerts = await computeGovernanceAlerts();
+  try{ updateDashHero(alerts); }catch(e){}
   if(alerts.length === 0){ panel.style.display = "none"; return; }
 
   const high = alerts.filter(a=>a.severity==="high");
@@ -1143,6 +1166,7 @@ async function applyDashboardEntityAdaptation(){
 }
 
 async function loadDashboard(){
+  try{ updateDashHero(); }catch(e){}
   renderGovAlertsPanel(); // fire independently — a slow/failed alert check must never block the rest of the dashboard
   const [meetingsRes, risksRes, complianceRes, membersRes, committeesRes, signingRes, policiesRes, auditRes, govAssessRes] = await Promise.all([
     sb.from("meetings").select("*").eq("company_id", currentCompanyId),
