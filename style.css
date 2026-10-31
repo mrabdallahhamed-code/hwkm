@@ -1158,3 +1158,25 @@ div[style*="linear-gradient(135deg,var(--primary),var(--primary2))"][style*="bor
 #p-dashboard .pg-track{height:10px}
 #p-dashboard .pg-good{background:linear-gradient(90deg,#27AE60,#52C98A)}#p-dashboard .pg-mid{background:linear-gradient(90deg,#2F6FD0,#5C93E3)}#p-dashboard .pg-low{background:linear-gradient(90deg,#D9A21B,#EBC45B)}
 @media(max-width:700px){.cd-hero{padding:18px}.cd-hero-name{font-size:19px}.cd-pill{flex:1;min-width:100px}}
+
+/* أسفل لوحة الشركة: ترابط الحوكمة وأعلى المخاطر وحالة التدقيق */
+.cd-empty{text-align:center;padding:22px 12px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.cd-empty-ico{width:52px;height:52px;border-radius:50%;background:#EEF3FA;display:flex;align-items:center;justify-content:center;font-size:24px}
+.cd-empty-t{font-size:14px;font-weight:800;color:var(--dark)}.cd-empty-s{font-size:12.5px;color:var(--gray3);max-width:340px;line-height:1.7;margin-bottom:6px}
+#dashGovNetwork .gn-top{background:#F6F9FE;border-radius:12px;padding:14px 16px;margin-bottom:12px}
+#dashGovNetwork .gn-pct{font-size:34px;min-width:78px}
+.gn-pct.pg-good-t{color:#1B8A52}.gn-pct.pg-mid-t{color:#2F6FD0}.gn-pct.pg-low-t{color:#B8860B}
+.gn-mid{flex:1}.gn-bar{height:9px;border-radius:6px;background:var(--gray1);overflow:hidden;margin-top:8px}.gn-bar i{display:block;height:100%;border-radius:6px}
+#dashGovNetwork .gn-row{display:flex;align-items:center;gap:10px;border:none;background:#FFFCF3;border-radius:10px;padding:9px 12px;margin-bottom:6px}
+.gn-badge{min-width:30px;height:26px;border-radius:13px;background:#F6E3B8;color:#8A5A00;font-weight:900;display:inline-flex;align-items:center;justify-content:center;font-size:13px}
+.cd-risk{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:#FAFBFD;margin-bottom:6px;cursor:pointer;border-right:4px solid var(--rc,#999)}
+.cd-risk:hover{background:#F3F6FB}.cd-risk-dot{display:none}.cd-risk-name{flex:1;min-width:0;font-size:12.5px;font-weight:700;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cd-risk-tag{font-size:11px;font-weight:800;color:var(--rc,#666);background:#fff;border:1px solid var(--rc,#ccc);border-radius:20px;padding:1px 10px;white-space:nowrap}
+.cd-risk-p{font-size:12px;font-weight:800;color:var(--gray3);min-width:38px;text-align:left}
+.cd-aud-top{display:flex;align-items:center;gap:14px;background:#F3FAFA;border-radius:12px;padding:12px 16px;margin-bottom:10px}
+.cd-aud-pct{font-size:30px;font-weight:900;color:#1F8A8A;min-width:70px}.cd-aud-bar{flex:1;height:9px;border-radius:6px;background:var(--gray1);overflow:hidden}.cd-aud-bar i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#1F8A8A,#52B8B8)}
+.cd-aud-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.cd-chip{font-size:12px;font-weight:700;border-radius:20px;padding:4px 12px}.cd-chip b{font-size:14px;margin-inline-end:4px}
+.cd-chip.ok{background:#E6F2EC;color:#1B6F46}.cd-chip.mid{background:#E8F0FB;color:#2F5FA8}.cd-chip.warn{background:#FBF1DF;color:#8A5A12}
+.cd-aud-item{padding:9px 12px;border-radius:10px;background:#FAFBFD;margin-bottom:6px;cursor:pointer;font-size:12.5px;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cd-aud-item:hover{background:#F3F6FB}

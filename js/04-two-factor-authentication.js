@@ -815,17 +815,16 @@ async function loadNotifications(){
 function renderDashTopRisks(risks){
   const box = document.getElementById("dashTopRisks");
   if(!box) return;
-  if(risks.length===0){ box.innerHTML = '<div class="dash-empty"><span>لم تُسجَّل مخاطر بعد.</span><button class="btn-xs primary" onclick="go(\'risks\',null)">سجّل أول خطر</button></div>'; return; }
+  if(risks.length===0){ box.innerHTML = '<div class="cd-empty"><div class="cd-empty-ico">🛡️</div><div class="cd-empty-t">لا مخاطر مسجّلة بعد</div><div class="cd-empty-s">تظهر هنا أعلى المخاطر بعد اعتماد تقرير تقييم المخاطر.</div><button class="btn-xs primary" onclick="go(\'risks\',null)">سجّل أول خطر</button></div>'; return; }
   const severity = r => (r.impact==="عالٍ"?2:r.impact==="متوسط"?1:0) * 100 + (r.probability||0);
   const top = [...risks].sort((a,b)=>severity(b)-severity(a)).slice(0,5);
   box.innerHTML = top.map(r => {
     const color = riskSeverityColor(r.impact, r.probability);
-    return `<div onclick="go('risks',null)" style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--gray1);cursor:pointer">
-      <div style="display:flex;align-items:center;gap:8px;min-width:0">
-        <span style="width:9px;height:9px;border-radius:50%;background:${color};flex-shrink:0"></span>
-        <span style="font-size:12px;font-weight:600;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${orgEsc(r.risk_name||"")}</span>
-      </div>
-      <span style="font-size:10.5px;color:var(--gray3);flex-shrink:0">${r.impact||"—"} · ${r.probability!=null?r.probability+'%':'—'}</span>
+    return `<div class="cd-risk" onclick="go('risks',null)" style="--rc:${color}">
+      <span class="cd-risk-dot"></span>
+      <span class="cd-risk-name">${orgEsc(r.risk_name||"")}</span>
+      <span class="cd-risk-tag">${r.impact||"—"}</span>
+      <span class="cd-risk-p">${r.probability!=null?r.probability+'%':'—'}</span>
     </div>`;
   }).join("");
 }
@@ -833,7 +832,7 @@ function renderDashTopRisks(risks){
 function renderDashAuditStatus(items){
   const box = document.getElementById("dashAuditStatus");
   if(!box) return;
-  if(items.length===0){ box.innerHTML = '<div class="dash-empty"><span>لا توجد بنود تدقيق مسجّلة بعد.</span><button class="btn-xs primary" onclick="go(\'audit\',null)">أضف بند تدقيق</button></div>'; return; }
+  if(items.length===0){ box.innerHTML = '<div class="cd-empty"><div class="cd-empty-ico">🔍</div><div class="cd-empty-t">لا بنود تدقيق مسجّلة بعد</div><div class="cd-empty-s">تظهر هنا حالة بنود المراجعة الداخلية وما يزال مفتوحًا منها.</div><button class="btn-xs primary" onclick="go(\'audit\',null)">أضف بند تدقيق</button></div>'; return; }
   const open = items.filter(i=>i.status==="مفتوحة").length;
   const inProgress = items.filter(i=>i.status==="قيد المتابعة").length;
   const closed = items.filter(i=>i.status==="مغلقة").length;
@@ -841,14 +840,9 @@ function renderDashAuditStatus(items){
   const pct = total ? Math.round((closed/total)*100) : 0;
   const openItems = items.filter(i=>i.status!=="مغلقة").slice(0,3);
   box.innerHTML = `
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-      <div style="font-size:26px;font-weight:900;color:var(--teal)">${pct}%</div>
-      <div style="flex:1">
-        <div style="height:8px;background:var(--offwhite);border-radius:4px;overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--teal)"></div></div>
-        <div style="font-size:10.5px;color:var(--gray3);margin-top:4px">${closed} مغلقة · ${inProgress} قيد المتابعة · ${open} مفتوحة</div>
-      </div>
-    </div>
-    ${openItems.map(i => `<div onclick="go('audit',null)" style="padding:6px 0;border-top:1px solid var(--gray1);cursor:pointer;font-size:11.5px;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🔸 ${i.item||""}</div>`).join("")}
+    <div class="cd-aud-top"><div class="cd-aud-pct">${pct}%</div><div class="cd-aud-bar"><i style="width:${Math.max(3,pct)}%"></i></div></div>
+    <div class="cd-aud-chips"><span class="cd-chip ok"><b>${closed}</b> مغلقة</span><span class="cd-chip mid"><b>${inProgress}</b> قيد المتابعة</span><span class="cd-chip warn"><b>${open}</b> مفتوحة</span></div>
+    ${openItems.map(i => `<div onclick="go('audit',null)" class="cd-aud-item">🔸 ${orgEsc(i.item||"")}</div>`).join("")}
   `;
 }
 

@@ -1297,9 +1297,9 @@ async function renderGovNetworkCard(){
   await govAutoLinkOnce();
   const box = document.getElementById("dashGovNetwork"); if(!box) return;
   let st; try { st = await govNetworkState(); } catch(e){ box.innerHTML = ""; return; }
-  if(!st.total){ box.innerHTML = '<div class="dash-empty"><span>أضف سياسات وإجراءات وبنود صلاحيات ليبدأ قياس الترابط.</span></div>'; return; }
-  const row = (n, text) => n ? `<div class="gn-row"><b>${n}</b> ${text}</div>` : "";
-  box.innerHTML = `<div class="gn-top"><div class="gn-pct ${st.pct>=80?"pg-good":st.pct>=50?"pg-mid":"pg-low"}-t">${st.pct}%</div><div class="gn-lbl">من عناصر الحوكمة مرتبطة بسند أو تطبيق</div></div>
+  if(!st.total){ box.innerHTML = '<div class="cd-empty"><div class="cd-empty-ico">🔗</div><div class="cd-empty-t">لم يبدأ قياس الترابط بعد</div><div class="cd-empty-s">أضف سياسات وإجراءات وبنود صلاحيات ليبدأ قياس الترابط بينها.</div></div>'; return; }
+  const row = (n, text) => n ? `<div class="gn-row"><span class="gn-badge">${n}</span><span>${text}</span></div>` : "";
+  box.innerHTML = `<div class="gn-top"><div class="gn-pct ${st.pct>=80?"pg-good":st.pct>=50?"pg-mid":"pg-low"}-t">${st.pct}%</div><div class="gn-mid"><div class="gn-lbl">من عناصر الحوكمة مرتبطة بسند أو تطبيق</div><div class="gn-bar"><i class="${st.pct>=80?"pg-good":st.pct>=50?"pg-mid":"pg-low"}" style="width:${Math.max(3,st.pct)}%"></i></div></div></div>
     ${row(st.policiesNoImpl.length, "سياسة بلا إجراء أو صلاحية تطبّقها (غير مفعّلة)")}
     ${row(st.procNoPolicy.length, "إجراء بلا سياسة كمرجع")}
     ${row(st.authNoPolicy.length, "بند صلاحية بلا سياسة كسند")}
