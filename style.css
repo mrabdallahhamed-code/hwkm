@@ -1181,12 +1181,16 @@ div[style*="linear-gradient(135deg,var(--primary),var(--primary2))"][style*="bor
 .cd-aud-item{padding:9px 12px;border-radius:10px;background:#FAFBFD;margin-bottom:6px;cursor:pointer;font-size:12.5px;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cd-aud-item:hover{background:#F3F6FB}
 
-.pc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:8px}
-.pc-card{background:#fff;border:1px solid #E6EAF0;border-radius:12px;padding:14px 12px;text-align:center}
-.pc-card.trial{background:#FBF6EA;border-color:#EBDDB8}
-.pc-ico{font-size:22px}.pc-name{font-weight:800;font-size:14px;color:var(--dark);margin-top:4px}
-.pc-tag{font-size:11px;color:var(--gray3);margin:2px 0 8px}
-.pc-card ul{list-style:none;margin:0 0 10px;padding:0;font-size:11.5px;color:var(--dark);line-height:1.9}
-.pc-price{font-size:11.5px;font-weight:700;color:#8A6D1F;border-top:1px dashed #E6EAF0;padding-top:8px}
-.pc-note{font-size:11px;color:var(--gray3);text-align:center;margin-bottom:6px}
-@media(max-width:700px){.pc-grid{grid-template-columns:repeat(2,1fr)}}
+
+.pk-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:8px}
+.pk-card{background:#fff;border:1px solid #E3E8EF;border-radius:14px;padding:16px;display:flex;flex-direction:column}
+.pk-card.trial{background:#FAFBFC;border-style:dashed}
+.pk-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pk-name{font-size:16px;font-weight:800;color:var(--dark)}
+.pk-pill{font-size:10.5px;font-weight:700;color:#5B6B80;background:#EEF2F7;border-radius:20px;padding:3px 10px;white-space:nowrap}
+.pk-desc{font-size:12px;color:#5B6B80;line-height:1.7;margin:8px 0 10px}
+.pk-card ul{list-style:none;margin:0 0 12px;padding:0;font-size:12px;color:var(--dark);flex:1}
+.pk-card li{position:relative;padding:5px 22px 5px 0;line-height:1.6}
+.pk-card li::before{content:"✓";position:absolute;right:0;top:5px;width:15px;height:15px;border-radius:50%;background:#E6F2EC;color:#1B6F46;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.pk-foot{border-top:1px solid #EEF1F5;padding-top:10px;font-size:12px;font-weight:700;color:#5B6B80}
+.pk-note{font-size:11px;color:var(--gray3);text-align:center}
