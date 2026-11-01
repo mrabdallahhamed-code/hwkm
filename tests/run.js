@@ -196,6 +196,61 @@ function ok(name, cond, extra) {
   ok("استثناء الصلاحية للفرد يفتح ويغلق", perm2.overrideAllow === true && perm2.overrideDeny === false, perm2);
   ok("بلا شركة لا تُفتح صفحات الشركة", perm2.noCompany === false, perm2);
 
+  console.log("12) نموذج إدراج الشركة (رمز تداول والتبويبات والباقات)");
+  const ui = await pg.evaluate(async () => {
+    const msgs = []; const realAlert = window.alert; window.alert = (m) => { msgs.push(String(m)); };
+    window.__nativeAlert = window.alert;
+    currentUserProfile = { email: "t@t.t", full_name: "اختبار", phone_number: "" };
+    await loadCompanyRequestPage();
+    const q = (id) => document.getElementById(id);
+    const out = {};
+    out.hasTabs = !!q("crTabF") && !!q("crTabP");
+    out.cards = ["فترة تجريبية", "ذاتي", "مدار", "شريك"].every(n => (q("cr-pane-p") || {}).innerHTML.includes(n));
+    out.tadawulShownForListed = q("cr-type").value === "مساهمة مدرجة" && q("cr-tadawul-box").style.display !== "none";
+    q("cr-type").value = "ذات مسؤولية محدودة"; toggleCrLLCFields();
+    out.tadawulHiddenForLLC = q("cr-tadawul-box").style.display === "none";
+    q("cr-type").value = "مساهمة مدرجة"; toggleCrLLCFields();
+    out.shownAgain = q("cr-tadawul-box").style.display !== "none";
+    q("cr-name").value = "شركة اختبار"; q("cr-cr-number").value = "1010123456"; q("cr-tadawul").value = "";
+    msgs.length = 0; await startInstantTrial();
+    out.blockedMsg = msgs[0] || ""; out.lockReleased = trialSubmitLock === false;
+    q("cr-tadawul").value = "12"; msgs.length = 0; await startInstantTrial(); out.shortBlocked = /تداول/.test(msgs[0] || "");
+    q("cr-tadawul").value = "٢٢٢٢"; const ok = readCrTadawul("مساهمة مدرجة"); out.okSymbol = ok.ok && ok.symbol === "2222";
+    out.nonListedNoSymbol = (() => { const r = readCrTadawul("ذات مسؤولية محدودة"); return r.ok && r.symbol === null; })();
+    crTab("p"); out.tabP = q("cr-pane-p").style.display !== "none" && q("cr-pane-f").style.display === "none";
+    crTab("f"); out.tabF = q("cr-pane-f").style.display !== "none" && q("cr-pane-p").style.display === "none";
+    window.alert = realAlert; return out;
+  });
+  ok("التبويبان وبطاقات الباقات الأربع تظهر", ui.hasTabs && ui.cards, ui);
+  ok("حقل رمز تداول يظهر للمدرجة ويختفي لغيرها", ui.tadawulShownForListed && ui.tadawulHiddenForLLC && ui.shownAgain, ui);
+  ok("المدرجة بلا رمز تداول لا تسجَّل", /تداول/.test(ui.blockedMsg) && ui.lockReleased, ui);
+  ok("رمز تداول من رقمين لا يُقبل", ui.shortBlocked, ui);
+  ok("رمز تداول بأرقام عربية يُقبل ويتحول", ui.okSymbol && ui.nonListedNoSymbol, ui);
+  ok("التبديل بين التبويبين يعمل", ui.tabP && ui.tabF, ui);
+
+  console.log("13) إقرار الخدمة المدفوعة في الطلبات");
+  const ack = await pg.evaluate(async () => {
+    const msgs = []; const realAlert = window.alert; window.alert = (m) => { msgs.push(String(m)); };
+    const out = {};
+    const run = async (noteId, ackId, fn) => {
+      const note = document.getElementById(noteId), ak = document.getElementById(ackId);
+      out[noteId + "_exists"] = !!note && !!ak;
+      note.style.display = "block"; ak.checked = false; msgs.length = 0;
+      try { await fn(); } catch (e) {}
+      const blocked = /مدفوعة/.test(msgs[0] || "");
+      note.style.display = "none"; msgs.length = 0;
+      try { await fn(); } catch (e) {}
+      const notBlockedWhenHidden = !/مدفوعة/.test(msgs[0] || "");
+      return { blocked, notBlockedWhenHidden };
+    };
+    out.risk = await run("rnr-paid-note", "rnr-paid-ack", submitRiskRequest);
+    out.audit = await run("anr-paid-note", "anr-paid-ack", submitAuditRequest);
+    window.alert = realAlert; return out;
+  });
+  ok("طلب المخاطر في التجربة يُمنع بدون إقرار", ack["rnr-paid-note_exists"] && ack.risk.blocked, ack);
+  ok("طلب المراجعة في التجربة يُمنع بدون إقرار", ack["anr-paid-note_exists"] && ack.audit.blocked, ack);
+  ok("المشترك (بلا إشعار التجربة) لا يُمنع بسبب الإقرار", ack.risk.notBlockedWhenHidden && ack.audit.notBlockedWhenHidden, ack);
+
   await browser.close();
   console.log(`\nالنتيجة: ${passed} نجح، ${failed} فشل`);
   process.exit(failed ? 1 : 0);
