@@ -146,6 +146,7 @@ function resetCompanyForm(){
   document.getElementById("mco-name").value = "";
   document.getElementById("mco-type").value = "مساهمة غير مدرجة";
   document.getElementById("mco-cr-number").value = "";
+  document.getElementById("mco-tadawul").value = "";
   document.getElementById("mco-cr-date").value = "";
   document.getElementById("mco-activity").value = "";
   document.getElementById("mco-size").value = "صغيرة";
@@ -178,6 +179,7 @@ async function openEditCompanyModal(){
   document.getElementById("mco-name").value = c.name || "";
   document.getElementById("mco-type").value = c.company_type || "مساهمة غير مدرجة";
   document.getElementById("mco-cr-number").value = c.cr_number || "";
+  document.getElementById("mco-tadawul").value = c.tadawul_symbol || "";
   document.getElementById("mco-cr-date").value = c.cr_date || "";
   document.getElementById("mco-activity").value = c.business_activity || "";
   document.getElementById("mco-size").value = c.company_size || "صغيرة";
@@ -250,6 +252,11 @@ async function loadCompanyRequestPage(){
         الشركة مملوكة لشخص واحد فقط (شركة الشخص الواحد)
       </label>
     </div>
+    <div class="fg" id="cr-tadawul-box" style="background:var(--offwhite);border-radius:8px;padding:10px 12px">
+      <label>رمز الشركة في تداول <span style="color:var(--red)">*</span></label>
+      <input class="fi" id="cr-tadawul" inputmode="numeric" maxlength="4" placeholder="4 أرقام — مثال: 2222"/>
+      <div style="font-size:10.5px;color:var(--gray3);margin-top:5px">إلزامي للشركات المدرجة، ونتحقق منه من موقع تداول. إن كانت شركتك غير مدرجة فاختر نوعها الصحيح من القائمة أعلاه.</div>
+    </div>
     <div class="row2">
       <div class="fg"><label>رقم السجل التجاري أو الرقم الموحد <span style="color:var(--red)">*</span></label><input class="fi" id="cr-cr-number" inputmode="numeric" maxlength="10" placeholder="10 أرقام — مثال: 1010XXXXXX"/></div>
       <div class="fg"><label>تاريخ السجل</label><input type="date" class="fi" id="cr-cr-date"/></div>
@@ -281,6 +288,20 @@ async function loadCompanyRequestPage(){
 function toggleCrLLCFields(){
   const box = document.getElementById("cr-llc-fields");
   if(box) box.style.display = document.getElementById("cr-type").value === "ذات مسؤولية محدودة" ? "block" : "none";
+  const tb = document.getElementById("cr-tadawul-box");
+  if(tb) tb.style.display = document.getElementById("cr-type").value === "مساهمة مدرجة" ? "block" : "none";
+}
+
+/* رمز تداول: 4 أرقام، إلزامي للمدرجة فقط */
+function normTadawul(v){ return String(v||"").replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[^0-9]/g,""); }
+function readCrTadawul(company_type){
+  if(company_type !== "مساهمة مدرجة") return { ok:true, symbol:null };
+  const sym = normTadawul(document.getElementById("cr-tadawul").value);
+  if(!/^\d{4}$/.test(sym)){
+    alert("الشركة المدرجة يلزمها رمز تداول (4 أرقام) للتسجيل. إن لم تكن شركتك مدرجة فاختر نوعها الصحيح من القائمة.");
+    return { ok:false };
+  }
+  return { ok:true, symbol:sym };
 }
 
 /* Self-serve trial. Every step's result is checked now — before, the membership insert's error
@@ -299,6 +320,7 @@ async function startInstantTrial(){
   const company_type = document.getElementById("cr-type").value;
   const cr_number = normCrNumber(document.getElementById("cr-cr-number").value);
   if(!validCrNumber(cr_number)){ alert(CR_REQUIRED_MSG); return; }
+  const tdw = readCrTadawul(company_type); if(!tdw.ok) return;
   const cr_date = document.getElementById("cr-cr-date").value || null;
   const responsible_person = document.getElementById("cr-resp-name").value.trim();
   const responsible_phone = document.getElementById("cr-resp-phone").value.trim();
@@ -326,12 +348,13 @@ async function startInstantTrial(){
     if(tr.status === "limit"){ alert("وصلت للحد الأقصى من الشركات التجريبية. تواصل معنا لإضافة المزيد."); release(); return; }
     if(tr.status === "exists"){ (window.__nativeAlert||alert)("شركة بهذا الاسم مسجَّلة بالفعل بحسابك — سنفتحها لك الآن."); location.reload(); return; }
     if(tr.status !== "ok"){ alert("تعذّر إنشاء الشركة."); release(); return; }
+    if(tdw.symbol){ try { await sb.rpc("set_company_tadawul", { p_name: company_name, p_symbol: tdw.symbol }); } catch(e){} }
 
     {
       const subject = `تجربة جديدة بدأت: ${company_name}`;
       const html = `<div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px">
         <h2 style="color:#1A3A6B">تجربة تلقائية بدأت الآن</h2>
-        <p><b>الشركة:</b> ${company_name} (${company_type}) — رقم السجل: ${cr_number||"—"}</p>
+        <p><b>الشركة:</b> ${company_name} (${company_type}) — رقم السجل: ${cr_number||"—"}${tdw.symbol ? " — رمز تداول: " + tdw.symbol : ""}</p>
         <p style="color:#B8860B"><b>نوع الكيان غير موثّق:</b> راجعه من لوحة المنصة (السجل التجاري، وللمدرجة قائمة تداول).</p>
         <p><b>المسؤول:</b> ${(currentUserProfile && currentUserProfile.full_name)||sessionEmail} (${sessionEmail})</p>
         <p>لا يوجد إجراء مطلوب منك — هذا إشعار فقط. التجربة مفعَّلة تلقائيًا لمدة 14 يومًا.</p>
@@ -366,6 +389,7 @@ async function submitCompanyRequestImpl(){
   const company_type = document.getElementById("cr-type").value;
   const cr_number = normCrNumber(document.getElementById("cr-cr-number").value);
   if(!validCrNumber(cr_number)){ alert(CR_REQUIRED_MSG); return; }
+  const tdw = readCrTadawul(company_type); if(!tdw.ok) return;
   const cr_date = document.getElementById("cr-cr-date").value || null;
   const responsible_person = document.getElementById("cr-resp-name").value.trim();
   const responsible_phone = document.getElementById("cr-resp-phone").value.trim();
@@ -380,6 +404,7 @@ async function submitCompanyRequestImpl(){
   const { error } = await sb.from("company_requests").insert([{
     requested_by_email: sessionEmail, requested_by_name: currentUserProfile.full_name,
     company_name, company_type, cr_number, cr_date, responsible_person, responsible_phone, responsible_email,
+    tadawul_symbol: tdw.symbol,
     status: "قيد المراجعة"
   }]);
   if(error){ alert("تعذّر إرسال الطلب: " + error.message); return; }
@@ -392,7 +417,7 @@ async function submitCompanyRequestImpl(){
       <div style="font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;padding:20px">
         <h2 style="color:#1A3A6B"><span class="ico-i ico-building"></span>طلب إدراج شركة جديد بمنصة حوكم</h2>
         <p><b>اسم الشركة:</b> ${company_name}</p>
-        <p><b>نوع الشركة:</b> ${company_type||"—"}</p>
+        <p><b>نوع الشركة:</b> ${company_type||"—"}${tdw.symbol ? " — رمز تداول: " + tdw.symbol : ""}</p>
         <p><b>مقدَّم من:</b> ${orgEsc(currentUserProfile.full_name||currentUserProfile.email)} (${orgEsc(currentUserProfile.email)})</p>
         <p>الرجاء الدخول للمنصة ومراجعة الطلب من صفحة "طلبات إدراج الشركات".</p>
         <p style="color:#8B95A5;font-size:12px;margin-top:20px">هذه رسالة تلقائية من منصّة حوكم.</p>
@@ -1168,7 +1193,9 @@ async function saveCompanyImpl(){
   const letterhead_url = (letterheadInput.files && letterheadInput.files[0]) ? await uploadFile(letterheadInput, "company-branding") : undefined;
   const seal_url = (sealInput.files && sealInput.files[0]) ? await uploadFile(sealInput, "company-branding") : undefined;
 
-  const payload = { name, company_type, cr_number, cr_date, business_activity, company_size, responsible_person, responsible_phone, responsible_email, total_capital, total_shares, share_nominal_value, seal_position, llc_single_manager, llc_single_owner };
+  const tdwSym = normTadawul(document.getElementById("mco-tadawul").value);
+  if(tdwSym && !/^\d{4}$/.test(tdwSym)){ alert("رمز تداول يجب أن يكون 4 أرقام."); return; }
+  const payload = { tadawul_symbol: tdwSym || null, name, company_type, cr_number, cr_date, business_activity, company_size, responsible_person, responsible_phone, responsible_email, total_capital, total_shares, share_nominal_value, seal_position, llc_single_manager, llc_single_owner };
   if(letterhead_url !== undefined) payload.letterhead_url = letterhead_url;
   if(seal_url !== undefined) payload.seal_url = seal_url;
 
