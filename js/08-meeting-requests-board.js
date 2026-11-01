@@ -1067,6 +1067,7 @@ function openNewRiskRequest(serviceId, serviceName){
   document.getElementById("rnr-date").value = "";
   document.getElementById("rnr-files").value = "";
   document.querySelectorAll(".rnr-risktype-chk").forEach(c=>{ c.checked = false; });
+  { const n = document.getElementById("rnr-paid-note"); if(n) n.style.display = (typeof currentCompanyTrialEndsAt !== "undefined" && currentCompanyTrialEndsAt && new Date(currentCompanyTrialEndsAt) > new Date()) ? "" : "none"; }
   openM("m-risk-new-request");
 }
 

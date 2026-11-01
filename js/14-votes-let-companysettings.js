@@ -925,6 +925,7 @@ function openNewAuditRequest(serviceId, serviceName){
   document.getElementById("anr-scope").value = "";
   document.getElementById("anr-date").value = "";
   document.getElementById("anr-files").value = "";
+  { const n = document.getElementById("anr-paid-note"); if(n) n.style.display = (typeof currentCompanyTrialEndsAt !== "undefined" && currentCompanyTrialEndsAt && new Date(currentCompanyTrialEndsAt) > new Date()) ? "" : "none"; }
   openM("m-audit-new-request");
 }
 
