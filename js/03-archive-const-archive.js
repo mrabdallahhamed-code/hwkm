@@ -235,8 +235,8 @@ async function loadCompanyRequestPage(){
       <div style="font-size:12px;color:var(--gray3);margin-top:4px">عبِّ بيانات شركتك — تقدر تبدأ فترتك التجريبية فورًا بضغطة زر، بدون انتظار.</div>
     </div>
     ${rejectedNotice}
-    ${renderPlanCards()}
-    <div class="pd-sec" style="margin-top:18px">بيانات شركتك</div>
+    <div class="cr-tabs"><button type="button" id="crTabF" class="on" onclick="crTab('f')">طلب الإدراج</button><button type="button" id="crTabP" onclick="crTab('p')">الباقات والتجربة</button></div>
+    <div id="cr-pane-f">
     <div class="fg"><label>اسم الشركة</label><input class="fi" id="cr-name" placeholder="مثال: شركة النخبة القابضة"/></div>
     <div class="fg"><label>نوع الشركة</label>
       <select class="fs" id="cr-type" onchange="toggleCrLLCFields()">
@@ -278,7 +278,18 @@ async function loadCompanyRequestPage(){
       <div style="flex:1;height:1px;background:var(--gray1)"></div>
     </div>
     <button class="btn btn-ghost" style="width:100%" onclick="submitCompanyRequest()"><span class="ico-i ico-send"></span>تواصل معنا لاشتراك مدفوع مباشرة (بدون تجربة)</button>
+    </div>
+    <div id="cr-pane-p" style="display:none">${renderPlanCards()}
+      <button class="btn btn-gold" style="width:100%;margin-top:12px" onclick="crTab('f')">أدرج شركتك الآن</button>
+    </div>
   `;
+}
+function crTab(w){
+  const f = document.getElementById("cr-pane-f"), pn = document.getElementById("cr-pane-p");
+  if(!f || !pn) return;
+  f.style.display = w === "f" ? "" : "none"; pn.style.display = w === "p" ? "" : "none";
+  document.getElementById("crTabF").classList.toggle("on", w === "f");
+  document.getElementById("crTabP").classList.toggle("on", w === "p");
 }
 
 /* Self-serve trial — creates the company and grants full access immediately, with no admin
@@ -1290,7 +1301,7 @@ function dismissTrialBanner(){
 /* بطاقات الباقات (4): التجربة + الباقات الثلاث. الأسعار عبر التواصل */
 function renderPlanCards(){
   const card = (name, pill, desc, items, cls, foot) => `<div class="pk-card ${cls||""}">
-    <div class="pk-top"><span class="pk-name">${name}</span><span class="pk-pill">${pill}</span></div>
+    <div class="pk-top"><span class="pk-name pk-n-${name.replace(/\s/g,"")}">${name}</span><span class="pk-pill">${pill}</span></div>
     <div class="pk-desc">${desc}</div>
     <ul>${items.map(i => `<li>${i}</li>`).join("")}</ul>
     <div class="pk-foot">${foot}</div></div>`;

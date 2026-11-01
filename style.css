@@ -1194,3 +1194,12 @@ div[style*="linear-gradient(135deg,var(--primary),var(--primary2))"][style*="bor
 .pk-card li::before{content:"✓";position:absolute;right:0;top:5px;width:15px;height:15px;border-radius:50%;background:#E6F2EC;color:#1B6F46;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center}
 .pk-foot{border-top:1px solid #EEF1F5;padding-top:10px;font-size:12px;font-weight:700;color:#5B6B80}
 .pk-note{font-size:11px;color:var(--gray3);text-align:center}
+
+.pk-name{display:inline-block;font-size:14px;border-radius:8px;padding:4px 12px}
+.pk-n-فترةتجريبية{background:#EEF2F7;color:#44546A}
+.pk-n-ذاتي{background:#E6F2EC;color:#1B6F46}
+.pk-n-مدار{background:#E8F0FB;color:#2F5FA8}
+.pk-n-شريك{background:#F6EEDC;color:#8A6D1F}
+.cr-tabs{display:flex;gap:6px;background:#EEF2F7;border-radius:10px;padding:4px;margin-bottom:14px}
+.cr-tabs button{flex:1;border:0;background:transparent;border-radius:8px;padding:9px 6px;font-family:inherit;font-size:13px;font-weight:700;color:#5B6B80;cursor:pointer}
+.cr-tabs button.on{background:#fff;color:var(--dark);box-shadow:0 1px 3px rgba(20,30,50,.08)}
