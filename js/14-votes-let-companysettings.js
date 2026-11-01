@@ -925,11 +925,12 @@ function openNewAuditRequest(serviceId, serviceName){
   document.getElementById("anr-scope").value = "";
   document.getElementById("anr-date").value = "";
   document.getElementById("anr-files").value = "";
-  { const n = document.getElementById("anr-paid-note"); if(n) n.style.display = (typeof currentCompanyTrialEndsAt !== "undefined" && currentCompanyTrialEndsAt && new Date(currentCompanyTrialEndsAt) > new Date()) ? "" : "none"; }
+  { const ak = document.getElementById("anr-paid-ack"); if(ak) ak.checked = false; const n = document.getElementById("anr-paid-note"); if(n) n.style.display = (typeof currentCompanyTrialEndsAt !== "undefined" && currentCompanyTrialEndsAt && new Date(currentCompanyTrialEndsAt) > new Date()) ? "" : "none"; }
   openM("m-audit-new-request");
 }
 
 async function submitAuditRequest(){
+  { const n = document.getElementById("anr-paid-note"), ak = document.getElementById("anr-paid-ack"); if(n && n.style.display !== "none" && ak && !ak.checked){ alert("يلزم الإقرار بأن هذه خدمة مدفوعة قبل إرسال الطلب (الخانة أعلى النموذج)."); n.scrollIntoView({ block: "center" }); return; } }
   const service_type_id = Number(document.getElementById("anr-service-id").value);
   const client_name = document.getElementById("anr-client-name").value.trim();
   if(!client_name){ alert("الرجاء إدخال اسم مقدّم الطلب"); return; }
