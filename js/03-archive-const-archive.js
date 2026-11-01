@@ -235,6 +235,8 @@ async function loadCompanyRequestPage(){
       <div style="font-size:12px;color:var(--gray3);margin-top:4px">عبِّ بيانات شركتك — تقدر تبدأ فترتك التجريبية فورًا بضغطة زر، بدون انتظار.</div>
     </div>
     ${rejectedNotice}
+    ${renderPlanCards()}
+    <div class="pd-sec" style="margin-top:18px">بيانات شركتك</div>
     <div class="fg"><label>اسم الشركة</label><input class="fi" id="cr-name" placeholder="مثال: شركة النخبة القابضة"/></div>
     <div class="fg"><label>نوع الشركة</label>
       <select class="fs" id="cr-type" onchange="toggleCrLLCFields()">
@@ -1285,6 +1287,18 @@ function dismissTrialBanner(){
   updateBannerOffset();
 }
 
+/* بطاقات الباقات (4): التجربة + الباقات الثلاث. الأسعار عبر التواصل */
+function renderPlanCards(){
+  const card = (ico, name, tag, items, cls) => `<div class="pc-card ${cls||""}"><div class="pc-ico">${ico}</div><div class="pc-name">${name}</div><div class="pc-tag">${tag}</div>
+    <ul>${items.map(i => `<li>${i}</li>`).join("")}</ul><div class="pc-price">${cls === "trial" ? "مجانية" : "الأسعار: تواصل معنا"}</div></div>`;
+  return `<div class="pd-sec">الباقات والتجربة</div><div class="pc-grid">
+    ${card("🎁","فترة تجريبية","للاطلاع على المنصة",["14 يومًا من التفعيل","كل الوحدات مفتوحة","بلا بطاقة دفع"],"trial")}
+    ${card("🌱","ذاتي","تدير حوكمتك بنفسك",["الحوكمة والاجتماعات","اشتراك سنوي"])}
+    ${card("🤝","مدار","حوكمة بمتابعة فريقنا",["الحوكمة والاجتماعات","اشتراك شهري"])}
+    ${card("⭐","شريك","الباقة الشاملة",["الحوكمة والاجتماعات","إدارة المخاطر","المراجعة الداخلية"])}
+  </div><div class="pc-note">للأسعار أو للاشتراك تواصل معنا (واتساب 0509015864 · info@hwkm.net)</div>`;
+}
+
 function openMySubscription(){ go('mysub', document.getElementById('navMySub')); }
 function renderMySubscription(){
   const s = currentCompanySub, b = document.getElementById("mySubBody");
@@ -1318,6 +1332,7 @@ function renderMySubscription(){
       <div class="ms-big"><b>${big}</b><span>${bigl}</span></div></div>
     <div class="ms-grid">${cells}</div>
     ${note ? `<div class="ms-note">${note}</div>` : ""}
+    ${(!s || !(s.paid || s.ends)) ? renderPlanCards() : ""}
     <div class="pd-sec">تواصل معنا</div>
     <div class="ms-contact">
       <a class="ms-btn wa" href="https://wa.me/966509015864" target="_blank" rel="noopener"><span>💬</span><div><b>واتساب</b><small dir="ltr">+966 50 901 5864</small></div></a>
