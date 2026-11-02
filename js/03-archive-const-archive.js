@@ -244,7 +244,7 @@ async function loadCompanyRequestPage(){
         <option>ذات مسؤولية محدودة</option><option>مؤسسة فردية</option>
         <option>شكل آخر — تواصل معنا</option>
       </select>
-      <div id="cr-other-note" class="cr-vmsg warn" style="display:none">يمكنك إكمال التسجيل والتواصل معنا لمعرفة كيف نخدمك. أرسل الطلب بالبيانات أدناه (جوالك وإيميلك يصلاننا معه) وسنتواصل معك، أو راسلنا مباشرة على <a href="https://wa.me/966509015864" target="_blank" rel="noopener" style="color:inherit;font-weight:700">واتساب</a>.</div>
+      <div id="cr-other-note" class="cr-vmsg warn" style="display:none">يمكنك إكمال التسجيل والدخول لاستكشاف المنصة وفترتها التجريبية، وتواصل معنا لنعرف كيف نخدم شكل شركتك: <a href="https://wa.me/966509015864" target="_blank" rel="noopener" style="color:inherit;font-weight:700">واتساب</a> · <a href="mailto:info@hwkm.net" style="color:inherit;font-weight:700">info@hwkm.net</a>. بعض الأحكام (كالنصاب) تُطبَّق عليك بشكل عام حتى نضبطها لشكلك.</div>
     </div>
     <div class="fg" id="cr-llc-fields" style="display:none;background:var(--offwhite);border-radius:8px;padding:10px 12px">
       <label style="display:flex;align-items:center;gap:7px;cursor:pointer;margin-bottom:8px">
@@ -352,7 +352,6 @@ const TRIAL_PENDING_KEY = "hwkm_pending_trial_company";
 
 async function startInstantTrial(){
   if(trialSubmitLock) return;
-  if(document.getElementById("cr-type").value === CR_OTHER_FORM){ return submitCompanyRequest(); }
   const company_name = document.getElementById("cr-name").value.trim();
   if(!company_name){ alert("الرجاء إدخال اسم الشركة"); return; }
   const company_type = document.getElementById("cr-type").value;
