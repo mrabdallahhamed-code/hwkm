@@ -251,6 +251,25 @@ function ok(name, cond, extra) {
   ok("طلب المراجعة في التجربة يُمنع بدون إقرار", ack["anr-paid-note_exists"] && ack.audit.blocked, ack);
   ok("المشترك (بلا إشعار التجربة) لا يُمنع بسبب الإقرار", ack.risk.notBlockedWhenHidden && ack.audit.notBlockedWhenHidden, ack);
 
+  console.log("14) مرفقات قرار التمرير");
+  const circ = await pg.evaluate(async () => {
+    const msgs = []; const realAlert = window.alert; window.alert = (m) => { msgs.push(String(m)); };
+    circTab = "مجلس الإدارة"; currentCompanyId = 1; currentCompanyType = "مساهمة غير مدرجة";
+    circOpenNew();
+    const q = (id) => document.getElementById(id);
+    q("cn-title").value = "قرار"; q("cn-text").value = "نص القرار"; q("cn-urgent").value = "عاجل"; q("cn-req").value = 50;
+    msgs.length = 0; await circCreate();
+    const blocked = /المرفق إلزامي/.test(msgs[0] || "");
+    const none = circAttachmentsHTML({ attachments: [] }) === "" && circAttachmentsHTML({}) === "";
+    const html = circAttachmentsHTML({ attachments: [{ name: "عرض.pdf", url: "https://x.test/a.pdf" }, { name: "<b>x</b>", url: "https://x.test/b" }] });
+    window.alert = realAlert;
+    return { blocked, none, hasLink: html.includes('href="https://x.test/a.pdf"') && html.includes("عرض.pdf"), escaped: !html.includes("<b>x</b>"), fileInput: !!q("cn-files") && q("cn-files").multiple };
+  });
+  ok("القرار بلا مرفق لا يُنشأ", circ.blocked, circ);
+  ok("حقل المرفقات يقبل أكثر من ملف", circ.fileInput, circ);
+  ok("روابط المرفقات تظهر للمصوّتين وتُنظَّف من الأكواد", circ.hasLink && circ.escaped, circ);
+  ok("القرارات القديمة بلا مرفقات لا تتأثر", circ.none, circ);
+
   await browser.close();
   console.log(`\nالنتيجة: ${passed} نجح، ${failed} فشل`);
   process.exit(failed ? 1 : 0);

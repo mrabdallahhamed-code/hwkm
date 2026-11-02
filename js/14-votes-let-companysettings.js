@@ -1553,6 +1553,7 @@ function circCardHTML(r, votes, ev, me, ctx){
     </div>
     <div style="font-size:12px;color:var(--gray3);margin:4px 0">${isAgm ? `جمعية ${orgEsc(r.kind || "")}${r.special_matter ? " — قرار خاص" : ""}` : "مجلس الإدارة"} · النسبة المطلوبة ${r.required_pct}% من ${isAgm ? "إجمالي حقوق التصويت" : "أعضاء المجلس"} · ${r.deadline ? "المهلة حتى " + new Date(r.deadline).toLocaleString("ar-SA-u-ca-gregory") : "بلا مهلة"}</div>
     ${r.resolution_text ? `<div style="font-size:13px;line-height:1.9;margin:8px 0;white-space:pre-line">${orgEsc(r.resolution_text)}</div>` : ""}
+    ${circAttachmentsHTML(r)}
     <div style="position:relative;height:12px;background:#eef1f6;border-radius:8px;margin:12px 0 6px;overflow:hidden">
       <div style="height:100%;width:${bar}%;background:${ev.passedNow ? "var(--green)" : "var(--primary)"}"></div>
       <div style="position:absolute;top:0;bottom:0;width:2px;background:#c0392b;right:${100 - reqBar}%"></div>
@@ -1610,6 +1611,7 @@ function circOpenNew(){
         <div class="row2"><div class="fg"><label>نوع الجمعية</label><select class="fs" id="cn-kind" onchange="circSuggest()"><option>عادية</option><option>غير عادية</option></select></div>
         <div class="fg"><label style="display:block">قرار خاص (٧٥%)</label><label style="font-size:12px"><input type="checkbox" id="cn-special" onchange="circSuggest()"> زيادة/تخفيض رأس المال، تمديد المدة، حل، اندماج، تقسيم</label></div></div>
       </div>
+      <div class="fg"><label>المستند المرفق <span style="color:var(--red)">*</span> (إلزامي، ويراه المصوّتون قبل التصويت)</label><input type="file" class="fi" id="cn-files" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"/><div style="font-size:11px;color:var(--gray3);margin-top:4px">مثل: عرض، تقرير، عقد، أو أي مستند يشرح موضوع القرار. يمكن رفع أكثر من ملف.</div></div>
       <div class="row2"><div class="fg"><label>النسبة المطلوبة (%)</label><input type="number" class="fi" id="cn-req" step="0.01"/><div id="cn-req-note" style="font-size:11px;color:var(--gray3);margin-top:4px"></div></div>
       <div class="fg"><label>مهلة التصويت</label><input type="datetime-local" class="fi" id="cn-deadline"/></div></div>
       <div class="modal-foot"><button class="btn btn-ghost" onclick="document.getElementById('m-circ-new').classList.remove('open')">إلغاء</button><button class="btn btn-gold" onclick="circCreate()">إطلاق التصويت</button></div></div>`;
@@ -1621,6 +1623,7 @@ function circOpenNew(){
   document.getElementById("cn-board-fields").style.display = isAgm ? "none" : "";
   document.getElementById("cn-urgent").value = "";
   ["cn-title","cn-text","cn-deadline"].forEach(i => document.getElementById(i).value = "");
+  { const f = document.getElementById("cn-files"); if(f) f.value = ""; }
   document.getElementById("cn-special").checked = false;
   circSuggest(true);
   m.classList.add("open");
@@ -1636,6 +1639,27 @@ function circSuggest(initial){
   reqEl.value = law; reqEl.min = law;
   note.textContent = kind === "غير عادية" ? "نظام الشركات (م101): 75% على الأقل من حقوق التصويت لكل أسهم الشركة." : "نظام الشركات (م101): أغلبية حقوق التصويت (أكثر من 50%) لكل أسهم الشركة. يمكن رفعها إن نصّ النظام الأساس.";
 }
+/* رفع ملفات قرار التمرير (يُرجع [{name,url}] أو null عند الفشل) */
+async function circUploadFiles(inputEl){
+  const out = [];
+  for(const file of Array.from(inputEl.files || [])){
+    if(file.size > 50 * 1024 * 1024){ alert(`الملف "${file.name}" أكبر من الحد المسموح (50 ميجا).`); return null; }
+    const safe = Date.now() + "_" + out.length + "_" + file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = currentCompanyId + "/circulation/" + safe;
+    const { error } = await sb.storage.from("documents").upload(path, file);
+    if(error){ alert("تعذّر رفع الملف \"" + file.name + "\": " + error.message); return null; }
+    const { data, error: sErr } = await sb.storage.from("documents").createSignedUrl(path, 315360000);
+    if(sErr || !data){ alert("تعذّر إنشاء رابط آمن للملف: " + (sErr ? sErr.message : "")); return null; }
+    out.push({ name: file.name, url: data.signedUrl });
+  }
+  return out;
+}
+function circAttachmentsHTML(r){
+  const a = Array.isArray(r.attachments) ? r.attachments : [];
+  if(!a.length) return "";
+  return `<div style="margin:8px 0;padding:8px 10px;background:#F6F8FB;border-radius:8px;font-size:12px"><b>المستندات المرفقة (اطّلع عليها قبل التصويت):</b>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${a.map(f => `<a class="btn-xs primary" href="${orgEsc(f.url)}" target="_blank" rel="noopener">${orgEsc(f.name)}</a>`).join("")}</div></div>`;
+}
 async function circCreate(){
   const isAgm = circTab === "الجمعية العامة";
   const title = document.getElementById("cn-title").value.trim(), text = document.getElementById("cn-text").value.trim();
@@ -1649,8 +1673,12 @@ async function circCreate(){
   if(!isAgm && req < 50){ alert("لا يجوز أن تقل النسبة عن أغلبية أصوات الأعضاء (50%)."); return; }
   if(isAgm && req < (kind === "غير عادية" ? 75 : 50)){ alert("النسبة أقل من الحد النظامي لقرار التمرير."); return; }
   if(isAgm && circIsListed()){ alert("قرارات التمرير للجمعية العامة لا تُتاح للشركات المدرجة."); return; }
+  const filesInput = document.getElementById("cn-files");
+  if(!filesInput || !filesInput.files || !filesInput.files.length){ alert("المستند المرفق إلزامي: أرفق الملف الذي يشرح موضوع القرار ليطّلع عليه المصوّتون."); return; }
+  const attachments = await circUploadFiles(filesInput);
+  if(!attachments) return;
   const { data: u } = await sb.auth.getUser();
-  const { error } = await sb.from("circulation_resolutions").insert([{ company_id: currentCompanyId, body: circTab, kind, title, resolution_text: (urgent ? "سبب الاستعجال: " + urgent + "\n\n" : "") + text,
+  const { error } = await sb.from("circulation_resolutions").insert([{ company_id: currentCompanyId, body: circTab, kind, title, attachments, resolution_text: (urgent ? "سبب الاستعجال: " + urgent + "\n\n" : "") + text,
     special_matter: isAgm && document.getElementById("cn-special").checked, required_pct: req, deadline: dl ? new Date(dl).toISOString() : null, created_by: u && u.user ? u.user.email : null }]);
   if(error){ alert("تعذّر الإنشاء: " + error.message); return; }
   logActivity("إنشاء", "قرار تمرير", title, circTab);
