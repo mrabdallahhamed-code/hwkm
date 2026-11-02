@@ -281,6 +281,20 @@ function ok(name, cond, extra) {
   ok("دالة الاستعلام موجودة لمالك المنصة", vr.hasFn, vr);
   ok("لا استعلام تلقائي في نموذج العميل", vr.noAdvisory && vr.noClientBox, vr);
 
+  console.log("16) خيار شكل آخر في إدراج الشركة");
+  const oth = await pg.evaluate(async () => {
+    const box = document.createElement("div");
+    box.innerHTML = '<select id="cr-type"><option>ذات مسؤولية محدودة</option><option>' + CR_OTHER_FORM + '</option></select><div id="cr-llc-fields"></div><div id="cr-tadawul-box"></div><div id="cr-other-note" style="display:none"></div>';
+    document.body.appendChild(box);
+    const t = document.getElementById("cr-type"), n = document.getElementById("cr-other-note");
+    t.value = CR_OTHER_FORM; toggleCrLLCFields(); const shown = n.style.display === "block";
+    t.value = "ذات مسؤولية محدودة"; toggleCrLLCFields(); const hidden = n.style.display === "none";
+    box.remove();
+    return { shown, hidden, inForm: renderPlanCards !== undefined && String(loadCompanyRequestPage).includes("شكل آخر") };
+  });
+  ok("اختيار شكل آخر يظهر الملاحظة ويخفيها عند تغييره", oth.shown && oth.hidden, oth);
+  ok("الخيار موجود في نموذج الإدراج", oth.inForm, oth);
+
   await browser.close();
   console.log(`\nالنتيجة: ${passed} نجح، ${failed} فشل`);
   process.exit(failed ? 1 : 0);

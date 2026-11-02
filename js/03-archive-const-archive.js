@@ -242,7 +242,9 @@ async function loadCompanyRequestPage(){
       <select class="fs" id="cr-type" onchange="toggleCrLLCFields()">
         <option>مساهمة مدرجة</option><option>مساهمة غير مدرجة</option>
         <option>ذات مسؤولية محدودة</option><option>مؤسسة فردية</option>
+        <option>شكل آخر — تواصل معنا</option>
       </select>
+      <div id="cr-other-note" class="cr-vmsg warn" style="display:none">نخدم حاليًا الأشكال أعلاه. إن كان شكل شركتك آخر (تضامن، توصية بسيطة، مساهمة مبسطة…) فأرسل الطلب وسنتواصل معك لنرى كيف نخدمك. لا تُفعَّل تجربة تلقائية لهذا الشكل.</div>
     </div>
     <div class="fg" id="cr-llc-fields" style="display:none;background:var(--offwhite);border-radius:8px;padding:10px 12px">
       <label style="display:flex;align-items:center;gap:7px;cursor:pointer;margin-bottom:8px">
@@ -317,9 +319,12 @@ function crTab(w){
    A company_requests row is still logged (status "تجربة تلقائية") purely for visibility — the
    platform-owner dashboard's trial list and conversion-rate stat already read from real
    companies.trial_ends_at, so nothing else downstream needs to change to pick this up. */
+const CR_OTHER_FORM = "شكل آخر — تواصل معنا";
 function toggleCrLLCFields(){
   const box = document.getElementById("cr-llc-fields");
   if(box) box.style.display = document.getElementById("cr-type").value === "ذات مسؤولية محدودة" ? "block" : "none";
+  const on = document.getElementById("cr-other-note");
+  if(on) on.style.display = document.getElementById("cr-type").value === CR_OTHER_FORM ? "block" : "none";
   const tb = document.getElementById("cr-tadawul-box");
   if(tb) tb.style.display = document.getElementById("cr-type").value === "مساهمة مدرجة" ? "block" : "none";
 }
@@ -347,6 +352,7 @@ const TRIAL_PENDING_KEY = "hwkm_pending_trial_company";
 
 async function startInstantTrial(){
   if(trialSubmitLock) return;
+  if(document.getElementById("cr-type").value === CR_OTHER_FORM){ return submitCompanyRequest(); }
   const company_name = document.getElementById("cr-name").value.trim();
   if(!company_name){ alert("الرجاء إدخال اسم الشركة"); return; }
   const company_type = document.getElementById("cr-type").value;
