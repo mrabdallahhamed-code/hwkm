@@ -1206,3 +1206,7 @@ div[style*="linear-gradient(135deg,var(--primary),var(--primary2))"][style*="bor
 .cr-tabs button{flex:1;border:0;background:transparent;border-radius:8px;padding:9px 6px;font-family:inherit;font-size:13px;font-weight:700;color:#5B6B80;cursor:pointer}
 .cr-tabs button.on{background:#fff;color:var(--dark);box-shadow:0 1px 3px rgba(20,30,50,.08)}
 .pk-head{min-height:112px}@media(max-width:600px){.pk-head{min-height:0}}
+
+.cr-vmsg{margin-top:6px;font-size:12px;line-height:1.6;padding:6px 10px;border-radius:8px}
+.cr-vmsg.ok{background:#E8F3EC;color:#1F6B47}
+.cr-vmsg.warn{background:#FBF1DE;color:#8A5A12}
