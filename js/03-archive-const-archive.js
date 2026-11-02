@@ -244,7 +244,7 @@ async function loadCompanyRequestPage(){
         <option>ذات مسؤولية محدودة</option><option>مؤسسة فردية</option>
         <option>شكل آخر — تواصل معنا</option>
       </select>
-      <div id="cr-other-note" class="cr-vmsg warn" style="display:none">نخدم حاليًا الأشكال أعلاه. إن كان شكل شركتك آخر (تضامن، توصية بسيطة، مساهمة مبسطة…) فأرسل الطلب وسنتواصل معك لنرى كيف نخدمك. لا تُفعَّل تجربة تلقائية لهذا الشكل.</div>
+      <div id="cr-other-note" class="cr-vmsg warn" style="display:none">يمكنك إكمال التسجيل والتواصل معنا لمعرفة كيف نخدمك. أرسل الطلب بالبيانات أدناه (جوالك وإيميلك يصلاننا معه) وسنتواصل معك، أو راسلنا مباشرة على <a href="https://wa.me/966509015864" target="_blank" rel="noopener" style="color:inherit;font-weight:700">واتساب</a>.</div>
     </div>
     <div class="fg" id="cr-llc-fields" style="display:none;background:var(--offwhite);border-radius:8px;padding:10px 12px">
       <label style="display:flex;align-items:center;gap:7px;cursor:pointer;margin-bottom:8px">
