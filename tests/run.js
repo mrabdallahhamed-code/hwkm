@@ -270,32 +270,16 @@ function ok(name, cond, extra) {
   ok("روابط المرفقات تظهر للمصوّتين وتُنظَّف من الأكواد", circ.hasLink && circ.escaped, circ);
   ok("القرارات القديمة بلا مرفقات لا تتأثر", circ.none, circ);
 
-  console.log("15) التحقق الاستشاري من السجل");
+  console.log("15) استعلام وثّق لمالك المنصة");
   const vr = await pg.evaluate(async () => {
-    const wait = (ms) => new Promise(r => setTimeout(r, ms));
-    const box = document.createElement("div"); box.innerHTML = '<input id="cr-cr-number"><div id="cr-verify-msg" style="display:none"></div>';
+    const box = document.createElement("div"); box.innerHTML = '<button id="wb">x</button><div class="cr-vmsg" style="display:none"></div>';
     document.body.appendChild(box);
-    const inp = document.getElementById("cr-cr-number"), msg = document.getElementById("cr-verify-msg");
-    let calls = 0, reply;
-    window.crVerifyCall = async () => { calls++; if (reply === "throw") throw new Error("x"); return reply; };
-    const type = async (v, r) => { reply = r; inp.value = v; crVerifyAdvisory(); await wait(800); };
-    await type("12345", { data: { found: true } });
-    const short = calls === 0 && msg.style.display === "none";
-    await type("1010711252", { data: { found: true, active: true, name: "شركة", status: "نشط", entity_type: "توصية بسيطة" } });
-    const okShown = msg.style.display !== "none" && /شركة/.test(msg.textContent) && msg.classList.contains("ok");
-    await type("1010711253", { data: { found: true, active: false, name: "س", status: "معلّق" } });
-    const warn = msg.classList.contains("warn");
-    await type("1010711254", "throw");
-    const silent = msg.style.display === "none";
-    await type("1010711255", { data: { found: false } });
-    const notFoundSilent = msg.style.display === "none";
+    const btn = document.getElementById("wb"), msg = btn.nextElementSibling;
     box.remove();
-    return { short, okShown, warn, silent, notFoundSilent };
+    return { hasFn: typeof crWathqCheck === "function", noAdvisory: typeof crVerifyAdvisory === "undefined", noClientBox: !document.getElementById("cr-verify-msg") };
   });
-  ok("أقل من 10 أرقام لا يستعلم", vr.short, vr);
-  ok("سجل نشط يظهر باسمه وحالته", vr.okShown, vr);
-  ok("سجل غير نشط يظهر كتنبيه", vr.warn, vr);
-  ok("الخطأ أو عدم العثور لا يعرض شيئًا ولا يمنع", vr.silent && vr.notFoundSilent, vr);
+  ok("دالة الاستعلام موجودة لمالك المنصة", vr.hasFn, vr);
+  ok("لا استعلام تلقائي في نموذج العميل", vr.noAdvisory && vr.noClientBox, vr);
 
   await browser.close();
   console.log(`\nالنتيجة: ${passed} نجح، ${failed} فشل`);

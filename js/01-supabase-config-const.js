@@ -958,6 +958,7 @@ function isMutatingOnchange(val){
     || /^dismissTrialBanner\(/.test(val)
     || /^pdShowList\(/.test(val)
     || /^crTab\(/.test(val)
+    || /^crWathqCheck\(/.test(val)
     || /^saveTrialDays\(/.test(val)
     || /^setTrialQuick\(/.test(val)
     || /^startTrialForCompany\(/.test(val)

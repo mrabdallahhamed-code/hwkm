@@ -260,7 +260,7 @@ async function loadCompanyRequestPage(){
       <div style="font-size:10.5px;color:var(--gray3);margin-top:5px">إلزامي للشركات المدرجة، ونتحقق منه من موقع تداول. إن كانت شركتك غير مدرجة فاختر نوعها الصحيح من القائمة أعلاه.</div>
     </div>
     <div class="row2">
-      <div class="fg"><label>رقم السجل التجاري أو الرقم الموحد <span style="color:var(--red)">*</span></label><input class="fi" id="cr-cr-number" inputmode="numeric" maxlength="10" placeholder="10 أرقام — مثال: 1010XXXXXX"/><div id="cr-verify-msg" class="cr-vmsg" style="display:none"></div></div>
+      <div class="fg"><label>رقم السجل التجاري أو الرقم الموحد <span style="color:var(--red)">*</span></label><input class="fi" id="cr-cr-number" inputmode="numeric" maxlength="10" placeholder="10 أرقام — مثال: 1010XXXXXX"/></div>
       <div class="fg"><label>تاريخ السجل</label><input type="date" class="fi" id="cr-cr-date"/></div>
     </div>
     <div class="fg"><label>الشخص المسؤول (أنت)</label><input class="fi" id="cr-resp-name" value="${orgEsc(currentUserProfile.full_name||'')}"/></div>
@@ -283,36 +283,23 @@ async function loadCompanyRequestPage(){
       <button class="btn btn-gold" style="width:100%;margin-top:12px" onclick="crTab('f')">أدرج شركتك الآن</button>
     </div>
   `;
-  const crIn = document.getElementById("cr-cr-number");
-  if(crIn) crIn.addEventListener("input", crVerifyAdvisory);
 }
-/* تحقق استشاري من السجل التجاري عبر وثّق: يعرض معلومة فقط ولا يمنع التسجيل أبدًا،
-   وأي خطأ أو انقطاع يُتجاهل بصمت. */
-function crVerifyCall(n){ return sb.functions.invoke("verify-commercial-registration", { body: { cr_number: n } }); }
-let _crVerifyTimer = null, _crVerifySeq = 0;
-function crVerifyAdvisory(){
-  const box = document.getElementById("cr-verify-msg"), inp = document.getElementById("cr-cr-number");
-  if(!box || !inp) return;
-  clearTimeout(_crVerifyTimer);
-  const n = normCrNumber(inp.value);
-  box.style.display = "none"; box.textContent = "";
-  if(!/^\d{10}$/.test(n)) return;
-  const seq = ++_crVerifySeq;
-  _crVerifyTimer = setTimeout(async () => {
-    try{
-      const { data, error } = await crVerifyCall(n);
-      if(seq !== _crVerifySeq || error || !data) return;
-      const cur = document.getElementById("cr-verify-msg"); if(!cur) return;
-      if(data.found){
-        cur.className = "cr-vmsg " + (data.active ? "ok" : "warn");
-        cur.textContent = (data.active ? "✓ " : "⚠ ") + (data.name || "سجل تجاري") + " — " + (data.status || "") + (data.entity_type ? " · " + data.entity_type : "");
-      } else if(data.need_national_number){
-        cur.className = "cr-vmsg warn";
-        cur.textContent = "ℹ لم نتمكن من مطابقة هذا الرقم. جرّب الرقم الوطني الموحد للسجل (يبدأ بـ 700).";
-      } else { return; }
-      cur.style.display = "";
-    }catch(e){}
-  }, 600);
+/* استعلام وثّق: لمالك المنصة فقط (الدالة ترفض غيره). يعرض النتيجة ولا يغيّر أي بيانات. */
+async function crWathqCheck(btn, n){
+  const box = btn.nextElementSibling; if(!box) return;
+  btn.disabled = true; box.style.display = ""; box.className = "cr-vmsg"; box.textContent = "جارٍ الاستعلام…";
+  try{
+    const { data, error } = await sb.functions.invoke("verify-commercial-registration", { body: { cr_number: n } });
+    if(error || !data || data.error){ box.className = "cr-vmsg warn"; box.textContent = "تعذّر الاستعلام الآن" + (data && data.error ? " — " + data.error : ""); }
+    else if(data.found){
+      box.className = "cr-vmsg " + (data.active && !data.in_liquidation ? "ok" : "warn");
+      box.textContent = (data.active ? "✓ " : "⚠ ") + (data.name || "سجل تجاري") + " — " + (data.status || "") + (data.in_liquidation ? " (قيد التصفية)" : "") + (data.entity_type ? " · " + data.entity_type : "") + (data.issue_date ? " · إصدار " + data.issue_date : "");
+    } else {
+      box.className = "cr-vmsg warn";
+      box.textContent = data.need_national_number ? "لم يُطابَق الرقم — جرّب الرقم الوطني الموحد (يبدأ بـ 700)" : "لا يوجد سجل بهذا الرقم";
+    }
+  }catch(e){ box.className = "cr-vmsg warn"; box.textContent = "تعذّر الاستعلام الآن"; }
+  btn.disabled = false;
 }
 function crTab(w){
   const f = document.getElementById("cr-pane-f"), pn = document.getElementById("cr-pane-p");
@@ -596,7 +583,7 @@ function renderEntityVerificationTable(all){
   tb.innerHTML = rows.map(c => `<tr>
     <td>${orgEsc(c.name)}</td>
     <td>${orgEsc(c.company_type||"—")}</td>
-    <td>${(() => { const n = String(c.cr_number||"").trim(); if(!n) return '<span class="pd-chip red">بلا رقم</span>'; return /^\d{10}$/.test(n) ? `<span style="direction:ltr;display:inline-block">${orgEsc(n)}</span>` : `<span style="direction:ltr;display:inline-block">${orgEsc(n)}</span> <span class="pd-chip red">غير صالح</span>`; })()}</td>
+    <td>${(() => { const n = String(c.cr_number||"").trim(); if(!n) return '<span class="pd-chip red">بلا رقم</span>'; return /^\d{10}$/.test(n) ? `<span style="direction:ltr;display:inline-block">${orgEsc(n)}</span> <button class="btn btn-ghost" style="font-size:10.5px;padding:2px 8px" onclick="crWathqCheck(this,'${n}')">استعلام وثّق</button><div class="cr-vmsg" style="display:none"></div>` : `<span style="direction:ltr;display:inline-block">${orgEsc(n)}</span> <span class="pd-chip red">غير صالح</span>`; })()}</td>
     <td>${orgEsc(c.responsible_person||"—")}<div style="font-size:10.5px;color:var(--gray3);direction:ltr;text-align:right">${orgEsc(c.responsible_phone||"")}${c.responsible_email ? "<br>" + orgEsc(c.responsible_email) : ""}</div></td>
     <td>${badge(c.entity_verification)}</td>
     <td style="white-space:nowrap">
