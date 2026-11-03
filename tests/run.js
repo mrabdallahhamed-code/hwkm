@@ -295,6 +295,33 @@ function ok(name, cond, extra) {
   ok("اختيار شكل آخر يظهر الملاحظة ويخفيها عند تغييره", oth.shown && oth.hidden, oth);
   ok("الخيار موجود في نموذج الإدراج", oth.inForm, oth);
 
+  console.log("17) تقرير الفجوات والتوصيات");
+  const gp = await pg.evaluate(() => {
+    const ax = GOVERNANCE_AXES[0], keys = ax.criteria.map(c => c.key);
+    const a = { [ax.key]: [
+      { key: keys[0], label: "أ", score: 3, notes: "", actions: "" },
+      { key: keys[1], label: "ب", score: 1, notes: "n", actions: "x" },
+      { key: keys[2], label: "ج", score: 4, notes: "", actions: "" },
+      { key: keys[3], label: "د", score: 5, notes: "", actions: "" },
+      { key: keys[4], label: "هـ", score: null, notes: "", actions: "" } ] };
+    const m = buildGapModel(a, [ax]);
+    return { n: m.gaps.length, first: m.gaps[0].label, firstPr: m.gaps[0].pr.label, second: m.gaps[1].label, secondPr: m.gaps[1].pr.label,
+             strengths: m.strengths.length, avg: m.axisRows[0].avg, hasFn: typeof govGapReport === "function" };
+  });
+  ok("الفجوات تشمل ما دون المستوى 4 فقط وتتجاهل غير المقيَّم", gp.n === 2 && gp.strengths === 2, gp);
+  ok("الأضعف أولًا والأولوية عالية للدرجة 1 ومتوسطة للدرجة 3", gp.first === "ب" && gp.firstPr === "عالية" && gp.second === "أ" && gp.secondPr === "متوسطة", gp);
+  ok("متوسط المحور يُحسب من المعايير المقيَّمة فقط", Math.abs(gp.avg - 3.25) < 0.001 && gp.hasFn, gp);
+
+  const gr = await pg.evaluate(async () => {
+    const ax = GOVERNANCE_AXES[0], k = ax.criteria.map(c => c.key);
+    window.gapFetchAssessment = async () => ({ data: { id: 1, period: "<b>2026</b>", assessed_by_type: "x", assessment_date: "2026-11-01",
+      [ax.key]: [{ key: k[0], label: "معيار", score: 1, notes: "<img src=x onerror=alert(1)>", actions: "" }] }, error: null });
+    let out = ""; const real = window.printDocument; window.printDocument = (t, h) => { out = h; }; 
+    await govGapReport(1); window.printDocument = real;
+    return { out };
+  });
+  ok("التقرير يعقّم نصوص المقيِّم ولا يحقن أكواد", gr.out.includes("&lt;img") && !gr.out.includes("<img src=x") && gr.out.includes("أولوية عالية") || gr.out.includes("عالية"), gr.out.slice(0, 200));
+
   await browser.close();
   console.log(`\nالنتيجة: ${passed} نجح، ${failed} فشل`);
   process.exit(failed ? 1 : 0);
