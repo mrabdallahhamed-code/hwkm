@@ -299,17 +299,18 @@ function ok(name, cond, extra) {
   const gp = await pg.evaluate(() => {
     const ax = GOVERNANCE_AXES[0], keys = ax.criteria.map(c => c.key);
     const a = { [ax.key]: [
-      { key: keys[0], label: "أ", score: 3, notes: "", actions: "" },
+      { key: keys[0], label: "أ", score: 3, notes: "[تلقائي] دليل", actions: "" },
       { key: keys[1], label: "ب", score: 1, notes: "n", actions: "x" },
       { key: keys[2], label: "ج", score: 4, notes: "", actions: "" },
       { key: keys[3], label: "د", score: 5, notes: "", actions: "" },
       { key: keys[4], label: "هـ", score: null, notes: "", actions: "" } ] };
     const m = buildGapModel(a, [ax]);
     return { n: m.gaps.length, first: m.gaps[0].label, firstPr: m.gaps[0].pr.label, second: m.gaps[1].label, secondPr: m.gaps[1].pr.label,
-             strengths: m.strengths.length, avg: m.axisRows[0].avg, hasFn: typeof govGapReport === "function" };
+             autoFlag: m.gaps.find(g => g.label === "أ").auto === true && m.gaps.find(g => g.label === "ب").auto === false, strengths: m.strengths.length, avg: m.axisRows[0].avg, hasFn: typeof govGapReport === "function" };
   });
   ok("الفجوات تشمل ما دون المستوى 4 فقط وتتجاهل غير المقيَّم", gp.n === 2 && gp.strengths === 2, gp);
   ok("الأضعف أولًا والأولوية عالية للدرجة 1 ومتوسطة للدرجة 3", gp.first === "ب" && gp.firstPr === "عالية" && gp.second === "أ" && gp.secondPr === "متوسطة", gp);
+  ok("الدرجة التلقائية تُوسم في نموذج التقرير", gp.autoFlag === true, gp);
   ok("متوسط المحور يُحسب من المعايير المقيَّمة فقط", Math.abs(gp.avg - 3.25) < 0.001 && gp.hasFn, gp);
 
   const gr = await pg.evaluate(async () => {

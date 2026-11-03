@@ -601,7 +601,7 @@ function buildGapModel(a, axesList){
     const title = axis.title.replace(/^المحور [^:]+:\s*/, "");
     axisRows.push({ key: axis.key, title, icon: axis.icon, avg, n: items.length });
     items.forEach(c => {
-      const row = { axisKey: axis.key, axis: title, key: c.key, label: c.label, score: c.score, notes: c.notes || "", actions: c.actions || "" };
+      const row = { axisKey: axis.key, axis: title, key: c.key, label: c.label, score: c.score, notes: c.notes || "", actions: c.actions || "", auto: /^\s*\[تلقائي\]/.test(c.notes || "") };
       if(c.score < GAP_TARGET) gaps.push({ ...row, gap: GAP_TARGET - c.score, pr: gapPriority(c.score) });
       else strengths.push(row);
     });
@@ -648,9 +648,10 @@ async function govGapReport(id){
     </tbody></table>
     <h3 style="font-size:14px;color:#042552;margin:16px 0 6px">2. الفجوات والتوصيات (مرتبة بالأولوية)</h3>
     ${gaps.length ? `<table style="width:100%;border-collapse:collapse"><thead><tr><th style="${th}">#</th><th style="${th}">المحور / المعيار</th><th style="${th}">الدرجة</th><th style="${th}">الأولوية</th><th style="${th}">الملاحظة</th><th style="${th}">التوصية / الإجراء</th><th style="${th}">حالة الإجراء</th></tr></thead><tbody>
-    ${gaps.map((g, i) => `<tr><td style="${td}">${i + 1}</td><td style="${td}"><b>${E(g.label)}</b><div style="color:#666">${E(g.axis)}</div></td><td style="${td}">${g.score}/5<div style="color:#666">الفجوة ${g.gap}</div></td><td style="${td};font-weight:700;color:${g.pr.color}">${g.pr.label}</td><td style="${td}">${E(g.notes) || "—"}</td><td style="${td}">${sug(g)}</td><td style="${td}">${actState(g)}</td></tr>`).join("")}
+    ${gaps.map((g, i) => `<tr><td style="${td}">${i + 1}</td><td style="${td}"><b>${E(g.label)}</b><div style="color:#666">${E(g.axis)}</div></td><td style="${td}">${g.score}/5<div style="color:#666">الفجوة ${g.gap}</div></td><td style="${td};font-weight:700;color:${g.pr.color}">${g.pr.label}</td><td style="${td}">${g.auto ? '<div style="color:#245FBB;font-weight:700;margin-bottom:2px">درجة مقترحة من بيانات المنصة، تحتاج مراجعة المقيِّم</div>' : ""}${E(g.notes.replace(/^\s*\[تلقائي\]\s*/, "")) || "—"}</td><td style="${td}">${sug(g)}</td><td style="${td}">${actState(g)}</td></tr>`).join("")}
     </tbody></table>` : '<p style="font-size:12.5px;color:#1B7F4B">لا توجد فجوات: كل المعايير المقيّمة بلغت المستوى ' + GAP_TARGET + ' فأعلى.</p>'}
     ${strengths.length ? `<h3 style="font-size:14px;color:#042552;margin:16px 0 6px">3. نقاط القوة</h3><ul style="font-size:12px;margin:0;padding-inline-start:18px">${strengths.map(s => "<li>" + E(s.label) + " — " + E(s.axis) + " (" + s.score + "/5)</li>").join("")}</ul>` : ""}
+    ${gaps.some(g => g.auto) || strengths.some(x => x.auto) ? '<p style="font-size:11px;color:#245FBB;margin-top:10px">بعض الدرجات في هذا التقرير اقتُرحت تلقائيًا من بيانات المنصة (موسومة في عمود الملاحظة) ولم يغيّرها المقيِّم. تُراجع قبل الاعتماد.</p>' : ""}
     <p style="font-size:10.5px;color:#777;margin-top:18px">مستوى الاستهداف في هذا التقرير هو ${GAP_TARGET} (حوكمة متقدمة). الأولوية العالية للدرجتين 1 و2، والمتوسطة للدرجة 3. أُعدّ التقرير آليًا من التقييم المحفوظ ولا يغيّر أي بيانات.</p>
   </div>`;
   printDocument("تقرير الفجوات والتوصيات - " + (a.period || ""), html, false);
