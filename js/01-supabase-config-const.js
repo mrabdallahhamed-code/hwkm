@@ -11,7 +11,26 @@ function tsRender(boxId){
   if(!window.turnstile || _tsIds[boxId] !== undefined) return;
   const box = document.getElementById(boxId);
   if(!box) return;
-  try{ _tsIds[boxId] = window.turnstile.render(box, { sitekey: TURNSTILE_SITE_KEY, theme: "light" }); }catch(e){}
+  try{
+    _tsIds[boxId] = window.turnstile.render(box, {
+      sitekey: TURNSTILE_SITE_KEY, theme: "light",
+      callback: function(){ tsNote(box, ""); },
+      "expired-callback": function(){ tsNote(box, ""); },
+      /* أخطاء عائلة 300xxx = فشل التحدي في متصفح الزائر (إضافات حجب، VPN، متصفح قديم أو داخل تطبيق).
+         بلا رسالة يبقى المستخدم أمام «جارٍ التحقق…» دون أن يعرف السبب. المحاولة التلقائية تبقى مفعّلة. */
+      "error-callback": function(){ tsNote(box, "تعذّر التحقق الأمني. حدّث الصفحة، أو جرّب متصفحًا آخر، أو أوقف الـ VPN وإضافات حجب الإعلانات مؤقتًا ثم أعد المحاولة."); return true; }
+    });
+  }catch(e){}
+}
+function tsNote(box, msg){
+  if(!box || !box.parentNode) return;
+  let n = box.nextElementSibling;
+  if(!n || !n.classList.contains("ts-note")){
+    n = document.createElement("div"); n.className = "ts-note";
+    n.style.cssText = "font-size:12px;color:#B7791F;margin-top:6px;line-height:1.7";
+    box.parentNode.insertBefore(n, box.nextSibling);
+  }
+  n.textContent = msg; n.style.display = msg ? "" : "none";
 }
 function tsToken(boxId){
   if(!window.turnstile || _tsIds[boxId] === undefined) return undefined;

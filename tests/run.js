@@ -323,6 +323,21 @@ function ok(name, cond, extra) {
   });
   ok("التقرير يعقّم نصوص المقيِّم ولا يحقن أكواد", gr.out.includes("&lt;img") && !gr.out.includes("<img src=x") && gr.out.includes("أولوية عالية") || gr.out.includes("عالية"), gr.out.slice(0, 200));
 
+  console.log("18) رسالة فشل التحقق الأمني (Turnstile)");
+  const ts = await pg.evaluate(() => {
+    const box = document.createElement("div"); box.id = "tsTestBox"; document.body.appendChild(box);
+    let opts = null; const real = window.turnstile;
+    window.turnstile = { render: (b, o) => { opts = o; return "w1"; } };
+    delete _tsIds["tsTestBox"]; tsRender("tsTestBox");
+    const r1 = opts["error-callback"](); const note = box.nextElementSibling;
+    const shown = !!note && /تعذّر التحقق/.test(note.textContent) && note.style.display !== "none";
+    opts.callback("tok"); const cleared = note.style.display === "none";
+    window.turnstile = real; delete _tsIds["tsTestBox"]; box.remove(); if(note) note.remove();
+    return { shown, cleared, handled: r1 === true };
+  });
+  ok("فشل التحدي يعرض رسالة مفهومة للمستخدم", ts.shown && ts.handled, ts);
+  ok("نجاح التحدي يخفي الرسالة", ts.cleared, ts);
+
   await browser.close();
   console.log(`\nالنتيجة: ${passed} نجح، ${failed} فشل`);
   process.exit(failed ? 1 : 0);
