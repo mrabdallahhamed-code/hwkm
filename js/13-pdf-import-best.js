@@ -470,8 +470,27 @@ function rerenderOrgTree(){
   const c = document.getElementById("orgTreeContainer");
   if(!c || !structureCache || !structureCache.length) return;
   const rows = orgTreeRows(structureCache);
-  c.innerHTML = renderOrgTree(rows, { mobile: window.innerWidth <= 700 }) + orgLegendHTML(rows);
+  c.innerHTML = renderOrgTree(rows, { mobile: window.innerWidth <= 700 && orgMobileList }) + orgLegendHTML(rows);
+  orgFitPhone();
 }
+/* الجوال: نعرض نفس مخطط الكمبيوتر مصغّرًا ليناسب العرض (لا أصغر من 55% حتى يبقى مقروءًا)،
+   ويمكن تحريكه يمينًا ويسارًا، وزر «عرض كقائمة» يبدّل إلى القائمة العمودية. */
+let orgMobileList = false;
+function orgFitPhone(){
+  const c = document.getElementById("orgTreeContainer");
+  if(!c) return;
+  c.style.zoom = "";
+  const btn = document.getElementById("orgViewBtn");
+  const phone = window.innerWidth <= 700;
+  if(btn) btn.textContent = orgMobileList ? "عرض كمخطط" : "عرض كقائمة";
+  if(!phone || orgMobileList) return;
+  const inner = c.firstElementChild, sc = c.parentElement;
+  if(!inner || !sc) return;
+  const need = inner.scrollWidth, have = sc.clientWidth;
+  if(need > have && have > 0) c.style.zoom = String(Math.max(0.55, have / need));
+  orgCenterScroll();
+}
+function orgToggleView(){ orgMobileList = !orgMobileList; rerenderOrgTree(); }
 /* على الشاشات العريضة: افتح الشجرة وجذرها في منتصف منطقة العرض بدل أن تبدأ من طرف واحد. */
 function orgCenterScroll(){
   const c = document.getElementById("orgTreeContainer");

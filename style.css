@@ -734,7 +734,8 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 
 /* ── RESPONSIVE ── */
 .org-tree-wrap{min-width:700px}
-@media(max-width:700px){ .org-tree-wrap{min-width:0 !important} }
+.org-view-toggle{display:none}
+@media(max-width:700px){ .org-tree-wrap{min-width:0 !important} .org-view-toggle{display:inline-block} }
 @media(max-width:900px){
   .sidebar{transform:translateX(100%);width:260px;}
   .sidebar.open{transform:translateX(0);}
@@ -1210,3 +1211,8 @@ div[style*="linear-gradient(135deg,var(--primary),var(--primary2))"][style*="bor
 .cr-vmsg{margin-top:6px;font-size:12px;line-height:1.6;padding:6px 10px;border-radius:8px}
 .cr-vmsg.ok{background:#E8F3EC;color:#1F6B47}
 .cr-vmsg.warn{background:#FBF1DE;color:#8A5A12}
+
+/* الجوال: أي جدول أعرض من الشاشة يُحرَّك أفقيًا بدل أن يُقصّ (تقرير المؤشرات وغيره) */
+@media(max-width:700px){
+  .tbl{display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
