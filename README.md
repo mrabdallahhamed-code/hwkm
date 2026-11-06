@@ -9,7 +9,7 @@
 |---|---|
 | `index.html` | الصفحة الرئيسية وكل نوافذ النماذج |
 | `style.css` | كل التنسيقات (لكل ميزة بادئة خاصة: `pk-` `cr-` `pd-` `ms-` `cd-`) |
-| `js/*.js` | منطق المنصة: 80 ملفًا، لكل ملف موضوع واحد (انظر «خريطة الملفات» أدناه). الملفات تعمل في نطاق عام واحد (بلا وحدات)، فالترتيب في `index.html` هو المرجع |
+| `js/*.js` | منطق المنصة: 83 ملفًا، لكل ملف موضوع واحد (انظر «خريطة الملفات» أدناه). الملفات تعمل في نطاق عام واحد (بلا وحدات)، فالترتيب في `index.html` هو المرجع |
 | `sw.js` | عامل الخدمة (التخزين المؤقت) |
 | `tests/run.js` | الاختبارات الآلية (Playwright مع Supabase وهمي) |
 | `scripts/` | فحص الأسماء غير المعرّفة، وبناء نسخة مصغّرة |
@@ -42,7 +42,7 @@ npm run verify     # فحص الأسماء + الاختبارات + البناء
 - الرؤوس الأمنية وسياسة CSP تُضبط في Cloudflare (Transform Rules).
 
 ## خريطة الملفات (js/)
-> **ترتيب التحميل هو الترتيب في `index.html` وليس ترتيب الأرقام.** الأرقام من 20 فما فوق (والأرقام 77–81 فُصلت من ملف 01 وتأتي بعده مباشرة) ملفات فُصلت لاحقًا من ملفات أقدم، وأُدرجت بعد أصلها مباشرة حتى لا يتغير الترتيب. مهم خصوصًا: `49-ui-dialogs.js` يستبدل `alert/confirm` عند التحميل، فيجب أن يبقى بعد `17-criteria-banks-admin.js`.
+> **ترتيب التحميل هو الترتيب في `index.html` وليس ترتيب الأرقام.** الأرقام من 20 فما فوق (والأرقام 77–81 فُصلت من ملف 01، و82–84 من ملف 13، وتأتي بعد أصلها مباشرة) ملفات فُصلت لاحقًا من ملفات أقدم، وأُدرجت بعد أصلها مباشرة حتى لا يتغير الترتيب. مهم خصوصًا: `49-ui-dialogs.js` يستبدل `alert/confirm` عند التحميل، فيجب أن يبقى بعد `17-criteria-banks-admin.js`.
 
 **الأساس والدخول**
 - `01-supabase-config-const.js`: إعداد Supabase وكلمة التحقق Turnstile ودالة تنظيف النصوص المبكرة.
@@ -61,7 +61,7 @@ npm run verify     # فحص الأسماء + الاختبارات + البناء
 - `06-agm-cards-detail.js` (البطاقات والتفاصيل)، `53-board-election.js` (انتخاب المجلس)، `66-agm-attendance.js` (الحضور وتقرير التصويت PDF)، `51-agm-quorum-majority.js` (النصاب والأغلبيات)، `19-official-agm-documents.js` (مستندات الجمعية الرسمية)، `64-board-disclosure-form.js` (نموذج إفصاح الأعضاء)، `65-document-templates.js` (قوالب Word)، `35-global-search-shareholders.js` (سجل المساهمين والبحث)، `75-announcement-types-registry.js` (سجل أنواع إعلانات هيئة السوق المالية: بيانات فقط)، `07-announcement-engine.js` (محرك الإعلانات)، `76-announcements-page.js`.
 
 **السياسات والإجراءات والهيكل**
-- `60-policies.js`، `61-policy-board-review.js`، `62-policy-workflow.js`، `48-policy-comments.js`، `47-procedures.js`، `17-criteria-banks-admin.js` (بنوك المعايير)، `30-org-structure.js` (الهيكل التنظيمي)، `31-job-descriptions.js` (الوصف الوظيفي والاقتراح الذكي)، `28-permissions-matrix.js` (مصفوفة الصلاحيات)، `63-generic-helpers.js` (مساعدات صغيرة ومتغيرات المخاطر).
+- `60-policies.js`، `61-policy-board-review.js`، `62-policy-workflow.js`، `48-policy-comments.js`، `47-procedures.js`، `17-criteria-banks-admin.js` (بنوك المعايير)، `30-org-structure.js` (الهيكل التنظيمي)، `82-org-base-structure.js` (توليد الهيكل الأساسي وحذف منصب)، `83-org-tree-chart.js` (رسم مخطط الهيكل، وعرض الجوال)، `84-org-position-editing.js` (نوافذ تعديل المناصب والوحدات)، `31-job-descriptions.js` (الوصف الوظيفي والاقتراح الذكي)، `28-permissions-matrix.js` (مصفوفة الصلاحيات)، `63-generic-helpers.js` (مساعدات صغيرة ومتغيرات المخاطر).
 
 **الموافقات والتوقيع**
 - `34-governance-approvals.js` (محرك موافقات الحوكمة)، `10-esignature.js`، `68-permanent-signature.js`، `69-official-doc-signing.js`، `70-role-based-signing.js`، `18-board-member-review.js` (مراجعة أعضاء المجلس لطلبات التعيين وتصويت المساهمين)، `67-pdf-canvas-builder.js` (بناء PDF عربي متعدد الصفحات).
@@ -73,5 +73,5 @@ npm run verify     # فحص الأسماء + الاختبارات + البناء
 - `22-dashboard-alerts.js` (اللوحة والإشعارات والتنبيهات الاستباقية)، `32-indicators-report.js` (المؤشرات المالية والتشغيلية)، `44-annual-report.js` (التقرير السنوي)، `11-exports-and-search.js` (التصدير إلى Excel/PDF واستيراد المساهمين)، `13-pdf-import-best.js` (استيراد PDF)، `23-support-export.js` (الدعم الفني وتصدير بيانات الشركة)، `12-email-sms-notifications.js` (الإيميلات ورمز الجوال)، `33-calendar-whatsapp.js`.
 
 ## ملاحظة للمبرمج
-- `13-pdf-import-best.js` (649 سطرًا) تُرك دون فصل عن قصد: موضوعه واحد (استيراد PDF) وحجمه معقول. قاعدة الفصل في هذا المشروع: يُفصل الملف حين يجمع مواضيع مختلفة، لا حين يكبر وحده.
+- `13-pdf-import-best.js` يحتوي استيراد PDF فقط. أما رسم الهيكل التنظيمي وتعديل المناصب فكانت فيه سابقًا وفُصلت إلى `82` و`83` و`84`.
 - دالة الاقتراح الذكي (`suggest-job-description`) تعمل في Supabase وتعتمد على نماذج Gemini المجانية التي تتقاعد كل بضعة أشهر؛ عند فشلها راجع سجل الدالة (سطور `gemini`). وهي غير موجودة بعد في `hwkm-db/edge`.
