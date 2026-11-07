@@ -306,6 +306,80 @@ function ok(name, cond, extra) {
   ok("إلغاء الدعوة يحذفها", f5.deleted, f5);
   ok("الدعوة والربط يُسجَّلان في سجل النشاط", f5.activity.includes("دعوة:رابط دعوة") && f5.activity.includes("صلاحيات:مستخدم"), f5.activity);
 
+
+  /* ───────── مسار 6: طلب تقييم مخاطر (الطلب ← المستشار ← سجل المخاطر ← المعالجة) ───────── */
+  console.log("مسار 6) تقييم المخاطر: من الطلب حتى سجل المخاطر وتحديث المعالجة");
+  const f6 = await pg.evaluate(async () => {
+    const msgs = []; window.alert = (m) => msgs.push(String(m));
+    const settle = () => new Promise((r) => setTimeout(r, 400));
+    window.uiConfirm = async () => true;
+    const mails = []; window.sendNotificationEmail = async (to, subject) => { mails.push({ to, subject }); return { success: true }; };
+    window.notifyOwnerNewRequest = async () => {};
+    const as = (email, name) => { __fakeUser = { email }; currentUserProfile = { email, full_name: name, is_platform_admin: false }; userMemberships = [{ company_id: 1, role: "مدير النظام" }]; };
+    __db.risk_service_types = [{ id: 1, name: "تقييم مخاطر" }]; __db.risk_requests = []; __db.risk_items = []; __db.risk_questions = [];
+    currentCompanyId = 1; currentCompanyTrialEndsAt = null;
+    const q = (id) => document.getElementById(id);
+    const reqRow = () => __db.risk_requests[0] || {};
+    const res = {};
+
+    // 1) العميل: نطاق قصير يُرفض، بلا نوع مخاطر يُرفض، والكامل يُقبل
+    as("client@test.sa", "العميل");
+    openNewRiskRequest(1, "تقييم مخاطر");
+    q("rnr-client-name").value = "العميل"; q("rnr-sector").value = "الصحة"; q("rnr-scope").value = "قصير";
+    await submitRiskRequest(); res.shortBlocked = __db.risk_requests.length === 0;
+    q("rnr-scope").value = "تقييم مخاطر عملية المشتريات والتعاقدات كاملة";
+    document.querySelectorAll(".rnr-risktype-chk").forEach((c) => (c.checked = false));
+    msgs.length = 0; await submitRiskRequest(); res.noTypeBlocked = __db.risk_requests.length === 0 && msgs.length > 0;
+    const chk = document.querySelectorAll(".rnr-risktype-chk"); chk[0].checked = true; if (chk[1]) chk[1].checked = true;
+    await submitRiskRequest(); await settle();
+    res.created = __db.risk_requests.length === 1 && reqRow().status === "تم الاستلام" && !!reqRow().risk_types_needed && reqRow().requested_by_email === "client@test.sa";
+    const id = reqRow().id;
+
+    // 2) المدير يكلّف مستشارًا
+    as("admin@test.sa", "المدير"); await openRiskAdminDetail(id); await settle();
+    if (!q("rad-consultant")) { const i = document.createElement("input"); i.id = "rad-consultant"; document.body.appendChild(i); }
+    q("rad-consultant").value = "bad"; await assignRiskConsultant(id); res.badBlocked = !reqRow().assigned_consultant_email;
+    q("rad-consultant").value = "Consultant@Test.sa"; await assignRiskConsultant(id); await settle();
+    res.consultant = reqRow().assigned_consultant_email; res.mailed = mails.some((m) => m.to === "consultant@test.sa");
+
+    // 3) المستشار المكلَّف وحده يسجّل المخاطر (المدير غير المكلَّف لا يرى نموذج الإضافة)
+    as("consultant@test.sa", "المستشار"); await riskSetStatusQuick(id, "قيد التحليل"); await settle(); res.statusAnalysis = reqRow().status;
+    as("admin@test.sa", "المدير"); await openRiskAdminDetail(id); await settle();
+    res.adminCannotAdd = !q("rad-item-desc");
+    as("consultant@test.sa", "المستشار"); await openRiskAdminDetail(id); await settle(); res.consultantSeesForm = !!q("rad-item-desc");
+    const set = (k, v) => (q("rad-item-" + k).value = v);
+    set("desc", ""); msgs.length = 0; await addRiskItem(id); res.emptyBlocked = __db.risk_items.length === 0;
+    set("desc", "تأخر الموردين"); set("source", "خارجي"); set("likelihood", "4"); set("impact", "4"); set("treatment", "عقود بديلة"); set("responsible", "المشتريات"); set("target-date", "2020-01-01");
+    await addRiskItem(id); await settle();
+    await openRiskAdminDetail(id); await settle();
+    set("desc", "تسرب بيانات"); set("likelihood", "2"); set("impact", "3"); set("treatment", ""); set("responsible", ""); set("target-date", "");
+    await addRiskItem(id); await settle();
+    res.items = __db.risk_items.length; res.itemRow = __db.risk_items[0];
+    res.levels = [riskLevelInfo(4, 4).label, riskLevelInfo(2, 3).label, riskLevelInfo(1, 1).label, riskLevelInfo(5, 5).label, riskLevelInfo(2, 5).label, riskLevelInfo(null, 3).label];
+    res.heat = renderRiskHeatMap(__db.risk_items);
+    res.heatMarkers = (res.heat.match(/border-radius:50%/g) || []).length;
+    res.heatLegend = /تأخر الموردين/.test(res.heat) && /تسرب بيانات/.test(res.heat);
+    res.emptyHeat = /لا توجد مخاطر مقيَّمة/.test(renderRiskHeatMap([]));
+    delete res.heat;
+
+    // 4) تحديث حالة المعالجة وحذف خطر
+    const first = __db.risk_items[0].id;
+    await updateRiskItemStatus(first, "قيد التنفيذ", id); await settle();
+    res.status1 = __db.risk_items.find((x) => x.id === first).action_status;
+    const second = __db.risk_items[1].id; await deleteRiskItem(second, id); await settle();
+    res.afterDelete = __db.risk_items.length;
+    res.activity = (__db.activity_log || []).map((a) => a.action_type + ":" + a.entity_type);
+    return res;
+  });
+  ok("نطاق قصير أو بلا نوع مخاطر يُرفض، والطلب الكامل يُسجَّل بأنواعه", f6.shortBlocked && f6.noTypeBlocked && f6.created, f6);
+  ok("بريد المستشار الخاطئ يُرفض والصحيح يُحفظ ويُبلَّغ المستشار", f6.badBlocked && f6.consultant === "consultant@test.sa" && f6.mailed, f6);
+  ok("نموذج إضافة الأخطار للمستشار المكلَّف فقط (وفي مرحلة التحليل)", f6.adminCannotAdd && f6.consultantSeesForm && f6.statusAnalysis === "قيد التحليل", f6);
+  ok("خطر بلا وصف يُرفض، والأخطار الصحيحة تُسجَّل بتفاصيلها", f6.emptyBlocked && f6.items === 2 && f6.itemRow && f6.itemRow.likelihood === 4 && f6.itemRow.impact === 4 && f6.itemRow.responsible_person === "المشتريات", f6);
+  ok("مستويات الخطر: 16 عالٍ جدًا، 6 متوسط، 1 منخفض، 25 عالٍ جدًا، 10 عالٍ، بلا تقييم «—»", f6.levels.join("|") === "عالٍ جداً|متوسط|منخفض|عالٍ جداً|عالٍ|—", f6.levels);
+  ok("الخريطة الحرارية تعرض الأخطار المقيَّمة بعلاماتها وقائمتها، وتعرض رسالة عند الفراغ", f6.heatMarkers >= 2 && f6.heatLegend && f6.emptyHeat, f6);
+  ok("تحديث حالة المعالجة وحذف الخطر يعملان", f6.status1 === "قيد التنفيذ" && f6.afterDelete === 1, f6);
+  ok("الإنشاء والتكليف يُسجَّلان في سجل النشاط", f6.activity.includes("إنشاء:طلب تقييم مخاطر") && f6.activity.includes("تكليف:طلب تقييم مخاطر"), f6.activity);
+
   ok("لا أخطاء برمجية أثناء المسارات", errs.length === 0, errs);
   await browser.close();
   console.log(`\nالنتيجة: ${passed} نجح، ${failed} فشل`);
