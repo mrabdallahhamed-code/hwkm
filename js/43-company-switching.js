@@ -179,6 +179,7 @@ function csPick(id){
   csClose();
   const sel = document.getElementById("companySwitcher"); if(!sel) return;
   sel.value = id; csSync();
+  try{ if(typeof closeSidebar === "function" && window.innerWidth <= 900) closeSidebar(); }catch(e){}
   switchCompany(id);
 }
 document.addEventListener("click", (e) => { const w = document.getElementById("csWrap"); if(w && !w.contains(e.target)) csClose(); });
