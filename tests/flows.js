@@ -616,6 +616,65 @@ function ok(name, cond, extra) {
   ok("لا قفل أثناء التجربة، ولا مع اشتراك فعّال أو محوّل للدفع أو شركة قديمة بلا تجربة", f10.trialOpen && f10.paidOpen && f10.convertedOpen && f10.legacyOpen, f10);
   ok("مالك المنصة مستثنى، والتحويل إلى شركة سارية يفك القفل", f10.ownerExempt && f10.ownerNoLockMsg && f10.unlockOnSwitch && f10.dashOpen, f10);
 
+
+  /* ───────── مسار 11: منتقي الشركات (بحث، حالة، آخر الشركات، لوحة المفاتيح) ───────── */
+  console.log("مسار 11) منتقي الشركات");
+  const f11 = await pg.evaluate(async () => {
+    window.alert = () => {};
+    const q = (id) => document.getElementById(id);
+    const res = {}; const settle = (ms) => new Promise((r) => setTimeout(r, ms || 400));
+    const day = 86400000, iso = (d) => new Date(Date.now() + d * day).toISOString();
+    const names = ["شركة أسس الأنظمة الجديدة", "شركة حمزة للاستشارات المجانية", "الدراسات الحديثة", "روح الجنوب لتجارة الاغذية", "ألفا ستار", "قوة الحركة الطبي", "الشركة المجتمعية القابضة", "الشركة المحمدية للاستثمار"];
+    __db.companies = names.map((n, i) => ({ id: i + 1, name: n, company_type: "مساهمة غير مدرجة", cr_number: "1234567890" }));
+    __db.companies[1].trial_ends_at = iso(-3);               // منتهية
+    __db.companies[2].trial_ends_at = iso(6);                // تجربة
+    __db.companies[3].converted_to_paid_at = iso(-5);        // مشترك
+    try { localStorage.removeItem("hwkm_recent_co"); } catch (e) {}
+    userMemberships = []; viewingPlatformOverview = false;
+    currentUserProfile = { email: "o@hwkm.net", full_name: "المالك", is_platform_admin: true }; __fakeUser = { email: "o@hwkm.net" };
+    document.getElementById("appWrapper").style.display = "block";
+    await loadCompanies(); await settle();
+    res.built = getComputedStyle(q("csWrap")).display !== "none" && getComputedStyle(q("companySwitcher")).display === "none";
+    res.label = q("csLabel").textContent;
+    csToggle(); res.open = q("csPanel").style.display === "block";
+    const items = () => [...document.querySelectorAll("#csList .cs-item")];
+    res.rows = items().length;                                // نظرة عامة + 8 شركات
+    res.platRow = items()[0].classList.contains("plat");
+    res.chips = items().map((i) => (i.querySelector(".cs-chip") || {}).textContent || "").join("|");
+    // البحث بتجاهل الهمزات والتاء المربوطة
+    csRender("حمزه"); res.search1 = items().length === 1 && /حمزة/.test(items()[0].textContent);
+    csRender("الشركه"); res.search2 = items().length === 2;
+    csRender("zzz"); res.none = /لا توجد شركة/.test(q("csList").textContent);
+    csRender("نظره"); res.platSearch = items().length === 1 && items()[0].classList.contains("plat");
+    // لوحة المفاتيح: سهم لأسفل ثم Enter يختار
+    csRender("الشركه"); const inp = q("csSearch");
+    inp.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true })); inp.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    await settle();
+    res.pickedByKey = q("csPanel").style.display === "none" && currentCompanyId > 0 && q("csLabel").textContent === q("companySwitcher").selectedOptions[0].textContent.trim();
+    // اختيار بالنقر ثم نظرة عامة المنصة
+    csToggle(); csRender(""); items().find((i) => /حمزة/.test(i.textContent)).click(); await settle();
+    res.picked = currentCompanyId === 2 && /حمزة/.test(q("csLabel").textContent) && q("companySwitcher").value === "2";
+    csToggle(); csRender(""); items()[0].click(); await settle();
+    res.platform = viewingPlatformOverview === true && /نظرة عامة/.test(q("csLabel").textContent) && currentCompanyId === null;
+    // «الأخيرة» تظهر مع أكثر من 6 شركات
+    csToggle(); csRender(""); res.recent = /الأخيرة/.test(q("csList").textContent) && /كل الشركات/.test(q("csList").textContent);
+    // إغلاق بـ Esc وبالنقر خارج اللوحة
+    q("csSearch").dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); res.esc = q("csPanel").style.display === "none";
+    csToggle(); document.body.click(); res.outside = q("csPanel").style.display === "none";
+    // مستخدم عادي بشركتين: لا نظرة عامة ولا حالات
+    viewingPlatformOverview = false; userMemberships = [{ company_id: 1, role: "مدير النظام" }, { company_id: 2, role: "مساهم" }];
+    currentUserProfile = { email: "u@test.sa", full_name: "م", is_platform_admin: false }; __fakeUser = { email: "u@test.sa" };
+    await loadCompanies(); await settle(); csToggle(); csRender("");
+    res.userRows = items().length; res.userNoChips = !document.querySelector("#csList .cs-chip") && !document.querySelector("#csList .plat");
+    return res;
+  });
+  ok("المنتقي يظهر بدل القائمة القديمة (المخفية) ويعرض الشركة الحالية، وتفتح لوحته", f11.built && f11.open && f11.label.length > 0, f11);
+  ok("لمالك المنصة: «نظرة عامة» ثم كل الشركات بحالاتها (تجربة / مشترك / منتهية)", f11.rows === 9 && f11.platRow && f11.chips === "||منتهية|تجربة|مشترك||||", f11);
+  ok("البحث يتجاهل الهمزات والتاء المربوطة، ويعرض رسالة عند عدم وجود نتيجة", f11.search1 && f11.search2 && f11.none && f11.platSearch, f11);
+  ok("الاختيار بلوحة المفاتيح وبالنقر يبدّل الشركة ويحدّث الاسم، ونظرة المنصة تعمل", f11.pickedByKey && f11.picked && f11.platform, f11);
+  ok("«الأخيرة» تظهر عند كثرة الشركات، وتُغلق اللوحة بـ Esc وبالنقر خارجها", f11.recent && f11.esc && f11.outside, f11);
+  ok("المستخدم العادي بشركتين يرى شركتيه فقط بلا حالات ولا نظرة عامة", f11.userRows === 2 && f11.userNoChips, f11);
+
   ok("لا أخطاء برمجية أثناء المسارات", errs.length === 0, errs);
   await browser.close();
   console.log(`\nالنتيجة: ${passed} نجح، ${failed} فشل`);
