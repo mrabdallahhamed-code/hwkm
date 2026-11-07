@@ -183,6 +183,77 @@ function ok(name, cond, extra) {
   ok("عضو اللجنة يرى قراراتها ويصوّت", f3.memberSees, f3);
   ok("مدير النظام يرى قرارات اللجنة دون أزرار تصويت", f3.adminSeesNoButtons, f3);
 
+
+  /* ───────── مسار 4: طلب مراجعة داخلية (العميل ← المدير ← المراجع ← العميل) ───────── */
+  console.log("مسار 4) طلب المراجعة الداخلية: من الطلب حتى رد العميل");
+  const f4 = await pg.evaluate(async () => {
+    const msgs = []; window.alert = (m) => msgs.push(String(m));
+    const settle = () => new Promise((r) => setTimeout(r, 400));
+    window.uiConfirm = async () => true; window.uiPrompt = async () => "";
+    const mails = []; window.sendNotificationEmail = async (to, subject) => { mails.push({ to, subject }); return { success: true }; };
+    window.notifyOwnerNewRequest = async () => {};
+    const as = (email, name, role) => { __fakeUser = { email }; currentUserProfile = { email, full_name: name, is_platform_admin: false }; userMemberships = [{ company_id: 1, role: role || "مدير النظام" }]; };
+    __db.audit_service_types = [{ id: 1, name: "مراجعة سياسة" }];
+    __db.audit_requests = []; __db.audit_questions = [];
+    currentCompanyId = 1; currentCompanyTrialEndsAt = null;
+    const q = (id) => document.getElementById(id);
+    const reqRow = () => __db.audit_requests[0] || {};
+    const res = {};
+
+    // 1) العميل يرسل الطلب: نطاق قصير يُرفض، ثم الطلب الكامل يُقبل
+    as("client@test.sa", "العميل");
+    openNewAuditRequest(1, "مراجعة سياسة");
+    q("anr-client-name").value = "العميل"; q("anr-sector").value = "التقنية"; q("anr-scope").value = "قصير";
+    msgs.length = 0; await submitAuditRequest();
+    res.shortBlocked = __db.audit_requests.length === 0 && msgs.length > 0;
+    q("anr-scope").value = "مراجعة سياسة المشتريات والعمليات المرتبطة بها كاملة";
+    await submitAuditRequest(); await settle();
+    res.created = __db.audit_requests.length === 1 && reqRow().status === "تم الاستلام" && reqRow().requested_by_email === "client@test.sa";
+    const id = reqRow().id;
+
+    // 2) المدير يكلّف مراجعًا ويضيف أسئلة ويرسلها
+    as("admin@test.sa", "المدير"); await openAuditAdminDetail(id); await settle();
+    if (!q("aad-reviewer")) { const i = document.createElement("input"); i.id = "aad-reviewer"; document.body.appendChild(i); }
+    q("aad-reviewer").value = "bad"; msgs.length = 0; await assignAuditReviewer(id);
+    res.badReviewerBlocked = !reqRow().assigned_reviewer_email;
+    q("aad-reviewer").value = "Reviewer@Test.sa"; await assignAuditReviewer(id); await settle();
+    res.reviewer = reqRow().assigned_reviewer_email;
+    res.reviewerMailed = mails.some((m) => m.to === "reviewer@test.sa");
+    await auditAddQuestion(id, 0); await settle(); await auditAddQuestion(id, 1); await settle();
+    res.questions = __db.audit_questions.length; res.positions = __db.audit_questions.map((x) => x.position).join(",");
+    res.notSentYet = __db.audit_questions.every((x) => !x.sent);
+    await openAuditAdminDetail(id); await auditSendQuestions(id); await settle();
+    res.sent = __db.audit_questions.every((x) => x.sent === true);
+    res.statusAfterSend = reqRow().status;
+    res.clientMailed = mails.some((m) => m.to === "client@test.sa");
+
+    // 3) العميل يجيب عن سؤال واحد فقط، ثم عن الباقي
+    as("client@test.sa", "العميل"); await openAuditRequestDetail(id); await settle();
+    const areas = [...document.querySelectorAll(".audit-ans-input")];
+    res.answerBoxes = areas.length;
+    areas[0].value = "إجابة السؤال الأول";
+    await submitAuditAnswers(id); await settle();
+    res.oneAnswered = __db.audit_questions.filter((x) => x.answer).length;
+    res.statusPartial = reqRow().status;
+    await openAuditRequestDetail(id); await settle();
+    const left = [...document.querySelectorAll(".audit-ans-input")];
+    res.leftBoxes = left.length;
+    left.forEach((t) => (t.value = "إجابة أخرى")); await submitAuditAnswers(id); await settle();
+    res.allAnswered = __db.audit_questions.every((x) => x.answer);
+    res.statusFinal = reqRow().status;
+    res.reviewerNotified = mails.filter((m) => m.to === "reviewer@test.sa").length >= 2;
+    res.activity = (__db.activity_log || []).map((a) => a.action_type + ":" + a.entity_type);
+    return res;
+  });
+  ok("نطاق المراجعة القصير يُرفض، والطلب الكامل يُسجَّل بحالة «تم الاستلام»", f4.shortBlocked && f4.created, f4);
+  ok("بريد المراجع الخاطئ يُرفض، والصحيح يُحفظ بحروف صغيرة ويُبلَّغ المراجع", f4.badReviewerBlocked && f4.reviewer === "reviewer@test.sa" && f4.reviewerMailed, f4);
+  ok("الأسئلة تُضاف مرتبة وغير مرسلة بعد", f4.questions === 2 && f4.positions === "1,2" && f4.notSentYet, f4);
+  ok("إرسال الأسئلة يحوّل الحالة إلى «بانتظار رد العميل» ويبلّغ العميل", f4.sent && f4.statusAfterSend === "بانتظار رد العميل" && f4.clientMailed, f4);
+  ok("العميل يرى خانة لكل سؤال", f4.answerBoxes === 2, f4);
+  ok("الإجابة الجزئية تُحفظ ولا تغيّر الحالة", f4.oneAnswered === 1 && f4.statusPartial === "بانتظار رد العميل", f4);
+  ok("إكمال كل الإجابات يحوّل الحالة إلى «قيد التحليل» ويبلّغ المراجع", f4.allAnswered && f4.statusFinal === "قيد التحليل" && f4.reviewerNotified, f4);
+  ok("الخطوات تُسجَّل في سجل النشاط", ["إنشاء:طلب مراجعة", "تكليف:طلب مراجعة", "إرسال:أسئلة مراجعة"].every((x) => f4.activity.includes(x)), f4.activity);
+
   ok("لا أخطاء برمجية أثناء المسارات", errs.length === 0, errs);
   await browser.close();
   console.log(`\nالنتيجة: ${passed} نجح، ${failed} فشل`);

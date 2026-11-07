@@ -6,7 +6,7 @@
   window.__fakeUser = null; // { email }
   const UNIQUE = { circulation_votes: ["resolution_id", "voter_email"], push_subscriptions: ["endpoint"] };
   // القيم الافتراضية التي تضعها القاعدة الحقيقية عند الإدراج
-  const DEFAULTS = { circulation_resolutions: { status: "مفتوح" } };
+  const DEFAULTS = { circulation_resolutions: { status: "مفتوح" }, audit_questions: { sent: false } };
   const seq = {};
   const clone = (x) => JSON.parse(JSON.stringify(x));
   const tbl = (n) => (db[n] = db[n] || []);
@@ -15,7 +15,7 @@
     return re.test(String(v == null ? "" : v));
   };
   function builder(name) {
-    const st = { op: "select", filters: [], order: null, limit: null, rows: null, patch: null, single: null, upsertKey: null };
+    const st = { count: false, op: "select", filters: [], order: null, limit: null, rows: null, patch: null, single: null, upsertKey: null };
     const run = () => {
       const t = tbl(name);
       const match = (r) => st.filters.every((f) => f(r));
@@ -46,9 +46,10 @@
         return { data: hit.map(clone), error: null };
       }
       let rows = t.filter(match).map(clone);
+      const total = rows.length;
       if (st.order) rows.sort((a, b) => (a[st.order.c] > b[st.order.c] ? 1 : a[st.order.c] < b[st.order.c] ? -1 : 0) * (st.order.asc ? 1 : -1));
       if (st.limit != null) rows = rows.slice(0, st.limit);
-      return { data: rows, error: null };
+      return st.count ? { data: rows, count: total, error: null } : { data: rows, error: null };
     };
     const finish = () => {
       const r = run();
@@ -60,7 +61,7 @@
       return r;
     };
     const api = {
-      select() { return api; },
+      select(c, o) { if (o && o.count) st.count = true; return api; },
       insert(rows) { st.op = "insert"; st.rows = Array.isArray(rows) ? rows : [rows]; return api; },
       upsert(rows) { st.op = "upsert"; st.rows = Array.isArray(rows) ? rows : [rows]; return api; },
       update(p) { st.op = "update"; st.patch = p; return api; },
