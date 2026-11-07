@@ -270,6 +270,7 @@ let currentCompanyModules = { internal_audit: false, risk_management: false };
 let currentCompanyTrialEndsAt = null;
 /* انتهت التجربة بلا اشتراك فعّال: يدخل العميل لكن كل شيء مقفل ما عدا صفحة «اشتراكي» (تواصل معنا). مالك المنصة مستثنى. */
 let currentCompanyLocked = false;
+let currentCompanyExpiredRaw = false; // التجربة منتهية فعلًا (قبل استثناء مالك المنصة)
 function computeTrialExpired(c){
   if(!c || !c.trial_ends_at || new Date(c.trial_ends_at) > new Date()) return false;
   if(c.converted_to_paid_at) return false;
@@ -277,6 +278,7 @@ function computeTrialExpired(c){
   return true;
 }
 function applySubscriptionLock(expired){
+  currentCompanyExpiredRaw = !!expired;
   currentCompanyLocked = !!expired && !(currentUserProfile && currentUserProfile.is_platform_admin === true);
   try{ document.body.classList.toggle("sub-locked", currentCompanyLocked); }catch(e){}
 }
@@ -360,7 +362,7 @@ function renderMySubscription(){
   const cell = (l,v) => `<div class="ms-cell"><span>${l}</span><b>${v}</b></div>`;
   let tone = "gray", badge = "لا يوجد اشتراك", big = "—", bigl = "", cells = "", note = "";
   if(!s){ note = "تعذّر تحميل بيانات الاشتراك."; }
-  else if(s.expiredTrial){
+  else if(s.expiredTrial && currentCompanyLocked){
     tone = "red"; badge = "🔒 انتهت فترتك التجريبية"; big = "—"; bigl = "";
     cells = cell("انتهت في", fmt(s.expiredTrial)) + cell("حالة الحساب","مقفل حتى تفعيل الاشتراك");
     note = "بياناتك محفوظة بالكامل ولن تُحذف. تواصل معنا لتفعيل الاشتراك وسنعيد لك الوصول فورًا.";
@@ -390,7 +392,7 @@ function renderMySubscription(){
       <div class="ms-big"><b>${big}</b><span>${bigl}</span></div></div>
     <div class="ms-grid">${cells}</div>
     ${note ? `<div class="ms-note">${note}</div>` : ""}
-    ${(!s || !(s.paid || s.ends) || s.expiredTrial) ? renderPlanCards() : ""}
+    ${(!s || !(s.paid || s.ends) || (s.expiredTrial && currentCompanyLocked)) ? renderPlanCards() : ""}
     <div class="pd-sec">تواصل معنا</div>
     <div class="ms-contact">
       <a class="ms-btn wa" href="https://wa.me/966509015864" target="_blank" rel="noopener"><span>💬</span><div><b>واتساب</b><small dir="ltr">+966 50 901 5864</small></div></a>

@@ -603,6 +603,7 @@ function ok(name, cond, extra) {
     // مالك المنصة مستثنى
     currentUserProfile = { email: "o@hwkm.net", is_platform_admin: true };
     setCo({ trial_ends_at: iso(-1) }); await applyCompanyTypeVisibility(); res.ownerExempt = currentCompanyLocked === false;
+    await go("mysub"); res.ownerNoLockMsg = !/بياناتك محفوظة بالكامل/.test(q("mySubBody").textContent) && navShown() > 3;
     // العودة لشركة سارية تفك القفل
     currentUserProfile = { email: "a@test.sa", full_name: "عميل", is_platform_admin: false };
     setCo({ trial_ends_at: iso(-1) }); await applyCompanyTypeVisibility(); const was = currentCompanyLocked;
@@ -613,7 +614,7 @@ function ok(name, cond, extra) {
   ok("تجربة منتهية بلا اشتراك تقفل الحساب، وتبقى «اشتراكي» وحدها ظاهرة في القائمة", f10.locked && f10.navHidden, f10);
   ok("أي صفحة أخرى تُحوَّل إلى «اشتراكي» مع رسالة التواصل وأن البيانات محفوظة", f10.redirected && f10.msg && f10.noBanner, f10);
   ok("لا قفل أثناء التجربة، ولا مع اشتراك فعّال أو محوّل للدفع أو شركة قديمة بلا تجربة", f10.trialOpen && f10.paidOpen && f10.convertedOpen && f10.legacyOpen, f10);
-  ok("مالك المنصة مستثنى، والتحويل إلى شركة سارية يفك القفل", f10.ownerExempt && f10.unlockOnSwitch && f10.dashOpen, f10);
+  ok("مالك المنصة مستثنى، والتحويل إلى شركة سارية يفك القفل", f10.ownerExempt && f10.ownerNoLockMsg && f10.unlockOnSwitch && f10.dashOpen, f10);
 
   ok("لا أخطاء برمجية أثناء المسارات", errs.length === 0, errs);
   await browser.close();

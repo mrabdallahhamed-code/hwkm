@@ -75,6 +75,7 @@ setInterval(() => autoRefreshTick(false), 40000);
 document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') autoRefreshTick(false); });
 
 async function go(id, el){
+  if(typeof applySubscriptionLock === "function" && typeof currentCompanyExpiredRaw !== "undefined") applySubscriptionLock(currentCompanyExpiredRaw); // يعيد التقييم بعد اكتمال تحميل الملف الشخصي
   if(typeof currentCompanyLocked !== "undefined" && currentCompanyLocked && id !== 'mysub'){ id = 'mysub'; el = document.getElementById('navMySub'); }
   currentPageId = id;
   if(companyTypeReadyPromise){ try{ await companyTypeReadyPromise; }catch(e){} }
