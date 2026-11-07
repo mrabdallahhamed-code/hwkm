@@ -114,6 +114,75 @@ function ok(name, cond, extra) {
   ok("القرار غير العادي يقترح 75% نظاميًا", f2.reqShown === 75 && f2.req === 75, f2);
   ok("معارضة 35% تجعل بلوغ 75% مستحيلًا فيصير «غير معتمد»", f2.status === "غير معتمد" && /لم يعد بلوغ/.test(f2.note), f2);
 
+
+  /* ───────── مسار 3: التصويت على قرارات اجتماع (مجلس/لجنة) ───────── */
+  console.log("مسار 3) قرارات الاجتماع: الأهلية والتصويت وتغيير الصوت");
+  const f3 = await pg.evaluate(async () => {
+    const msgs = []; window.alert = (m) => msgs.push(String(m));
+    const settle = () => new Promise((r) => setTimeout(r, 250));
+    window.uiConfirm = async () => true;
+    let promptAnswer = "";
+    window.uiPrompt = async () => promptAnswer;
+    __db.board_members = [
+      { id: 1, company_id: 1, name: "رئيس", claimed_by_email: "p@test.sa", status: "نشط" },
+      { id: 2, company_id: 1, name: "عضو لجنة", claimed_by_email: "m@test.sa", status: "نشط" },
+      { id: 3, company_id: 1, name: "عضو آخر", claimed_by_email: "o@test.sa", status: "نشط" },
+    ];
+    __db.committees = [{ id: 7, company_id: 1, name: "لجنة المراجعة" }];
+    __db.committee_members = [{ id: 1, committee_id: 7, member_id: 2 }];
+    __db.meetings = [{ id: 10, company_id: 1, committee_id: null }, { id: 11, company_id: 1, committee_id: 7 }];
+    __db.board_decisions = [
+      { id: 100, meeting_id: 10, company_id: 1, decision_text: "اعتماد الموازنة" },
+      { id: 110, meeting_id: 11, company_id: 1, decision_text: "اعتماد خطة المراجعة" },
+    ];
+    __db.board_decision_votes = [];
+    const as = (email, name, role) => { __fakeUser = { email }; currentUserProfile = { email, full_name: name, is_platform_admin: false }; userMemberships = [{ company_id: 1, role: role || "عضو مجلس" }]; };
+    const grid = () => document.getElementById("mdView-decisionsGrid").innerHTML;
+    const wrapShown = () => document.getElementById("mdView-decisionsWrap").style.display !== "none";
+    const votes = (d) => __db.board_decision_votes.filter((v) => v.decision_id === d);
+    const res = {};
+    currentCompanyId = 1;
+
+    // اجتماع المجلس: عضو المجلس يرى أزرار التصويت ويصوّت
+    as("p@test.sa", "رئيس"); currentAttendanceMeetingId = 10; await loadMeetingDecisionsGrid(10);
+    res.boardButtons = /castMeetingDecisionVote\(100,'موافق'\)/.test(grid());
+    await castMeetingDecisionVote(100, "موافق"); await settle();
+    res.boardVote = votes(100).length === 1 && votes(100)[0].voter_email === "p@test.sa";
+    res.myVoteShown = /صوّتك: موافق/.test(grid());
+    // تغيير الصوت: يُحذف الصوت الحالي ثم يُعاد التصويت
+    await changeMeetingDecisionVote(100); await settle();
+    res.afterDelete = votes(100).length;
+    await castMeetingDecisionVote(100, "معارض"); await settle();
+    res.afterChange = votes(100).map((v) => v.vote).join(",");
+
+    // الامتناع يتطلب سبباً يُحفظ، والإلغاء لا يسجّل شيئاً
+    as("m@test.sa", "عضو لجنة"); currentAttendanceMeetingId = 10; await loadMeetingDecisionsGrid(10);
+    promptAnswer = null; await castMeetingDecisionVote(100, "ممتنع"); await settle();
+    res.abstainCancelled = votes(100).length === 1;
+    promptAnswer = "تعارض مصالح"; await castMeetingDecisionVote(100, "ممتنع"); await settle();
+    const ab = votes(100).find((v) => v.voter_email === "m@test.sa");
+    res.abstainReason = !!ab && ab.vote === "ممتنع" && ab.justification === "تعارض مصالح";
+
+    // اجتماع لجنة: غير العضو في اللجنة لا يرى القسم، وعضو اللجنة يراه
+    as("o@test.sa", "عضو آخر"); currentAttendanceMeetingId = 11; await loadMeetingDecisionsGrid(11);
+    res.nonMemberHidden = wrapShown() === false;
+    as("m@test.sa", "عضو لجنة"); await loadMeetingDecisionsGrid(11);
+    res.memberSees = wrapShown() === true && /castMeetingDecisionVote\(110,'موافق'\)/.test(grid());
+    // مدير النظام يرى قرارات اللجنة دون أن يكون عضواً، لكن بلا أزرار تصويت
+    as("admin@test.sa", "المدير", "مدير النظام"); await loadMeetingDecisionsGrid(11);
+    res.adminSeesNoButtons = wrapShown() === true && !/castMeetingDecisionVote/.test(grid());
+    res.errors = msgs;
+    return res;
+  });
+  ok("عضو المجلس يرى أزرار التصويت ويُسجَّل صوته", f3.boardButtons && f3.boardVote, f3);
+  ok("يظهر للعضو صوته الحالي", f3.myVoteShown, f3);
+  ok("تغيير الصوت: يُحذف الأول ثم يُسجَّل الجديد (صوت واحد فقط)", f3.afterDelete === 0 && f3.afterChange === "معارض", f3);
+  ok("إلغاء نافذة سبب الامتناع لا يسجّل صوتًا", f3.abstainCancelled, f3);
+  ok("الامتناع يُحفظ مع سببه", f3.abstainReason, f3);
+  ok("اجتماع اللجنة: غير الأعضاء لا يرون القسم", f3.nonMemberHidden, f3);
+  ok("عضو اللجنة يرى قراراتها ويصوّت", f3.memberSees, f3);
+  ok("مدير النظام يرى قرارات اللجنة دون أزرار تصويت", f3.adminSeesNoButtons, f3);
+
   ok("لا أخطاء برمجية أثناء المسارات", errs.length === 0, errs);
   await browser.close();
   console.log(`\nالنتيجة: ${passed} نجح، ${failed} فشل`);
