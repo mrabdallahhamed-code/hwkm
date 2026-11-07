@@ -74,6 +74,7 @@
       lte(c, v) { st.filters.push((r) => r[c] <= v); return api; },
       gt(c, v) { st.filters.push((r) => r[c] > v); return api; },
       lt(c, v) { st.filters.push((r) => r[c] < v); return api; },
+      not(c, op, v) { if (op === "is") st.filters.push((r) => (v === null ? r[c] != null : r[c] !== v)); else if (op === "eq") st.filters.push((r) => String(r[c]) !== String(v)); return api; },
       is(c, v) { st.filters.push((r) => (v === null ? r[c] == null : r[c] === v)); return api; },
       order(c, o) { st.order = { c, asc: !(o && o.ascending === false) }; return api; },
       limit(n) { st.limit = n; return api; },
@@ -100,7 +101,8 @@
         getPublicUrl: (p) => ({ data: { publicUrl: "https://files.test/" + p } }),
       }),
     },
-    rpc: async () => ({ data: null, error: null }),
+    // دوال الخادم: سجل الاستدعاءات في __rpcLog، والرد من __rpc[name](args) إن وُجد
+    rpc: async (n, a) => { (window.__rpcLog = window.__rpcLog || []).push({ n, a }); const h = window.__rpc && window.__rpc[n]; return h ? h(a) : { data: null, error: null }; },
     functions: { invoke: async () => ({ data: {}, error: null }) },
     channel: () => ({ on() { return this; }, subscribe() { return this; } }),
     removeChannel: () => {},

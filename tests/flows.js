@@ -380,6 +380,196 @@ function ok(name, cond, extra) {
   ok("تحديث حالة المعالجة وحذف الخطر يعملان", f6.status1 === "قيد التنفيذ" && f6.afterDelete === 1, f6);
   ok("الإنشاء والتكليف يُسجَّلان في سجل النشاط", f6.activity.includes("إنشاء:طلب تقييم مخاطر") && f6.activity.includes("تكليف:طلب تقييم مخاطر"), f6.activity);
 
+
+  /* ───────── مسار 7: تسجيل شركة جديدة (التجربة الفورية وطلب الاشتراك المباشر) ───────── */
+  console.log("مسار 7) تسجيل شركة جديدة");
+  const f7 = await pg.evaluate(async () => {
+    const msgs = []; window.alert = (m) => msgs.push(String(m)); window.__nativeAlert = window.alert;
+    const q = (id) => document.getElementById(id);
+    const res = {}; const settle = () => new Promise((r) => setTimeout(r, 250));
+    __db.company_requests = []; __rpcLog = [];
+    __fakeUser = { email: "owner@test.sa" };
+    currentUserProfile = { email: "owner@test.sa", full_name: "صاحب الشركة", phone_number: "0500000000", is_platform_admin: false };
+    document.body.insertAdjacentHTML("beforeend", '<div id="companyRequestBody"></div>');
+    await loadCompanyRequestPage(); await settle();
+    res.formShown = !!q("cr-name") && q("cr-resp-email").value === "owner@test.sa" && q("cr-resp-name").value === "صاحب الشركة";
+    // إظهار الحقول حسب نوع الشركة
+    const tog = (v) => { q("cr-type").value = v; toggleCrLLCFields(); return [q("cr-llc-fields").style.display, q("cr-tadawul-box").style.display, q("cr-other-note").style.display].join("/"); };
+    res.toggles = [tog("ذات مسؤولية محدودة"), tog("مساهمة مدرجة"), tog("شكل آخر — تواصل معنا"), tog("مساهمة غير مدرجة")];
+    // التحقق من المدخلات (التجربة الفورية)
+    const trial = async () => { msgs.length = 0; const n = __rpcLog.length; await startInstantTrial(); return { msg: msgs[0] || "", rpc: __rpcLog.length - n }; };
+    q("cr-name").value = ""; res.noName = await trial();
+    q("cr-name").value = "شركة النخبة"; q("cr-cr-number").value = "123456789"; res.shortCr = await trial();
+    q("cr-cr-number").value = "٧٠٤٩٣٨٨٢٠٥"; // أرقام عربية
+    q("cr-type").value = "مساهمة مدرجة"; q("cr-tadawul").value = "22"; res.noSymbol = await trial();
+    // رد الخادم: حد الشركات التجريبية، ثم الجوال غير موثق
+    q("cr-tadawul").value = "٢٢٢٢";
+    __rpc = { create_trial_company: () => ({ data: { status: "limit" }, error: null }) };
+    res.limit = await trial();
+    __rpc = { create_trial_company: () => ({ data: { status: "phone_unverified" }, error: null }) };
+    res.phone = await trial();
+    __rpc = { create_trial_company: () => ({ data: null, error: { message: "boom" } }) };
+    res.err = await trial();
+    const call = __rpcLog.filter((x) => x.n === "create_trial_company").pop();
+    res.args = call && call.a;
+    res.lockReleased = trialSubmitLock === false;
+    // طلب الاشتراك المباشر (بدون تجربة)
+    q("cr-type").value = "ذات مسؤولية محدودة"; toggleCrLLCFields();
+    msgs.length = 0; await submitCompanyRequest(); await settle();
+    res.requests = __db.company_requests.length;
+    const row = __db.company_requests[0] || {};
+    res.row = { by: row.requested_by_email, name: row.company_name, type: row.company_type, cr: row.cr_number, status: row.status, symbol: row.tadawul_symbol };
+    res.pendingShown = /طلبك قيد المراجعة/.test(q("companyRequestBody").innerHTML);
+    // إعادة الطلب بنفس الاسم لا تكرره
+    await loadCompanyRequestPage(); // يعرض «قيد المراجعة» فلا يظهر النموذج
+    res.formHiddenWhilePending = !q("cr-name");
+    // رفض الطلب: يظهر النموذج مع إشعار الرفض
+    __db.company_requests[0].status = "مرفوض"; await loadCompanyRequestPage();
+    res.rejectedNotice = !!q("cr-name") && /تم رفض طلبك/.test(q("companyRequestBody").innerHTML);
+    // محاولتان متتاليتان لطلب قيد المراجعة بنفس الاسم تُرفضان
+    q("cr-name").value = "شركة النخبة"; q("cr-type").value = "مساهمة غير مدرجة"; q("cr-cr-number").value = "7049388205";
+    __db.company_requests[0].status = "قيد المراجعة";
+    msgs.length = 0; await submitCompanyRequestImpl();
+    res.dupMsg = msgs.some((m) => /قيد المراجعة/.test(m)); res.stillOne = __db.company_requests.length === 1;
+    return res;
+  });
+  ok("نموذج التسجيل يعرض بيانات المسؤول، والحقول تظهر حسب نوع الشركة", f7.formShown && f7.toggles.join("|") === "block/none/none|none/block/none|none/none/block|none/none/none", f7);
+  ok("الاسم الفارغ والسجل غير المكتمل ورمز تداول الناقص تُرفض قبل أي استدعاء للخادم", f7.noName.rpc === 0 && f7.shortCr.rpc === 0 && f7.noSymbol.rpc === 0 && /اسم الشركة/.test(f7.noName.msg) && /إلزامي/.test(f7.shortCr.msg) && /تداول/.test(f7.noSymbol.msg), f7);
+  ok("الأرقام العربية تُحوَّل إلى أرقام لاتينية في الطلب المرسل للخادم", f7.args && f7.args.p_cr_number === "7049388205" && f7.args.p_name === "شركة النخبة" && f7.args.p_type === "مساهمة مدرجة", f7.args);
+  ok("حد التجارب والجوال غير الموثق وخطأ الخادم تُعرض برسائل واضحة ويُفك قفل الزر", /من الشركات التجريبية/.test(f7.limit.msg) && /توثيق رقم الجوال/.test(f7.phone.msg) && /تعذّر إنشاء الشركة/.test(f7.err.msg) && f7.lockReleased, f7);
+  ok("طلب الاشتراك المباشر يُسجَّل بحالة «قيد المراجعة» وببيانات صحيحة ويظهر للمستخدم", f7.requests === 1 && f7.row.by === "owner@test.sa" && f7.row.status === "قيد المراجعة" && f7.row.cr === "7049388205" && f7.pendingShown && f7.formHiddenWhilePending, f7);
+  ok("الطلب المرفوض يظهر معه إشعار الرفض، والطلب المكرر قيد المراجعة يُمنع", f7.rejectedNotice && f7.dupMsg && f7.stillOne, f7);
+
+  /* ───────── مسار 8: الاشتراك (التجربة ← الاشتراك ← الانتهاء ← التجديد) ───────── */
+  console.log("مسار 8) الاشتراك والتجربة والتجديد");
+  const f8 = await pg.evaluate(async () => {
+    const msgs = []; window.alert = (m) => msgs.push(String(m));
+    const q = (id) => document.getElementById(id);
+    const res = {}; const settle = () => new Promise((r) => setTimeout(r, 250));
+    const day = 86400000, iso = (d) => new Date(Date.now() + d * day).toISOString();
+    const page = (sub) => { currentCompanySub = sub; renderMySubscription(); return q("mySubBody").innerHTML; };
+    // صفحة «اشتراكي» في الحالات الخمس
+    const h1 = page({ trial: iso(5) });
+    res.trial = /فترة تجريبية/.test(h1) && />5</.test(h1) && /pk-grid/.test(h1);
+    const h2 = page({ paid: true, pkg: "مدار", ends: iso(200), starts: iso(-165), price: 12000, cycle: "annual", risk: true, audit: false });
+    res.paid = /اشتراك فعّال/.test(h2) && /مدار/.test(h2) && /إدارة المخاطر/.test(h2) && !/المراجعة الداخلية/.test(h2) && /12,000/.test(h2) && !/pk-grid/.test(h2);
+    const h3 = page({ paid: true, pkg: "ذاتي", ends: iso(-10), starts: iso(-375) });
+    res.expired = /اشتراك منتهٍ/.test(h3) && /منذ الانتهاء/.test(h3);
+    const h4 = page({ paid: true, pkg: "ذاتي", ends: iso(12), starts: iso(-353) });
+    res.nearEnd = /قارب على الانتهاء/.test(h4);
+    res.none = /لا يوجد اشتراك/.test(page({})) && /pk-grid/.test(q("mySubBody").innerHTML);
+    res.missing = /تعذّر تحميل/.test(page(null));
+    // الشريط العلوي
+    const banner = () => { const b = q("trialBanner"); return b ? b.textContent : ""; };
+    const fresh = () => { clearTimeout(window._tbTimer); try { sessionStorage.clear(); } catch (e) {} const b = q("trialBanner"); if (b) b.remove(); };
+    currentCompanyId = 1; userMemberships = [{ company_id: 1, role: "مدير النظام" }]; currentUserProfile = { email: "a@test.sa", is_platform_admin: false };
+    fresh(); currentCompanyTrialEndsAt = iso(3); currentCompanySub = null; renderTrialBanner(); res.bTrial = /متبقٍ [34] يوم/.test(banner()) && /اشترك الآن/.test(banner());
+    fresh(); currentCompanyTrialEndsAt = iso(-2); renderTrialBanner(); res.bTrialEnded = /انتهت فترة/.test(banner());
+    fresh(); currentCompanyTrialEndsAt = null; currentCompanySub = { paid: true, ends: iso(10) }; renderTrialBanner(); res.bSubAdmin = /ينتهي اشتراكك خلال/.test(banner());
+    fresh(); userMemberships = [{ company_id: 1, role: "مساهم" }]; renderTrialBanner(); res.bSubShareholder = banner() === "";
+    fresh(); userMemberships = [{ company_id: 1, role: "مدير النظام" }]; currentCompanySub = { paid: true, ends: iso(200) }; renderTrialBanner(); res.bFar = banner() === "";
+    fresh(); currentCompanySub = { paid: true, ends: iso(-3) }; renderTrialBanner(); res.bExpired = /انتهى اشتراكك/.test(banner());
+    dismissTrialBanner(); res.dismissed = banner() === ""; renderTrialBanner(); res.stayDismissed = banner() === "";
+    fresh();
+    // تجديد الاشتراك من مالك المنصة
+    window.loadManageCompanies = async () => {};
+    const ends0 = iso(30);
+    __db.companies = [
+      { id: 10, name: "شركة أ", billing_cycle: "annual", subscription_ends_at: ends0 },
+      { id: 11, name: "شركة ب", billing_cycle: "monthly", subscription_ends_at: ends0 },
+      { id: 12, name: "شركة قديمة", subscription_ends_at: null, converted_to_paid_at: iso(-100) },
+    ];
+    window.confirm = () => true;
+    currentUserProfile = { email: "x@test.sa", is_platform_admin: false };
+    await renewSubscription(10); res.nonOwnerBlocked = __db.companies[0].subscription_ends_at === ends0;
+    currentUserProfile = { email: "owner@hwkm.net", is_platform_admin: true };
+    await renewSubscription(10); await settle();
+    const yrs = (a, b) => Math.round((new Date(b) - new Date(a)) / day);
+    res.annual = yrs(ends0, __db.companies[0].subscription_ends_at);       // +سنة من نهاية الاشتراك الحالي
+    await renewSubscription(11); await settle();
+    res.monthly = yrs(ends0, __db.companies[1].subscription_ends_at);      // +شهر
+    const answers = ["شهري", "500"]; window.prompt = () => answers.shift();
+    await renewSubscription(12); await settle();
+    const c12 = __db.companies[2];
+    res.old = { cycle: c12.billing_cycle, price: c12.subscription_price, hasEnd: !!c12.subscription_ends_at, startsKept: !!c12.subscription_starts_at };
+    window.confirm = () => false; const before = __db.companies[0].subscription_ends_at;
+    await renewSubscription(10); res.cancelKeeps = __db.companies[0].subscription_ends_at === before;
+    res.activity = (__db.activity_log || []).filter((a) => a.entity_type === "اشتراك").length;
+    return res;
+  });
+  ok("صفحة «اشتراكي»: التجربة والفعّال والمنتهي والقارب على الانتهاء وبلا اشتراك وتعذّر التحميل", f8.trial && f8.paid && f8.expired && f8.nearEnd && f8.none && f8.missing, f8);
+  ok("الشريط العلوي: تجربة، تجربة منتهية، اشتراك قارب على الانتهاء (للمدير فقط)، اشتراك منتهٍ", f8.bTrial && f8.bTrialEnded && f8.bSubAdmin && f8.bSubShareholder && f8.bFar && f8.bExpired, f8);
+  ok("الشريط يُغلق ولا يعود في نفس الجلسة", f8.dismissed && f8.stayDismissed, f8);
+  ok("التجديد لمالك المنصة فقط، سنويًا (+365 يومًا) وشهريًا (+شهر) من نهاية الاشتراك الحالي", f8.nonOwnerBlocked && (f8.annual === 365 || f8.annual === 366) && f8.monthly >= 28 && f8.monthly <= 31, f8);
+  ok("المشترك القديم بلا مدة: يُسأل عن الدورة والسعر ثم يُسجَّل، وإلغاء التأكيد لا يغيّر شيئًا", f8.old.cycle === "monthly" && f8.old.price === 500 && f8.old.hasEnd && f8.old.startsKept && f8.cancelKeeps, f8);
+  ok("التجديد يُسجَّل في سجل النشاط", f8.activity >= 3, f8.activity);
+
+  /* ───────── مسار 9: الجمعية العامة (الحضور ← النصاب ← الأغلبية ← قائمة الحاضرين) ───────── */
+  console.log("مسار 9) الجمعية العامة: الحضور والنصاب والأغلبية");
+  const f9 = await pg.evaluate(async () => {
+    const msgs = []; window.alert = (m) => msgs.push(String(m)); window.uiConfirm = async () => true;
+    const q = (id) => document.getElementById(id);
+    const res = {}; const settle = () => new Promise((r) => setTimeout(r, 250));
+    __db.companies = [{ id: 1, name: "شركة تجريبية", total_shares: 1000 }];
+    __db.shareholders = [
+      { id: 1, company_id: 1, name: "أحمد", shares_count: 400 }, { id: 2, company_id: 1, name: "بسمة", shares_count: 350 }, { id: 3, company_id: 1, name: "جمال", shares_count: 250 },
+    ];
+    __db.meetings = [{ id: 7, company_id: 1, type: "جمعية عامة", agm_type: "عادية", call_number: 1 }];
+    __db.agm_attendance = []; __db.votes = [];
+    currentCompanyId = 1; currentUserProfile = { email: "admin@test.sa", full_name: "المدير", is_platform_admin: false }; __fakeUser = { email: "admin@test.sa" };
+    userMemberships = [{ company_id: 1, role: "مدير النظام" }];
+    const box = () => q("agmView-quorum").textContent.replace(/\s+/g, " ");
+    q("agmCheckin-shareholder").dataset.meetingId = "7";
+    await loadCheckinShareholdersDropdown();
+    res.options = q("agmCheckin-shareholder").options.length - 1;
+    // تسجيل بلا اسم يُرفض
+    msgs.length = 0; await checkInAttendee(); res.emptyBlocked = msgs.some((m) => /اختيار مساهم/.test(m)) && __db.agm_attendance.length === 0;
+    // اختيار مساهم يملأ الاسم والأسهم تلقائيًا
+    q("agmCheckin-shareholder").value = "1"; onCheckinShareholderPick();
+    res.autofill = q("agmCheckin-name").value === "أحمد" && q("agmCheckin-asalah").value === "400";
+    await checkInAttendee(); await settle();
+    res.row1 = __db.agm_attendance[0] && { n: __db.agm_attendance[0].shareholder_name, a: __db.agm_attendance[0].shares_asalah, c: __db.agm_attendance[0].company_id };
+    res.q1 = box();                                    // 40% من 1000 ← عادية دعوة أولى (25%) متحقق
+    res.fieldsReset = q("agmCheckin-name").value === "" && q("agmCheckin-asalah").value === "0";
+    // الجمعية غير العادية: النصاب 50% فلا يتحقق بـ 40%
+    __db.meetings[0].agm_type = "غير عادية"; await renderAGMQuorumWidget(7); res.q2 = box();
+    // حضور بالوكالة 150 سهمًا يرفع الحضور إلى 55%
+    q("agmCheckin-shareholder").value = ""; q("agmCheckin-name").value = "بسمة"; q("agmCheckin-asalah").value = "0"; q("agmCheckin-wakala").value = "150"; q("agmCheckin-card").value = "C-9";
+    await checkInAttendee(); await settle();
+    res.q3 = box();
+    res.list = q("agmCheckin-list").textContent.replace(/\s+/g, " ");
+    // قائمة الحاضرين للوثائق
+    const att = await getAttendeesList(7);
+    res.att = att.list.map((x) => x.name + ":" + x.shares + ":" + x.cardNo);
+    // الأغلبية على الأسهم الممثلة (550 سهمًا)
+    res.ordPass = agmEvaluateTopic("عادية", "الموافقة على القوائم المالية", 300, 550).passed;      // 54.5% > 50%
+    res.extFail = agmEvaluateTopic("غير عادية", "تعديل النظام", 300, 550).passed;                // 54.5% < 66.67%
+    res.extPass = agmEvaluateTopic("غير عادية", "تعديل النظام", 370, 550).passed;                // 67.3% ≥ 66.67%
+    res.spec75 = agmEvaluateTopic("غير عادية", "زيادة رأس المال", 370, 550).passed;               // 67.3% < 75%
+    res.spec75ok = agmEvaluateTopic("غير عادية", "زيادة رأس المال", 420, 550).passed;             // 76.4% ≥ 75%
+    // معدل التصويت الحي
+    __db.votes = [
+      { id: 1, meeting_id: 7, shareholder_name: "أحمد", shares_count: 400 }, { id: 2, meeting_id: 7, shareholder_name: "أحمد", shares_count: 400 },
+      { id: 3, meeting_id: 7, shareholder_name: "بسمة", shares_count: 150 }, { id: 4, meeting_id: 7, shareholder_name: null, shares_count: 99 },
+    ];
+    await renderAGMVotingRateWidget(7); res.rate = q("agmView-votingRate").textContent.replace(/\s+/g, " ");
+    // عدم تطابق مجموع المساهمين مع أسهم الشركة يظهر تحذيرًا
+    __db.shareholders[2].shares_count = 100; await renderAGMQuorumWidget(7); res.mismatch = /لا يساوي إجمالي أسهم الشركة/.test(box());
+    __db.shareholders[2].shares_count = 250; __db.companies[0].total_shares = 0; await renderAGMQuorumWidget(7); res.noTotal = /غير مُدخل/.test(box());
+    __db.companies[0].total_shares = 1000;
+    // حذف تسجيل حضور يعيد حساب النصاب
+    await deleteCheckin(__db.agm_attendance[1].id, 7); await settle(); res.afterDelete = box();
+    return res;
+  });
+  ok("قائمة المساهمين تظهر، والتسجيل بلا اسم يُرفض، واختيار المساهم يملأ اسمه وأسهمه", f9.options === 3 && f9.emptyBlocked && f9.autofill, f9);
+  ok("تسجيل الحضور يُحفظ بشركته الصحيحة ويصفّر الحقول", f9.row1 && f9.row1.n === "أحمد" && f9.row1.a === 400 && f9.row1.c === 1 && f9.fieldsReset, f9);
+  ok("النصاب: 40% يحقق نصاب العادية (25%) ولا يحقق غير العادية (50%)، ثم يتحقق بإضافة وكالة 150 سهمًا (55%)", /تحقق النصاب/.test(f9.q1) && /25%/.test(f9.q1) && /لم يتحقق/.test(f9.q2) && /50%/.test(f9.q2) && /55\.0%/.test(f9.q3) && /تحقق النصاب/.test(f9.q3) && !/لم يتحقق/.test(f9.q3), f9);
+  ok("قائمة الحاضرين ومحضر الحضور يجمعان الأصالة والوكالة ويحفظان رقم البطاقة", /بسمة/.test(f9.list) && f9.att.join("|") === "أحمد:400:V-001|بسمة:150:C-9", f9);
+  ok("الأغلبية محسوبة على الأسهم الممثلة: عادية 50%، غير عادية ثلثان، وقرارات خاصة 75%", f9.ordPass && !f9.extFail && f9.extPass && !f9.spec75 && f9.spec75ok, f9);
+  ok("معدل التصويت الحي يحسب آخر صوت لكل مساهم ويتجاهل بلا اسم (550 سهمًا = 55%)", /2/.test(f9.rate) && /55\.0%/.test(f9.rate), f9.rate);
+  ok("تحذير عدم تطابق أسهم المساهمين مع إجمالي الشركة، وتحذير غياب الإجمالي", f9.mismatch && f9.noTotal, f9);
+  ok("حذف تسجيل حضور يعيد حساب النصاب (40%)", /40\.0%/.test(f9.afterDelete), f9.afterDelete);
+
   ok("لا أخطاء برمجية أثناء المسارات", errs.length === 0, errs);
   await browser.close();
   console.log(`\nالنتيجة: ${passed} نجح، ${failed} فشل`);
