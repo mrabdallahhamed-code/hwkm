@@ -1220,3 +1220,4 @@ div[style*="linear-gradient(135deg,var(--primary),var(--primary2))"][style*="bor
 /* الحساب مقفل بعد انتهاء التجربة: يبقى «اشتراكي» فقط */
 body.sub-locked #companyNavGroups .nav-item:not(#navMySub),body.sub-locked #companyNavGroups .nav-group-header{display:none!important}
 body.sub-locked #companyNavGroups .nav-group:not(:first-child){display:none!important}
+body.sub-locked #globalSearchInput,body.sub-locked #globalSearchResults,body.sub-locked [onclick="openEditCompanyModal()"]{display:none!important}
