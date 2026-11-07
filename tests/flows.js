@@ -254,6 +254,58 @@ function ok(name, cond, extra) {
   ok("إكمال كل الإجابات يحوّل الحالة إلى «قيد التحليل» ويبلّغ المراجع", f4.allAnswered && f4.statusFinal === "قيد التحليل" && f4.reviewerNotified, f4);
   ok("الخطوات تُسجَّل في سجل النشاط", ["إنشاء:طلب مراجعة", "تكليف:طلب مراجعة", "إرسال:أسئلة مراجعة"].every((x) => f4.activity.includes(x)), f4.activity);
 
+
+  /* ───────── مسار 5: دعوة الأعضاء وربط الحسابات ───────── */
+  console.log("مسار 5) الدعوات: توليد رابط، دور مخصص، ربط حساب موجود، إلغاء");
+  const f5 = await pg.evaluate(async () => {
+    const msgs = []; window.alert = (m) => msgs.push(String(m));
+    const settle = () => new Promise((r) => setTimeout(r, 300));
+    window.uiConfirm = async () => true; window.loadUsers = async () => {};
+    const q = (id) => document.getElementById(id);
+    currentCompanyId = 1; __fakeUser = { email: "admin@test.sa" }; currentUserProfile = { email: "admin@test.sa", is_platform_admin: false };
+    __db.company_invites = []; __db.user_company_memberships = [];
+    __db.user_profiles = [{ id: 1, email: "Existing@Test.sa", full_name: "مستخدم قائم" }];
+    const res = {};
+    // 1) دعوة بدور جاهز
+    openInviteModal(); res.defaultRole = q("mi-role").value;
+    await generateInvite(); await settle();
+    const inv = __db.company_invites[0] || {};
+    res.code = /^[A-HJ-NP-Z2-9]{8}$/.test(inv.invite_code || ""); res.role = inv.suggested_role; res.by = inv.created_by; res.used = inv.used;
+    res.link = (q("mi-link").value || "").endsWith("?invite=" + inv.invite_code);
+    res.resultShown = q("mi-result").style.display === "block";
+    res.pendingShown = /عضو مجلس/.test(q("pendingInvitesList") ? q("pendingInvitesList").innerHTML : "") && (q("pendingInvitesList").innerHTML || "").includes(inv.invite_code);
+    // 2) دور مخصص بلا اسم يُرفض، ومعه اسم يُحفظ
+    openInviteModal(); q("mi-role").value = "__custom__"; toggleCustomRoleInput("mi-role", "mi-role-custom"); q("mi-role-custom").value = "";
+    msgs.length = 0; await generateInvite(); res.customBlocked = __db.company_invites.length === 1 && msgs.length > 0;
+    q("mi-role-custom").value = "مستشار قانوني"; await generateInvite(); await settle();
+    res.customSaved = __db.company_invites.length === 2 && __db.company_invites[1].suggested_role === "مستشار قانوني";
+    res.codesDiffer = __db.company_invites[0].invite_code !== __db.company_invites[1].invite_code;
+    // 3) ربط حساب موجود
+    openInviteModal(); switchInviteTab("existing");
+    q("mi-existing-email").value = "nobody@test.sa"; msgs.length = 0; await linkExistingAccount();
+    res.unknownBlocked = __db.user_company_memberships.length === 0 && /لا يوجد حساب/.test(msgs[0] || "");
+    q("mi-existing-role").value = "عضو مجلس"; q("mi-existing-email").value = "existing@test.sa"; await linkExistingAccount(); await settle();
+    const m = __db.user_company_memberships;
+    res.linked = m.length === 1 && m[0].company_id === 1 && m[0].role === "عضو مجلس" && m[0].email === "Existing@Test.sa";
+    // إعادة الربط بدور آخر تحدّث الدور ولا تكرر السجل
+    openInviteModal(); switchInviteTab("existing"); q("mi-existing-email").value = "existing@test.sa"; q("mi-existing-role").value = "سكرتير المجلس";
+    await linkExistingAccount(); await settle();
+    res.relinkNoDup = __db.user_company_memberships.length === 1 && __db.user_company_memberships[0].role === "سكرتير المجلس";
+    // 4) إلغاء دعوة
+    const firstId = __db.company_invites[0].id; await deleteInvite(firstId); await settle();
+    res.deleted = __db.company_invites.length === 1 && __db.company_invites[0].id !== firstId;
+    res.activity = (__db.activity_log || []).map((a) => a.action_type + ":" + a.entity_type);
+    return res;
+  });
+  ok("الدعوة تُولَّد بكود من 8 خانات ودور افتراضي «عضو مجلس» وباسم المنشئ", f5.code && f5.role === "عضو مجلس" && f5.by === "admin@test.sa" && f5.used === false, f5);
+  ok("رابط الدعوة يحمل الكود ويظهر في قائمة الدعوات المعلّقة", f5.link && f5.resultShown && f5.pendingShown, f5);
+  ok("الدور المخصص بلا اسم يُرفض، ومعه اسم يُحفظ بكود مختلف", f5.customBlocked && f5.customSaved && f5.codesDiffer, f5);
+  ok("ربط بريد غير مسجّل يُرفض", f5.unknownBlocked, f5);
+  ok("ربط حساب موجود يضيفه للشركة بالدور المحدد (دون تأثر بحروف البريد)", f5.linked, f5);
+  ok("إعادة الربط تحدّث الدور ولا تكرر العضوية", f5.relinkNoDup, f5);
+  ok("إلغاء الدعوة يحذفها", f5.deleted, f5);
+  ok("الدعوة والربط يُسجَّلان في سجل النشاط", f5.activity.includes("دعوة:رابط دعوة") && f5.activity.includes("صلاحيات:مستخدم"), f5.activity);
+
   ok("لا أخطاء برمجية أثناء المسارات", errs.length === 0, errs);
   await browser.close();
   console.log(`\nالنتيجة: ${passed} نجح، ${failed} فشل`);

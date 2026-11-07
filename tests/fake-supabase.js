@@ -4,9 +4,9 @@
 (function () {
   const db = (window.__db = {});
   window.__fakeUser = null; // { email }
-  const UNIQUE = { circulation_votes: ["resolution_id", "voter_email"], push_subscriptions: ["endpoint"] };
+  const UNIQUE = { circulation_votes: ["resolution_id", "voter_email"], push_subscriptions: ["endpoint"], user_company_memberships: ["email", "company_id"] };
   // القيم الافتراضية التي تضعها القاعدة الحقيقية عند الإدراج
-  const DEFAULTS = { circulation_resolutions: { status: "مفتوح" }, audit_questions: { sent: false } };
+  const DEFAULTS = { circulation_resolutions: { status: "مفتوح" }, audit_questions: { sent: false }, company_invites: { used: false } };
   const seq = {};
   const clone = (x) => JSON.parse(JSON.stringify(x));
   const tbl = (n) => (db[n] = db[n] || []);
