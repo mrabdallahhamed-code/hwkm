@@ -309,6 +309,7 @@ async function openEditProfileModal(id){
   const { data: u, error } = await sb.from("user_profiles").select("*").eq("id", id).single();
   if(error || !u){ alert("تعذّر تحميل بيانات العضو"); return; }
   document.getElementById("mep-id").value = u.id;
+  if(typeof pushRefreshUI==="function") pushRefreshUI(false);
   document.getElementById("mep-title-h").textContent = "✏️ تعديل بيانات — " + (u.full_name||u.email||"");
   document.getElementById("mep-name").value = u.full_name || "";
   document.getElementById("mep-national-id").value = u.national_id || "";
@@ -321,6 +322,7 @@ async function openEditProfileModal(id){
 async function openMyProfileModal(){
   if(!currentUserProfile || !currentUserProfile.id){ alert("تعذّر تحديد حسابك حاليًا"); return; }
   await openEditProfileModal(currentUserProfile.id);
+  if(typeof pushRefreshUI==="function") pushRefreshUI(true);
 }
 
 async function saveEditProfile(){
