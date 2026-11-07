@@ -268,6 +268,18 @@ const SOLE_PROP_HIDDEN_PAGES = ['meetings','committees','agm','voting','members'
 const LLC_HIDDEN_PAGES = ['committees','announcements'];
 let currentCompanyModules = { internal_audit: false, risk_management: false };
 let currentCompanyTrialEndsAt = null;
+/* انتهت التجربة بلا اشتراك فعّال: يدخل العميل لكن كل شيء مقفل ما عدا صفحة «اشتراكي» (تواصل معنا). مالك المنصة مستثنى. */
+let currentCompanyLocked = false;
+function computeTrialExpired(c){
+  if(!c || !c.trial_ends_at || new Date(c.trial_ends_at) > new Date()) return false;
+  if(c.converted_to_paid_at) return false;
+  if(c.subscription_ends_at && new Date(c.subscription_ends_at) > new Date()) return false;
+  return true;
+}
+function applySubscriptionLock(expired){
+  currentCompanyLocked = !!expired && !(currentUserProfile && currentUserProfile.is_platform_admin === true);
+  try{ document.body.classList.toggle("sub-locked", currentCompanyLocked); }catch(e){}
+}
 const MODULE_PAGE_MAP = { audit: 'internal_audit', risks: 'risk_management' };
 
 /* الشريطان الثابتان (التجربة + رقم السجل) يدفعان الشريط العلوي لأسفل بدل أن يغطّياه */
@@ -285,6 +297,7 @@ function subDaysLeft(){
 }
 function renderTrialBanner(){
   let banner = document.getElementById("trialBanner");
+  if(currentCompanyLocked){ const b0 = document.getElementById("trialBanner"); if(b0) b0.remove(); updateBannerOffset(); return; }
   const isAdmin = getCurrentRole() === "مدير النظام" || !!(currentUserProfile && currentUserProfile.is_platform_admin === true);
   let msg = "", warn = false;
   if(currentCompanyTrialEndsAt){
@@ -347,6 +360,11 @@ function renderMySubscription(){
   const cell = (l,v) => `<div class="ms-cell"><span>${l}</span><b>${v}</b></div>`;
   let tone = "gray", badge = "لا يوجد اشتراك", big = "—", bigl = "", cells = "", note = "";
   if(!s){ note = "تعذّر تحميل بيانات الاشتراك."; }
+  else if(s.expiredTrial){
+    tone = "red"; badge = "🔒 انتهت فترتك التجريبية"; big = "—"; bigl = "";
+    cells = cell("انتهت في", fmt(s.expiredTrial)) + cell("حالة الحساب","مقفل حتى تفعيل الاشتراك");
+    note = "بياناتك محفوظة بالكامل ولن تُحذف. تواصل معنا لتفعيل الاشتراك وسنعيد لك الوصول فورًا.";
+  }
   else if(s.trial){
     const d = Math.max(0, Math.ceil((new Date(s.trial) - new Date()) / 86400000));
     tone = d <= 7 ? "red" : "gold"; badge = "🎁 فترة تجريبية"; big = d; bigl = "يوم متبقٍ";
@@ -372,7 +390,7 @@ function renderMySubscription(){
       <div class="ms-big"><b>${big}</b><span>${bigl}</span></div></div>
     <div class="ms-grid">${cells}</div>
     ${note ? `<div class="ms-note">${note}</div>` : ""}
-    ${(!s || !(s.paid || s.ends)) ? renderPlanCards() : ""}
+    ${(!s || !(s.paid || s.ends) || s.expiredTrial) ? renderPlanCards() : ""}
     <div class="pd-sec">تواصل معنا</div>
     <div class="ms-contact">
       <a class="ms-btn wa" href="https://wa.me/966509015864" target="_blank" rel="noopener"><span>💬</span><div><b>واتساب</b><small dir="ltr">+966 50 901 5864</small></div></a>
@@ -446,8 +464,12 @@ async function applyCompanyTypeVisibility(){
   };
   currentCompanyHasCr = !!(c && String(c.cr_number||"").trim());
   currentCompanySub = c ? { pkg:c.subscription_package, price:c.subscription_price, cycle:c.billing_cycle, starts:c.subscription_starts_at, ends:c.subscription_ends_at, paid:c.converted_to_paid_at, trial:inTrial ? c.trial_ends_at : null, audit:!!c.module_internal_audit, risk:!!c.module_risk_management } : null;
+  const trialExpired = computeTrialExpired(c);
+  if(currentCompanySub) currentCompanySub.expiredTrial = trialExpired ? c.trial_ends_at : null;
+  applySubscriptionLock(trialExpired);
   renderTrialBanner();
   renderCrBanner();
+  if(currentCompanyLocked && currentPageId !== "mysub"){ try{ go('mysub', document.getElementById('navMySub')); }catch(e){} }
   const isSoleProp = currentCompanyType === "مؤسسة فردية";
   const isLLCType = currentCompanyType === "ذات مسؤولية محدودة";
   const isLLCSingleManager = isLLCType && !!c?.llc_single_manager;

@@ -570,6 +570,51 @@ function ok(name, cond, extra) {
   ok("تحذير عدم تطابق أسهم المساهمين مع إجمالي الشركة، وتحذير غياب الإجمالي", f9.mismatch && f9.noTotal, f9);
   ok("حذف تسجيل حضور يعيد حساب النصاب (40%)", /40\.0%/.test(f9.afterDelete), f9.afterDelete);
 
+
+  /* ───────── مسار 10: انتهاء التجربة — الدخول مسموح والمنصة مقفلة ما عدا «اشتراكي» ───────── */
+  console.log("مسار 10) انتهاء التجربة: قفل المنصة");
+  const f10 = await pg.evaluate(async () => {
+    window.alert = () => {};
+    const q = (id) => document.getElementById(id);
+    const res = {}; const day = 86400000, iso = (d) => new Date(Date.now() + d * day).toISOString();
+    const base = { id: 1, name: "شركة", company_type: "مساهمة غير مدرجة", cr_number: "1234567890" };
+    const setCo = (extra) => { __db.companies = [Object.assign({}, base, extra)]; };
+    const visible = () => { const el = q("navMySub"); return !!el && getComputedStyle(el).display !== "none"; };
+    const navShown = () => [...document.querySelectorAll("#companyNavGroups .nav-item")].filter((n) => n.id !== "navMySub" && getComputedStyle(n).display !== "none").length;
+    currentCompanyId = 1; userMemberships = [{ company_id: 1, role: "مدير النظام" }];
+    currentUserProfile = { email: "a@test.sa", full_name: "عميل", is_platform_admin: false }; __fakeUser = { email: "a@test.sa" };
+    document.getElementById("appWrapper").style.display = "block";
+    // تجربة منتهية بلا اشتراك ← مقفل
+    setCo({ trial_ends_at: iso(-1) }); await applyCompanyTypeVisibility();
+    res.locked = currentCompanyLocked === true && document.body.classList.contains("sub-locked");
+    res.navHidden = navShown() === 0 && visible();
+    await go("meetings"); await new Promise((r) => setTimeout(r, 200));
+    res.redirected = currentPageId === "mysub" && q("p-mysub").classList.contains("active");
+    res.msg = /انتهت فترتك التجريبية/.test(q("mySubBody").textContent) && /لن تُحذف/.test(q("mySubBody").textContent) && /واتساب/.test(q("mySubBody").textContent);
+    res.noBanner = !q("trialBanner");
+    // ما زالت التجربة سارية ← مفتوح
+    setCo({ trial_ends_at: iso(5) }); await applyCompanyTypeVisibility();
+    res.trialOpen = currentCompanyLocked === false && !document.body.classList.contains("sub-locked") && navShown() > 3;
+    // انتهت لكن اشتراك فعّال أو محوّل للدفع ← مفتوح
+    setCo({ trial_ends_at: iso(-30), subscription_ends_at: iso(100) }); await applyCompanyTypeVisibility(); res.paidOpen = currentCompanyLocked === false;
+    setCo({ trial_ends_at: iso(-30), converted_to_paid_at: iso(-20) }); await applyCompanyTypeVisibility(); res.convertedOpen = currentCompanyLocked === false;
+    // شركة قديمة بلا تجربة ولا اشتراك ← مفتوحة (لا تُقفل)
+    setCo({}); await applyCompanyTypeVisibility(); res.legacyOpen = currentCompanyLocked === false;
+    // مالك المنصة مستثنى
+    currentUserProfile = { email: "o@hwkm.net", is_platform_admin: true };
+    setCo({ trial_ends_at: iso(-1) }); await applyCompanyTypeVisibility(); res.ownerExempt = currentCompanyLocked === false;
+    // العودة لشركة سارية تفك القفل
+    currentUserProfile = { email: "a@test.sa", full_name: "عميل", is_platform_admin: false };
+    setCo({ trial_ends_at: iso(-1) }); await applyCompanyTypeVisibility(); const was = currentCompanyLocked;
+    setCo({ trial_ends_at: iso(9) }); await applyCompanyTypeVisibility(); res.unlockOnSwitch = was === true && currentCompanyLocked === false;
+    await go("dashboard"); res.dashOpen = currentPageId === "dashboard";
+    return res;
+  });
+  ok("تجربة منتهية بلا اشتراك تقفل الحساب، وتبقى «اشتراكي» وحدها ظاهرة في القائمة", f10.locked && f10.navHidden, f10);
+  ok("أي صفحة أخرى تُحوَّل إلى «اشتراكي» مع رسالة التواصل وأن البيانات محفوظة", f10.redirected && f10.msg && f10.noBanner, f10);
+  ok("لا قفل أثناء التجربة، ولا مع اشتراك فعّال أو محوّل للدفع أو شركة قديمة بلا تجربة", f10.trialOpen && f10.paidOpen && f10.convertedOpen && f10.legacyOpen, f10);
+  ok("مالك المنصة مستثنى، والتحويل إلى شركة سارية يفك القفل", f10.ownerExempt && f10.unlockOnSwitch && f10.dashOpen, f10);
+
   ok("لا أخطاء برمجية أثناء المسارات", errs.length === 0, errs);
   await browser.close();
   console.log(`\nالنتيجة: ${passed} نجح، ${failed} فشل`);

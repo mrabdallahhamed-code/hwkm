@@ -75,6 +75,7 @@ setInterval(() => autoRefreshTick(false), 40000);
 document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') autoRefreshTick(false); });
 
 async function go(id, el){
+  if(typeof currentCompanyLocked !== "undefined" && currentCompanyLocked && id !== 'mysub'){ id = 'mysub'; el = document.getElementById('navMySub'); }
   currentPageId = id;
   if(companyTypeReadyPromise){ try{ await companyTypeReadyPromise; }catch(e){} }
   const role = currentUserProfile ? getCurrentRole() : null;
