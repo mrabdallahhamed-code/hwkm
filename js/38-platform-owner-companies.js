@@ -106,7 +106,9 @@ async function loadManageCompanies(){
   const nameCount = {};
   data.forEach(x => { const k = (x.name||"").trim().toLowerCase(); nameCount[k] = (nameCount[k]||0) + 1; });
   const isOwner = currentUserProfile && currentUserProfile.is_platform_admin === true;
-  box.innerHTML = data.map(c => {
+  const _expiredNoSub = isOwner ? data.filter(x => x.trial_ends_at && new Date(x.trial_ends_at) <= new Date() && !x.converted_to_paid_at && !x.subscription_ends_at) : [];
+  const ownerNotice = _expiredNoSub.length ? `<div style="background:#FEF3E2;border:1px solid #F0D9A8;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;line-height:1.9;color:var(--gold)"><b><span class="ico-i ico-warning"></span>تنبيه للمالك:</b> ${_expiredNoSub.length} شركة انتهت تجربتها دون اشتراك (الكتابة مقفلة لديها): ${_expiredNoSub.slice(0,8).map(x => orgEsc(x.name||"—")).join("، ")}${_expiredNoSub.length>8?" …":""}</div>` : "";
+  box.innerHTML = ownerNotice + data.map(c => {
     const inTrial = c.trial_ends_at && new Date(c.trial_ends_at) > new Date();
     const isDup = nameCount[(c.name||"").trim().toLowerCase()] > 1;
     const hasPlan = !!(c.converted_to_paid_at || c.module_internal_audit || c.module_risk_management);

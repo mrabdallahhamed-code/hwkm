@@ -150,6 +150,7 @@ function jdSetNote(kind){
 async function suggestJobDescriptionAI(){
   const title = document.getElementById("jd-department").value.trim() || document.getElementById("jd-position-title").textContent.trim();
   if(!title){ alert("اكتب المسمى الوظيفي أولًا."); return; }
+  if(!await ensureAiNotice()) return;
   if(!await uiConfirm('سيُرسل المسمى الوظيفي "' + title + '" وقطاع الشركة فقط (دون أي أسماء أو بيانات أشخاص) إلى خدمة ذكاء اصطناعي لاقتراح الوصف، وسيستبدل الاقتراح البنود الحالية في الشاشة. متابعة؟')) return;
   const btn = document.getElementById("jd-ai-btn");
   const old = btn.textContent; btn.disabled = true; btn.textContent = "جارٍ الاقتراح…";

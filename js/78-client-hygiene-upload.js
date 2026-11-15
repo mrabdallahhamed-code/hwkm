@@ -42,10 +42,10 @@ async function uploadFile(inputEl, folder){
   const path = (currentCompanyId ? currentCompanyId : "unassigned") + "/" + folder + "/" + safeName;
   const { error } = await sb.storage.from("documents").upload(path, file);
   if(error){ alert("تعذّر رفع الملف: " + error.message); return null; }
-  // The bucket is private now — generate a long-lived signed URL (10 years) instead of a
-  // permanent public one, so the same stored file_url string keeps working everywhere in the
-  // app exactly as before, but is no longer openly accessible to anyone off the internet.
-  const { data, error: signErr } = await sb.storage.from("documents").createSignedUrl(path, 315360000);
+  // The bucket is private — store a signed URL (1 year) rather than a public one. Opening a file
+  // always mints a fresh one-hour link from its path (see freshDocUrl), so this stored value is
+  // only a handle to the file.
+  const { data, error: signErr } = await sb.storage.from("documents").createSignedUrl(path, DOC_FILE_STORED_TTL);
   if(signErr || !data){ alert("تعذّر إنشاء رابط آمن للملف: " + (signErr?.message||"")); return null; }
   return data.signedUrl;
 }

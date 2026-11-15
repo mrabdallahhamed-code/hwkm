@@ -297,6 +297,7 @@ function auditReportCollect(){
   return { executive_summary: g("executive_summary"), methodology: g("methodology"), key_findings: lines(g("key_findings")), recommendations: lines(g("recommendations")), conclusion: g("conclusion") };
 }
 async function auditAIGenerate(requestId){
+  if(!await ensureAiNotice()) return;
   if(!await uiConfirm("سيُرسَل القطاع ونطاق المراجعة والأسئلة وإجاباتها والملاحظات (دون اسم الشركة أو أي أسماء) إلى خدمة الذكاء الصناعي لكتابة مسودة. متابعة؟")) return;
   const btn = document.getElementById("aad-ai-btn"); const old = btn ? btn.textContent : "";
   if(btn){ btn.disabled = true; btn.textContent = "جارٍ توليد المسودة…"; }

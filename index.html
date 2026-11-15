@@ -5,7 +5,9 @@
 <script>
   if(window.Sentry){
     Sentry.init({
-      dsn: "https://fd2faf49ba3aae4bead11f7cbf56d96e@o4511922607751168.ingest.de.sentry.io/4511922627412048"
+      dsn: "https://fd2faf49ba3aae4bead11f7cbf56d96e@o4511922607751168.ingest.de.sentry.io/4511922627412048",
+      // Browser-extension noise (not from our code).
+      ignoreErrors: [/Object Not Found Matching Id:\d+, MethodName:update, ParamCount:\d+/]
     });
   }
   // Most real errors in this app are already "handled" gracefully — caught, then shown to
@@ -233,6 +235,23 @@
       <p style="color:var(--gray3);font-size:11px;margin-top:16px">آخر تحديث: أكتوبر ٢٠٢٦ (النسخة 2026-10).</p>
     </div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-terms');openM('m-privacy-policy')">سياسة الخصوصية</button><button class="btn btn-gold" style="flex:1" onclick="closeM('m-terms')">إغلاق</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-ai-notice">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title"><span class="ico-i ico-shield"></span>إشعار استخدام الذكاء الاصطناعي</div>
+    <div style="font-size:12.5px;line-height:2;color:var(--dark)">
+      قبل أول استخدام لميزات الذكاء الاصطناعي في المنصة، نرجو الاطلاع على الآتي:
+      <ul style="margin:6px 18px 0 0;padding:0;line-height:1.9">
+        <li>الميزة اختيارية، ولا تعمل إلا عند ضغطك عليها.</li>
+        <li>يُرسَل إلى مزوّد الخدمة (Google Gemini) النص اللازم لتنفيذ طلبك فقط، وقد تُعالَج البيانات خارج المملكة. تجنّب إدخال بيانات شخصية حساسة أو أرقام هوية.</li>
+        <li>المخرجات مسودات آلية قد تحتوي أخطاء، وليست استشارة قانونية. راجعها وعدّلها قبل اعتمادها؛ والمسؤولية عن اعتمادها على الشركة.</li>
+        <li>لكل شركة حدّ استخدام يومي لكل ميزة.</li>
+      </ul>
+      <label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px;cursor:pointer"><input type="checkbox" id="ai-notice-check" onchange="document.getElementById('ai-notice-ok').disabled = !this.checked" style="margin-top:6px"><span>قرأت الإشعار وأوافق على إرسال النص المحدد إلى مزوّد الذكاء الاصطناعي، وأتحمل مراجعة المخرجات.</span></label>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="aiNoticeDecide(false)">إلغاء</button><button class="btn btn-gold" id="ai-notice-ok" disabled onclick="aiNoticeDecide(true)" style="flex:1">أوافق وأتابع</button></div>
   </div>
 </div>
 

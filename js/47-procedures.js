@@ -345,6 +345,7 @@ async function procDelete(id){
 async function procImproveAI(){
   const title = document.getElementById("mproc-name").value.trim(), department = document.getElementById("mproc-dept").value;
   const steps = procCollectSteps(); if(!title){ alert("اكتب اسم الإجراء أولًا."); return; }
+  if(!await ensureAiNotice()) return;
   if(!await uiConfirm("سيُرسل اسم الإجراء واسم الإدارة ونص الخطوات الحالية فقط (دون أي أسماء أشخاص) إلى خدمة ذكاء اصطناعي لتحسينها، وسيستبدل الاقتراح الخطوات الحالية في الشاشة. متابعة؟")) return;
   const btn = document.getElementById("mproc-ai-btn"), old = btn.textContent; btn.disabled = true; btn.textContent = "جارٍ التحسين…";
   try{

@@ -143,7 +143,9 @@ async function confirmSignature(){
   const canvas = document.getElementById("sigCanvas");
   const signature_image = canvas.toDataURL("image/png");
 
-  const { error } = await sb.from("document_signatures").insert([{ document_id: docId, signer_email: myEmail, signer_name, signature_image, company_id: currentCompanyId }]);
+  const signedDoc = (typeof signingDocsCache !== "undefined" ? signingDocsCache : []).find(d => d.id === docId);
+  const doc_sha256 = await docFileSha256(signedDoc && signedDoc.file_url);
+  const { error } = await sb.from("document_signatures").insert([{ document_id: docId, signer_email: myEmail, signer_name, signature_image, company_id: currentCompanyId, doc_sha256 }]);
   if(error){ alert("تعذّر تسجيل التوقيع: " + error.message); return; }
 
   // Recompute and, if this was the final required signature, mark the document complete

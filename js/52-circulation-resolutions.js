@@ -218,7 +218,7 @@ async function circUploadFiles(inputEl){
     const path = currentCompanyId + "/circulation/" + safe;
     const { error } = await sb.storage.from("documents").upload(path, file);
     if(error){ alert("تعذّر رفع الملف \"" + file.name + "\": " + error.message); return null; }
-    const { data, error: sErr } = await sb.storage.from("documents").createSignedUrl(path, 315360000);
+    const { data, error: sErr } = await sb.storage.from("documents").createSignedUrl(path, DOC_FILE_STORED_TTL);
     if(sErr || !data){ alert("تعذّر إنشاء رابط آمن للملف: " + (sErr ? sErr.message : "")); return null; }
     out.push({ name: file.name, url: data.signedUrl });
   }

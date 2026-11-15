@@ -306,7 +306,10 @@ async function openVoterSignedCard(shareholderName, meetingIdArg){
     alert(`"${shareholderName}" لم يوقّع أو يحمّل بطاقته بعد — بطاقته الموقّعة تُحفظ تلقائيًا بالمنصة بمجرد ما يوقّعها هو بنفسه من حسابه.`);
     return;
   }
-  window.open(data.signed_vote_card_url, "_blank");
+  const cardWin = window.open("", "_blank");
+  if(cardWin){ try{ cardWin.opener = null; }catch(e){} }
+  const cardUrl = await freshDocUrl(data.signed_vote_card_url);
+  if(cardWin) cardWin.location.href = cardUrl; else window.location.href = cardUrl;
 }
 
 async function generateShareholderVotePDF(overrideName, overrideShares){

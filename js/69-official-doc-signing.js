@@ -14,8 +14,8 @@ async function applyCompanySealToDoc(signingDocId){
   try{
     const { PDFDocument } = PDFLib;
     const [existingBytes, sealBytes] = await Promise.all([
-      fetch(doc.file_url).then(r => r.arrayBuffer()),
-      fetch(company.seal_url).then(r => r.arrayBuffer())
+      freshDocUrl(doc.file_url).then(u => fetch(u)).then(r => r.arrayBuffer()),
+      freshDocUrl(company.seal_url).then(u => fetch(u)).then(r => r.arrayBuffer())
     ]);
     const pdfDoc = await PDFDocument.load(existingBytes);
     const sealImg = company.seal_url.toLowerCase().includes(".png") ? await pdfDoc.embedPng(sealBytes) : await pdfDoc.embedJpg(sealBytes);

@@ -21,12 +21,13 @@ class CanvasPDFBuilder {
       try{
         const { data: company } = await sb.from("companies").select("letterhead_url").eq("id", companyId).single();
         if(company && company.letterhead_url){
+          const letterheadSrc = await freshDocUrl(company.letterhead_url);
           const img = await new Promise((resolve) => {
             const im = new Image();
             im.crossOrigin = "anonymous";
             im.onload = () => resolve(im);
             im.onerror = () => resolve(null);
-            im.src = company.letterhead_url;
+            im.src = letterheadSrc;
           });
           if(img){ b.letterheadImg = img; b.headerHeight = 110*b.scale; }
         }

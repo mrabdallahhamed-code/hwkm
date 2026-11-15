@@ -360,6 +360,37 @@ async function acceptTermsGate(){
   }catch(e){}
 }
 
+/* AI notice: shown once per person before the first use of any AI feature (bump AI_NOTICE_VERSION when the text changes). */
+const AI_NOTICE_VERSION = "2026-11";
+let _aiNoticeResolve = null;
+function aiNoticeAccepted(){
+  try{
+    if(currentUserProfile && currentUserProfile.ai_notice_version === AI_NOTICE_VERSION) return true;
+    return localStorage.getItem("hwkm_ai_notice_" + (currentUserProfile ? currentUserProfile.email : "")) === AI_NOTICE_VERSION;
+  }catch(e){ return false; }
+}
+function ensureAiNotice(){
+  if(aiNoticeAccepted()) return Promise.resolve(true);
+  return new Promise(resolve => {
+    _aiNoticeResolve = resolve;
+    const chk = document.getElementById("ai-notice-check"); if(chk) chk.checked = false;
+    const ok = document.getElementById("ai-notice-ok"); if(ok) ok.disabled = true;
+    openM("m-ai-notice");
+  });
+}
+async function aiNoticeDecide(accepted){
+  closeM("m-ai-notice");
+  const done = _aiNoticeResolve; _aiNoticeResolve = null;
+  if(accepted && currentUserProfile){
+    const now = new Date().toISOString();
+    const r = await sb.from("user_profiles").update({ ai_notice_accepted_at: now, ai_notice_version: AI_NOTICE_VERSION }).eq("email", currentUserProfile.email);
+    if(r.error){
+      try{ localStorage.setItem("hwkm_ai_notice_" + currentUserProfile.email, AI_NOTICE_VERSION); }catch(e){}
+    } else { currentUserProfile.ai_notice_accepted_at = now; currentUserProfile.ai_notice_version = AI_NOTICE_VERSION; }
+  }
+  if(done) done(!!accepted);
+}
+
 /* ينشئ صف الملف الشخصي عند أول دخول موثَّق من البيانات التي حُفظت مع حساب الدخول عند التسجيل.
    البريد يؤخذ من الجلسة (لا من النموذج)، وقاعدة البيانات تفرض الشركة والدور من العضويات ولا تسمح بصلاحيات المنصة. */
 async function ensureProfileFromSignup(user){

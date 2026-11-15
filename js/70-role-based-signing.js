@@ -109,8 +109,10 @@ async function confirmOfficialSignature(){
   const signer_name = currentUserProfile ? currentUserProfile.full_name : email;
   const signature_image = document.getElementById("officialSigCanvas").toDataURL("image/png");
 
+  const { data: signedFileRow } = await sb.from("signing_documents").select("file_url").eq("id", currentOfficialSignDocId).single();
+  const doc_sha256 = await docFileSha256(signedFileRow && signedFileRow.file_url);
   const { error } = await sb.from("official_doc_signatures").insert([{
-    document_id: currentOfficialSignDocId, role, signer_name, signer_email: email, signature_image
+    document_id: currentOfficialSignDocId, role, signer_name, signer_email: email, signature_image, doc_sha256
   }]);
   if(error){ alert("تعذّر حفظ التوقيع: " + error.message); return; }
 
@@ -262,7 +264,7 @@ async function generateSignedDocumentPDF(docId, btn){
     const { PDFDocument } = PDFLib;
     let pdfDoc;
     if(isPdfOriginal){
-      const res = await fetch(doc.file_url);
+      const res = await fetch(await freshDocUrl(doc.file_url));
       const bytes = await res.arrayBuffer();
       pdfDoc = await PDFDocument.load(bytes, { ignoreEncryption: true });
     } else {

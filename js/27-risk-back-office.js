@@ -314,6 +314,7 @@ function riskReportCollect(){
   return { executive_summary: g("executive_summary"), methodology: g("methodology"), key_findings: lines("key_findings"), recommendations: lines("recommendations"), conclusion: g("conclusion") };
 }
 async function riskAIGenerate(requestId){
+  if(!await ensureAiNotice()) return;
   if(!await uiConfirm("سيُرسَل القطاع ونطاق التقييم والأسئلة وإجاباتها والمخاطر (دون اسم الشركة أو أي أسماء) إلى خدمة ذكاء اصطناعي لتوليد مسودة التقرير، وستحل محل النصوص الحالية في الخانات. متابعة؟")) return;
   const btn = document.getElementById("rad-ai-btn"); const old = btn ? btn.textContent : "";
   if(btn){ btn.disabled = true; btn.textContent = "جارٍ توليد المسودة…"; }

@@ -67,7 +67,7 @@ async function uploadDocumentTemplate(key, inputEl){
 /* Loads a docx template, fills its {tags} with real data using docxtemplater, and
    triggers a download of the resulting real .docx file. */
 async function fillDocxTemplate(templateUrl, data, downloadName){
-  const response = await fetch(templateUrl);
+  const response = await fetch(await freshDocUrl(templateUrl));
   const arrayBuffer = await response.arrayBuffer();
   const zip = new PizZip(arrayBuffer);
   const doc = new window.docxtemplater(zip, { paragraphLoop: true, linebreaks: true });

@@ -64,7 +64,7 @@ async function uploadBlobToStorage(blob, folder, filename){
   const path = (currentCompanyId ? currentCompanyId : "unassigned") + "/" + folder + "/" + safeName;
   const { error } = await sb.storage.from("documents").upload(path, blob);
   if(error){ alert("تعذّر رفع الملف: " + error.message); return null; }
-  const { data, error: signErr } = await sb.storage.from("documents").createSignedUrl(path, 315360000);
+  const { data, error: signErr } = await sb.storage.from("documents").createSignedUrl(path, DOC_FILE_STORED_TTL);
   if(signErr || !data){ alert("تعذّر إنشاء رابط آمن للملف: " + (signErr?.message||"")); return null; }
   return data.signedUrl;
 }
