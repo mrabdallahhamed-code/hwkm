@@ -7,7 +7,7 @@
    valid and a link copied out of the browser stops working within the hour. */
 const DOC_FILE_OPEN_TTL = 3600;          // seconds a freshly opened link works
 const DOC_FILE_STORED_TTL = 31536000;    // seconds a link saved in the DB works (1 year; was 10 years)
-const DOC_SIGN_RE = /\/storage\/v1\/object\/sign\/documents\/([^?#]+)/;
+const DOC_SIGN_RE = /\/storage\/v1\/object\/(?:sign|public)\/documents\/([^?#]+)/;
 async function freshDocUrl(url){
   try{
     const m = DOC_SIGN_RE.exec(String(url || ""));
