@@ -154,8 +154,25 @@ async function go(id, el){
   if(id==='archive') loadArchive();
   if(id==='users') loadUsers();
 }
-function openM(id){document.getElementById(id).classList.add('open');}
-function closeM(id){document.getElementById(id).classList.remove('open');}
+let __modalReturnFocus = {};
+let __modalStack = [];   // order in which windows were opened, so Esc closes the one on top
+function openM(id){
+  const bg = document.getElementById(id); if(!bg) return;
+  bg.classList.add('open');
+  __modalStack = __modalStack.filter(x => x !== id); __modalStack.push(id);
+  try{
+    const m = bg.querySelector('.modal'); const t = bg.querySelector('.modal-title');
+    if(m){ m.setAttribute('role','dialog'); m.setAttribute('aria-modal','true'); if(t){ if(!t.id) t.id = id + '-title'; m.setAttribute('aria-labelledby', t.id); } }
+    __modalReturnFocus[id] = document.activeElement;
+    setTimeout(() => { const f = bg.querySelector('input:not([type=hidden]):not([disabled]),select:not([disabled]),textarea:not([disabled]),button.btn-gold,button'); if(f && bg.classList.contains('open') && !bg.contains(document.activeElement)) f.focus({ preventScroll:true }); }, 30);
+  }catch(e){}
+}
+function closeM(id){
+  const bg = document.getElementById(id); if(!bg) return;
+  bg.classList.remove('open');
+  __modalStack = __modalStack.filter(x => x !== id);
+  try{ const r = __modalReturnFocus[id]; delete __modalReturnFocus[id]; if(r && r.focus && document.contains(r)) r.focus({ preventScroll:true }); }catch(e){}
+}
 function switchAGMTab(name){
   document.querySelectorAll('#m-agm-view [data-agmtab]').forEach(t=>t.classList.toggle('active', t.dataset.agmtab===name));
   document.querySelectorAll('#m-agm-view [data-agmpane]').forEach(p=>p.classList.toggle('active', p.dataset.agmpane===name));

@@ -479,6 +479,7 @@ async function loadDashboard(){
   const signingDocs = signingRes.data || [];
   const policies = policiesRes.data || [];
   const auditItems = auditRes.data || [];
+  try{ renderStartHere({ members: members.length, policies: policies.length, meetings: meetings.length, signing: signingDocs.length }); }catch(e){}
 
   const govassessKpiEl = document.getElementById("kpi-govassess");
   const govassessFootEl = document.getElementById("kpi-govassess-foot");

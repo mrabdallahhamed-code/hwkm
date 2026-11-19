@@ -675,6 +675,36 @@ function ok(name, cond, extra) {
   ok("«الأخيرة» تظهر عند كثرة الشركات، وتُغلق اللوحة بـ Esc وبالنقر خارجها", f11.recent && f11.esc && f11.outside, f11);
   ok("المستخدم العادي بشركتين يرى شركتيه فقط بلا حالات ولا نظرة عامة", f11.userRows === 2 && f11.userNoChips, f11);
 
+  /* ───────── مسار 12) تحسينات تجربة الاستخدام: قائمة البداية، النوافذ، وسوم الوصول ───────── */
+  console.log("مسار 12) قائمة «ابدأ من هنا» وإتاحة الوصول");
+  const f12 = await pg.evaluate(async () => {
+    const res = {}; const q = (id) => document.getElementById(id);
+    try{ localStorage.removeItem(startHereKey()); }catch(e){}
+    renderStartHere({ members: 0, policies: 0, meetings: 0, signing: 0 });
+    res.empty = !!q("startHereCard") && q("startHereCard").querySelectorAll("button[data-go]").length === 4 && q("startHereCard").textContent.includes("0 من 4");
+    renderStartHere({ members: 2, policies: 1, meetings: 0, signing: 0 });
+    res.partial = q("startHereCard") && q("startHereCard").textContent.includes("2 من 4");
+    renderStartHere({ members: 2, policies: 1, meetings: 3, signing: 1 });
+    res.gone = !q("startHereCard");
+    renderStartHere({ members: 0, policies: 0, meetings: 0, signing: 0 });
+    q("startHereHide").click(); res.hidden = !q("startHereCard");
+    renderStartHere({ members: 0, policies: 0, meetings: 0, signing: 0 }); res.stayHidden = !q("startHereCard");
+    try{ localStorage.removeItem(startHereKey()); }catch(e){}
+    openM("m-forgot-password");
+    const m = q("m-forgot-password").querySelector(".modal");
+    res.dialogRole = m.getAttribute("role") === "dialog" && m.getAttribute("aria-modal") === "true" && !!m.getAttribute("aria-labelledby");
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    res.escClosed = !q("m-forgot-password").classList.contains("open");
+    const b = document.createElement("button"); b.textContent = "✕"; document.body.appendChild(b);
+    await new Promise(r => setTimeout(r, 120));
+    res.closeLabel = b.getAttribute("aria-label") === "إغلاق"; b.remove();
+    res.barPatched = window.__uxFetchPatched === true;
+    return res;
+  });
+  ok("قائمة «ابدأ من هنا»: تظهر بأربع خطوات، وتتحدث بالتقدم، وتختفي عند الاكتمال، ويمكن إخفاؤها", f12.empty && f12.partial && f12.gone && f12.hidden && f12.stayHidden, f12);
+  ok("النوافذ تُعرَّف كحوارات لقارئات الشاشة، وEsc تغلقها", f12.dialogRole && f12.escClosed, f12);
+  ok("أزرار الإغلاق الأيقونية تأخذ اسمًا مقروءًا، ومؤشر التحميل العام مفعَّل", f12.closeLabel && f12.barPatched, f12);
+
   ok("لا أخطاء برمجية أثناء المسارات", errs.length === 0, errs);
   await browser.close();
   console.log(`\nالنتيجة: ${passed} نجح، ${failed} فشل`);
