@@ -1241,3 +1241,36 @@ body.sub-locked #globalSearchInput,body.sub-locked #globalSearchResults,body.sub
 .cs-chip{font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;white-space:nowrap}
 .cs-chip.t{background:#FFF3E6;color:#8A4B12}.cs-chip.x{background:#FDE8E8;color:#B3261E}.cs-chip.p{background:#E8F8EF;color:#1E7B4B}
 .cs-count{font-size:10.5px;color:var(--gray3);text-align:center;padding-top:6px}
+
+/* ══ لوحة التحكم v2: بطاقات محايدة، اللون للحالة فقط، تنبيهات في قائمة واحدة ══ */
+#p-dashboard .kpi-grid{grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-bottom:18px}
+#p-dashboard .kpi,#p-dashboard .kpi.blue,#p-dashboard .kpi.gold,#p-dashboard .kpi.green,#p-dashboard .kpi.red{--kc:var(--primary);--kbg:#fff;background:#fff;border:1px solid #E3E8F0;border-right:1px solid #E3E8F0;border-radius:12px;padding:16px 16px 14px;box-shadow:none}
+#p-dashboard .kpi:nth-child(5){--kc:var(--primary);--kbg:#fff}
+#p-dashboard .kpi:hover{border-color:var(--gold);box-shadow:0 2px 10px rgba(13,36,71,.07);transform:none}
+#p-dashboard .kpi-icon{display:none}
+#p-dashboard .kpi-foot{padding-left:0}
+#p-dashboard .kpi-label{font-size:13.5px;font-weight:600;color:#4A5B78;margin-bottom:8px}
+#p-dashboard .kpi .kpi-val{font-size:32px;font-weight:800;color:var(--dark)}
+#p-dashboard .kpi .kpi-val.kpi-val-na{font-size:22px;font-weight:700;color:#4A5B78}
+#p-dashboard .kpi-foot,#p-dashboard .kpi-why{font-size:12.5px;color:#4A5B78}
+#p-dashboard .kpi-act{font-size:12.5px;font-weight:700;color:var(--primary3)}
+#p-dashboard .stats-bar{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-bottom:18px}
+#p-dashboard .sb-item{background:#F7F9FC;border-top:none;border:1px solid #EEF1F6}
+#p-dashboard .sb-item .sb-val{color:var(--dark);font-size:24px}
+#p-dashboard .sb-item .sb-lbl{color:#4A5B78}
+#p-dashboard .sb-item.sb-dup{display:none}
+#p-dashboard .card-head{background:#fff}
+/* التنبيهات: قائمة واحدة بعرض كامل، وسم الأولوية على الجانب */
+#govAlertsPanel .gal-sec{display:none}
+#govAlertsPanel .gal-grid{display:block;margin:0}
+#govAlertsPanel .gal-card{padding:0;overflow:hidden;border:1px solid #E3E8F0;border-radius:14px}
+#govAlertsPanel .gal-head{padding:16px 18px;margin:0}
+#govAlertsPanel .gal-row{flex-direction:row;align-items:center;gap:14px;padding:14px 18px;border:none;border-top:1px solid #EEF1F6;border-radius:0;background:#fff}
+#govAlertsPanel .gal-row::before{content:"للعلم";flex:none;font-size:12px;font-weight:700;border-radius:999px;padding:4px 12px;background:#FBF3DC;color:#7A5A00}
+#govAlertsPanel .gal-high{background:#fff;border-color:#EEF1F6}
+#govAlertsPanel .gal-high::before{content:"يحتاج تصرفًا";background:#FDECEA;color:#9B1C12}
+#govAlertsPanel .gal-text{font-size:14px;line-height:1.8}
+#govAlertsPanel .gal-cta,#govAlertsPanel .gal-high .gal-cta{font-size:13px;font-weight:700;color:var(--primary3);background:none;border:1px solid #D5DCE8;border-radius:8px;padding:7px 14px}
+#govAlertsPanel .gal-row:hover .gal-cta{background:var(--dark);color:#fff;border-color:var(--dark)}
+#govAlertsPanel .gal-toggle{margin:0;padding:12px 18px;display:block;width:100%;text-align:right;border-top:1px solid #EEF1F6}
+@media(max-width:700px){#govAlertsPanel .gal-row{flex-wrap:wrap;gap:10px}#govAlertsPanel .gal-row::before{order:1}#govAlertsPanel .gal-text{order:2;flex:1 1 100%}#govAlertsPanel .gal-cta{order:3}}
