@@ -176,190 +176,219 @@ async function fetchCompanyRisks(){
 async function computeGovernanceAlerts(){
   const alerts = [];
   const govBodyLabel = getGovernanceBodyLabel();
+  // كل كتلة مستقلة وتجلب بياناتها بنفسها: نُشغّلها معًا بدل الانتظار الواحدة تلو الأخرى (كل انتظار ≈ ثلث ثانية)،
+  // ثم نجمع نتائجها بترتيبها الأصلي تمامًا. تفشل كل كتلة وحدها بلا تعطيل الباقي.
+  const __blocks = [
+    async () => { const alerts = [];
+    // 1) Performance trending down or stuck low across evaluation cycles
+    if(await canSeePerfResults()){
+      const { data: completed } = await sb.from("performance_evaluations").select("*")
+        .eq("company_id", currentCompanyId).eq("status","مكتمل").not("evaluated_email","is",null).order("period",{ascending:true});
+      const byPerson = {};
+      (completed||[]).forEach(e => { if(!byPerson[e.evaluated_email]) byPerson[e.evaluated_email]=[]; byPerson[e.evaluated_email].push(e); });
+      for(const email in byPerson){
+        const evals = byPerson[email];
+        if(evals.length < 2) continue;
+        const scores = evals.map(e=>Number(e.score)||0);
+        const last = scores[scores.length-1];
+        const isDeclining = scores.every((s,i) => i===0 || s <= scores[i-1]) && scores[0] > last;
+        const isConsistentlyLow = scores.slice(-Math.min(3,scores.length)).every(s => s < 3);
+        if(isDeclining || isConsistentlyLow){
+          alerts.push({
+            severity: "high",
+            text: `أداء "${evals[evals.length-1].entity_name}" ${isConsistentlyLow?'منخفض باستمرار':'في تراجع'} عبر ${evals.length} دورات تقييم — يستاهل نقاش لجنة الترشيحات${govBodyLabel==='مجلس الإدارة'?' أو رئيس المجلس':''}.`,
+            page: "perf"
+          });
+        }
+      }
 
-  // 1) Performance trending down or stuck low across evaluation cycles
-  if(await canSeePerfResults()){
-    const { data: completed } = await sb.from("performance_evaluations").select("*")
-      .eq("company_id", currentCompanyId).eq("status","مكتمل").not("evaluated_email","is",null).order("period",{ascending:true});
-    const byPerson = {};
-    (completed||[]).forEach(e => { if(!byPerson[e.evaluated_email]) byPerson[e.evaluated_email]=[]; byPerson[e.evaluated_email].push(e); });
-    for(const email in byPerson){
-      const evals = byPerson[email];
-      if(evals.length < 2) continue;
-      const scores = evals.map(e=>Number(e.score)||0);
-      const last = scores[scores.length-1];
-      const isDeclining = scores.every((s,i) => i===0 || s <= scores[i-1]) && scores[0] > last;
-      const isConsistentlyLow = scores.slice(-Math.min(3,scores.length)).every(s => s < 3);
-      if(isDeclining || isConsistentlyLow){
-        alerts.push({
-          severity: "high",
-          text: `أداء "${evals[evals.length-1].entity_name}" ${isConsistentlyLow?'منخفض باستمرار':'في تراجع'} عبر ${evals.length} دورات تقييم — يستاهل نقاش لجنة الترشيحات${govBodyLabel==='مجلس الإدارة'?' أو رئيس المجلس':''}.`,
-          page: "perf"
+      // 2) Real attendance rate below a healthy threshold
+      try {
+        const attendance = await computeAttendancePercentages();
+        attendance.filter(a => a.pct !== null && a.pct < 60).forEach(a => {
+          alerts.push({ severity: "medium", text: `نسبة حضور "${a.name}" الفعلية ${a.pct}% فقط — أقل من الحد الصحي المعتاد (60%).`, page: "perf" });
         });
-      }
+      } catch(e){ console.error("attendance alert check failed", e); }
     }
-
-    // 2) Real attendance rate below a healthy threshold
+      return alerts;
+    },
+    async () => { const alerts = [];
+    // 3) Policies stuck in an approval cycle past the company's own configured deadline
     try {
-      const attendance = await computeAttendancePercentages();
-      attendance.filter(a => a.pct !== null && a.pct < 60).forEach(a => {
-        alerts.push({ severity: "medium", text: `نسبة حضور "${a.name}" الفعلية ${a.pct}% فقط — أقل من الحد الصحي المعتاد (60%).`, page: "perf" });
-      });
-    } catch(e){ console.error("attendance alert check failed", e); }
-  }
-
-  // 3) Policies stuck in an approval cycle past the company's own configured deadline
-  try {
-    const deadlineDays = Number(currentCompanyPolicyDeadlineDays ?? 14);
-    const { data: allApprovals } = await sb.from("governance_approvals").select("*").eq("company_id", currentCompanyId).not("status","eq","مكتملة").not("status","eq","مرفوضة");
-    const stuck = (allApprovals||[]).filter(a => (a.document_type||"").startsWith("policy_") && Math.floor((Date.now()-new Date(a.created_at).getTime())/86400000) > deadlineDays);
-    if(stuck.length){
-      const maxLate = Math.max(...stuck.map(a => Math.floor((Date.now()-new Date(a.created_at).getTime())/86400000) - deadlineDays));
-      alerts.push({ severity: "high", cta: "راجع السياسات", text: `${stuck.length} ${stuck.length===1?'سياسة متأخرة':'سياسات متأخرة'} عن مهلة الاعتماد (${deadlineDays} يوم)، وأقدمها تجاوزت المهلة بـ ${maxLate} يوماً — بانتظار توقيع أحد الموقّعين.`, page: "governance" });
-    }
-  } catch(e){ console.error("policy deadline alert check failed", e); }
-
-  // 4) High-impact risks that are still open with no treatment plan, and treatments past their target date
-  try {
-    const risks = await fetchCompanyRisks();
-    const open = risks.filter(r => r.status !== "مغلق");
-    const noPlan = open.filter(r => r.impact === "عالٍ" && !(r.treatment_plan||"").trim());
-    if(noPlan.length){
-      alerts.push({ severity: "high", cta: "راجع المخاطر", text: `${noPlan.length} ${noPlan.length===1?'خطر عالي التأثير':'مخاطر عالية التأثير'} بلا خطة معالجة.`, page: "risks" });
-    }
-    const today = new Date(new Date().toDateString());
-    const late = open.filter(r => r.target_close_date && new Date(r.target_close_date) < today);
-    if(late.length){
-      alerts.push({ severity: "high", cta: "راجع المخاطر", text: `${late.length} ${late.length===1?'خطر تجاوز':'مخاطر تجاوزت'} موعد إغلاقها المستهدف دون إغلاق.`, page: "risks" });
-    }
-    const soon = open.filter(r => r.action_status !== "مكتمل" && r.target_close_date && new Date(r.target_close_date) >= today && (new Date(r.target_close_date) - today) <= 14*86400000);
-    if(soon.length){
-      alerts.push({ severity: "medium", cta: "تابع الخطط", text: `${soon.length} ${soon.length===1?'خطة معالجة يحين':'خطط معالجة يحين'} موعدها خلال 14 يومًا`, page: "risks" });
-    }
-  } catch(e){ console.error("risk alert check failed", e); }
-
-  // 4a) Internal-audit findings: corrective actions past / near their target date, not yet closed by the auditor
-  try {
-    const { data: aReqs } = await sb.from("audit_requests").select("id,status,pending_final_approval").eq("company_id", currentCompanyId);
-    const aIds = (aReqs||[]).filter(r => (r.status === "تقرير نهائي جاهز" || r.status === "مغلق") && !r.pending_final_approval).map(r => r.id);
-    if(aIds.length){
-      const { data: fs } = await sb.from("audit_findings").select("id,status,target_date").in("request_id", aIds).not("target_date","is",null);
-      const openF = (fs||[]).filter(f => f.status !== "مغلقة");
-      const tdy = new Date(new Date().toDateString());
-      const aLate = openF.filter(f => new Date(f.target_date) < tdy);
-      const aSoon = openF.filter(f => new Date(f.target_date) >= tdy && (new Date(f.target_date) - tdy) <= 14*86400000);
-      if(aLate.length) alerts.push({ severity: "high", cta: "راجع الملاحظات", text: `${aLate.length} ${aLate.length===1?'إجراء تصحيحي من المراجعة الداخلية متأخر':'إجراءات تصحيحية من المراجعة الداخلية متأخرة'} عن موعدها.`, page: "audit" });
-      if(aSoon.length) alerts.push({ severity: "medium", cta: "تابع الإجراءات", text: `${aSoon.length} ${aSoon.length===1?'إجراء تصحيحي من المراجعة الداخلية يحين':'إجراءات تصحيحية من المراجعة الداخلية يحين'} موعدها خلال 14 يومًا.`, page: "audit" });
-    }
-  } catch(e){ console.error("audit finding alert check failed", e); }
-
-  // 4b) Cross-links: risks whose linked policy/decision is stalled, and high risks nobody has covered
-  try {
-    const risks2 = (await fetchCompanyRisks()).filter(r => r.status !== "مغلق");
-    if(risks2.length){
-      const [lk, pol, dec] = await Promise.all([
-        sb.from("governance_links").select("*").eq("company_id", currentCompanyId),
-        sb.from("policies").select("id,policy_name,approval_date,target_approval_date").eq("company_id", currentCompanyId),
-        sb.from("board_decisions").select("id,target_date,status").eq("company_id", currentCompanyId)
-      ]);
-      const links = lk.data || [];
+      const deadlineDays = Number(currentCompanyPolicyDeadlineDays ?? 14);
+      const { data: allApprovals } = await sb.from("governance_approvals").select("*").eq("company_id", currentCompanyId).not("status","eq","مكتملة").not("status","eq","مرفوضة");
+      const stuck = (allApprovals||[]).filter(a => (a.document_type||"").startsWith("policy_") && Math.floor((Date.now()-new Date(a.created_at).getTime())/86400000) > deadlineDays);
+      if(stuck.length){
+        const maxLate = Math.max(...stuck.map(a => Math.floor((Date.now()-new Date(a.created_at).getTime())/86400000) - deadlineDays));
+        alerts.push({ severity: "high", cta: "راجع السياسات", text: `${stuck.length} ${stuck.length===1?'سياسة متأخرة':'سياسات متأخرة'} عن مهلة الاعتماد (${deadlineDays} يوم)، وأقدمها تجاوزت المهلة بـ ${maxLate} يوماً — بانتظار توقيع أحد الموقّعين.`, page: "governance" });
+      }
+    } catch(e){ console.error("policy deadline alert check failed", e); }
+      return alerts;
+    },
+    async () => { const alerts = [];
+    // 4) High-impact risks that are still open with no treatment plan, and treatments past their target date
+    try {
+      const risks = await fetchCompanyRisks();
+      const open = risks.filter(r => r.status !== "مغلق");
+      const noPlan = open.filter(r => r.impact === "عالٍ" && !(r.treatment_plan||"").trim());
+      if(noPlan.length){
+        alerts.push({ severity: "high", cta: "راجع المخاطر", text: `${noPlan.length} ${noPlan.length===1?'خطر عالي التأثير':'مخاطر عالية التأثير'} بلا خطة معالجة.`, page: "risks" });
+      }
       const today = new Date(new Date().toDateString());
-      const polLate = new Set((pol.data||[]).filter(p => !p.approval_date && p.target_approval_date && new Date(p.target_approval_date) < today).map(p => p.id));
-      const decLate = new Set((dec.data||[]).filter(d => d.status !== "منجز" && d.target_date && new Date(d.target_date) < today).map(d => d.id));
-      const relatedTo = (riskId) => links.filter(l => (l.source_type==="risk" && l.source_id===riskId) || (l.target_type==="risk" && l.target_id===riskId))
-        .map(l => (l.source_type==="risk" && l.source_id===riskId) ? { type:l.target_type, id:l.target_id } : { type:l.source_type, id:l.source_id });
-      const withLatePolicy = [], withLateDecision = [], uncovered = [];
-      risks2.forEach(r => {
-        const rel = relatedTo(r.id);
-        if(rel.some(x => x.type==="policy" && polLate.has(x.id))) withLatePolicy.push(r);
-        if(rel.some(x => x.type==="decision" && decLate.has(x.id))) withLateDecision.push(r);
-        if(r.impact === "عالٍ" && !rel.some(x => x.type==="policy" || x.type==="decision")) uncovered.push(r);
-      });
-      if(withLatePolicy.length) alerts.push({ severity: "high", cta: "راجع السياسات", text: `${withLatePolicy.length} ${withLatePolicy.length===1?'خطر مفتوح مرتبط':'مخاطر مفتوحة مرتبطة'} بسياسة متأخرة عن الاعتماد — معالجته معلّقة.`, page: "governance" });
-      if(withLateDecision.length) alerts.push({ severity: "high", cta: "راجع القرارات", text: `${withLateDecision.length} ${withLateDecision.length===1?'خطر مفتوح مرتبط':'مخاطر مفتوحة مرتبطة'} بقرار متأخر عن موعد تنفيذه.`, page: "decisiontracking" });
-      if(uncovered.length) alerts.push({ severity: "medium", cta: "اربطها الآن", text: `${uncovered.length} ${uncovered.length===1?'خطر عالي التأثير غير مرتبط':'مخاطر عالية التأثير غير مرتبطة'} بسياسة أو قرار — لا يوجد ما يعالجها بعد.`, page: "risks" });
-    }
-  } catch(e){ console.error("cross-link alert check failed", e); }
-
-  // 4c) Authority matrix vs policy approval level, and policy delay/changes reaching linked items
-  try {
-    const [lk, pol, it, hd] = await Promise.all([
-      sb.from("governance_links").select("*").eq("company_id", currentCompanyId),
-      sb.from("policies").select("id,policy_name,approval_level,approval_date,target_approval_date").eq("company_id", currentCompanyId),
-      sb.from("permission_items").select("id,item_name").eq("company_id", currentCompanyId),
-      sb.from("permission_holders").select("id,name").eq("company_id", currentCompanyId)
-    ]);
-    const links = (lk.data||[]).filter(l => (l.source_type==="policy" && (l.target_type==="authority"||l.target_type==="procedure")) || (l.target_type==="policy" && (l.source_type==="authority"||l.source_type==="procedure")));
-    const items = it.data || [];
-    if(links.length && items.length){
-      const cells = (await sb.from("permission_cells").select("item_id,holder_id,code").in("item_id", items.map(x=>x.id))).data || [];
-      const hName = {}; (hd.data||[]).forEach(h => hName[h.id] = h.name || "");
-      const iById = {}; items.forEach(x => iById[x.id] = x);
-      // policy late/unapproved → the procedures and authority items built on it need review
-      const today2 = new Date(new Date().toDateString());
-      const lateIds = new Set((pol.data||[]).filter(p => !p.approval_date && p.target_approval_date && new Date(p.target_approval_date) < today2).map(p => p.id));
-      const affected = links.filter(l => lateIds.has(l.source_type==="policy" ? l.source_id : l.target_id));
-      if(affected.length) alerts.push({ severity:"medium", cta:"راجع السياسات", page:"governance", text:`${affected.length} إجراء/صلاحية مبنيّة على سياسات متأخرة الاعتماد — تُعدّ بلا أساس معتمد حتى تُعتمد السياسة.` });
-    }
-  } catch(e){ console.error("matrix/policy alert check failed", e); }
-
-  // 4d) Members classed as independent who declared an independence obstacle (Art. 19) or have no disclosure form
-  try {
-    if(typeof govIndependenceCheck === "function"){
-      const ind = await govIndependenceCheck();
-      const bad = ind.filter(r => r.obstacles.length);
-      if(bad.length) alerts.push({ severity: "high", cta: "راجع الأعضاء", page: "members", text: `${bad.length} عضو مصنَّف «مستقلاً» لديه ما يعارض الاستقلال بحسب نموذج الإفصاح: ${bad.slice(0,2).map(r => r.name + " — " + r.obstacles[0]).join("؛ ")}.` });
-      const miss = ind.filter(r => !r.hasForm || r.stale);
-      if(miss.length) alerts.push({ severity: "medium", cta: "راجع الأعضاء", page: "members", text: `${miss.length} عضو مستقل بلا نموذج إفصاح حديث (يلزم تقييم استقلاله سنوياً).` });
-    }
-  } catch(e){ console.error("independence check failed", e); }
-
-  // 5) Board decisions past their target date with no completion yet
-  try {
-    const { data: decisions } = await sb.from("board_decisions").select("*").eq("company_id", currentCompanyId).not("target_date","is",null).not("status","eq","منجز");
-    const overdue = (decisions||[]).filter(d => new Date(d.target_date) < new Date(new Date().toDateString()));
-    if(overdue.length){
-      alerts.push({ severity: "high", text: `${overdue.length} ${overdue.length===1?'قرار مجلس متأخر':'قرارات مجلس متأخرة'} عن موعد التنفيذ المستهدف.`, page: "decisiontracking" });
-    }
-  } catch(e){ console.error("decision tracking alert check failed", e); }
-
-  // 7) Corrective actions from governance assessments past their target date, not yet closed
-  try {
-    const { data: gaOpenActs } = await sb.from("governance_actions").select("id,target_date,status").eq("company_id", currentCompanyId).not("status","eq","مغلق").not("target_date","is",null);
-    const gaLate = (gaOpenActs||[]).filter(x => new Date(x.target_date) < new Date(new Date().toDateString()));
-    if(gaLate.length){
-      alerts.push({ severity: "high", text: `${gaLate.length} ${gaLate.length===1?'إجراء تصحيحي متأخر':'إجراءات تصحيحية متأخرة'} عن موعدها من تقييم فعالية الحوكمة.`, page: "govassess" });
-    }
-  } catch(e){ console.error("corrective action alert check failed", e); }
-
-  // 9) Join requests waiting for this company's approver
-  if(getCurrentRole() === "مدير النظام" || (currentUserProfile && currentUserProfile.is_platform_admin === true)){
-    try {
-      const { data: jr } = await sb.from("company_join_requests").select("id").eq("company_id", currentCompanyId).eq("status","قيد المراجعة");
-      if(jr && jr.length) alerts.push({ severity: "high", text: `${jr.length} ${jr.length===1?'طلب انضمام ينتظر':'طلبات انضمام تنتظر'} موافقتك.`, page: "users" });
-    } catch(e){ console.error("join request alert check failed", e); }
-  }
-
-  // 8) External compliance items past their deadline (a recurring one with a past date is unconfirmed)
-  try {
-    const { data: cmpRows } = await sb.from("compliance_items").select("id,status,due_date,frequency").eq("company_id", currentCompanyId);
-    const cmpLate = (cmpRows||[]).filter(i => complianceDerivedStatus(i) === "متأخر").length;
-    if(cmpLate){
-      alerts.push({ severity: "high", text: `${cmpLate} ${cmpLate===1?'التزام نظامي متأخر':'التزامات نظامية متأخرة'} عن موعدها.`, page: "compliance" });
-    }
-  } catch(e){ console.error("compliance alert check failed", e); }
-
-  // 6) Manager decisions (single-manager LLC) past their own target date, unfinished
-  if(currentCompanyLLCSingleManager){
-    try {
-      const { data: mgrDecisions } = await sb.from("simple_decisions").select("*").eq("company_id", currentCompanyId).eq("context","manager").not("target_date","is",null).not("status","eq","منجز");
-      const overdueMgr = (mgrDecisions||[]).filter(d => new Date(d.target_date) < new Date(new Date().toDateString()));
-      if(overdueMgr.length){
-        alerts.push({ severity: "high", text: `${overdueMgr.length} ${overdueMgr.length===1?'قرار مدير متأخر':'قرارات مدير متأخرة'} عن موعد التنفيذ المستهدف.`, page: "managerdecisions" });
+      const late = open.filter(r => r.target_close_date && new Date(r.target_close_date) < today);
+      if(late.length){
+        alerts.push({ severity: "high", cta: "راجع المخاطر", text: `${late.length} ${late.length===1?'خطر تجاوز':'مخاطر تجاوزت'} موعد إغلاقها المستهدف دون إغلاق.`, page: "risks" });
       }
-    } catch(e){ console.error("manager decision alert check failed", e); }
-  }
-
+      const soon = open.filter(r => r.action_status !== "مكتمل" && r.target_close_date && new Date(r.target_close_date) >= today && (new Date(r.target_close_date) - today) <= 14*86400000);
+      if(soon.length){
+        alerts.push({ severity: "medium", cta: "تابع الخطط", text: `${soon.length} ${soon.length===1?'خطة معالجة يحين':'خطط معالجة يحين'} موعدها خلال 14 يومًا`, page: "risks" });
+      }
+    } catch(e){ console.error("risk alert check failed", e); }
+      return alerts;
+    },
+    async () => { const alerts = [];
+    // 4a) Internal-audit findings: corrective actions past / near their target date, not yet closed by the auditor
+    try {
+      const { data: aReqs } = await sb.from("audit_requests").select("id,status,pending_final_approval").eq("company_id", currentCompanyId);
+      const aIds = (aReqs||[]).filter(r => (r.status === "تقرير نهائي جاهز" || r.status === "مغلق") && !r.pending_final_approval).map(r => r.id);
+      if(aIds.length){
+        const { data: fs } = await sb.from("audit_findings").select("id,status,target_date").in("request_id", aIds).not("target_date","is",null);
+        const openF = (fs||[]).filter(f => f.status !== "مغلقة");
+        const tdy = new Date(new Date().toDateString());
+        const aLate = openF.filter(f => new Date(f.target_date) < tdy);
+        const aSoon = openF.filter(f => new Date(f.target_date) >= tdy && (new Date(f.target_date) - tdy) <= 14*86400000);
+        if(aLate.length) alerts.push({ severity: "high", cta: "راجع الملاحظات", text: `${aLate.length} ${aLate.length===1?'إجراء تصحيحي من المراجعة الداخلية متأخر':'إجراءات تصحيحية من المراجعة الداخلية متأخرة'} عن موعدها.`, page: "audit" });
+        if(aSoon.length) alerts.push({ severity: "medium", cta: "تابع الإجراءات", text: `${aSoon.length} ${aSoon.length===1?'إجراء تصحيحي من المراجعة الداخلية يحين':'إجراءات تصحيحية من المراجعة الداخلية يحين'} موعدها خلال 14 يومًا.`, page: "audit" });
+      }
+    } catch(e){ console.error("audit finding alert check failed", e); }
+      return alerts;
+    },
+    async () => { const alerts = [];
+    // 4b) Cross-links: risks whose linked policy/decision is stalled, and high risks nobody has covered
+    try {
+      const risks2 = (await fetchCompanyRisks()).filter(r => r.status !== "مغلق");
+      if(risks2.length){
+        const [lk, pol, dec] = await Promise.all([
+          sb.from("governance_links").select("*").eq("company_id", currentCompanyId),
+          sb.from("policies").select("id,policy_name,approval_date,target_approval_date").eq("company_id", currentCompanyId),
+          sb.from("board_decisions").select("id,target_date,status").eq("company_id", currentCompanyId)
+        ]);
+        const links = lk.data || [];
+        const today = new Date(new Date().toDateString());
+        const polLate = new Set((pol.data||[]).filter(p => !p.approval_date && p.target_approval_date && new Date(p.target_approval_date) < today).map(p => p.id));
+        const decLate = new Set((dec.data||[]).filter(d => d.status !== "منجز" && d.target_date && new Date(d.target_date) < today).map(d => d.id));
+        const relatedTo = (riskId) => links.filter(l => (l.source_type==="risk" && l.source_id===riskId) || (l.target_type==="risk" && l.target_id===riskId))
+          .map(l => (l.source_type==="risk" && l.source_id===riskId) ? { type:l.target_type, id:l.target_id } : { type:l.source_type, id:l.source_id });
+        const withLatePolicy = [], withLateDecision = [], uncovered = [];
+        risks2.forEach(r => {
+          const rel = relatedTo(r.id);
+          if(rel.some(x => x.type==="policy" && polLate.has(x.id))) withLatePolicy.push(r);
+          if(rel.some(x => x.type==="decision" && decLate.has(x.id))) withLateDecision.push(r);
+          if(r.impact === "عالٍ" && !rel.some(x => x.type==="policy" || x.type==="decision")) uncovered.push(r);
+        });
+        if(withLatePolicy.length) alerts.push({ severity: "high", cta: "راجع السياسات", text: `${withLatePolicy.length} ${withLatePolicy.length===1?'خطر مفتوح مرتبط':'مخاطر مفتوحة مرتبطة'} بسياسة متأخرة عن الاعتماد — معالجته معلّقة.`, page: "governance" });
+        if(withLateDecision.length) alerts.push({ severity: "high", cta: "راجع القرارات", text: `${withLateDecision.length} ${withLateDecision.length===1?'خطر مفتوح مرتبط':'مخاطر مفتوحة مرتبطة'} بقرار متأخر عن موعد تنفيذه.`, page: "decisiontracking" });
+        if(uncovered.length) alerts.push({ severity: "medium", cta: "اربطها الآن", text: `${uncovered.length} ${uncovered.length===1?'خطر عالي التأثير غير مرتبط':'مخاطر عالية التأثير غير مرتبطة'} بسياسة أو قرار — لا يوجد ما يعالجها بعد.`, page: "risks" });
+      }
+    } catch(e){ console.error("cross-link alert check failed", e); }
+      return alerts;
+    },
+    async () => { const alerts = [];
+    // 4c) Authority matrix vs policy approval level, and policy delay/changes reaching linked items
+    try {
+      const [lk, pol, it, hd] = await Promise.all([
+        sb.from("governance_links").select("*").eq("company_id", currentCompanyId),
+        sb.from("policies").select("id,policy_name,approval_level,approval_date,target_approval_date").eq("company_id", currentCompanyId),
+        sb.from("permission_items").select("id,item_name").eq("company_id", currentCompanyId),
+        sb.from("permission_holders").select("id,name").eq("company_id", currentCompanyId)
+      ]);
+      const links = (lk.data||[]).filter(l => (l.source_type==="policy" && (l.target_type==="authority"||l.target_type==="procedure")) || (l.target_type==="policy" && (l.source_type==="authority"||l.source_type==="procedure")));
+      const items = it.data || [];
+      if(links.length && items.length){
+        const cells = (await sb.from("permission_cells").select("item_id,holder_id,code").in("item_id", items.map(x=>x.id))).data || [];
+        const hName = {}; (hd.data||[]).forEach(h => hName[h.id] = h.name || "");
+        const iById = {}; items.forEach(x => iById[x.id] = x);
+        // policy late/unapproved → the procedures and authority items built on it need review
+        const today2 = new Date(new Date().toDateString());
+        const lateIds = new Set((pol.data||[]).filter(p => !p.approval_date && p.target_approval_date && new Date(p.target_approval_date) < today2).map(p => p.id));
+        const affected = links.filter(l => lateIds.has(l.source_type==="policy" ? l.source_id : l.target_id));
+        if(affected.length) alerts.push({ severity:"medium", cta:"راجع السياسات", page:"governance", text:`${affected.length} إجراء/صلاحية مبنيّة على سياسات متأخرة الاعتماد — تُعدّ بلا أساس معتمد حتى تُعتمد السياسة.` });
+      }
+    } catch(e){ console.error("matrix/policy alert check failed", e); }
+      return alerts;
+    },
+    async () => { const alerts = [];
+    // 4d) Members classed as independent who declared an independence obstacle (Art. 19) or have no disclosure form
+    try {
+      if(typeof govIndependenceCheck === "function"){
+        const ind = await govIndependenceCheck();
+        const bad = ind.filter(r => r.obstacles.length);
+        if(bad.length) alerts.push({ severity: "high", cta: "راجع الأعضاء", page: "members", text: `${bad.length} عضو مصنَّف «مستقلاً» لديه ما يعارض الاستقلال بحسب نموذج الإفصاح: ${bad.slice(0,2).map(r => r.name + " — " + r.obstacles[0]).join("؛ ")}.` });
+        const miss = ind.filter(r => !r.hasForm || r.stale);
+        if(miss.length) alerts.push({ severity: "medium", cta: "راجع الأعضاء", page: "members", text: `${miss.length} عضو مستقل بلا نموذج إفصاح حديث (يلزم تقييم استقلاله سنوياً).` });
+      }
+    } catch(e){ console.error("independence check failed", e); }
+      return alerts;
+    },
+    async () => { const alerts = [];
+    // 5) Board decisions past their target date with no completion yet
+    try {
+      const { data: decisions } = await sb.from("board_decisions").select("*").eq("company_id", currentCompanyId).not("target_date","is",null).not("status","eq","منجز");
+      const overdue = (decisions||[]).filter(d => new Date(d.target_date) < new Date(new Date().toDateString()));
+      if(overdue.length){
+        alerts.push({ severity: "high", text: `${overdue.length} ${overdue.length===1?'قرار مجلس متأخر':'قرارات مجلس متأخرة'} عن موعد التنفيذ المستهدف.`, page: "decisiontracking" });
+      }
+    } catch(e){ console.error("decision tracking alert check failed", e); }
+      return alerts;
+    },
+    async () => { const alerts = [];
+    // 7) Corrective actions from governance assessments past their target date, not yet closed
+    try {
+      const { data: gaOpenActs } = await sb.from("governance_actions").select("id,target_date,status").eq("company_id", currentCompanyId).not("status","eq","مغلق").not("target_date","is",null);
+      const gaLate = (gaOpenActs||[]).filter(x => new Date(x.target_date) < new Date(new Date().toDateString()));
+      if(gaLate.length){
+        alerts.push({ severity: "high", text: `${gaLate.length} ${gaLate.length===1?'إجراء تصحيحي متأخر':'إجراءات تصحيحية متأخرة'} عن موعدها من تقييم فعالية الحوكمة.`, page: "govassess" });
+      }
+    } catch(e){ console.error("corrective action alert check failed", e); }
+      return alerts;
+    },
+    async () => { const alerts = [];
+    // 9) Join requests waiting for this company's approver
+    if(getCurrentRole() === "مدير النظام" || (currentUserProfile && currentUserProfile.is_platform_admin === true)){
+      try {
+        const { data: jr } = await sb.from("company_join_requests").select("id").eq("company_id", currentCompanyId).eq("status","قيد المراجعة");
+        if(jr && jr.length) alerts.push({ severity: "high", text: `${jr.length} ${jr.length===1?'طلب انضمام ينتظر':'طلبات انضمام تنتظر'} موافقتك.`, page: "users" });
+      } catch(e){ console.error("join request alert check failed", e); }
+    }
+      return alerts;
+    },
+    async () => { const alerts = [];
+    // 8) External compliance items past their deadline (a recurring one with a past date is unconfirmed)
+    try {
+      const { data: cmpRows } = await sb.from("compliance_items").select("id,status,due_date,frequency").eq("company_id", currentCompanyId);
+      const cmpLate = (cmpRows||[]).filter(i => complianceDerivedStatus(i) === "متأخر").length;
+      if(cmpLate){
+        alerts.push({ severity: "high", text: `${cmpLate} ${cmpLate===1?'التزام نظامي متأخر':'التزامات نظامية متأخرة'} عن موعدها.`, page: "compliance" });
+      }
+    } catch(e){ console.error("compliance alert check failed", e); }
+      return alerts;
+    },
+    async () => { const alerts = [];
+    // 6) Manager decisions (single-manager LLC) past their own target date, unfinished
+    if(currentCompanyLLCSingleManager){
+      try {
+        const { data: mgrDecisions } = await sb.from("simple_decisions").select("*").eq("company_id", currentCompanyId).eq("context","manager").not("target_date","is",null).not("status","eq","منجز");
+        const overdueMgr = (mgrDecisions||[]).filter(d => new Date(d.target_date) < new Date(new Date().toDateString()));
+        if(overdueMgr.length){
+          alerts.push({ severity: "high", text: `${overdueMgr.length} ${overdueMgr.length===1?'قرار مدير متأخر':'قرارات مدير متأخرة'} عن موعد التنفيذ المستهدف.`, page: "managerdecisions" });
+        }
+      } catch(e){ console.error("manager decision alert check failed", e); }
+    }
+      return alerts;
+    },
+  ];
+  const __res = await Promise.all(__blocks.map(f => f().catch(e => { console.error("alert block failed", e); return []; })));
+  __res.forEach(r => alerts.push(...r));
   return alerts;
 }
 
