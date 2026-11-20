@@ -212,62 +212,29 @@ function goToAGMVoting(){
 // Calls the "create-teams-meeting" Edge Function to auto-generate a real Teams join link —
 // works the moment that function is deployed with valid Teams credentials, no platform code
 // changes needed later. Until then, it fails gracefully with a clear status message.
-async function generateTeamsMeetingLink(){
-  const title = document.getElementById("mt-title").value.trim() || "اجتماع";
-  const dateVal = document.getElementById("mt-date").value;
-  const timeVal = document.getElementById("mt-time").value || "12:00";
-  if(!dateVal){ alert("حدد تاريخ الاجتماع أولًا قبل توليد الرابط"); return; }
-
-  const start = new Date(`${dateVal}T${timeVal}`);
-  const end = new Date(start.getTime() + 60*60*1000); // default 1-hour duration
-
+async function __genJitsiLink(inputId, dateId){
+  if(!document.getElementById(dateId).value){ alert("حدد تاريخ الاجتماع أولًا قبل توليد الرابط"); return; }
   try{
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/create-teams-meeting`, {
+    const { data:{ session } } = await sb.auth.getSession();
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/jitsi-meeting`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ subject: title, startTime: start.toISOString(), endTime: end.toISOString() })
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + (session ? session.access_token : ""), apikey: SUPABASE_KEY },
+      body: JSON.stringify({ action: "create", company_id: currentCompanyId })
     });
     const data = await res.json();
     if(!res.ok || !data.joinUrl){
-      alert("⚠️ توليد الرابط التلقائي غير مفعّل بعد — يحتاج ربط حساب Teams أولًا (اضغط 'رابط الانضمام' واكتبه يدويًا مؤقتًا).");
+      alert("⚠️ توليد الرابط التلقائي غير مفعّل بعد — اكتب الرابط يدويًا مؤقتًا.");
       return;
     }
-    document.getElementById("mt-link").value = data.joinUrl;
+    document.getElementById(inputId).value = data.joinUrl;
     alert("تم توليد رابط الاجتماع تلقائيًا ✅");
   }catch(e){
-    alert("⚠️ توليد الرابط التلقائي غير مفعّل بعد — يحتاج ربط حساب Teams أولًا (اضغط 'رابط الانضمام' واكتبه يدويًا مؤقتًا).");
+    alert("⚠️ توليد الرابط التلقائي غير مفعّل بعد — اكتب الرابط يدويًا مؤقتًا.");
   }
 }
-
-// Same as generateTeamsMeetingLink() above, but for the "طلب اجتماع" form (mtr-* fields)
-// instead of the direct-creation form (mt-* fields) — so a proposed meeting can already
-// have a join link ready before it's even confirmed by consensus.
-async function generateTeamsMeetingLinkForRequest(){
-  const title = document.getElementById("mtr-title").value.trim() || "اجتماع";
-  const dateVal = document.getElementById("mtr-date").value;
-  const timeVal = document.getElementById("mtr-time").value || "12:00";
-  if(!dateVal){ alert("حدد التاريخ المقترح أولًا قبل توليد الرابط"); return; }
-
-  const start = new Date(`${dateVal}T${timeVal}`);
-  const end = new Date(start.getTime() + 60*60*1000);
-
-  try{
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/create-teams-meeting`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ subject: title, startTime: start.toISOString(), endTime: end.toISOString() })
-    });
-    const data = await res.json();
-    if(!res.ok || !data.joinUrl){
-      alert("⚠️ توليد الرابط التلقائي غير مفعّل بعد — يحتاج ربط حساب Teams أولًا (اكتب الرابط يدويًا مؤقتًا).");
-      return;
-    }
-    document.getElementById("mtr-link").value = data.joinUrl;
-    alert("تم توليد رابط الاجتماع تلقائيًا ✅");
-  }catch(e){
-    alert("⚠️ توليد الرابط التلقائي غير مفعّل بعد — يحتاج ربط حساب Teams أولًا (اكتب الرابط يدويًا مؤقتًا).");
-  }
-}
+// اسم الدالتين باقٍ كما هو لأن الأزرار تستدعيهما (تعمل الآن عبر Jitsi لا Teams)
+async function generateTeamsMeetingLink(){ return __genJitsiLink("mt-link","mt-date"); }
+async function generateTeamsMeetingLinkForRequest(){ return __genJitsiLink("mtr-link","mtr-date"); }
 
 // Shows the committee picker on the request form when "اجتماع لجنة" is chosen — mirrors
 // toggleVotingDatesFields()'s committee-field logic for the direct-creation form.
