@@ -107,3 +107,20 @@ function renderStartHere(c){
     if(hide) hide.onclick = () => { try{ localStorage.setItem(startHereKey(), "1"); }catch(e){} card.remove(); };
   }catch(e){}
 }
+
+
+/* 5) نماذج الاجتماع: وقت النهاية يُقترح تلقائيًا بعد ساعة من البداية إن كان فارغًا (يبقى قابلًا للتعديل). */
+(function(){
+  try{
+    document.addEventListener("change", function(e){
+      const t = e.target; if(!t || !t.id) return;
+      const map = { "mt-time": "mt-time-end", "mtr-time": "mtr-time-end" };
+      const endId = map[t.id]; if(!endId) return;
+      const end = document.getElementById(endId);
+      if(!end || end.value || !/^\d{2}:\d{2}$/.test(t.value)) return;
+      const [h, m] = t.value.split(":").map(Number);
+      const total = (h * 60 + m + 60) % 1440;
+      end.value = String(Math.floor(total / 60)).padStart(2, "0") + ":" + String(total % 60).padStart(2, "0");
+    });
+  }catch(e){}
+})();

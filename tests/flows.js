@@ -705,6 +705,28 @@ function ok(name, cond, extra) {
   ok("النوافذ تُعرَّف كحوارات لقارئات الشاشة، وEsc تغلقها", f12.dialogRole && f12.escClosed, f12);
   ok("أزرار الإغلاق الأيقونية تأخذ اسمًا مقروءًا، ومؤشر التحميل العام مفعَّل", f12.closeLabel && f12.barPatched, f12);
 
+  /* ───────── مسار 13) اختصار النماذج: وقت نهاية الاجتماع تلقائيًا، وبيانات المساهم الإضافية ───────── */
+  console.log("مسار 13) اختصار النماذج");
+  const f13 = await pg.evaluate(() => {
+    const res = {}; const q = (id) => document.getElementById(id);
+    const fire = (el) => el.dispatchEvent(new Event("change", { bubbles: true }));
+    q("mt-time-end").value = ""; q("mt-time").value = "10:30"; fire(q("mt-time"));
+    res.end1 = q("mt-time-end").value;
+    q("mt-time").value = "23:30"; q("mt-time-end").value = ""; fire(q("mt-time"));
+    res.endWrap = q("mt-time-end").value;
+    q("mt-time-end").value = "12:00"; q("mt-time").value = "09:00"; fire(q("mt-time"));
+    res.endKept = q("mt-time-end").value;
+    q("mtr-time-end").value = ""; q("mtr-time").value = "14:15"; fire(q("mtr-time"));
+    res.reqEnd = q("mtr-time-end").value;
+    openNewShareholderModal();
+    res.moreClosed = q("msh-more").open === false;
+    res.coreVisible = ["msh-name","msh-shares","msh-nationalid","msh-phone"].every(i => !q("msh-more").contains(q(i)));
+    res.extrasInside = ["msh-nationality","msh-email","msh-notes"].every(i => q("msh-more").contains(q(i)));
+    return res;
+  });
+  ok("وقت نهاية الاجتماع يُقترح بعد ساعة من البداية (وبعد منتصف الليل يلتف صحيحًا) ولا يُستبدل إن كُتب يدويًا", f13.end1 === "11:30" && f13.endWrap === "00:30" && f13.endKept === "12:00" && f13.reqEnd === "15:15", f13);
+  ok("نموذج المساهم: الحقول الأساسية ظاهرة، والإضافية مطويّة ومحفوظة داخل الصفحة", f13.moreClosed && f13.coreVisible && f13.extrasInside, f13);
+
   ok("لا أخطاء برمجية أثناء المسارات", errs.length === 0, errs);
   await browser.close();
   console.log(`\nالنتيجة: ${passed} نجح، ${failed} فشل`);

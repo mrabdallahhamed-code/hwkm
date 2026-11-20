@@ -3409,29 +3409,31 @@
       <p style="font-size:10.5px;color:var(--gray3);margin-top:-6px">رقم الهوية أدناه هو رقم هوية <b>الشخص المخوّل</b> نفسه (يُستخدم لربط حسابه تلقائيًا عند تسجيله بالمنصة كممثل لهذا المساهم).</p>
     </div>
     <div class="row2">
-      <div class="fg"><label>الجنسية</label><input class="fi" id="msh-nationality"/></div>
-      <div class="fg"><label>محل الإقامة</label><input class="fi" id="msh-residence"/></div>
-    </div>
-    <div class="row2">
-      <div class="fg"><label>المهنة</label><input class="fi" id="msh-profession"/></div>
-      <div class="fg"><label>رقم الشهادة</label><input class="fi" id="msh-certificate"/></div>
-    </div>
-    <div class="row2">
       <div class="fg"><label>عدد الأسهم</label><input type="number" class="fi" id="msh-shares" placeholder="مثال: 5000"/></div>
-      <div class="fg"><label>القيمة المدفوعة (ريال)</label><input type="number" class="fi" id="msh-paidvalue"/></div>
-    </div>
-    <div class="fg"><label>تاريخ انتقال الملكية</label><input type="date" class="fi" id="msh-transferdate"/></div>
-
-    <div style="border-top:1px dashed var(--gray1);margin:14px 0 10px;padding-top:10px;font-size:11.5px;font-weight:700;color:var(--gray3)">بيانات إضافية (تُعبّى يدويًا)</div>
-    <div class="row2">
       <div class="fg"><label id="msh-nationalid-label">رقم الهوية</label><input class="fi" id="msh-nationalid"/></div>
-      <div class="fg"><label>رقم الجوال</label><input class="fi" id="msh-phone"/></div>
     </div>
-    <div class="row2">
-      <div class="fg"><label>تاريخ انتهاء الهوية</label><input type="date" class="fi" id="msh-idexpiry"/></div>
-      <div class="fg"><label>الإيميل</label><input type="email" class="fi" id="msh-email"/></div>
-    </div>
-    <div class="fg"><label>ملاحظات</label><textarea class="fta" id="msh-notes" rows="2"></textarea></div>
+    <div class="fg"><label>رقم الجوال</label><input class="fi" id="msh-phone"/></div>
+
+    <details id="msh-more" style="margin-top:6px;border-top:1px dashed var(--gray1);padding-top:10px">
+      <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--navy);padding:4px 0;margin-bottom:8px">بيانات إضافية (اختيارية) ‹</summary>
+      <div class="row2">
+        <div class="fg"><label>الجنسية</label><input class="fi" id="msh-nationality"/></div>
+        <div class="fg"><label>محل الإقامة</label><input class="fi" id="msh-residence"/></div>
+      </div>
+      <div class="row2">
+        <div class="fg"><label>المهنة</label><input class="fi" id="msh-profession"/></div>
+        <div class="fg"><label>رقم الشهادة</label><input class="fi" id="msh-certificate"/></div>
+      </div>
+      <div class="row2">
+        <div class="fg"><label>القيمة المدفوعة (ريال)</label><input type="number" class="fi" id="msh-paidvalue"/></div>
+        <div class="fg"><label>تاريخ انتقال الملكية</label><input type="date" class="fi" id="msh-transferdate"/></div>
+      </div>
+      <div class="row2">
+        <div class="fg"><label>تاريخ انتهاء الهوية</label><input type="date" class="fi" id="msh-idexpiry"/></div>
+        <div class="fg"><label>الإيميل</label><input type="email" class="fi" id="msh-email"/></div>
+      </div>
+      <div class="fg"><label>ملاحظات</label><textarea class="fta" id="msh-notes" rows="2"></textarea></div>
+    </details>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-shareholder')">إلغاء</button><button class="btn btn-gold" onclick="saveShareholder()"><span class="ico-i ico-check"></span>حفظ</button></div>
   </div>
 </div>

@@ -116,6 +116,7 @@ function openNewShareholderModal(){
   ["msh-name","msh-nationality","msh-residence","msh-profession","msh-certificate","msh-shares","msh-paidvalue","msh-transferdate","msh-nationalid","msh-phone","msh-idexpiry","msh-email","msh-notes","msh-entity-cr","msh-authorized-rep"].forEach(id => { document.getElementById(id).value = ""; });
   document.getElementById("msh-type").value = "فرد";
   toggleShareholderEntityFields();
+  const more = document.getElementById("msh-more"); if(more) more.open = false;
   openM("m-shareholder");
 }
 
@@ -148,6 +149,9 @@ function editShareholder(id){
   document.getElementById("msh-email").value = s.email || "";
   document.getElementById("msh-notes").value = s.notes || "";
   toggleShareholderEntityFields();
+  // عند التعديل نفتح «البيانات الإضافية» إن كان فيها شيء محفوظ، حتى لا يخفى عن المستخدم
+  const more = document.getElementById("msh-more");
+  if(more) more.open = ["msh-nationality","msh-residence","msh-profession","msh-certificate","msh-paidvalue","msh-transferdate","msh-idexpiry","msh-email","msh-notes"].some(i => document.getElementById(i).value);
   openM("m-shareholder");
 }
 
