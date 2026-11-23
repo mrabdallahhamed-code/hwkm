@@ -29,10 +29,14 @@ async function submitMeetingRequest(){
   const proposed_date = document.getElementById("mtr-date").value || null;
   const proposed_time = document.getElementById("mtr-time").value || null;
   const proposed_time_end = document.getElementById("mtr-time-end").value || null;
-  const method = document.getElementById("mtr-method").value;
+  let method = document.getElementById("mtr-method").value;
   let meeting_link = document.getElementById("mtr-link").value.trim() || null;
   // اجتماع عن بُعد بلا رابط: نولّد رابط حوكم تلقائيًا حتى يجد الأعضاء زر الانضمام جاهزًا
-  if(!meeting_link && /عن بُعد|هجين/.test(method)) meeting_link = await __jitsiCreateUrl();
+  if(!meeting_link && /عن بُعد|هجين/.test(method)){
+    meeting_link = await __jitsiCreateUrl();
+    // الرابط رابط حوكم، فلا نكتب «Zoom» أو «Teams» حتى لا يضلّل الأعضاء
+    if(meeting_link && /^عن بُعد/.test(method)) method = "عن بُعد (حوكم)";
+  }
   const notes = document.getElementById("mtr-notes").value.trim();
   const committee_id = (meeting_type === "اجتماع لجنة" && document.getElementById("mtr-committee-id").value)
     ? Number(document.getElementById("mtr-committee-id").value) : null;
