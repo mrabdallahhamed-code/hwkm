@@ -23,7 +23,7 @@
     const d=await r.json();
     if(!r.ok||!d.jwt) return fail(d.error||"تعذّر الدخول إلى الاجتماع.");
     const s=document.createElement("script");
-    const DOM="mumbai.8x8.vc"; /* نثبّت الاجتماعات على مركز مومباي: أقرب مركز للمملكة، ونوثّق دولة واحدة معروفة في اتفاقية معالجة البيانات */
+    const DOM="8x8.vc"; /* نثبّت الاجتماعات على مركز مومباي: أقرب مركز للمملكة، ونوثّق دولة واحدة معروفة في اتفاقية معالجة البيانات */
     s.src="https://"+DOM+"/"+d.appId+"/external_api.js";
     s.onload=()=>{msg.style.display="none";const el=document.getElementById("j");el.style.display="block";
       new JitsiMeetExternalAPI(DOM,{roomName:d.appId+"/"+room,jwt:d.jwt,parentNode:el,width:"100%",height:"100%",lang:"ar"});};
