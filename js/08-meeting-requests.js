@@ -40,7 +40,10 @@ async function submitMeetingRequest(){
   const responseDays = Number(document.getElementById("mtr-response-days").value) || 2;
   const response_deadline = new Date(Date.now() + responseDays*24*60*60*1000).toISOString();
 
+  const ruleEl = document.getElementById("mtr-rule");
+  const approvalRule = ruleEl && ruleEl.value === "أغلبية" ? "أغلبية" : "إجماع";
   const { data: newReq, error } = await sb.from("meeting_requests").insert([{
+    ...(approvalRule === "أغلبية" ? { approval_rule: approvalRule } : {}),
     title, meeting_type, proposed_date, proposed_time, proposed_time_end, method, meeting_link, notes,
     committee_id, proposed_topics: newRequestTopics, status: "قيد الموافقة", response_deadline, company_id: currentCompanyId
   }]).select().single();
@@ -220,7 +223,15 @@ async function recomputeMeetingRequestStatus(requestId){
     totalMembers = count || 0;
   }
   const approvedEmails = new Set(revs.filter(r=>r.response==="موافقة").map(r=>r.reviewer_email));
-  if(totalMembers > 0 && approvedEmails.size < totalMembers) return; // not everyone linked has responded yet
+  if(req.approval_rule === "أغلبية"){
+    // Majority of linked members (more than half) AND the chairman must be among the approvers.
+    // Chairman = board member with position_level "رئيس" linked to a login account.
+    if(totalMembers > 0 && approvedEmails.size * 2 <= totalMembers) return;
+    const { data: chair } = await sb.from("board_members").select("claimed_by_email")
+      .eq("company_id", currentCompanyId).eq("position_level","رئيس").not("claimed_by_email","is",null);
+    const chairEmails = (chair||[]).map(c => c.claimed_by_email);
+    if(chairEmails.length && !chairEmails.some(e => approvedEmails.has(e))) return; // waits for the chairman
+  } else if(totalMembers > 0 && approvedEmails.size < totalMembers) return; // unanimity: not everyone linked has responded yet
 
   const { data: newMeeting, error: insErr } = await sb.from("meetings").insert([{
     title: req.title, meeting_type: req.meeting_type, meeting_date: req.proposed_date,
