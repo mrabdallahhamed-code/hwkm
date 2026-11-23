@@ -152,6 +152,19 @@ async function openMeetingRequestPopup(requestId){
       <button class="btn-xs" style="background:${mine&&mine.response==='موافقة'?'linear-gradient(135deg,var(--primary),var(--accent))':'#E8F8EF'};color:${mine&&mine.response==='موافقة'?'#fff':'var(--green)'};border:none;border-radius:6px;padding:7px 14px;font-size:11.5px;cursor:pointer" onclick="respondMeetingRequest(${req.id},'موافقة')"><span class="ico-i ico-check"></span>موافقة على الموعد</button>
       <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:7px 14px;font-size:11.5px;cursor:pointer" onclick="toggleAltDateForm(${req.id})"><span class="ico-i ico-refresh"></span>اقتراح موعد بديل</button>
     </div>
+    ${canManageMeetingRequest() ? `<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;border-top:1px dashed var(--gray1);padding-top:10px">
+      <button class="btn-xs" style="background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1);border-radius:6px;padding:7px 14px;font-size:11.5px;cursor:pointer" onclick="toggleReqTimeForm(${req.id})">🕒 تغيير الموعد</button>
+      <button class="btn-xs" style="background:#FDE8E8;color:var(--red);border:1px solid #f3c2c2;border-radius:6px;padding:7px 14px;font-size:11.5px;cursor:pointer" onclick="cancelMeetingRequest(${req.id})">✖ إلغاء الطلب</button>
+    </div>
+    <div id="rt-form-${req.id}" style="display:none;margin-top:10px;padding:10px;background:var(--offwhite);border-radius:8px">
+      <div class="row2">
+        <div class="fg"><label style="font-size:11px">التاريخ الجديد</label><input type="date" class="fi" id="rt-date-${req.id}" value="${req.proposed_date||""}"/></div>
+        <div class="fg"><label style="font-size:11px">من الساعة</label><input type="time" class="fi" id="rt-time-${req.id}" value="${req.proposed_time||""}"/></div>
+      </div>
+      <div class="fg"><label style="font-size:11px">إلى الساعة</label><input type="time" class="fi" id="rt-end-${req.id}" value="${req.proposed_time_end||""}"/></div>
+      <div style="font-size:11px;color:var(--gray3);margin:6px 0">عند تغيير الموعد تُصفَّر الردود ويُطلب من الأعضاء الموافقة من جديد.</div>
+      <button class="btn-xs primary" onclick="saveMeetingRequestTime(${req.id})">حفظ الموعد الجديد</button>
+    </div>` : ""}
     <div id="alt-form-${req.id}" style="display:none;margin-top:10px;padding:10px;background:var(--offwhite);border-radius:8px">
       <div class="row2">
         <div class="fg"><label style="font-size:11px">الموعد البديل</label><input type="date" class="fi" id="alt-date-${req.id}"/></div>
@@ -233,25 +246,43 @@ async function recomputeMeetingRequestStatus(requestId){
     if(chairEmails.length && !chairEmails.some(e => approvedEmails.has(e))) return; // waits for the chairman
   } else if(totalMembers > 0 && approvedEmails.size < totalMembers) return; // unanimity: not everyone linked has responded yet
 
-  const { data: newMeeting, error: insErr } = await sb.from("meetings").insert([{
-    title: req.title, meeting_type: req.meeting_type, meeting_date: req.proposed_date,
-    meeting_time: req.proposed_time, time_end: req.proposed_time_end, method: req.method,
-    meeting_link: req.meeting_link, committee_id: req.committee_id, notes: req.notes, company_id: currentCompanyId
-  }]).select().single();
-  if(insErr) return;
+  // الإنشاء من الخادم: إنشاء الاجتماع لا تسمح به القواعد إلا لمدير النظام، فلو كان آخر الموافقين عضوًا عاديًا
+  // لفشل بصمت. الدالة تعيد فحص القاعدة بنفسها ثم تنشئ الاجتماع وبنوده وقراراته وتعتمد الطلب.
+  const { data: newMeetingId, error: insErr } = await sb.rpc("confirm_meeting_request",
+    { p_request_id: requestId, p_open: AGENDA_OPENING_ITEM, p_close: AGENDA_CLOSING_ITEM });
+  if(insErr){ console.error("confirm_meeting_request", insErr); try{ uiToast("تعذّر تحويل الطلب إلى اجتماع: " + insErr.message); }catch(e){} return; }
+  if(!newMeetingId) return; // لم تكتمل القاعدة بعد
+  try{ await generateAndUploadMeetingInvitation(newMeetingId); }catch(e){ console.error(e); }
+}
 
-  // Agenda: fixed opening + whatever the requester listed + fixed closing — same rule as
-  // meetings created directly, so a request-approved meeting is never missing its agenda.
-  const customTopics = Array.isArray(req.proposed_topics) ? req.proposed_topics : [];
-  const finalTopics = withAgendaBookends(customTopics);
-  const topicRows = finalTopics.map((topic_text, i) => ({ meeting_id: newMeeting.id, topic_text, sort_order: i, company_id: currentCompanyId }));
-  await sb.from("vote_topics").insert(topicRows);
-  // Same automatic conversion: every real agenda item becomes a votable decision.
-  if(customTopics.length){
-    const decisionRows = customTopics.map(topic_text => ({ meeting_id: newMeeting.id, decision_text: topic_text, company_id: currentCompanyId }));
-    await sb.from("board_decisions").insert(decisionRows);
-  }
 
-  await sb.from("meeting_requests").update({ status: "معتمد" }).eq("id", requestId);
-  await generateAndUploadMeetingInvitation(newMeeting.id);
+function canManageMeetingRequest(){
+  const r = getCurrentRole();
+  return ["مدير النظام","رئيس مجلس","رئيس المجلس","أمين السر","سكرتير المجلس"].includes(r) || (typeof gaIsPlatformOwner === "function" && gaIsPlatformOwner());
+}
+function toggleReqTimeForm(id){
+  const el = document.getElementById("rt-form-"+id);
+  if(el) el.style.display = el.style.display === "none" ? "block" : "none";
+}
+async function saveMeetingRequestTime(id){
+  const d = document.getElementById("rt-date-"+id).value;
+  const t = document.getElementById("rt-time-"+id).value || "";
+  const te = document.getElementById("rt-end-"+id).value || "";
+  if(!d){ alert("الرجاء تحديد التاريخ"); return; }
+  const { error } = await sb.rpc("update_meeting_request_time", { p_request_id: id, p_date: d, p_time: t, p_time_end: te });
+  if(error){ alert("تعذّر تغيير الموعد: " + error.message); return; }
+  try{ logActivity("تعديل", "طلب اجتماع", "تغيير الموعد", d); }catch(e){}
+  closeM("m-meeting-request-view");
+  uiToast("تم تغيير الموعد، وسيُطلب من الأعضاء الموافقة من جديد.");
+  try{ const { data: req } = await sb.from("meeting_requests").select("*").eq("id", id).single(); if(req) notifyBoardOfMeetingRequest(req); }catch(e){}
+  if(typeof loadMeetingsAll === "function") loadMeetingsAll();
+}
+async function cancelMeetingRequest(id){
+  if(!await uiConfirm("إلغاء هذا الطلب؟ لن يتحول إلى اجتماع، وتبقى حالته «ملغي» في السجل.")) return;
+  const { error } = await sb.rpc("cancel_meeting_request", { p_request_id: id });
+  if(error){ alert("تعذّر إلغاء الطلب: " + error.message); return; }
+  try{ logActivity("تعديل", "طلب اجتماع", "إلغاء الطلب", String(id)); }catch(e){}
+  closeM("m-meeting-request-view");
+  uiToast("أُلغي الطلب.");
+  if(typeof loadMeetingsAll === "function") loadMeetingsAll();
 }
