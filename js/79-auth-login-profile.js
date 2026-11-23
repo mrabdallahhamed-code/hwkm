@@ -369,7 +369,44 @@ function aiNoticeAccepted(){
     return localStorage.getItem("hwkm_ai_notice_" + (currentUserProfile ? currentUserProfile.email : "")) === AI_NOTICE_VERSION;
   }catch(e){ return false; }
 }
-function ensureAiNotice(){
+/* تفعيل الذكاء الصناعي على مستوى الشركة: معطّل افتراضيًا (لا صف = معطّل). مدير النظام وحده يفعّله بإقرار مسجّل. */
+const AI_COMPANY_TERMS_VERSION = "2026-11-c1";
+let _aiCompanyResolve = null;
+async function aiCompanyEnabled(){
+  try{
+    const { data, error } = await sb.from("company_ai_settings").select("enabled").eq("company_id", currentCompanyId).maybeSingle();
+    if(error) return false;
+    return !!(data && data.enabled === true);
+  }catch(e){ return false; }
+}
+async function ensureCompanyAi(){
+  if(await aiCompanyEnabled()) return true;
+  if(getCurrentRole() === "مدير النظام" || (typeof gaIsPlatformOwner === "function" && gaIsPlatformOwner())){
+    return new Promise(resolve => {
+      _aiCompanyResolve = resolve;
+      const chk = document.getElementById("ai-company-check"); if(chk) chk.checked = false;
+      const ok = document.getElementById("ai-company-ok"); if(ok) ok.disabled = true;
+      openM("m-ai-company");
+    });
+  }
+  alert("ميزات الذكاء الاصطناعي غير مفعّلة لهذه الشركة. يفعّلها مدير النظام من أي زر ذكاء اصطناعي بعد الإقرار بالشروط.");
+  return false;
+}
+async function aiCompanyDecide(accepted){
+  closeM("m-ai-company");
+  const done = _aiCompanyResolve; _aiCompanyResolve = null;
+  if(!accepted){ if(done) done(false); return; }
+  const { error } = await sb.rpc("set_company_ai", { p_company_id: currentCompanyId, p_enabled: true, p_terms_version: AI_COMPANY_TERMS_VERSION });
+  if(error){ alert("تعذّر تفعيل الميزة: " + error.message); if(done) done(false); return; }
+  try{ logActivity("تعديل", "إعداد الذكاء الاصطناعي", "تفعيل الذكاء الاصطناعي", AI_COMPANY_TERMS_VERSION); }catch(e){}
+  uiToast("تم تفعيل ميزات الذكاء الاصطناعي لهذه الشركة.");
+  if(done) done(true);
+}
+async function ensureAiNotice(){
+  if(!await ensureCompanyAi()) return false;
+  return ensureAiNoticeUser();
+}
+function ensureAiNoticeUser(){
   if(aiNoticeAccepted()) return Promise.resolve(true);
   return new Promise(resolve => {
     _aiNoticeResolve = resolve;

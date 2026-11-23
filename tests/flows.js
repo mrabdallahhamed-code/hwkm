@@ -727,6 +727,21 @@ function ok(name, cond, extra) {
   ok("وقت نهاية الاجتماع يُقترح بعد ساعة من البداية (وبعد منتصف الليل يلتف صحيحًا) ولا يُستبدل إن كُتب يدويًا", f13.end1 === "11:30" && f13.endWrap === "00:30" && f13.endKept === "12:00" && f13.reqEnd === "15:15", f13);
   ok("نموذج المساهم: الحقول الأساسية ظاهرة، والإضافية مطويّة ومحفوظة داخل الصفحة", f13.moreClosed && f13.coreVisible && f13.extrasInside, f13);
 
+  /* ───────── مسار 14) الذكاء الصناعي معطّل افتراضيًا على مستوى الشركة ───────── */
+  console.log("مسار 14) تفعيل الذكاء الصناعي للشركة");
+  const f14 = await pg.evaluate(async () => {
+    const res = {}; let alerts = 0; const oa = window.alert; window.alert = () => { alerts++; };
+    const o1 = window.aiCompanyEnabled, o2 = window.getCurrentRole, o3 = window.aiNoticeAccepted;
+    window.aiCompanyEnabled = async () => false; window.getCurrentRole = () => "موظف";
+    res.disabledBlocked = (await window.ensureAiNotice()) === false; res.alerted = alerts === 1;
+    window.aiCompanyEnabled = async () => true; window.aiNoticeAccepted = () => true;
+    res.enabledPasses = (await window.ensureAiNotice()) === true;
+    res.modalExists = !!document.getElementById("m-ai-company") && !!document.getElementById("ai-company-ok");
+    window.aiCompanyEnabled = o1; window.getCurrentRole = o2; window.aiNoticeAccepted = o3; window.alert = oa;
+    return res;
+  });
+  ok("الذكاء الصناعي معطّل افتراضيًا: غير المدير يُمنع برسالة، والمفعّل يمر، ونافذة التفعيل موجودة", f14.disabledBlocked && f14.alerted && f14.enabledPasses && f14.modalExists, f14);
+
   ok("لا أخطاء برمجية أثناء المسارات", errs.length === 0, errs);
   await browser.close();
   console.log(`\nالنتيجة: ${passed} نجح، ${failed} فشل`);

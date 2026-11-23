@@ -248,11 +248,29 @@
         <li>يُرسَل إلى مزوّد الخدمة (Google Gemini) النص اللازم لتنفيذ طلبك فقط، وقد تُعالَج البيانات خارج المملكة. تجنّب إدخال بيانات شخصية حساسة أو أرقام هوية.</li>
         <li>المخرجات مسودات آلية قد تحتوي أخطاء، وليست استشارة قانونية. راجعها وعدّلها قبل اعتمادها؛ والمسؤولية عن اعتمادها على الشركة.</li>
         <li>لكل شركة حدّ استخدام يومي لكل ميزة.</li>
-        <li>لا يستخدم فريق حوكم هذه الميزات لصالحك إلا بعد طلب إذنك، ولا تُستخدم بياناتك لتدريب أي نموذج ذكاء اصطناعي.</li>
+        <li>لا يستخدم فريق حوكم هذه الميزات لصالحك إلا بعد طلب إذنك، ولا يستخدم بياناتك لتدريب أي نموذج. أما مزوّد الخدمة (Google) فلا نضمن طريقة تعامله مع المدخلات، وقد يستخدمها وفق شروطه.</li>
       </ul>
       <label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px;cursor:pointer"><input type="checkbox" id="ai-notice-check" onchange="document.getElementById('ai-notice-ok').disabled = !this.checked" style="margin-top:6px"><span>قرأت الإشعار وأوافق على إرسال النص المحدد إلى مزوّد الذكاء الاصطناعي، وأتحمل مراجعة المخرجات.</span></label>
     </div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="aiNoticeDecide(false)">إلغاء</button><button class="btn btn-gold" id="ai-notice-ok" disabled onclick="aiNoticeDecide(true)" style="flex:1">أوافق وأتابع</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-ai-company">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title"><span class="ico-i ico-shield"></span>تفعيل ميزات الذكاء الاصطناعي لهذه الشركة</div>
+    <div style="font-size:12.5px;line-height:2;color:var(--dark)">
+      ميزات الذكاء الاصطناعي <b>معطّلة افتراضيًا</b>، ولا تعمل إلا بعد تفعيلك لها:
+      <ul style="margin:6px 18px 0 0;padding:0;line-height:1.9">
+        <li>عند الاستخدام يُرسَل النص اللازم فقط إلى مزوّد الخدمة (Google Gemini)، وقد تُعالَج البيانات خارج المملكة.</li>
+        <li>لا نضمن أن مزوّد الخدمة لن يستخدم المدخلات لتحسين خدماته أو تدريب نماذجه، وهي خدمة مجانية ضمن حدود يومية.</li>
+        <li>المخرجات مسودات آلية قد تحتوي أخطاء وليست استشارة، والمسؤولية عن مراجعتها واعتمادها على الشركة.</li>
+        <li>تجنّب إدخال بيانات شخصية حساسة أو أرقام هوية.</li>
+        <li>يُسجَّل اسمك وتاريخ التفعيل ونسخة الشروط، ويمكن إيقاف الميزة في أي وقت.</li>
+      </ul>
+      <label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px;cursor:pointer"><input type="checkbox" id="ai-company-check" onchange="document.getElementById('ai-company-ok').disabled = !this.checked" style="margin-top:6px"><span>أقرّ بصفتي مدير النظام بما سبق، وأفعّل الميزة لهذه الشركة.</span></label>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="aiCompanyDecide(false)">إلغاء</button><button class="btn btn-gold" id="ai-company-ok" disabled onclick="aiCompanyDecide(true)" style="flex:1">فعّل الذكاء الاصطناعي</button></div>
   </div>
 </div>
 
