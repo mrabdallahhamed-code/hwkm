@@ -15,6 +15,7 @@ function meetingCardHTML(m){
     ${m.notes ? `<div class="mc-detail"><span class="ico-i ico-edit"></span>${orgEsc(m.notes)}</div>` : ""}
     <div class="mc-actions">
       <button class="btn-xs primary" style="width:100%" onclick="event.stopPropagation();openMeetingDetailModal(${m.id})"><span class="ico-i ico-folder"></span>عرض التفاصيل</button>
+      ${m.meeting_link ? `<a class="btn-xs gold" style="width:100%;margin-top:6px;display:block;text-align:center;text-decoration:none" href="${m.meeting_link}" target="_blank" rel="noopener" onclick="event.stopPropagation()"><span class="ico-i ico-link"></span>انضم للاجتماع</a>` : ""}
     </div>
   </div>`;
 }

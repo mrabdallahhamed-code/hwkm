@@ -142,6 +142,9 @@ async function openMeetingDetailModal(id){
   if(m.meeting_link){
     linkBox.style.display = "block";
     linkBox.innerHTML = `<a href="${m.meeting_link}" target="_blank" rel="noopener" class="btn btn-gold" style="width:100%;text-align:center;display:block;text-decoration:none"><span class="ico-i ico-link"></span>انضم للاجتماع الآن</a>`;
+  } else if(/عن بُعد|هجين/.test(m.method||"") && (getCurrentRole()==="مدير النظام" || (typeof gaIsPlatformOwner==="function" && gaIsPlatformOwner()))){
+    linkBox.style.display = "block";
+    linkBox.innerHTML = `<button class="btn btn-gold" style="width:100%" onclick="generateLinkForMeeting(${m.id})"><span class="ico-i ico-link"></span>توليد رابط الاجتماع</button><div style="font-size:11px;color:var(--gray3);margin-top:4px;text-align:center">لا يوجد رابط لهذا الاجتماع بعد</div>`;
   } else {
     linkBox.style.display = "none";
   }

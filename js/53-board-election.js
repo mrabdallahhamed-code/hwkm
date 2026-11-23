@@ -212,6 +212,28 @@ function goToAGMVoting(){
 // Calls the "create-teams-meeting" Edge Function to auto-generate a real Teams join link —
 // works the moment that function is deployed with valid Teams credentials, no platform code
 // changes needed later. Until then, it fails gracefully with a clear status message.
+/* يولّد رابط اجتماع حوكم بصمت ويعيده (أو null عند الفشل) — لإنشاء الرابط تلقائيًا بلا ضغط زر. */
+async function __jitsiCreateUrl(){
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/jitsi-meeting`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + (session ? session.access_token : ""), apikey: SUPABASE_KEY },
+      body: JSON.stringify({ action: "create", company_id: currentCompanyId })
+    });
+    const data = await res.json();
+    return (res.ok && data.joinUrl) ? data.joinUrl : null;
+  }catch(e){ return null; }
+}
+/* اجتماع بلا رابط: مدير النظام يولّد الرابط ويُحفظ على الاجتماع فيظهر زر الانضمام للجميع. */
+async function generateLinkForMeeting(meetingId){
+  const url = await __jitsiCreateUrl();
+  if(!url){ alert("⚠️ تعذّر توليد الرابط الآن. حاول بعد قليل أو أضف رابطًا يدويًا."); return; }
+  const { error } = await sb.from("meetings").update({ meeting_link: url }).eq("id", meetingId);
+  if(error){ alert("تعذّر حفظ الرابط: " + error.message); return; }
+  uiToast("تم توليد رابط الاجتماع ✅");
+  if(typeof openMeetingDetailModal === "function") openMeetingDetailModal(meetingId);
+}
 async function __genJitsiLink(inputId, dateId){
   if(!document.getElementById(dateId).value){ alert("حدد تاريخ الاجتماع أولًا قبل توليد الرابط"); return; }
   try{
