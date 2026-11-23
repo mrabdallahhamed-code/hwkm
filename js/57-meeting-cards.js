@@ -36,6 +36,10 @@ function meetingRequestCardHTML(r){
         ? `<button class="btn-xs" style="width:100%;background:var(--offwhite);color:var(--dark);border:1px solid var(--gray1)" onclick="event.stopPropagation();openMeetingRequestPopup(${r.id})"><span class="ico-i ico-folder"></span>عرض الطلب</button>`
         : `<button class="btn-xs gold" style="width:100%" onclick="event.stopPropagation();openMeetingRequestPopup(${r.id})"><span class="ico-i ico-ballot"></span>الرد على الطلب</button>`}
     </div>
+    ${(typeof canManageMeetingRequest === "function" && canManageMeetingRequest()) ? `<div class="mc-actions" style="margin-top:6px;display:flex;gap:6px">
+      <button class="btn-xs" style="flex:1;background:#fff;color:var(--dark);border:1px solid var(--gold);font-weight:800" onclick="event.stopPropagation();openMeetingRequestPopup(${r.id}).then(()=>toggleReqTimeForm(${r.id}))">🕒 تغيير الموعد</button>
+      <button class="btn-xs" style="flex:1;background:#FDE8E8;color:var(--red);border:1px solid #f3c2c2;font-weight:800" onclick="event.stopPropagation();cancelMeetingRequest(${r.id})">✖ إلغاء الطلب</button>
+    </div>` : ""}
   </div>`;
 }
 
