@@ -779,6 +779,19 @@ function ok(name, cond, extra) {
   });
   ok("لوحة التحكم المختصرة: افتراضيًا مختصرة، والزر يعرض الباقي ثم يعيد الاختصار", f19.liteDefault && f19.full && f19.label && f19.backLite, f19);
 
+  /* ───────── مسار 21) سطور الإجراء في مؤشرات لوحة التحكم وحذف البطاقات الثلاث ───────── */
+  console.log("مسار 21) سطور الإجراء في المؤشرات");
+  const f21 = await pg.evaluate(() => {
+    const r = {};
+    r.removed = !document.getElementById("dashTopRisks") && !document.getElementById("dashAuditStatus");
+    enhanceDashboardKpis({ nextMeeting:{meeting_date:"2026-12-03"}, quarterMeetings:2, completedQ:1, upcomingQ:1, pendingSigns:0, approvedThisMonth:0, cmpSum:{pct:70,text:"x"}, risksTotal:3, openRisks:3, highOpenRisks:1, highNoPlan:0 });
+    const t = id => { const k = document.getElementById(id).closest(".kpi"); const g = k.querySelector(".kpi-go"); return g ? { txt: g.textContent, ico: !!g.querySelector(".ico-i") } : null; };
+    r.meet = t("kpi-meetings-q"); r.risk = t("kpi-risks"); r.dec = t("stat-decisions"); r.cmp = t("kpi-compliance");
+    return r;
+  });
+  ok("البطاقات الثلاث محذوفة، وكل مؤشر فيه سطر إجراء بأيقونة (الاجتماع القادم، شاهد أعلى المخاطر...)",
+    f21.removed && /الاجتماع القادم: 3 ديسمبر/.test(f21.meet && f21.meet.txt) && f21.meet.ico && /شاهد أعلى المخاطر/.test(f21.risk && f21.risk.txt) && f21.dec && f21.cmp, f21);
+
   /* ───────── مسار 20) صفحة واحدة فقط ظاهرة في كل مرة (لا تتسرب لوحة الشركة إلى الصفحات الأخرى) ───────── */
   console.log("مسار 20) ظهور صفحة واحدة فقط");
   const f20 = await pg.evaluate(async () => {

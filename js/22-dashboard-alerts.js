@@ -505,15 +505,19 @@ async function applyDashboardEntityAdaptation(){
   if(!card) return;
   const title = card.querySelector(".card-title");
   const btn = card.querySelector(".card-head button");
+  const page = document.getElementById("p-dashboard");
+  /* Companies with a board see the next meeting on the meetings KPI card instead, so this card is hidden for them. */
+  if(page) page.classList.toggle("no-core", !noBoard);
+  card.style.display = noBoard ? "" : "none";
   if(!noBoard){
     if(title) title.innerHTML = '<span class="ico-i ico-calendar"></span>الاجتماعات القادمة';
     if(btn){ btn.setAttribute("onclick","go('meetings',null)"); btn.textContent = "عرض الكل"; btn.style.display = ""; }
     return;
   }
   const context = currentCompanyLLCSingleManager ? "manager" : "owner";
-  const page = context === "manager" ? "managerdecisions" : "ownerdecisions";
+  const decPage = context === "manager" ? "managerdecisions" : "ownerdecisions";
   if(title) title.innerHTML = `<span class="ico-i ico-signature"></span>آخر قرارات ${context === "manager" ? "المدير" : "المالك"}`;
-  if(btn){ btn.setAttribute("onclick", `go('${page}',null)`); btn.textContent = "عرض الكل"; btn.style.display = ""; }
+  if(btn){ btn.setAttribute("onclick", `go('${decPage}',null)`); btn.textContent = "عرض الكل"; btn.style.display = ""; }
   const { data } = await sb.from("simple_decisions").select("*").eq("company_id", currentCompanyId).eq("context", context).order("decision_date",{ascending:false}).limit(4);
   const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   body.innerHTML = (data && data.length)
@@ -698,7 +702,7 @@ async function loadDashboard(){
       ${bar("إجراءات تصحيحية مُغلقة", actDone, actTot, "govassess")}
     </div>`;
   }
-  enhanceDashboardKpis({ quarterMeetings: quarterMeetings.length, completedQ, upcomingQ, pendingSigns: signingDocs.filter(d => d.status !== "مكتمل").length, approvedThisMonth, cmpSum, risksTotal: risks.length, openRisks: openRisks.length, highOpenRisks, highNoPlan: openRisks.filter(r => r.impact === "عالٍ" && !(r.treatment_plan||"").trim()).length });
+  enhanceDashboardKpis({ nextMeeting: upcoming[0] || null, quarterMeetings: quarterMeetings.length, completedQ, upcomingQ, pendingSigns: signingDocs.filter(d => d.status !== "مكتمل").length, approvedThisMonth, cmpSum, risksTotal: risks.length, openRisks: openRisks.length, highOpenRisks, highNoPlan: openRisks.filter(r => r.impact === "عالٍ" && !(r.treatment_plan||"").trim()).length });
   applyDashboardEntityAdaptation();
   if(typeof renderGovNetworkCard === "function") renderGovNetworkCard();
 }
@@ -706,41 +710,52 @@ async function loadDashboard(){
 /* Dashboard KPI interpretation: every figure gets a plain status, the reason behind it and the next step,
    so an executive can decide from the card itself instead of guessing what "0%" or "—" means. */
 function enhanceDashboardKpis(c){
-  const put = (valId, st, why, act, valText) => {
+  const put = (valId, st, why, act, valText, icon) => {
     const v = document.getElementById(valId); const k = v ? v.closest(".kpi") : null; if(!k) return;
     if(valText !== undefined){ v.textContent = valText; v.classList.toggle("kpi-val-na", valText === "غير مقيَّم" || valText === "لا بيانات"); }
     else v.classList.remove("kpi-val-na");
     const foot = k.querySelector(".kpi-foot"); if(foot) foot.style.display = "none";
     let ins = k.querySelector(".kpi-ins"); if(!ins){ ins = document.createElement("div"); ins.className = "kpi-ins"; k.appendChild(ins); }
     const lbl = {good:"جيد", watch:"يحتاج متابعة", crit:"حرج", na:"غير مقيَّم"}[st];
-    ins.innerHTML = `<span class="kst kst-${st}">${lbl}</span><div class="kpi-why">${why}</div>${act ? `<div class="kpi-act">${act} ‹</div>` : ""}`;
+    ins.innerHTML = `<span class="kst kst-${st}">${lbl}</span><div class="kpi-why">${why}</div>`;
+    setGo(k, act, icon);
   };
+  /* One action line per card, with an icon: tells the reader where the card leads. */
+  const setGo = (k, text, icon) => {
+    const foot = k.querySelector(".kpi-foot"); if(foot) foot.style.display = "none";
+    let g = k.querySelector(".kpi-go"); if(!g){ g = document.createElement("div"); g.className = "kpi-go"; k.appendChild(g); }
+    g.innerHTML = `<span class="ico-i ${icon||"ico-eye"}"></span><span>${text}</span><span class="kpi-go-arr">‹</span>`;
+  };
+  const nm = c.nextMeeting;
+  const nextTxt = nm ? (() => { const d = new Date(nm.meeting_date); return `الاجتماع القادم: ${d.getDate()} ${AR_MONTHS[d.getMonth()]}`; })() : "";
   // meetings
   put("kpi-meetings-q", c.quarterMeetings ? "good" : "watch",
     c.quarterMeetings ? `${c.completedQ} منعقدة و${c.upcomingQ} قادمة هذا الربع` : "لا توجد اجتماعات مجدولة لهذا الربع",
-    c.quarterMeetings ? "" : "جدولة اجتماع");
+    nextTxt || "جدولة اجتماع جديد", undefined, "ico-calendar");
   // minutes / signed documents
   put("kpi-minutes", c.pendingSigns ? "watch" : "good",
     c.pendingSigns ? `${c.pendingSigns} ${c.pendingSigns===1?'وثيقة تنتظر':'وثائق تنتظر'} توقيعاً · ${c.approvedThisMonth} اعتُمدت هذا الشهر` : `كل الوثائق موقّعة · ${c.approvedThisMonth} هذا الشهر`,
-    c.pendingSigns ? "افتح التوقيعات" : "");
+    c.pendingSigns ? "افتح التوقيعات المعلّقة" : "افتح المحاضر المعتمدة", undefined, "ico-document");
   // compliance
   const unassessed = c.cmpSum.pct == null || /لم يُجرَ/.test(c.cmpSum.text||"");
-  if(c.cmpSum.pct == null) put("kpi-compliance","na","لا توجد بنود امتثال مسجّلة بعد","ابدأ بإضافة البنود","لا بيانات");
-  else if(unassessed) put("kpi-compliance","na",`${c.cmpSum.text.replace(" (لم يُجرَ تقييم بعد)","")} — بلا تقييم رسمي حتى الآن`,"ابدأ التقييم","غير مقيَّم");
-  else { const p=c.cmpSum.pct; put("kpi-compliance", p<50?"crit":p<80?"watch":"good", c.cmpSum.text, p<80?"راجع البنود غير المكتملة":"", p+"%"); }
+  if(c.cmpSum.pct == null) put("kpi-compliance","na","لا توجد بنود امتثال مسجّلة بعد","أضف بنود الامتثال","لا بيانات","ico-check");
+  else if(unassessed) put("kpi-compliance","na",`${c.cmpSum.text.replace(" (لم يُجرَ تقييم بعد)","")} — بلا تقييم رسمي حتى الآن`,"ابدأ تقييم الامتثال","غير مقيَّم","ico-check");
+  else { const p=c.cmpSum.pct; put("kpi-compliance", p<50?"crit":p<80?"watch":"good", c.cmpSum.text, p<80?"تابع البنود غير المكتملة":"تابع بنود الامتثال", p+"%", "ico-check"); }
   // risks
-  if(!c.risksTotal) put("kpi-risks","na","لم تُسجَّل مخاطر بعد","سجّل أول خطر","لا بيانات");
-  else if(c.highNoPlan) put("kpi-risks","crit",`${c.highNoPlan} عالية التأثير بلا خطة معالجة`,"راجع المخاطر");
-  else if(c.highOpenRisks) put("kpi-risks","watch",`${c.highOpenRisks} عالية التأثير ولها خطة معالجة قيد المتابعة`,"راجع المخاطر");
-  else if(c.openRisks) put("kpi-risks","watch",`${c.openRisks} ${c.openRisks===1?'خطر مفتوح':'مخاطر مفتوحة'} متوسطة أو منخفضة التأثير`,"راجع المخاطر");
-  else put("kpi-risks","good","لا مخاطر مفتوحة حالياً","");
+  if(!c.risksTotal) put("kpi-risks","na","لم تُسجَّل مخاطر بعد","سجّل أول خطر","لا بيانات","ico-warning");
+  else if(c.highNoPlan) put("kpi-risks","crit",`${c.highNoPlan} عالية التأثير بلا خطة معالجة`,"شاهد أعلى المخاطر",undefined,"ico-warning");
+  else if(c.highOpenRisks) put("kpi-risks","watch",`${c.highOpenRisks} عالية التأثير ولها خطة معالجة قيد المتابعة`,"شاهد أعلى المخاطر",undefined,"ico-warning");
+  else if(c.openRisks) put("kpi-risks","watch",`${c.openRisks} ${c.openRisks===1?'خطر مفتوح':'مخاطر مفتوحة'} متوسطة أو منخفضة التأثير`,"شاهد المخاطر المفتوحة",undefined,"ico-warning");
+  else put("kpi-risks","good","لا مخاطر مفتوحة حالياً","افتح سجل المخاطر",undefined,"ico-warning");
   // governance effectiveness
   const g = document.getElementById("kpi-govassess");
   if(g){
     const m = (g.textContent||"").match(/(\d+)%/);
-    if(!m) put("kpi-govassess","na","لم يُجرَ تقييم لفعالية الحوكمة بعد","ابدأ التقييم","غير مقيَّم");
-    else { const p=+m[1]; const f=document.getElementById("kpi-govassess-foot"); const why=f&&f.textContent?f.textContent:"نتيجة آخر تقييم"; put("kpi-govassess", p<50?"crit":p<75?"watch":"good", why, p<75?"اطّلع على الإجراءات التصحيحية":""); }
+    if(!m) put("kpi-govassess","na","لم يُجرَ تقييم لفعالية الحوكمة بعد","ابدأ تقييم الحوكمة","غير مقيَّم","ico-dashboard");
+    else { const p=+m[1]; const f=document.getElementById("kpi-govassess-foot"); const why=f&&f.textContent?f.textContent:"نتيجة آخر تقييم"; put("kpi-govassess", p<50?"crit":p<75?"watch":"good", why, p<75?"اطّلع على الإجراءات التصحيحية":"اطّلع على نتيجة التقييم", undefined, "ico-dashboard"); }
   }
+  const dv = document.getElementById("stat-decisions"); const dk = dv ? dv.closest(".kpi") : null;
+  if(dk) setGo(dk, "شاهد قرارات هذا العام", "ico-signature");
   // stats bar: pending signatures becomes an actionable item
   const sc = document.getElementById("stat-compliance2"); if(sc && (c.cmpSum.pct == null || /لم يُجرَ/.test(c.cmpSum.text||""))) sc.textContent = "غير مقيَّم";
   const ps = document.getElementById("stat-pending-signs"); const psb = ps ? ps.closest(".sb-item") : null;
