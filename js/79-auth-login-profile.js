@@ -5,6 +5,9 @@ let currentCompanyId = null;
 function toggleAuthMode(){
   authMode = (authMode === "login") ? "signup" : "login";
   document.getElementById("loginBtn").textContent = authMode === "login" ? "تسجيل الدخول" : "إنشاء الحساب";
+  const wt = document.getElementById("loginWelcomeTitle"), ws = document.getElementById("loginWelcomeSub");
+  if(wt) wt.textContent = authMode === "login" ? "مرحبًا بعودتك" : "إنشاء حساب جديد";
+  if(ws) ws.textContent = authMode === "login" ? "سجّل الدخول لمتابعة حوكمة شركتك." : "أنشئ حسابك للانضمام إلى منصة حوكم.";
   document.getElementById("authSwitch").innerHTML = authMode === "login"
     ? 'ليس لديك حساب؟ <b>إنشاء حساب جديد</b>'
     : 'لديك حساب بالفعل؟ <b>تسجيل الدخول</b>';
