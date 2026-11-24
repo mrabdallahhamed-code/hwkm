@@ -807,11 +807,14 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
 .lb-mark{width:84px;height:84px;border-radius:18px;background:#fff;object-fit:contain;padding:3px;box-shadow:0 6px 18px rgba(0,0,0,.35)}
 .lb-word{font-size:24px;font-weight:900;line-height:1}
 .lb-word small{display:block;font-size:10.5px;letter-spacing:3px;color:#D9BE6A;font-weight:700;margin-top:4px}
-.lb-main h2{font-size:38px;line-height:1.35;font-weight:900;margin:0 0 14px;letter-spacing:.2px}
-.lb-sub{font-size:14.5px;line-height:2;opacity:.82;max-width:460px;margin:0 0 26px}
-.lb-feat{list-style:none;margin:0;padding:0;display:grid;gap:12px}
-.lb-feat li{display:flex;align-items:center;gap:12px;font-size:14px;font-weight:600}
-.lb-feat li span{width:26px;height:26px;border-radius:50%;background:rgba(184,151,42,.2);border:1px solid rgba(217,190,106,.55);color:#E9D48A;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0}
+.lb-kicker{display:inline-block;font-size:12px;font-weight:700;color:#E9D48A;letter-spacing:.5px;padding:5px 14px;border:1px solid rgba(217,190,106,.4);border-radius:999px;margin-bottom:18px;background:rgba(184,151,42,.1)}
+.lb-main h2{font-size:40px;line-height:1.4;font-weight:800;margin:0 0 14px}
+.lb-main h2 em{font-style:normal;color:#E2C766}
+.lb-sub{font-size:15px;line-height:1.9;opacity:.8;max-width:440px;margin:0 0 28px}
+.lb-feat{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:480px}
+.lb-feat li{display:flex;align-items:center;gap:12px;padding:14px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);font-size:14px;font-weight:700;line-height:1.5}
+.lb-feat li b{width:32px;height:32px;border-radius:10px;background:rgba(184,151,42,.22);color:#E9D48A;display:inline-flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.lb-feat li small{display:block;font-size:12px;font-weight:500;opacity:.7;margin-top:2px}
 .lb-foot{font-size:12px;opacity:.6}
 /* بطاقة النموذج */
 .login-box{
