@@ -460,14 +460,17 @@ async function renderGovAlertsPanel(){
   const high = alerts.filter(a=>a.severity==="high");
   const med = alerts.filter(a=>a.severity!=="high");
   const LIMIT = 4;
-  const card = a => `<div class="gal-row ${a.severity==='high'?'gal-high':'gal-med'}" onclick="go('${a.page}',null)">
-      <div class="gal-text">${a.text}</div>
-      <span class="gal-cta">${a.cta||"افتح"} ‹</span>
+  const card = a => `<div class="gal2-item ${a.severity==='high'?'gal2-high':'gal2-med'}" onclick="go('${a.page}',null)">
+      <span class="gal2-ico">${a.severity==='high'?'!':'i'}</span>
+      <div class="gal2-body">
+        <div class="gal2-text">${a.text}</div>
+        <span class="gal2-cta">${a.cta||"افتح"} ‹</span>
+      </div>
     </div>`;
-  const group = (id, title, list) => !list.length ? "" : `<div class="gal-sec">${title} <span class="gal-count">${list.length}</span></div>
-    <div class="gal-grid">${list.slice(0, LIMIT).map(card).join("")}</div>
-    ${list.length > LIMIT ? `<div class="gal-grid gal-more" id="${id}" style="display:none">${list.slice(LIMIT).map(card).join("")}</div>
-    <button class="gal-toggle" onclick="const m=document.getElementById('${id}');const o=m.style.display==='none';m.style.display=o?'grid':'none';this.textContent=o?'إخفاء':'عرض ${list.length - LIMIT} تنبيهات أخرى';">عرض ${list.length - LIMIT} ${list.length - LIMIT === 1 ? "تنبيه آخر" : "تنبيهات أخرى"}</button>` : ""}`;
+  const group = (id, title, list, tone) => !list.length ? "" : `<div class="gal2-sec gal2-sec-${tone}"><i></i>${title}<b>${list.length}</b></div>
+    <div class="gal2-grid">${list.slice(0, LIMIT).map(card).join("")}</div>
+    ${list.length > LIMIT ? `<div class="gal2-grid" id="${id}" style="display:none">${list.slice(LIMIT).map(card).join("")}</div>
+    <button class="gal-toggle" onclick="const m=document.getElementById('${id}');const o=m.style.display==='none';m.style.display=o?'grid':'none';this.textContent=o?'إخفاء':'عرض ${list.length - LIMIT} ${list.length - LIMIT === 1 ? "تنبيه آخر" : "تنبيهات أخرى"}';">عرض ${list.length - LIMIT} ${list.length - LIMIT === 1 ? "تنبيه آخر" : "تنبيهات أخرى"}</button>` : ""}`;
   panel.style.display = "block";
   panel.innerHTML = `<div class="card gal-card">
     <div class="gal-head">
@@ -476,8 +479,8 @@ async function renderGovAlertsPanel(){
       ${high.length ? `<span class="gal-chip gal-chip-high">${high.length} تحتاج تصرفاً الآن</span>` : ""}
       ${med.length ? `<span class="gal-chip">${med.length} للعلم</span>` : ""}
     </div>
-    ${group("galMoreHigh", "تحتاج تصرفاً الآن", high)}
-    ${group("galMoreMed", "للعلم والمتابعة", med)}
+    ${group("galMoreHigh", "تحتاج تصرفاً الآن", high, "high")}
+    ${group("galMoreMed", "للعلم والمتابعة", med, "med")}
   </div>`;
 }
 
