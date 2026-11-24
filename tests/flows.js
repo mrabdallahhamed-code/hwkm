@@ -766,6 +766,19 @@ function ok(name, cond, extra) {
   });
   ok("تنبيه التحديث: يكتشف تغيّر الإصدار ويتجاهل المكتبات الخارجية وترتيب الملفات، ويُخفى عند «لاحقًا»", f18.ignoresExternalAndOrder && f18.detectsBump && f18.banner && f18.hiddenAfterLater, f18);
 
+  /* ───────── مسار 19) لوحة التحكم المختصرة ───────── */
+  console.log("مسار 19) لوحة التحكم المختصرة");
+  const f19 = await pg.evaluate(() => {
+    const res = {}; const pgd = document.getElementById("p-dashboard");
+    pgd.classList.remove("dash-full");
+    res.liteDefault = !pgd.classList.contains("dash-full");
+    toggleDashFull(); res.full = pgd.classList.contains("dash-full");
+    res.label = /إخفاء/.test(document.getElementById("dashMoreBtn").textContent);
+    toggleDashFull(); res.backLite = !pgd.classList.contains("dash-full");
+    return res;
+  });
+  ok("لوحة التحكم المختصرة: افتراضيًا مختصرة، والزر يعرض الباقي ثم يعيد الاختصار", f19.liteDefault && f19.full && f19.label && f19.backLite, f19);
+
   /* ───────── مسار 15) سجل المخاطر والخريطة الحرارية ───────── */
   console.log("مسار 15) الخريطة الحرارية للمخاطر");
   const f15 = await pg.evaluate(() => {

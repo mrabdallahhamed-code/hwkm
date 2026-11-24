@@ -1397,4 +1397,14 @@ td.empty-cell:before{content:"🗂️";display:block;font-size:30px;opacity:.55;
 #govAlertsPanel .gal2-sec{margin:12px 20px 8px}
 #govAlertsPanel .gal-head{padding:11px 20px}
 @media(max-width:800px){#govAlertsPanel .gal2-body{flex-direction:column;align-items:flex-start;gap:6px}}
+/* الوضع المختصر: 4 مؤشرات فقط، بلا شريط اللجان ولا بطاقة التقدّم، حتى تتسع اللوحة في شاشة واحدة */
+.dash-more{text-align:center;margin:0 0 12px}
+.dash-more button{background:#fff;border:1px solid #D5DCE8;color:#1D3E64;border-radius:999px;padding:6px 20px;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+.dash-more button:hover{border-color:#C9A227;color:#8A6A00}
+#p-dashboard:not(.dash-full) .kpi:nth-child(4),#p-dashboard:not(.dash-full) .kpi:nth-child(6),
+#p-dashboard:not(.dash-full) .stats-bar,#p-dashboard:not(.dash-full) .two-col>.card:nth-child(2){display:none}
+#p-dashboard:not(.dash-full) .two-col{grid-template-columns:1fr}
+#p-dashboard:not(.dash-full) .kpi-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:900px){#p-dashboard:not(.dash-full) .kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:1700px){#p-dashboard:not(.dash-full) .kpi-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(min-width:1700px){#p-dashboard .kpi-grid{grid-template-columns:repeat(6,minmax(0,1fr))}}

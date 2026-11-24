@@ -124,3 +124,23 @@ function renderStartHere(c){
     });
   }catch(e){}
 })();
+
+
+/* لوحة التحكم المختصرة: أهم المؤشرات فقط افتراضيًا، وزر يعرض الباقي (ويتذكّر اختيار المستخدم). */
+function toggleDashFull(){
+  const pg = document.getElementById("p-dashboard"); if(!pg) return;
+  const on = pg.classList.toggle("dash-full");
+  try{ localStorage.setItem("hwkm_dash_full", on ? "1" : "0"); }catch(e){}
+  const b = document.getElementById("dashMoreBtn"); if(b) b.textContent = on ? "إخفاء المؤشرات الإضافية ▴" : "عرض كل المؤشرات ▾";
+}
+(function(){
+  try{
+    const apply = () => {
+      const pg = document.getElementById("p-dashboard"); if(!pg) return;
+      let on = false; try{ on = localStorage.getItem("hwkm_dash_full") === "1"; }catch(e){}
+      pg.classList.toggle("dash-full", on);
+      const b = document.getElementById("dashMoreBtn"); if(b) b.textContent = on ? "إخفاء المؤشرات الإضافية ▴" : "عرض كل المؤشرات ▾";
+    };
+    if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", apply); else apply();
+  }catch(e){}
+})();

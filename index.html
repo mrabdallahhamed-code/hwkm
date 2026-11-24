@@ -50,7 +50,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.1" onerror="document.write('<script src=&quot;https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2&quot;><\/script>')"></script>
-<link rel="stylesheet" href="style.css?v=62">
+<link rel="stylesheet" href="style.css?v=63">
 <script src="https://unpkg.com/pizzip@3.2.0/dist/pizzip.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
 <script src="https://unpkg.com/docxtemplater@3.69.0/build/docxtemplater.js" defer></script>
@@ -541,6 +541,8 @@
     <div class="kpi red" style="cursor:pointer" onclick="go('risks',null)"><div class="kpi-stripe"></div><div class="kpi-label">مخاطر مفتوحة</div><div class="kpi-val" id="kpi-risks">—</div><div class="kpi-foot" id="kpi-risks-foot">جارِ التحميل...</div><div class="kpi-icon"><span class="ico ico-warning" style="width:16px;height:16px"></span></div></div>
     <div class="kpi blue" style="cursor:pointer" onclick="go('decisiontracking',null)"><div class="kpi-stripe"></div><div class="kpi-label">قرارات هذا العام</div><div class="kpi-val" id="stat-decisions">—</div><div class="kpi-foot">عرض القرارات ‹</div></div>
 </div>
+
+  <div class="dash-more"><button type="button" id="dashMoreBtn" onclick="toggleDashFull()">عرض كل المؤشرات ▾</button></div>
 
   <div class="stats-bar">
     <div class="sb-item"><div class="sb-val" id="stat-members">—</div><div class="sb-lbl">أعضاء المجلس</div></div>
@@ -4101,7 +4103,7 @@
 <script src="js/52-circulation-resolutions.js?v=1"></script>
 <script src="js/20-gap-report.js?v=1"></script>
 <script src="js/21-cr-verification.js?v=2"></script>
-<script src="js/22-dashboard-alerts.js?v=3"></script>
+<script src="js/22-dashboard-alerts.js?v=4"></script>
 <script src="js/23-support-export.js?v=1"></script>
 <script src="js/24-corrective-actions.js?v=1"></script>
 <script src="js/25-audit-services.js?v=2"></script>
@@ -4134,7 +4136,7 @@
 <script src="js/47-procedures.js?v=1"></script>
 <script src="js/48-policy-comments.js?v=1"></script>
 <script src="js/49-ui-dialogs.js?v=4"></script>
-<script src="js/49a-ux-polish.js?v=2"></script>
+<script src="js/49a-ux-polish.js?v=3"></script>
 <script src="js/18-board-member-review.js?v=4"></script>
 <script src="js/66-agm-attendance.js?v=1"></script>
 <script src="js/67-pdf-canvas-builder.js?v=1"></script>

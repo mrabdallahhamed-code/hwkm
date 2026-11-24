@@ -459,7 +459,7 @@ async function renderGovAlertsPanel(){
 
   const high = alerts.filter(a=>a.severity==="high");
   const med = alerts.filter(a=>a.severity!=="high");
-  const LIMIT = 4;
+  const LIMIT = 2;
   const card = a => `<div class="gal2-item ${a.severity==='high'?'gal2-high':'gal2-med'}" onclick="go('${a.page}',null)">
       <span class="gal2-ico">${a.severity==='high'?'!':'i'}</span>
       <div class="gal2-body">
