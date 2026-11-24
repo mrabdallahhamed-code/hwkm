@@ -1461,3 +1461,14 @@ td.empty-cell:before{content:"🗂️";display:block;font-size:30px;opacity:.55;
   #p-dashboard:not(.dash-full)>#govAlertsPanel,#p-dashboard:not(.dash-full)>#dashCoreRow{grid-column:1/-1}
   #p-dashboard:not(.dash-full) .cd-hero{flex-wrap:wrap}
 }
+
+/* العرض الكامل: البطاقات (الاجتماعات، التقدّم، الترابط، المخاطر، التدقيق) صغيرة جنبًا إلى جنب بدل أن تمتد بعرض الصفحة */
+#p-dashboard.dash-full{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-content:start}
+#p-dashboard.dash-full>*{grid-column:1/-1}
+#p-dashboard.dash-full>.two-col{display:contents}
+#p-dashboard.dash-full>.two-col>.card,#p-dashboard.dash-full>.card{grid-column:auto;margin:0!important;min-width:0}
+#p-dashboard.dash-full>#govAlertsPanel,#p-dashboard.dash-full>.kpi-grid,#p-dashboard.dash-full>.stats-bar,#p-dashboard.dash-full>.dash-more,#p-dashboard.dash-full>#cdHero,#p-dashboard.dash-full>#startHereCard{margin-top:0!important;margin-bottom:0!important}
+#p-dashboard.dash-full .card-body{padding:14px 18px;max-height:340px;overflow-y:auto}
+#p-dashboard.dash-full #dashUpcomingMeetings .meet-item:nth-child(n+4){display:none}
+@media(max-width:1100px){#p-dashboard.dash-full{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){#p-dashboard.dash-full{grid-template-columns:1fr}}
