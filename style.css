@@ -1484,3 +1484,7 @@ td.empty-cell:before{content:"🗂️";display:block;font-size:30px;opacity:.55;
 #p-dashboard.no-core:not(.dash-full)>#dashCoreRow{display:none}
 #p-dashboard.no-core:not(.dash-full)>#govAlertsPanel{grid-column:1/-1}
 @media(min-width:1001px){#p-dashboard.no-core:not(.dash-full) #govAlertsPanel .gal2-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* صف المؤشرات يتمدد على العرض كله مهما كان عدد البطاقات الظاهرة (مثل المؤسسة الفردية بلا مؤشر اجتماعات) */
+#p-dashboard.active .kpi-grid{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+@media(max-width:900px){#p-dashboard.active .kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
