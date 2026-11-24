@@ -804,7 +804,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   background:radial-gradient(circle,rgba(184,151,42,.30),transparent 68%);}
 .lb-inner{position:relative;z-index:1;display:flex;flex-direction:column;justify-content:space-between;gap:24px;padding:44px 56px;width:100%;max-width:640px;margin:0 auto}
 .lb-top{display:flex;align-items:center;gap:12px}
-.lb-mark{width:50px;height:50px;border-radius:13px;background:#fff;object-fit:contain;padding:3px;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.lb-mark{width:84px;height:84px;border-radius:18px;background:#fff;object-fit:contain;padding:3px;box-shadow:0 6px 18px rgba(0,0,0,.35)}
 .lb-word{font-size:24px;font-weight:900;line-height:1}
 .lb-word small{display:block;font-size:10.5px;letter-spacing:3px;color:#D9BE6A;font-weight:700;margin-top:4px}
 .lb-main h2{font-size:38px;line-height:1.35;font-weight:900;margin:0 0 14px;letter-spacing:.2px}
@@ -855,7 +855,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   .login-brand{flex:none;min-height:80px}
   .lb-inner{padding:20px 22px;gap:0}
   .lb-main,.lb-foot{display:none}
-  .lb-mark{width:40px;height:40px}
+  .lb-mark{width:64px;height:64px}
   .lb-word{font-size:20px}
   .login-box{width:auto;max-width:none;min-width:0;box-sizing:border-box;margin:8px 14px 24px;padding:26px 22px;flex:none;align-self:stretch}
   .login-welcome h1{font-size:22px}
