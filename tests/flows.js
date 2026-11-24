@@ -750,6 +750,22 @@ function ok(name, cond, extra) {
   });
   ok("الحالة الفارغة: لا يظهر زر لمن لا يملك زر الإضافة، ويظهر عند الإجبار، وبالشكل الموحد", f17.noSrc && f17.forced && f17.plain, f17);
 
+  /* ───────── مسار 18) تنبيه التحديث ───────── */
+  console.log("مسار 18) تنبيه التحديث");
+  const f18 = await pg.evaluate(() => {
+    const res = {}; const P = (h) => new DOMParser().parseFromString(h, "text/html");
+    const a = P('<link rel="stylesheet" href="style.css?v=1"><script src="js/a.js?v=2"></script><script src="https://cdn.x/lib.js"></script>');
+    const same = P('<script src="js/a.js?v=2"></script><link rel="stylesheet" href="style.css?v=1">');
+    const bumped = P('<link rel="stylesheet" href="style.css?v=1"><script src="js/a.js?v=3"></script>');
+    res.ignoresExternalAndOrder = __updSig(a) === __updSig(same);
+    res.detectsBump = __updSig(a) !== __updSig(bumped);
+    __updShown = false; __updHiddenUntil = 0; __updShowBanner();
+    res.banner = !!document.getElementById("updateBanner");
+    __updLater(); res.hiddenAfterLater = !document.getElementById("updateBanner");
+    return res;
+  });
+  ok("تنبيه التحديث: يكتشف تغيّر الإصدار ويتجاهل المكتبات الخارجية وترتيب الملفات، ويُخفى عند «لاحقًا»", f18.ignoresExternalAndOrder && f18.detectsBump && f18.banner && f18.hiddenAfterLater, f18);
+
   /* ───────── مسار 15) سجل المخاطر والخريطة الحرارية ───────── */
   console.log("مسار 15) الخريطة الحرارية للمخاطر");
   const f15 = await pg.evaluate(() => {
