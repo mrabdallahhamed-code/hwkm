@@ -1379,4 +1379,22 @@ td.empty-cell:before{content:"🗂️";display:block;font-size:30px;opacity:.55;
 #govAlertsPanel .gal-toggle{margin:4px 20px 8px;padding:6px 0;width:auto;border:none}
 #govAlertsPanel .gal2-grid>.gal2-item:only-child{grid-column:1/-1}
 @media(max-width:800px){#govAlertsPanel .gal2-grid{grid-template-columns:1fr}}
+/* اختصار اللوحة: نخفي الجمل الشارحة المكررة (الشارة والرابط يكفيان) ونضغط المسافات */
+#p-dashboard .kpi-why{display:none}
+#p-dashboard .kpi{padding:14px 18px}
+#p-dashboard .kpi-ins{margin-top:6px;padding-top:8px;gap:4px}
+#p-dashboard .kpi .kpi-val{margin-bottom:4px}
+#p-dashboard .cd-hero{padding:16px 24px;margin-bottom:12px}
+#p-dashboard .cd-hero-name{font-size:21px}
+#p-dashboard .kpi-grid{gap:12px;margin-bottom:12px}
+#p-dashboard .sb-item{padding:8px 18px}
+#p-dashboard .stats-bar{margin-bottom:12px}
+#govAlertsPanel .gal2-item{padding:10px 14px;align-items:center}
+#govAlertsPanel .gal2-body{flex-direction:row;align-items:center;gap:12px;flex:1}
+#govAlertsPanel .gal2-text{flex:1;font-size:13px;line-height:1.7}
+#govAlertsPanel .gal2-cta{flex:none;align-self:center;white-space:nowrap;border:1px solid #D5DCE8;border-radius:8px;padding:4px 12px;font-size:12.5px}
+#govAlertsPanel .gal2-item:hover .gal2-cta{background:#0D2447;color:#fff;border-color:#0D2447}
+#govAlertsPanel .gal2-sec{margin:12px 20px 8px}
+#govAlertsPanel .gal-head{padding:11px 20px}
+@media(max-width:800px){#govAlertsPanel .gal2-body{flex-direction:column;align-items:flex-start;gap:6px}}
 @media(min-width:1700px){#p-dashboard .kpi-grid{grid-template-columns:repeat(6,minmax(0,1fr))}}

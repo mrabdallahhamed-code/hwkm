@@ -89,17 +89,17 @@ function renderStartHere(c){
       const hero = document.getElementById("cdHero");
       if(hero && hero.parentNode) hero.parentNode.insertBefore(card, hero.nextSibling); else page.insertBefore(card, page.firstChild);
     }
-    card.setAttribute("style", "background:#fff;border:1px solid #e3e8f0;border-radius:14px;padding:16px 18px;margin:14px 0;box-shadow:0 2px 10px rgba(13,36,71,.06)");
+    card.setAttribute("style", "background:#fff;border:1px solid #e3e8f0;border-radius:14px;padding:10px 16px;margin:10px 0;box-shadow:0 2px 10px rgba(13,36,71,.06)");
     const pct = Math.round(doneN / steps.length * 100);
     card.innerHTML =
-      `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px">` +
+      `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px">` +
         `<div style="font-weight:800;color:#0D2447;font-size:15px">ابدأ من هنا <span style="color:#7A90B0;font-weight:600;font-size:12.5px">(${doneN} من ${steps.length})</span></div>` +
         `<button type="button" id="startHereHide" style="background:none;border:none;color:#7A90B0;cursor:pointer;font-size:12px;font-family:inherit" aria-label="إخفاء قائمة البداية">إخفاء</button>` +
       `</div>` +
-      `<div style="height:6px;background:#EEF1F5;border-radius:6px;overflow:hidden;margin-bottom:12px"><div style="height:100%;width:${pct}%;background:#B8972A"></div></div>` +
+      `<div style="height:4px;background:#EEF1F5;border-radius:4px;overflow:hidden;margin-bottom:8px"><div style="height:100%;width:${pct}%;background:#B8972A"></div></div>` +
       `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px">` +
       steps.map(s =>
-        `<button type="button" data-go="${s.go}" style="text-align:right;font-family:inherit;font-size:13px;padding:10px 12px;border-radius:10px;cursor:pointer;border:1px solid ${s.done ? "#cfe8d8" : "#e3e8f0"};background:${s.done ? "#F3FBF6" : "#fff"};color:${s.done ? "#1B7F4B" : "#0D2447"};font-weight:700">` +
+        `<button type="button" data-go="${s.go}" style="text-align:right;font-family:inherit;font-size:12.5px;padding:7px 12px;border-radius:9px;cursor:pointer;border:1px solid ${s.done ? "#cfe8d8" : "#e3e8f0"};background:${s.done ? "#F3FBF6" : "#fff"};color:${s.done ? "#1B7F4B" : "#0D2447"};font-weight:700">` +
         `${s.done ? "✓ " : "○ "}${s.label}</button>`).join("") +
       `</div>`;
     card.querySelectorAll("button[data-go]").forEach(b => { b.onclick = () => go(b.getAttribute("data-go"), null); });
