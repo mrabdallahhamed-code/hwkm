@@ -1410,7 +1410,7 @@ td.empty-cell:before{content:"🗂️";display:block;font-size:30px;opacity:.55;
 @media(min-width:1700px){#p-dashboard .kpi-grid{grid-template-columns:repeat(6,minmax(0,1fr))}}
 
 /* ══ لوحة التحكم المختصرة (تصميم شاشة واحدة): ترحيب نحيل، 4 مؤشرات في صف، وتحتها التنبيهات والاجتماعات جنبًا إلى جنب ══ */
-#p-dashboard:not(.dash-full){display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:12px;align-content:start}
+#p-dashboard.active:not(.dash-full){display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:12px;align-content:start}
 #p-dashboard:not(.dash-full)>*{grid-column:1/-1;margin:0!important}
 #p-dashboard:not(.dash-full)>*{order:9}
 #p-dashboard:not(.dash-full)>#cdHero{order:1}
@@ -1463,7 +1463,7 @@ td.empty-cell:before{content:"🗂️";display:block;font-size:30px;opacity:.55;
 }
 
 /* العرض الكامل: البطاقات (الاجتماعات، التقدّم، الترابط، المخاطر، التدقيق) صغيرة جنبًا إلى جنب بدل أن تمتد بعرض الصفحة */
-#p-dashboard.dash-full{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-content:start}
+#p-dashboard.active.dash-full{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-content:start}
 #p-dashboard.dash-full>*{grid-column:1/-1}
 #p-dashboard.dash-full>.two-col{display:contents}
 #p-dashboard.dash-full>.two-col>.card,#p-dashboard.dash-full>.card{grid-column:auto;margin:0!important;min-width:0}

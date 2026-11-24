@@ -779,6 +779,23 @@ function ok(name, cond, extra) {
   });
   ok("لوحة التحكم المختصرة: افتراضيًا مختصرة، والزر يعرض الباقي ثم يعيد الاختصار", f19.liteDefault && f19.full && f19.label && f19.backLite, f19);
 
+  /* ───────── مسار 20) صفحة واحدة فقط ظاهرة في كل مرة (لا تتسرب لوحة الشركة إلى الصفحات الأخرى) ───────── */
+  console.log("مسار 20) ظهور صفحة واحدة فقط");
+  const f20 = await pg.evaluate(async () => {
+    const bad = [];
+    for (const full of [false, true]) {
+      document.getElementById("p-dashboard").classList.toggle("dash-full", full);
+      for (const id of [...document.querySelectorAll(".page")].map(p => p.id.replace(/^p-/, ""))) {
+        try { await go(id, null); } catch (e) {}
+        const vis = [...document.querySelectorAll(".page")].filter(p => getComputedStyle(p).display !== "none").map(p => p.id);
+        if (vis.length > 1) bad.push((full ? "full:" : "lite:") + id + " -> " + vis.join(","));
+      }
+    }
+    document.getElementById("p-dashboard").classList.remove("dash-full");
+    return bad.slice(0, 5);
+  });
+  ok("كل صفحة تظهر وحدها في الوضعين المختصر والكامل للوحة التحكم", f20.length === 0, f20);
+
   /* ───────── مسار 15) سجل المخاطر والخريطة الحرارية ───────── */
   console.log("مسار 15) الخريطة الحرارية للمخاطر");
   const f15 = await pg.evaluate(() => {
