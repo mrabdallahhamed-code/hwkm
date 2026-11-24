@@ -459,7 +459,7 @@ async function renderGovAlertsPanel(){
 
   const high = alerts.filter(a=>a.severity==="high");
   const med = alerts.filter(a=>a.severity!=="high");
-  const LIMIT = 2;
+  const SHOWN = 3;   // أهم 3 تنبيهات فقط تظهر؛ الباقي خلف زر
   const card = a => `<div class="gal2-item ${a.severity==='high'?'gal2-high':'gal2-med'}" onclick="go('${a.page}',null)">
       <span class="gal2-ico">${a.severity==='high'?'!':'i'}</span>
       <div class="gal2-body">
@@ -467,10 +467,10 @@ async function renderGovAlertsPanel(){
         <span class="gal2-cta">${a.cta||"افتح"} ‹</span>
       </div>
     </div>`;
-  const group = (id, title, list, tone) => !list.length ? "" : `<div class="gal2-sec gal2-sec-${tone}"><i></i>${title}<b>${list.length}</b></div>
-    <div class="gal2-grid">${list.slice(0, LIMIT).map(card).join("")}</div>
-    ${list.length > LIMIT ? `<div class="gal2-grid" id="${id}" style="display:none">${list.slice(LIMIT).map(card).join("")}</div>
-    <button class="gal-toggle" onclick="const m=document.getElementById('${id}');const o=m.style.display==='none';m.style.display=o?'grid':'none';this.textContent=o?'إخفاء':'عرض ${list.length - LIMIT} ${list.length - LIMIT === 1 ? "تنبيه آخر" : "تنبيهات أخرى"}';">عرض ${list.length - LIMIT} ${list.length - LIMIT === 1 ? "تنبيه آخر" : "تنبيهات أخرى"}</button>` : ""}`;
+  const all = [...high, ...med];
+  const group = () => `<div class="gal2-grid">${all.slice(0, SHOWN).map(card).join("")}</div>
+    ${all.length > SHOWN ? `<div class="gal2-grid" id="galMoreAll" style="display:none">${all.slice(SHOWN).map(card).join("")}</div>
+    <button class="gal-toggle" onclick="const m=document.getElementById('galMoreAll');const o=m.style.display==='none';m.style.display=o?'grid':'none';this.textContent=o?'إخفاء':'عرض ${all.length - SHOWN} ${all.length - SHOWN === 1 ? "تنبيه آخر" : "تنبيهات أخرى"}';">عرض ${all.length - SHOWN} ${all.length - SHOWN === 1 ? "تنبيه آخر" : "تنبيهات أخرى"}</button>` : ""}`;
   panel.style.display = "block";
   panel.innerHTML = `<div class="card gal-card">
     <div class="gal-head">
@@ -479,8 +479,7 @@ async function renderGovAlertsPanel(){
       ${high.length ? `<span class="gal-chip gal-chip-high">${high.length} تحتاج تصرفاً الآن</span>` : ""}
       ${med.length ? `<span class="gal-chip">${med.length} للعلم</span>` : ""}
     </div>
-    ${group("galMoreHigh", "تحتاج تصرفاً الآن", high, "high")}
-    ${group("galMoreMed", "للعلم والمتابعة", med, "med")}
+    ${group()}
   </div>`;
 }
 
