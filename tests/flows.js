@@ -463,8 +463,8 @@ function ok(name, cond, extra) {
     const banner = () => { const b = q("trialBanner"); return b ? b.textContent : ""; };
     const fresh = () => { clearTimeout(window._tbTimer); try { sessionStorage.clear(); } catch (e) {} const b = q("trialBanner"); if (b) b.remove(); };
     currentCompanyId = 1; userMemberships = [{ company_id: 1, role: "مدير النظام" }]; currentUserProfile = { email: "a@test.sa", is_platform_admin: false };
-    fresh(); currentCompanyTrialEndsAt = iso(3); currentCompanySub = null; renderTrialBanner(); res.bTrial = /متبقٍ [34] يوم/.test(banner()) && /اشترك الآن/.test(banner());
-    fresh(); currentCompanyTrialEndsAt = iso(-2); renderTrialBanner(); res.bTrialEnded = /انتهت فترة/.test(banner());
+    fresh(); currentCompanyTrialEndsAt = iso(3); currentCompanySub = null; renderTrialBanner(); res.bTrial = /متبقٍ [34] يوم/.test(banner()) && /فعّل اشتراكك/.test(banner());
+    fresh(); currentCompanyTrialEndsAt = iso(-2); renderTrialBanner(); res.bTrialEnded = /انتهت الفترة التجريبية/.test(banner());
     fresh(); currentCompanyTrialEndsAt = null; currentCompanySub = { paid: true, ends: iso(10) }; renderTrialBanner(); res.bSubAdmin = /ينتهي اشتراكك خلال/.test(banner());
     fresh(); userMemberships = [{ company_id: 1, role: "مساهم" }]; renderTrialBanner(); res.bSubShareholder = banner() === "";
     fresh(); userMemberships = [{ company_id: 1, role: "مدير النظام" }]; currentCompanySub = { paid: true, ends: iso(200) }; renderTrialBanner(); res.bFar = banner() === "";

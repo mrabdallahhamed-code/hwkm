@@ -5,7 +5,7 @@ async function runGlobalSearch(q){
   box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">جارِ البحث...</div>';
 
   const like = `%${q}%`;
-  const [members, meetings, policies, risks, committees, archive, shareholders, structure, signing] = await Promise.all([
+  const [members, meetings, policies, risks, committees, archive, shareholders, structure, signing, ownRisks, decisions] = await Promise.all([
     sb.from("board_members").select("id,name").eq("company_id",currentCompanyId).ilike("name", like).limit(5),
     sb.from("meetings").select("id,title").eq("company_id",currentCompanyId).ilike("title", like).limit(5),
     sb.from("policies").select("id,policy_name").eq("company_id",currentCompanyId).ilike("policy_name", like).limit(5),
@@ -14,14 +14,17 @@ async function runGlobalSearch(q){
     sb.from("archive_documents").select("id,document_name").eq("company_id",currentCompanyId).ilike("document_name", like).limit(5),
     sb.from("shareholders").select("id,name").eq("company_id",currentCompanyId).ilike("name", like).limit(5),
     sb.from("org_structure").select("id,position_title,holder_name").eq("company_id",currentCompanyId).or(`position_title.ilike.${like},holder_name.ilike.${like}`).limit(5),
-    sb.from("signing_documents").select("id,document_name").eq("company_id",currentCompanyId).ilike("document_name", like).limit(5)
+    sb.from("signing_documents").select("id,document_name").eq("company_id",currentCompanyId).ilike("document_name", like).limit(5),
+    sb.from("company_risks").select("id,title").eq("company_id",currentCompanyId).ilike("title", like).limit(5),
+    sb.from("board_decisions").select("id,decision_text").eq("company_id",currentCompanyId).ilike("decision_text", like).limit(5)
   ]);
 
   const groups = [
     { label:"أعضاء المجلس", icon:"👤", page:"members", items:(members.data||[]).map(r=>r.name) },
     { label:"الاجتماعات", icon:"📅", page:"meetings", items:(meetings.data||[]).map(r=>r.title) },
     { label:"السياسات", icon:"📜", page:"governance", items:(policies.data||[]).map(r=>r.policy_name) },
-    { label:"المخاطر", icon:"⚠️", page:"risks", items:(risks.data||[]).map(r=>r.risk_name) },
+    { label:"المخاطر", icon:"⚠️", page:"risks", items:(risks.data||[]).map(r=>r.risk_name).concat((ownRisks.data||[]).map(r=>r.title)) },
+    { label:"القرارات", icon:"⚖️", page:"decisiontracking", items:(decisions.data||[]).map(r=>String(r.decision_text).slice(0,70)) },
     { label:"اللجان", icon:"🏛️", page:"committees", items:(committees.data||[]).map(r=>r.committee_name) },
     { label:"الأرشيف", icon:"🗄️", page:"archive", items:(archive.data||[]).map(r=>r.document_name) },
     { label:"المساهمون", icon:"📇", page:"shareholders", items:(shareholders.data||[]).map(r=>r.name) },

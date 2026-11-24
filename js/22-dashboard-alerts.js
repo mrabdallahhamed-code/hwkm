@@ -20,8 +20,9 @@ async function loadNotifications(){
   const role = getCurrentRole();
   const { data: userData } = await sb.auth.getUser();
   const myEmail = userData && userData.user ? userData.user.email : null;
-  const items = [];
+  const __blocks = [];
 
+  __blocks.push(async () => { const items = [];
   // 0) Platform admin: new company registration requests awaiting review — this is a
   // platform-wide event, not scoped to whichever company is currently selected.
   const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
@@ -30,6 +31,9 @@ async function loadNotifications(){
     (reqs||[]).forEach(r => { items.push({ icon:"🏢", text:`طلب إدراج شركة جديد: "${r.company_name}" ينتظر مراجعتك`, page:"companyrequests" }); });
   }
 
+    return items; });
+
+  __blocks.push(async () => { const items = [];
   // 1) Consultation requests needing your action
   if(role === 'مدير النظام' || role === 'رئيس مجلس'){
     const { data: cr } = await sb.from("consultation_requests").select("*").eq("company_id", currentCompanyId);
@@ -39,7 +43,10 @@ async function loadNotifications(){
     });
   }
 
-  if(role !== 'مساهم'){
+    return items; });
+
+  __blocks.push(async () => { const items = [];
+    if(role === 'مساهم') return items;
     // 2) Meeting requests needing your response
     const { data: mr } = await sb.from("meeting_requests").select("*").eq("company_id", currentCompanyId).eq("status","قيد الموافقة");
     if(mr && mr.length){
@@ -49,6 +56,10 @@ async function loadNotifications(){
       mr.forEach(r => { if(!respondedIds.has(r.id)) items.push({ icon:"🗳️", text:`طلب اجتماع "${r.title}" ينتظر موافقتك على الموعد`, page:"meetings" }); });
     }
 
+    return items; });
+
+  __blocks.push(async () => { const items = [];
+    if(role === 'مساهم') return items;
     // 3) Policy reviews needing your response
     const { data: pol } = await sb.from("policies").select("*").eq("company_id", currentCompanyId).eq("status","مرفوعة لمجلس الإدارة");
     if(pol && pol.length){
@@ -58,6 +69,10 @@ async function loadNotifications(){
       pol.forEach(p => { if(!reviewedIds.has(p.id)) items.push({ icon:"📜", text:`سياسة "${p.policy_name}" تنتظر رأيك`, page:"governance" }); });
     }
 
+    return items; });
+
+  __blocks.push(async () => { const items = [];
+    if(role === 'مساهم') return items;
     // 4) Appointment requests needing your review
     const { data: ap } = await sb.from("appoint_requests").select("*").eq("company_id", currentCompanyId).eq("status","محال إلى مجلس الإدارة");
     if(ap && ap.length){
@@ -67,6 +82,10 @@ async function loadNotifications(){
       ap.forEach(a => { if(!reviewedIds.has(a.id)) items.push({ icon:"👤", text:`طلب تعيين "${a.candidate_name}" ينتظر رأيك`, page:"appoint" }); });
     }
 
+    return items; });
+
+  __blocks.push(async () => { const items = [];
+    if(role === 'مساهم') return items;
     // 5) Performance evaluations needing your input
     const { data: pe } = await sb.from("performance_evaluations").select("*").eq("company_id", currentCompanyId).eq("status","مفتوح للتقييم");
     if(pe && pe.length){
@@ -76,6 +95,10 @@ async function loadNotifications(){
       pe.forEach(p => { if(!reviewedIds.has(p.id)) items.push({ icon:"📐", text:`تقييم أداء "${p.entity_name}" ينتظر تقييمك`, page:"perf" }); });
     }
 
+    return items; });
+
+  __blocks.push(async () => { const items = [];
+    if(role === 'مساهم') return items;
     // 6) Documents needing your signature
     const { data: docs } = await sb.from("signing_documents").select("*").eq("company_id", currentCompanyId).neq("status","مكتمل");
     if(docs && docs.length){
@@ -84,8 +107,9 @@ async function loadNotifications(){
       const signedIds = new Set((mySigs||[]).map(s=>s.document_id));
       docs.forEach(d => { if(!signedIds.has(d.id)) items.push({ icon:"✍️", text:`وثيقة "${d.document_name}" تنتظر توقيعك`, page:"signing" }); });
     }
-  }
+    return items; });
 
+  __blocks.push(async () => { const items = [];
   // 7) Upcoming meetings within 3 days (everyone with page access)
   const { data: meetings } = await sb.from("meetings").select("*").eq("company_id", currentCompanyId);
   const now = new Date();
@@ -96,6 +120,11 @@ async function loadNotifications(){
       items.push({ icon:"📅", text:`${m.title||"اجتماع"} خلال ${days===0?'اليوم':(days+' يوم')}`, page: m.meeting_type==="الجمعية العامة"?"agm":(m.meeting_type==="اجتماع لجنة"?"committees":"meetings") });
     }
   });
+
+    return items; });
+
+  const __res = await Promise.all(__blocks.map(f => f().catch(e => { console.error('notif block failed', e); return []; })));
+  const items = [].concat(...__res);
 
   if(dot) dot.style.display = items.length ? "block" : "none";
   if(items.length===0){

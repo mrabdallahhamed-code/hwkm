@@ -304,8 +304,8 @@ function renderTrialBanner(){
   let msg = "", warn = false;
   if(currentCompanyTrialEndsAt){
     const d = Math.max(0, Math.ceil((new Date(currentCompanyTrialEndsAt) - new Date()) / 86400000));
-    msg = d > 0 ? `🎁 أنت بفترة تجريبية — متبقٍ ${d} يوم (كل الوحدات مفتوحة مؤقتًا)` + (d <= 7 ? " — اشترك الآن حتى لا ينقطع وصولك" : "")
-                : `⚠️ انتهت فترة الفترة التجريبية — تواصل معنا لتفعيل الاشتراك`;
+    msg = d > 0 ? `🎁 فترتك التجريبية سارية — متبقٍ ${d} يوم وكل الوحدات متاحة` + (d <= 7 ? " · فعّل اشتراكك قبل انتهائها لتستمر بلا انقطاع" : "")
+                : `⚠️ انتهت الفترة التجريبية — تواصل معنا لتفعيل الاشتراك`;
     warn = d <= 7;
   } else {
     const d = subDaysLeft();
