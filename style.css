@@ -824,7 +824,12 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   max-height:none;
 }
 .login-box.signup-mode{max-width:700px;display:grid;grid-template-columns:1fr 1fr;column-gap:18px;align-content:start}
-.login-box.signup-mode>*{grid-column:1/-1}
+.login-box.signup-mode>*{grid-column:1/-1;order:10}
+.login-box.signup-mode>.login-welcome,.login-box.signup-mode>.login-logo,.login-box.signup-mode>.login-msg,.login-box.signup-mode>#listedCompanyBanner,.login-box.signup-mode>.login-row2{order:0}
+.login-box.signup-mode>#signupNationalIdField{order:1}.login-box.signup-mode>#signupSharesField{order:2}.login-box.signup-mode>#signupInviteField{order:3}
+.login-box.signup-mode>#signupPhoneField{order:4}.login-box.signup-mode>.login-field:not([id]):has(#loginEmail){order:5}
+.login-box.signup-mode>#signupCompanyCodeField{order:6}.login-box.signup-mode>.login-field:not([id]):has(#loginPassword){order:7}
+.login-box.signup-mode>#listedProofField{order:8}.login-box.signup-mode>#signupTermsField{order:9}
 .login-box.signup-mode>#signupNationalIdField,.login-box.signup-mode>#signupPhoneField,.login-box.signup-mode>#signupSharesField,.login-box.signup-mode>#signupInviteField,.login-box.signup-mode>#signupCompanyCodeField,.login-box.signup-mode>.login-field:not([id]){grid-column:auto}
 .login-box select.fs{border-radius:12px!important;padding:12px 14px!important;border:1.5px solid #DDE2EA!important;background:#FBFCFE}
 .login-welcome{margin-bottom:20px}
