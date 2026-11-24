@@ -126,7 +126,7 @@ function renderRiskRegister(){
 
   host.innerHTML = `
   <style>
-    .rr-wrap{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(260px,1fr);gap:16px;margin-bottom:18px}
+    .rr-wrap{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,1fr);gap:16px;margin-bottom:18px;align-items:start}
     @media(max-width:900px){.rr-wrap{grid-template-columns:1fr}}
     .rr-panel{background:linear-gradient(160deg,#0D2447 0%,#14305f 55%,#0b1c38 100%);border-radius:20px;padding:20px;color:#fff;box-shadow:0 14px 40px rgba(13,36,71,.35);position:relative;overflow:hidden}
     .rr-panel:before{content:"";position:absolute;inset:-40% -20% auto auto;width:420px;height:420px;background:radial-gradient(circle,rgba(184,151,42,.22),transparent 65%);pointer-events:none}
@@ -136,8 +136,8 @@ function renderRiskRegister(){
     .rr-seg{display:inline-flex;background:rgba(255,255,255,.1);border-radius:999px;padding:3px}
     .rr-seg button{border:0;background:transparent;color:#fff;font:600 11.5px Tajawal,system-ui;padding:6px 14px;border-radius:999px;cursor:pointer;opacity:.75}
     .rr-seg button.on{background:#B8972A;color:#0D2447;opacity:1;font-weight:800}
-    .rr-gridbox{display:grid;grid-template-columns:54px repeat(5,minmax(0,1fr));gap:6px;direction:ltr;position:relative}
-    .rr-cell{position:relative;aspect-ratio:1/.82;border-radius:12px;background:radial-gradient(120% 120% at 30% 20%,color-mix(in srgb,var(--c) 100%,#fff 18%),var(--c));border:1px solid rgba(255,255,255,.18);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .18s ease,box-shadow .18s ease,filter .18s;min-height:0;min-width:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 4px 10px rgba(0,0,0,.25)}
+    .rr-gridbox{display:grid;grid-template-columns:54px repeat(5,minmax(0,1fr));gap:6px;direction:ltr;position:relative;max-width:560px;margin:0 auto}
+    .rr-cell{position:relative;aspect-ratio:1/.66;border-radius:11px;background:radial-gradient(120% 120% at 30% 20%,color-mix(in srgb,var(--c) 100%,#fff 18%),var(--c));border:1px solid rgba(255,255,255,.18);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .18s ease,box-shadow .18s ease,filter .18s;min-height:0;min-width:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 4px 10px rgba(0,0,0,.25)}
     .rr-cell:hover{transform:translateY(-3px) scale(1.04);z-index:2;filter:brightness(1.08);box-shadow:0 10px 24px rgba(0,0,0,.45)}
     .rr-cell.rr-active{outline:3px solid #fff;outline-offset:1px;z-index:3}
     .rr-z-critical{animation:rrPulse 2.6s ease-in-out infinite}
