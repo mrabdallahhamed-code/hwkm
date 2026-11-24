@@ -30,7 +30,7 @@ function __updLater(){
 async function hwkmCheckForUpdate(force){
   try{
     if(!/^https?:$/.test(location.protocol)) return;
-    if(!force && Date.now() - __updLastCheck < 60000) return;
+    if(!force && Date.now() - __updLastCheck < 20000) return;
     __updLastCheck = Date.now();
     if(__updLoadedSig === null) __updLoadedSig = __updSig(document);
     const res = await fetch(location.pathname + "?_u=" + Date.now(), { cache: "no-store" });
@@ -42,6 +42,6 @@ async function hwkmCheckForUpdate(force){
 }
 if(typeof window !== "undefined"){
   __updLoadedSig = __updSig(document);
-  setInterval(() => hwkmCheckForUpdate(false), 5 * 60 * 1000);
+  setInterval(() => { if(!document.hidden) hwkmCheckForUpdate(false); }, 60 * 1000);
   document.addEventListener("visibilitychange", () => { if(!document.hidden) hwkmCheckForUpdate(false); });
 }
