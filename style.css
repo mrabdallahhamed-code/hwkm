@@ -804,7 +804,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   background:radial-gradient(circle,rgba(184,151,42,.30),transparent 68%);}
 .lb-inner{position:relative;z-index:1;display:flex;flex-direction:column;justify-content:space-between;gap:24px;padding:44px 56px;width:100%;max-width:640px;margin:0 auto}
 .lb-top{display:flex;align-items:center;gap:12px}
-.lb-mark{width:64px;height:64px;border-radius:16px;background:#fff;object-fit:contain;padding:3px;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.lb-mark{width:44px;height:44px;border-radius:12px;background:#fff;object-fit:contain;padding:3px;box-shadow:0 6px 18px rgba(0,0,0,.35)}
 .lb-word{font-size:24px;font-weight:900;line-height:1}
 .lb-word small{display:block;font-size:10.5px;letter-spacing:3px;color:#D9BE6A;font-weight:700;margin-top:4px}
 .lb-kicker{display:inline-block;font-size:12px;font-weight:700;color:#E9D48A;letter-spacing:.5px;padding:5px 14px;border:1px solid rgba(217,190,106,.4);border-radius:999px;margin-bottom:18px;background:rgba(184,151,42,.1)}
@@ -863,7 +863,7 @@ h1,h2,h3,h4{font-weight:900;letter-spacing:0;}
   .login-brand{flex:none;min-height:80px}
   .lb-inner{padding:20px 22px;gap:0}
   .lb-main,.lb-foot{display:none}
-  .lb-mark{width:64px;height:64px}
+  .lb-mark{width:44px;height:44px}
   .lb-word{font-size:20px}
   .login-box{width:auto;max-width:none;min-width:0;box-sizing:border-box;margin:8px 14px 24px;padding:26px 22px;flex:none;align-self:stretch}
   .login-welcome h1{font-size:22px}
@@ -1325,4 +1325,4 @@ body.sub-locked #globalSearchInput,body.sub-locked #globalSearchResults,body.sub
 td.empty-cell{text-align:center;color:var(--gray3);font-size:13px;padding:34px 14px!important;line-height:1.9}
 td.empty-cell:before{content:"🗂️";display:block;font-size:30px;opacity:.55;margin-bottom:6px}
 
-.lb-top .logo-text-wrap{flex:none}.lb-top .logo-name{font-size:24px}.lb-top .logo-tagline{font-size:11px;margin-top:2px}
+.lb-top .logo-text-wrap{flex:none}
