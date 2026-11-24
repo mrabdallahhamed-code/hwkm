@@ -141,6 +141,7 @@ async function updateRiskTreatmentStatus(itemId, action_status){
 
 async function loadRisks(){
   loadRiskTreatments();
+  try{ loadRiskRegister(); }catch(e){ console.error(e); }
   const grid = document.getElementById("riskServicesGrid");
   const tbody = document.getElementById("riskRequestsTbody");
   if(!grid || !tbody) return;

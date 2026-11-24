@@ -727,6 +727,32 @@ function ok(name, cond, extra) {
   ok("وقت نهاية الاجتماع يُقترح بعد ساعة من البداية (وبعد منتصف الليل يلتف صحيحًا) ولا يُستبدل إن كُتب يدويًا", f13.end1 === "11:30" && f13.endWrap === "00:30" && f13.endKept === "12:00" && f13.reqEnd === "15:15", f13);
   ok("نموذج المساهم: الحقول الأساسية ظاهرة، والإضافية مطويّة ومحفوظة داخل الصفحة", f13.moreClosed && f13.coreVisible && f13.extrasInside, f13);
 
+  /* ───────── مسار 15) سجل المخاطر والخريطة الحرارية ───────── */
+  console.log("مسار 15) الخريطة الحرارية للمخاطر");
+  const f15 = await pg.evaluate(() => {
+    const res = {};
+    rrRisks = [
+      { src:"own", id:1, title:"أ", category:"حوكمة", l:5, i:5, owner:"", status:"مفتوح", freq:"ربع سنوي" },
+      { src:"own", id:2, title:"ب", category:"مالية", l:1, i:1, owner:"", status:"مفتوح", freq:"ربع سنوي" },
+      { src:"assess", id:3, title:"ج", category:"", l:3, i:3, owner:"", status:"مفتوح" },
+      { src:"own", id:4, title:"د", category:"", l:4, i:4, owner:"", status:"مغلق", freq:"شهري" }
+    ];
+    rrRisks.forEach((r, k) => r.n = k + 1);
+    rrMode = "current"; rrCellFilter = null; rrShowClosed = false;
+    renderRiskRegister();
+    const h = document.getElementById("riskRegisterHost");
+    res.cells = h.querySelectorAll(".rr-cell").length;
+    res.bubbles = h.querySelectorAll(".rr-bub").length;      // المغلق لا يظهر
+    res.critical = h.querySelectorAll(".rr-z-critical").length;
+    res.rowsDefault = h.querySelectorAll("tbody tr").length;
+    rrFilterCell(5, 5); res.rowsFiltered = document.getElementById("riskRegisterHost").querySelectorAll("tbody tr").length;
+    rrFilterCell(null); rrToggleClosed(true); res.rowsWithClosed = document.getElementById("riskRegisterHost").querySelectorAll("tbody tr").length;
+    res.zones = [rrZone(4).key, rrZone(5).key, rrZone(10).key, rrZone(15).key].join(",");
+    return res;
+  });
+  ok("الخريطة: 25 خانة، والمخاطر المغلقة مخفية افتراضيًا، والتصفية بالخانة تعمل، والمناطق صحيحة",
+     f15.cells === 25 && f15.bubbles === 3 && f15.critical === 6 && f15.rowsDefault === 3 && f15.rowsFiltered === 1 && f15.rowsWithClosed === 4 && f15.zones === "low,medium,high,critical", f15);
+
   ok("لا أخطاء برمجية أثناء المسارات", errs.length === 0, errs);
   await browser.close();
   console.log(`\nالنتيجة: ${passed} نجح، ${failed} فشل`);

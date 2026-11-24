@@ -243,6 +243,13 @@ async function computeGovernanceAlerts(){
       if(soon.length){
         alerts.push({ severity: "medium", cta: "تابع الخطط", text: `${soon.length} ${soon.length===1?'خطة معالجة يحين':'خطط معالجة يحين'} موعدها خلال 14 يومًا`, page: "risks" });
       }
+      // سجل المخاطر الذاتي: خطر حرج بلا خطة، مراجعة فائتة، إقفال متأخر
+      const own = await rrAlertCounts();
+      if(own){
+        if(own.criticalNoPlan) alerts.push({ severity: "high", cta: "راجع المخاطر", text: `${own.criticalNoPlan} ${own.criticalNoPlan===1?'خطر حرج في سجل المخاطر':'مخاطر حرجة في سجل المخاطر'} بلا خطة معالجة.`, page: "risks" });
+        if(own.reviewLate) alerts.push({ severity: "medium", cta: "راجع المخاطر", text: `${own.reviewLate} ${own.reviewLate===1?'خطر فات':'مخاطر فاتت'} موعد مراجعتها الدورية.`, page: "risks" });
+        if(own.closeLate) alerts.push({ severity: "high", cta: "راجع المخاطر", text: `${own.closeLate} ${own.closeLate===1?'خطر تجاوز':'مخاطر تجاوزت'} موعد إقفالها المستهدف في سجل المخاطر.`, page: "risks" });
+      }
     } catch(e){ console.error("risk alert check failed", e); }
       return alerts;
     },

@@ -612,6 +612,7 @@
 
 <!-- ══ RISKS ══════════════════════════════ -->
 <div id="p-risks" class="page content">
+  <div id="riskRegisterHost"></div>
   <div class="sec-title"><span class="ico-i ico-warning"></span>خدمات إدارة المخاطر</div>
   <p style="font-size:12px;color:var(--gray3);margin-bottom:14px">اطلب تقييم مخاطر من فريقنا، وتابع حالته حتى التقرير النهائي.</p>
 
@@ -3225,6 +3226,45 @@
 </div>
 
 <!-- Respond to a single pending meeting request (opened from its card) -->
+<div class="modal-bg" id="m-risk-detail">
+  <div class="modal" style="max-width:560px"><div class="modal-title"><span class="ico-i ico-warning"></span>تفاصيل الخطر</div><div id="rrDetailBody"></div></div>
+</div>
+<div class="modal-bg" id="m-risk-edit">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-title"><span class="ico-i ico-warning"></span><span id="rr-modal-title">إضافة خطر جديد</span></div>
+    <input type="hidden" id="rr-id"/>
+    <div class="fg"><label>وصف الخطر <span style="color:var(--red)">*</span></label><input class="fi" id="rr-title" maxlength="200" placeholder="مثال: تأخر اعتماد الموازنة السنوية بسبب غياب النصاب"/></div>
+    <div class="fg"><label>تفاصيل (اختياري)</label><textarea class="fi" id="rr-desc" rows="2" maxlength="1000"></textarea></div>
+    <div class="row2">
+      <div class="fg"><label>الفئة</label><select class="fs" id="rr-cat"></select></div>
+      <div class="fg"><label>المسؤول عن الخطر</label><input class="fi" id="rr-owner" maxlength="120" placeholder="المسمى الوظيفي أو الاسم"/></div>
+    </div>
+    <div class="row2">
+      <div class="fg"><label>الاحتمال</label><select class="fs" id="rr-l" onchange="rrPreview()"></select></div>
+      <div class="fg"><label>الأثر</label><select class="fs" id="rr-i" onchange="rrPreview()"></select></div>
+    </div>
+    <div style="margin:-4px 0 10px">مستوى الخطر: <span id="rr-prev"></span></div>
+    <div class="row2">
+      <div class="fg"><label>الحالة</label><select class="fs" id="rr-status"><option>مفتوح</option><option>قيد المعالجة</option><option>مراقبة</option><option>مغلق</option></select></div>
+      <div class="fg"><label>دورية المراجعة</label><select class="fs" id="rr-freq"><option>شهري</option><option selected>ربع سنوي</option><option>نصف سنوي</option><option>سنوي</option></select></div>
+    </div>
+    <div class="fg"><label>خطة المعالجة</label><textarea class="fi" id="rr-plan" rows="2" maxlength="1000"></textarea></div>
+    <div class="row2">
+      <div class="fg"><label>موعد الإقفال المستهدف</label><input type="date" class="fi" id="rr-close"/></div>
+      <div></div>
+    </div>
+    <div class="row2">
+      <div class="fg"><label>الاحتمال بعد المعالجة (اختياري)</label><select class="fs" id="rr-tl"></select></div>
+      <div class="fg"><label>الأثر بعد المعالجة (اختياري)</label><select class="fs" id="rr-ti"></select></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="rr-del" style="display:none;color:var(--red)" onclick="deleteRiskFromEditor()">حذف</button>
+      <button class="btn btn-ghost" onclick="closeM('m-risk-edit')">إلغاء</button>
+      <button class="btn btn-gold" style="flex:1" onclick="saveRiskEditor()">حفظ</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-meeting-request-view">
   <div class="modal" style="max-width:440px">
     <div id="mrqModalBody"></div>
@@ -4009,6 +4049,7 @@
 <script src="js/83-org-tree-chart.js?v=1"></script>
 <script src="js/84-org-position-editing.js?v=1"></script>
 <script src="js/85-push-notifications.js?v=1"></script>
+<script src="js/86-risk-register.js?v=1"></script>
 <script src="js/14-votes-assessment.js?v=26"></script>
 <script src="js/50-assessment-evidence-independence.js?v=1"></script>
 <script src="js/51-agm-quorum-majority.js?v=1"></script>
