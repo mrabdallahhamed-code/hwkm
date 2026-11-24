@@ -764,6 +764,20 @@ function ok(name, cond, extra) {
   });
   ok("الخريطة: 25 خانة، والمخاطر المغلقة مخفية افتراضيًا، والتصفية بالخانة تعمل، والمناطق صحيحة",
      f15.cells === 25 && f15.bubbles === 3 && f15.critical === 6 && f15.rowsDefault === 3 && f15.rowsFiltered === 1 && f15.rowsWithClosed === 4 && f15.zones === "low,medium,high,critical", f15);
+  /* ───────── مسار 14) الذكاء الصناعي معطّل افتراضيًا على مستوى الشركة ───────── */
+  console.log("مسار 14) تفعيل الذكاء الصناعي للشركة");
+  const f14 = await pg.evaluate(async () => {
+    const res = {}; let alerts = 0; const oa = window.alert; window.alert = () => { alerts++; };
+    const o1 = window.aiCompanyEnabled, o2 = window.getCurrentRole, o3 = window.aiNoticeAccepted;
+    window.aiCompanyEnabled = async () => false; window.getCurrentRole = () => "موظف";
+    res.disabledBlocked = (await window.ensureAiNotice()) === false; res.alerted = alerts === 1;
+    window.aiCompanyEnabled = async () => true; window.aiNoticeAccepted = () => true;
+    res.enabledPasses = (await window.ensureAiNotice()) === true;
+    res.modalExists = !!document.getElementById("m-ai-company") && !!document.getElementById("ai-company-ok");
+    window.aiCompanyEnabled = o1; window.getCurrentRole = o2; window.aiNoticeAccepted = o3; window.alert = oa;
+    return res;
+  });
+  ok("الذكاء الصناعي معطّل افتراضيًا: غير المدير يُمنع برسالة، والمفعّل يمر، ونافذة التفعيل موجودة", f14.disabledBlocked && f14.alerted && f14.enabledPasses && f14.modalExists, f14);
 
   ok("لا أخطاء برمجية أثناء المسارات", errs.length === 0, errs);
   await browser.close();
