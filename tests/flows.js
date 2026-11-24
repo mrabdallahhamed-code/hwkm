@@ -739,6 +739,17 @@ function ok(name, cond, extra) {
   });
   ok("زر الرجوع: يختفي في أول صفحة، ويظهر بعد التنقل، ويعيد إلى الصفحة السابقة", f16.hiddenFirst && f16.shown && f16.backToMeetings, f16);
 
+  /* ───────── مسار 17) أزرار البدء في الحالات الفارغة ───────── */
+  console.log("مسار 17) أزرار البدء في الصفحات الفارغة");
+  const f17 = await pg.evaluate(() => {
+    const res = {};
+    res.noSrc = !/button/.test(emptyRowHTML(3, "لا شيء", "+ إضافة", "fnThatDoesNotExistInDom()"));
+    res.forced = /button/.test(emptyActionBtn("+ إضافة", "x()", true));
+    res.plain = /empty-cell/.test(emptyRowHTML(3, "لا شيء"));
+    return res;
+  });
+  ok("الحالة الفارغة: لا يظهر زر لمن لا يملك زر الإضافة، ويظهر عند الإجبار، وبالشكل الموحد", f17.noSrc && f17.forced && f17.plain, f17);
+
   /* ───────── مسار 15) سجل المخاطر والخريطة الحرارية ───────── */
   console.log("مسار 15) الخريطة الحرارية للمخاطر");
   const f15 = await pg.evaluate(() => {

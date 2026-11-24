@@ -122,7 +122,7 @@ function renderRiskRegister(){
 
   const filtered = rrCellFilter ? list.filter(r => { const p = rrPos(r); return p.l === rrCellFilter.l && p.i === rrCellFilter.i; }) : list;
   const rows = filtered.length ? filtered.map(r => rrRowHtml(r, canEdit)).join("") :
-    `<tr><td colspan="8" style="text-align:center;color:var(--gray3);font-size:12px;padding:18px">${rrRisks.length ? "لا مخاطر في هذا الاختيار" : "لا توجد مخاطر مسجّلة بعد. ابدأ بإضافة أول خطر."}</td></tr>`;
+    `<tr><td colspan="8" class="empty-cell">${rrRisks.length ? "لا مخاطر في هذا الاختيار" : "لا توجد مخاطر مسجّلة بعد. ابدأ بإضافة أول خطر." + (canEdit ? emptyActionBtn("+ إضافة أول خطر", "openRiskEditor()", true) : "")}</td></tr>`;
 
   host.innerHTML = `
   <style>

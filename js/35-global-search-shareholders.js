@@ -81,7 +81,7 @@ async function loadShareholders(){
   }
 
   if(shareholdersCache.length===0){
-    tbody.innerHTML = emptyRowHTML(10, 'لا يوجد مساهمون مسجّلون بعد. اضغط "+ إضافة مساهم" للبدء.');
+    tbody.innerHTML = emptyRowHTML(10, 'لا يوجد مساهمون مسجّلون بعد.', '+ إضافة أول مساهم', 'openNewShareholderModal()');
   } else {
     tbody.innerHTML = shareholdersCache.map(s => {
       const pct = companyTotal ? ((Number(s.shares_count)||0)/companyTotal*100).toFixed(2) : "—";

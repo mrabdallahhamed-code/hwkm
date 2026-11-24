@@ -53,7 +53,7 @@ function renderSimpleDecisionsList(context){
   const box = document.getElementById(context === "manager" ? "managerDecisionsList" : "ownerDecisionsList");
   if(!box) return;
   const list = simpleDecisionsCache[context];
-  if(!list.length){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">لا توجد قرارات موثَّقة بعد.</div>'; return; }
+  if(!list.length){ box.innerHTML = '<div class="empty-cell" style="display:block;padding:34px 14px">لا توجد قرارات موثَّقة بعد.' + emptyActionBtn("+ توثيق أول قرار", "openSimpleDecisionModal('" + context + "')") + '</div>'; return; }
 
   const statusColors = { "لم يبدأ": ["#F1F1F1","var(--gray3)"], "قيد التنفيذ": ["#FEF3E2","var(--gold)"], "منجز": ["#E8F8EF","var(--green)"], "متأخر": ["#FBEAEA","var(--red)"] };
 

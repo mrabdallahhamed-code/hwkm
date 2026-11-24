@@ -43,8 +43,18 @@ document.addEventListener("click", function(ev){
     else { window.location.href = u; }
   });
 }, true);
-function emptyRowHTML(cols, text){
-  return `<tr><td colspan="${cols}" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">${text}</td></tr>`;
+/* زر الإجراء في الحالة الفارغة يظهر فقط إن كان زر الإضافة الأصلي ظاهرًا للمستخدم (أي أن لديه الصلاحية). */
+function emptyActionBtn(label, fn, force){
+  if(!label || !fn) return "";
+  if(force === true) return `<div style="margin-top:10px"><button class="btn btn-gold" style="font-size:12px;padding:7px 18px" onclick="${fn}">${label}</button></div>`;
+  try{
+    const srcs = [...document.querySelectorAll('[onclick^="' + fn.split("(")[0] + '("]')];
+    if(!srcs.some(e => e.offsetParent !== null)) return "";
+  }catch(e){ return ""; }
+  return `<div style="margin-top:10px"><button class="btn btn-gold" style="font-size:12px;padding:7px 18px" onclick="${fn}">${label}</button></div>`;
+}
+function emptyRowHTML(cols, text, actionLabel, actionFn){
+  return `<tr><td colspan="${cols}" class="empty-cell">${text}${emptyActionBtn(actionLabel, actionFn)}</td></tr>`;
 }
 function errorRowHTML(cols, msg){
   return `<tr><td colspan="${cols}" style="text-align:center;color:var(--red);font-size:12px;padding:14px">تعذّر التحميل: ${msg}</td></tr>`;
