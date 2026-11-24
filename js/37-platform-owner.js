@@ -119,7 +119,7 @@ function renderEntityVerificationTable(all){
     : '<span class="pd-chip amber">غير موثّق</span>';
   const rank = c => (c.entity_verification === "verified" ? 2 : 0) + ((c.company_type||"").indexOf("مدرجة") > 0 && c.company_type.indexOf("غير") < 0 ? 0 : 1);
   const rows = (all||[]).slice().sort((a,b) => rank(a) - rank(b) || new Date(b.created_at) - new Date(a.created_at));
-  if(!rows.length){ tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد شركات.</td></tr>'; return; }
+  if(!rows.length){ tb.innerHTML = '<tr><td colspan="6" class="empty-cell">لا توجد شركات.</td></tr>'; return; }
   tb.innerHTML = rows.map(c => `<tr>
     <td>${orgEsc(c.name)}</td>
     <td>${orgEsc(c.company_type||"—")}</td>
@@ -173,7 +173,7 @@ async function loadPlatformTeam(){
   if(!tbody) return;
   const { data, error } = await sb.from("user_profiles").select("*").not("platform_team_module","is",null);
   if(error){ tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red);font-size:12px">${error.message}</td></tr>`; return; }
-  if(!data || data.length===0){ tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا يوجد فريق منصة معيّن بعد.</td></tr>'; return; }
+  if(!data || data.length===0){ tbody.innerHTML = '<tr><td colspan="4" class="empty-cell">لا يوجد فريق منصة معيّن بعد.</td></tr>'; return; }
   tbody.innerHTML = data.map(u => `<tr>
     <td>${orgEsc(u.full_name||"—")}</td><td style="font-size:11px">${orgEsc(u.email)}</td>
     <td><span style="background:#EAF0F8;color:var(--primary);font-weight:700;font-size:11px;padding:2px 8px;border-radius:6px">${u.platform_team_module}</span></td>
@@ -231,7 +231,7 @@ async function loadPlatformUsers(){
     sb.from("user_profiles").select("email,full_name")
   ]);
   if(error){ tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red);font-size:12px">${error.message}</td></tr>`; return; }
-  if(!memberships || memberships.length===0){ tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا يوجد أعضاء بعد.</td></tr>'; return; }
+  if(!memberships || memberships.length===0){ tbody.innerHTML = '<tr><td colspan="4" class="empty-cell">لا يوجد أعضاء بعد.</td></tr>'; return; }
 
   const companyNameById = {}; (companies||[]).forEach(c=>{ companyNameById[c.id]=c.name; });
   const nameByEmail = {}; (profiles||[]).forEach(p=>{ nameByEmail[p.email]=p.full_name; });
@@ -294,7 +294,7 @@ async function loadPlatformActivity(){
     sb.from("companies").select("id,name")
   ]);
   if(error){ tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red);font-size:12px">${error.message}</td></tr>`; return; }
-  if(!logs || logs.length===0){ tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا يوجد نشاط مسجَّل بعد.</td></tr>'; return; }
+  if(!logs || logs.length===0){ tbody.innerHTML = '<tr><td colspan="4" class="empty-cell">لا يوجد نشاط مسجَّل بعد.</td></tr>'; return; }
 
   const companyNameById = {}; (companies||[]).forEach(c=>{ companyNameById[c.id]=c.name; });
   tbody.innerHTML = logs.map(l => `<tr>

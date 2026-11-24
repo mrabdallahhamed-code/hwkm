@@ -74,10 +74,22 @@ function autoRefreshTick(force){
 setInterval(() => autoRefreshTick(false), 40000);
 document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') autoRefreshTick(false); });
 
+function goBack(){
+  const h = window.__pageHist || [];
+  if(h.length < 2) return;
+  h.pop(); const prev = h[h.length-1];
+  window.__goingBack = true; go(prev, null);
+}
 async function go(id, el){
   if(typeof applySubscriptionLock === "function" && typeof currentCompanyExpiredRaw !== "undefined") applySubscriptionLock(currentCompanyExpiredRaw); // يعيد التقييم بعد اكتمال تحميل الملف الشخصي
   if(typeof currentCompanyLocked !== "undefined" && currentCompanyLocked && id !== 'mysub'){ id = 'mysub'; el = document.getElementById('navMySub'); }
   currentPageId = id;
+  try{
+    window.__pageHist = window.__pageHist || [];
+    if(window.__goingBack){ window.__goingBack = false; }
+    else if(window.__pageHist[window.__pageHist.length-1] !== id){ window.__pageHist.push(id); if(window.__pageHist.length > 30) window.__pageHist.shift(); }
+    const bb = document.getElementById('backBtn'); if(bb) bb.style.display = window.__pageHist.length > 1 ? '' : 'none';
+  }catch(e){}
   if(companyTypeReadyPromise){ try{ await companyTypeReadyPromise; }catch(e){} }
   const role = currentUserProfile ? getCurrentRole() : null;
   const blocked = role && !isPageAllowed(id, role);

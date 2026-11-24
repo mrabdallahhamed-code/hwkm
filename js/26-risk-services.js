@@ -165,7 +165,7 @@ async function loadRisks(){
   }
 
   if(reqErr){ tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red);font-size:12px">${reqErr.message}</td></tr>`; return; }
-  if(!requests || requests.length===0){ tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد طلبات بعد.</td></tr>'; return; }
+  if(!requests || requests.length===0){ tbody.innerHTML = '<tr><td colspan="4" class="empty-cell">لا توجد طلبات بعد.</td></tr>'; return; }
   const svcNameById = {}; (services||[]).forEach(s=>{ svcNameById[s.id]=s.name; });
   tbody.innerHTML = requests.map(r => `<tr style="cursor:pointer" onclick="openRiskRequestDetail(${r.id})">
     <td>${svcNameById[r.service_type_id]||"—"}</td>

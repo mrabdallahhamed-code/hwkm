@@ -27,7 +27,7 @@ async function loadAudit(){
   }
 
   if(reqErr){ tbody.innerHTML = `<tr><td colspan="5" style="color:var(--red);font-size:12px">${reqErr.message}</td></tr>`; return; }
-  if(!requests || requests.length===0){ tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد طلبات بعد.</td></tr>'; return; }
+  if(!requests || requests.length===0){ tbody.innerHTML = '<tr><td colspan="5" class="empty-cell">لا توجد طلبات بعد.</td></tr>'; return; }
   const svcNameById = {}; (services||[]).forEach(s=>{ svcNameById[s.id]=s.name; });
   tbody.innerHTML = requests.map(r => {
     const resultBadge = (r.inspection_result && auditFinalOK(r))

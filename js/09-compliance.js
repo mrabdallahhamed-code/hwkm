@@ -177,7 +177,7 @@ async function loadCmpHistory(){
   if(!tbody) return;
   const { data, error } = await sb.from("compliance_assessments").select("*").eq("company_id", currentCompanyId).order("created_at",{ascending:false});
   if(error){ tbody.innerHTML = `<tr><td colspan="6" style="color:var(--red);font-size:12px;padding:14px">تعذّر التحميل: ${gaEsc(error.message)}</td></tr>`; return; }
-  if(!data || data.length === 0){ tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد تقييمات بعد. اضغط «+ تقييم جديد» للبدء.</td></tr>'; return; }
+  if(!data || data.length === 0){ tbody.innerHTML = '<tr><td colspan="6" class="empty-cell">لا توجد تقييمات بعد. اضغط «+ تقييم جديد» للبدء.</td></tr>'; return; }
   tbody.innerHTML = data.map(a => {
     const { finalScore } = cmpAssessmentScores(a);
     const interp = finalScore != null ? cmpInterpretation(finalScore) : null;

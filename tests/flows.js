@@ -727,6 +727,18 @@ function ok(name, cond, extra) {
   ok("وقت نهاية الاجتماع يُقترح بعد ساعة من البداية (وبعد منتصف الليل يلتف صحيحًا) ولا يُستبدل إن كُتب يدويًا", f13.end1 === "11:30" && f13.endWrap === "00:30" && f13.endKept === "12:00" && f13.reqEnd === "15:15", f13);
   ok("نموذج المساهم: الحقول الأساسية ظاهرة، والإضافية مطويّة ومحفوظة داخل الصفحة", f13.moreClosed && f13.coreVisible && f13.extrasInside, f13);
 
+  /* ───────── مسار 16) زر الرجوع إلى الصفحة السابقة ───────── */
+  console.log("مسار 16) زر الرجوع");
+  const f16 = await pg.evaluate(async () => {
+    const res = {}; window.__pageHist = [];
+    await go("dashboard", null); res.hiddenFirst = document.getElementById("backBtn").style.display === "none";
+    await go("meetings", null); res.shown = document.getElementById("backBtn").style.display !== "none";
+    await go("members", null); goBack(); await new Promise(r => setTimeout(r, 50));
+    res.backToMeetings = currentPageId === "meetings";
+    return res;
+  });
+  ok("زر الرجوع: يختفي في أول صفحة، ويظهر بعد التنقل، ويعيد إلى الصفحة السابقة", f16.hiddenFirst && f16.shown && f16.backToMeetings, f16);
+
   /* ───────── مسار 15) سجل المخاطر والخريطة الحرارية ───────── */
   console.log("مسار 15) الخريطة الحرارية للمخاطر");
   const f15 = await pg.evaluate(() => {

@@ -234,7 +234,7 @@ async function renderPastAGMTable(past){
   const tbody = document.getElementById("pastAGMTbody");
   if(!tbody) return;
   if(past.length === 0){
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا يوجد سجل جمعيات سابقة بعد</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-cell">لا يوجد سجل جمعيات سابقة بعد</td></tr>';
     return;
   }
   const ids = past.map(m=>m.id);

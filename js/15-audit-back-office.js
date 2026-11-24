@@ -43,7 +43,7 @@ async function loadAuditAdmin(){
     sb.from("audit_service_types").select("id,name")
   ]);
   if(error){ tbody.innerHTML = `<tr><td colspan="7" style="color:var(--red);font-size:12px">${error.message}</td></tr>`; return; }
-  if(!requests || requests.length===0){ tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--gray3);font-size:12px;padding:14px">لا توجد طلبات بعد.</td></tr>'; return; }
+  if(!requests || requests.length===0){ tbody.innerHTML = '<tr><td colspan="7" class="empty-cell">لا توجد طلبات بعد.</td></tr>'; return; }
 
   const companyNameById = {}; (companies||[]).forEach(c=>{ companyNameById[c.id]=c.name; });
   const svcNameById = {}; (services||[]).forEach(s=>{ svcNameById[s.id]=s.name; });
