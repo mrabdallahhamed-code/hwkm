@@ -100,6 +100,7 @@ function hwkmTourCss(){
   #hwkmTourCard .tc-next{flex:1;background:linear-gradient(135deg,#B8972A,#D9B945);color:#0D2447;border:none;border-radius:10px;padding:10px 14px;font-weight:800;font-size:13.5px;cursor:pointer;font-family:inherit}
   #hwkmTourCard .tc-sec{background:#F2F4F8;color:#4a5a73;border:none;border-radius:10px;padding:10px 14px;font-weight:700;font-size:12.5px;cursor:pointer;font-family:inherit}
   #hwkmTourCard .tc-arrow{position:absolute;top:50%;width:14px;height:14px;background:#fff;transform:translateY(-50%) rotate(45deg);border:2px solid #D9B945}
+  @media(max-width:900px){body.has-tabbar #hwkmTourBtn{bottom:82px !important}#hwkmTourBtn{font-size:12px !important;padding:8px 12px !important}}
   #hwkmTourBtn{transition:transform .15s}#hwkmTourBtn:hover{transform:translateY(-2px)}`;
   document.head.appendChild(st);
 }
@@ -150,7 +151,7 @@ function hwkmTourShow(i){
     if(target){
       target.classList.add("hwkm-tour-mark");
       const r = target.getBoundingClientRect();
-      if(mobile){ card.style.bottom = "12px"; card.style.left = "12px"; }
+      if(mobile){ card.style.bottom = document.body.classList.contains("has-tabbar") ? "82px" : "12px"; card.style.left = "12px"; }
       else{
         card.style.right = Math.max(12, window.innerWidth - r.left + 18) + "px";
         const h = card.offsetHeight;
@@ -178,7 +179,7 @@ function hwkmTourInit(){
     let btn = document.getElementById("hwkmTourBtn");
     if(!loggedIn){ if(btn) btn.remove(); return; }
     if(!btn){
-      btn = document.createElement("button"); btn.id = "hwkmTourBtn"; btn.type = "button";
+      btn = document.createElement("button"); hwkmTourCss(); btn.id = "hwkmTourBtn"; btn.type = "button";
       btn.title = "اضغط لبدء جولة تعريفية تشرح لك أقسام المنصة"; btn.textContent = "🧭 جولة تعريفية بالمنصة";
       btn.setAttribute("style", "position:fixed;left:16px;bottom:18px;z-index:9000;background:#B8972A;color:#fff;border:none;border-radius:999px;padding:10px 16px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(13,36,71,.3)");
       btn.onclick = startGuidedTour;
