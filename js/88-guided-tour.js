@@ -13,6 +13,16 @@ const HWKM_TOUR_STEPS = [
   { icon:"🎯", title:"جاهز للبدء", text:"ابدأ بالخطوات الأربع في بطاقة «ابدأ من هنا» بلوحة التحكم. وإن احتجت هذه الجولة مرة أخرى فالزر «جولة» على جانب الشاشة دائمًا.", page:"dashboard" }
 ];
 
+const HWKM_TOUR_OWNER_STEPS = [
+  { icon:"👋", title:"أهلًا بك في إدارة حوكم", text:"جولة قصيرة تعرّفك على أقسام لوحة مالك المنصة.", page:null },
+  { icon:"📊", title:"لوحة التحكم", text:"نظرة عامة على المنصة: الشركات والمستخدمون والنشاط.", page:"platformdashboard" },
+  { icon:"🏢", title:"الشركات", text:"كل الشركات المسجلة، واشتراكاتها، وإدارة بياناتها.", page:"platformcompanies" },
+  { icon:"🛡️", title:"إدارة الصلاحيات", text:"المستخدمون وأدوارهم على مستوى المنصة.", page:"platformusers" },
+  { icon:"📜", title:"سجل النشاط", text:"ما جرى على المنصة، ومن قام به ومتى.", page:"platformactivity" },
+  { icon:"📥", title:"إدارة الطلبات", text:"طلبات إدراج الشركات وطلبات العملاء التي تنتظر قرارك.", page:"adminrequests" },
+  { icon:"🎯", title:"انتهت الجولة", text:"تقدر تعيدها متى شئت من الزر «جولة تعريفية بالمنصة».", page:null }
+];
+function hwkmTourSteps(){ return (typeof currentUserProfile !== "undefined" && currentUserProfile && currentUserProfile.is_platform_admin === true) ? HWKM_TOUR_OWNER_STEPS : HWKM_TOUR_STEPS; }
 function hwkmTourKey(){ try{ return "hwkm_tour_done_" + ((currentUserProfile && currentUserProfile.email) || ""); }catch(e){ return "hwkm_tour_done_"; } }
 let hwkmTourIdx = 0;
 
@@ -31,7 +41,7 @@ function hwkmTourShow(i){
   const last = hwkmTourIdx === HWKM_TOUR_STEPS.length - 1;
   const mobile = window.innerWidth <= 900;
   hwkmTourClearMark();
-  const target = (s.page && hwkmTourIdx > 0 && !last) ? document.querySelector(`.nav-item[onclick^="go('${s.page}'"]`) : null;
+  const target = (s.page && !last && hwkmTourIdx > 0) ? document.querySelector(`.nav-item[onclick^="go('${s.page}'"]`) : null;
   if(target && mobile){
     const sb = document.getElementById("sidebar");
     if(sb && !sb.classList.contains("open")){ try{ toggleSidebar(); hwkmTourOpenedSidebar = true; }catch(e){} }
@@ -43,7 +53,7 @@ function hwkmTourShow(i){
     bg.setAttribute("style", "position:fixed;inset:0;z-index:100000;pointer-events:none");
     document.body.appendChild(bg);
   }
-  const dots = HWKM_TOUR_STEPS.map((_, k) => `<span style="width:${k===hwkmTourIdx?18:6}px;height:6px;border-radius:6px;background:${k===hwkmTourIdx?"#B8972A":"#d5dbe6"};display:inline-block;margin:0 2px"></span>`).join("");
+  const dots = hwkmTourSteps().map((_, k) => `<span style="width:${k===hwkmTourIdx?18:6}px;height:6px;border-radius:6px;background:${k===hwkmTourIdx?"#B8972A":"#d5dbe6"};display:inline-block;margin:0 2px"></span>`).join("");
   bg.innerHTML = `<div id="hwkmTourCard" role="dialog" style="pointer-events:auto;position:fixed;background:#fff;border-radius:14px;width:min(330px,calc(100vw - 24px));padding:16px 18px;box-shadow:0 10px 36px rgba(13,36,71,.35);border:2px solid #B8972A;direction:rtl;font-family:inherit">
     <div style="display:flex;align-items:center;gap:8px"><span style="font-size:26px;line-height:1">${s.icon}</span><span style="font-size:15.5px;font-weight:800;color:#0D2447">${orgEsc(s.title)}</span></div>
     <div style="font-size:13px;color:#4a5a73;line-height:1.85;margin-top:8px">${orgEsc(s.text)}</div>
@@ -53,7 +63,7 @@ function hwkmTourShow(i){
       ${hwkmTourIdx > 0 ? `<button type="button" class="btn btn-ghost" id="hwkmTourPrev">السابق</button>` : ""}
       ${last ? "" : `<button type="button" class="btn btn-ghost" id="hwkmTourSkip">تخطي</button>`}
     </div>
-    <div style="font-size:10.5px;color:#7A90B0;text-align:center;margin-top:6px">${hwkmTourIdx + 1} من ${HWKM_TOUR_STEPS.length}</div>
+    <div style="font-size:10.5px;color:#7A90B0;text-align:center;margin-top:6px">${hwkmTourIdx + 1} من ${hwkmTourSteps().length}</div>
   </div>`;
   const card = document.getElementById("hwkmTourCard");
   const place = () => {
@@ -89,7 +99,7 @@ function hwkmTourInit(){
     if(!btn){
       btn = document.createElement("button"); btn.id = "hwkmTourBtn"; btn.type = "button";
       btn.title = "اضغط لبدء جولة تعريفية تشرح لك أقسام المنصة"; btn.textContent = "🧭 جولة تعريفية بالمنصة";
-      btn.setAttribute("style", "position:fixed;left:0;top:45%;z-index:9000;background:#B8972A;color:#fff;border:none;border-radius:0 10px 10px 0;padding:12px 8px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 2px 10px rgba(13,36,71,.25);writing-mode:vertical-rl");
+      btn.setAttribute("style", "position:fixed;left:16px;bottom:18px;z-index:9000;background:#B8972A;color:#fff;border:none;border-radius:999px;padding:10px 16px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(13,36,71,.3)");
       btn.onclick = startGuidedTour;
       document.body.appendChild(btn);
     }
