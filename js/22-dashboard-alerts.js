@@ -145,7 +145,7 @@ async function loadNotifications(){
   list.innerHTML = items.map(it => `
     <div onclick="document.getElementById('notifPanel').style.display='none';go('${it.page}',null)" style="display:flex;gap:8px;align-items:flex-start;padding:8px;border-radius:8px;cursor:pointer" onmouseover="this.style.background='var(--offwhite)'" onmouseout="this.style.background='transparent'">
       <span style="font-size:15px">${it.icon}</span>
-      <span style="font-size:12px;color:var(--dark);line-height:1.6">${it.text}</span>
+      <span style="font-size:12px;color:var(--dark);line-height:1.6">${orgEsc(it.text)}</span>
     </div>`).join("");
 }
 
@@ -650,7 +650,7 @@ async function renderGovAlertsPanel(){
   const card = a => `<div class="gal2-item ${a.severity==='high'?'gal2-high':'gal2-med'}" onclick="go('${a.page}',null)">
       <span class="gal2-ico">${a.severity==='high'?'!':'i'}</span>
       <div class="gal2-body">
-        <div class="gal2-text">${a.text}</div>
+        <div class="gal2-text">${orgEsc(a.text)}</div>
         <span class="gal2-cta">${a.cta||"افتح"} ‹</span>
       </div>
     </div>`;

@@ -94,7 +94,7 @@ async function loadCommittees(){
         <div style="font-size:12px;color:var(--gray3);margin-bottom:4px"><span class="ico-i ico-user"></span>رئيس اللجنة: <b style="color:var(--dark)">${orgEsc(c.chairman_name||"—")}</b></div>
         <div style="font-size:12px;color:var(--gray3);margin-bottom:4px"><span class="ico-i ico-users"></span>عدد الأعضاء المحددين: <b style="color:var(--dark)">${memberCount}</b></div>
         <div style="font-size:12px;color:var(--gray3);margin-bottom:8px"><span class="ico-i ico-calendar"></span>تاريخ التعيين: ${c.appointment_date||"—"}</div>
-        ${c.scope ? `<div style="font-size:11.5px;color:var(--gray3);background:var(--offwhite);border-radius:8px;padding:8px;margin-bottom:8px">${c.scope}</div>` : ""}
+        ${c.scope ? `<div style="font-size:11.5px;color:var(--gray3);background:var(--offwhite);border-radius:8px;padding:8px;margin-bottom:8px">${orgEsc(c.scope)}</div>` : ""}
         <button class="btn-xs" style="width:100%;margin-top:auto;background:${hasCharter?'#E8F8EF':'var(--offwhite)'};color:${hasCharter?'var(--green)':'var(--dark)'};border:1px solid ${hasCharter?'transparent':'var(--gray1)'};border-radius:6px;padding:6px;font-size:11px;cursor:pointer" onclick="openCharterModal(${c.id})"><span class="ico-i ico-scroll"></span>${hasCharter?'عرض/تعديل الميثاق ✅':'إعداد ميثاق اللجنة'}</button>
       </div>
     </div>`;

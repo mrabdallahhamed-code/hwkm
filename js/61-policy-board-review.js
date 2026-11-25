@@ -158,8 +158,8 @@ async function openPolicyHistoryModal(id){
     <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray1)">
       <div style="width:8px;height:8px;border-radius:50%;background:${e.type==='stage'?'var(--primary)':'var(--gold)'};margin-top:5px;flex-shrink:0"></div>
       <div>
-        <div style="font-size:12px;color:var(--dark);font-weight:600">${e.text}</div>
-        <div style="font-size:10.5px;color:var(--gray3);margin-top:2px">${e.by?e.by+' — ':''}${new Date(e.date).toLocaleString('ar-SA-u-ca-gregory')}</div>
+        <div style="font-size:12px;color:var(--dark);font-weight:600">${orgEsc(e.text)}</div>
+        <div style="font-size:10.5px;color:var(--gray3);margin-top:2px">${e.by?orgEsc(e.by)+' — ':''}${new Date(e.date).toLocaleString('ar-SA-u-ca-gregory')}</div>
       </div>
     </div>`).join("");
 }
