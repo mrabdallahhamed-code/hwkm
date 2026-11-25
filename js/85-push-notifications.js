@@ -76,3 +76,49 @@ async function pushDisable(){
   }catch(e){}
   pushRefreshUI();
 }
+
+/* ══════════ دعوة تفعيل الإشعارات بعد الدخول ══════════
+   تظهر مرة بعد الدخول إن كان الجهاز يدعم الإشعارات ولم تُفعَّل بعد؛ "لاحقًا" تؤجّلها 7 أيام. */
+function pushPromptKey(email){ return "hwkm_push_prompt_" + email; }
+function pushPromptRemove(){ const e = document.getElementById("pushPromptBar"); if(e) e.remove(); }
+async function pushPromptTick(){
+  try{
+    const email = (currentUserProfile && currentUserProfile.email || "").toLowerCase();
+    if(!email){ pushPromptRemove(); return; }
+    if(document.getElementById("pushPromptBar")) return;
+    if(document.getElementById("hwkmTourCard")) return;               // لا نزاحم الجولة
+    const ov = document.querySelector(".modal-bg.open"); if(ov) return;
+    let until = 0; try{ until = parseInt(localStorage.getItem(pushPromptKey(email)) || "0", 10) || 0; }catch(e){}
+    if(Date.now() < until) return;
+    const iosTab = pushIsIOSBrowserTab();
+    if(!iosTab){
+      if(!pushSupported()) return;
+      if(Notification.permission !== "default") return;               // مفعّلة أو محظورة
+      if(await pushCurrentSub()) return;
+    }else if(!/iphone|ipad|ipod/i.test(navigator.userAgent)) return;
+    const bar = document.createElement("div");
+    bar.id = "pushPromptBar";
+    bar.setAttribute("style", "position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:9998;max-width:min(92vw,460px);width:max-content;background:#0D2447;color:#fff;border:1.5px solid #D9B945;border-radius:14px;padding:12px 16px;box-shadow:0 8px 28px rgba(0,0,0,.28);display:flex;align-items:center;gap:12px;direction:rtl;font-family:inherit");
+    const msg = iosTab
+      ? "لتصلك التنبيهات على الآيفون: أضف حوكم إلى الشاشة الرئيسية (مشاركة ← إضافة إلى الشاشة الرئيسية) ثم افتحه منها وفعّل الإشعارات."
+      : "فعّل الإشعارات لتصلك تنبيهات المهام والاجتماعات والتصويت حتى والتطبيق مغلق.";
+    bar.innerHTML = '<span style="font-size:22px">🔔</span><span style="font-size:13px;line-height:1.6;flex:1">' + msg + '</span>'
+      + (iosTab ? "" : '<button id="pushPromptYes" style="background:#D9B945;color:#0D2447;border:0;border-radius:8px;padding:8px 14px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit">تفعيل</button>')
+      + '<button id="pushPromptLater" style="background:transparent;color:#cfd8e6;border:0;font-size:12px;cursor:pointer;font-family:inherit">لاحقًا</button>';
+    document.body.appendChild(bar);
+    const snooze = () => { try{ localStorage.setItem(pushPromptKey(email), String(Date.now() + 7*86400000)); }catch(e){} pushPromptRemove(); };
+    document.getElementById("pushPromptLater").onclick = snooze;
+    const yes = document.getElementById("pushPromptYes");
+    if(yes) yes.onclick = async () => { pushPromptRemove(); await pushEnable(); if(Notification.permission === "default") snooze(); };
+  }catch(e){}
+}
+(function pushPromptInit(){
+  let first = 0;
+  setInterval(() => {
+    const has = !!(typeof currentUserProfile !== "undefined" && currentUserProfile && currentUserProfile.email);
+    if(!has){ first = 0; pushPromptRemove(); return; }
+    if(!first) first = Date.now();
+    if(Date.now() - first < 12000) return;                            // بعد استقرار الواجهة
+    pushPromptTick();
+  }, 3000);
+})();
