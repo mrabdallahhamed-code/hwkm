@@ -1530,3 +1530,11 @@ td.empty-cell:before{content:"🗂️";display:block;font-size:30px;opacity:.55;
 .hub-tx b{font-size:19px;font-weight:800}
 .hub-tx small{font-size:14px;line-height:1.7}
 @media(max-width:700px){.hub-grid{grid-template-columns:1fr;gap:14px}.hub-card{min-height:104px;padding:20px 18px}}
+
+/* شريط الأقسام السفلي (الجوال) */
+.m-tabbar{position:fixed;bottom:0;left:0;right:0;z-index:150;display:none;align-items:stretch;justify-content:space-around;background:#0D2E52;border-top:1px solid rgba(180,146,63,.35);box-shadow:0 -4px 18px rgba(10,22,40,.25);padding:4px 4px calc(4px + env(safe-area-inset-bottom))}
+.mt-btn{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:#C9D3E3;font-family:inherit;font-size:11.5px;font-weight:700;padding:7px 2px;border-radius:10px;cursor:pointer}
+.mt-btn .ico{width:22px;height:22px}
+.mt-btn.on{color:var(--gold3);background:rgba(180,146,63,.18)}
+@media(min-width:901px){.m-tabbar{display:none!important}}
+@media(max-width:900px){body.has-tabbar .main{padding-bottom:84px}body.has-tabbar .gov-toast{bottom:84px}body.has-tabbar #updateBanner{bottom:84px!important}}

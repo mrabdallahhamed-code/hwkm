@@ -129,7 +129,7 @@ async function go(id, el){
   document.getElementById('ptitle').textContent=t[0];
   document.getElementById('psub').textContent=t[1];
   closeSidebar();
-  try{ refreshNavGroupsVisibility(); syncNavOpen(); }catch(e){}
+  try{ refreshNavGroupsVisibility(); syncNavOpen(); renderMobileTabbar(); }catch(e){}
   if(blocked) return;
   if(id==='hub') renderNavHub();
   if(id==='dashboard') loadDashboard();
@@ -220,6 +220,9 @@ function toggleNavGroup(id){
 /* الضغط على اسم القسم: يتوسع في الشريط وتُفتح في الصفحة بطاقات ما تحته */
 function navGroupClick(id){
   window.__hubGroup = id;
+  /* القسم المفتوح يُطوى بضغطة على اسمه (بلا الانتقال لصفحة أخرى)، والمطوي يُفتح مع صفحة بطاقاته */
+  const ch0 = document.getElementById('grp-'+id+'-children');
+  if(window.innerWidth > 900 && ch0 && !ch0.classList.contains('collapsed')){ toggleNavGroup(id); return; }
   /* على الجوال القائمة تغطي الصفحة، فيتوسع القسم في القائمة نفسها ويختار منه العميل مباشرة */
   if(window.innerWidth <= 900){ const c = document.getElementById('grp-'+id+'-children'); if(c) toggleNavGroup(id); return; }
   go('hub', null);
@@ -378,3 +381,26 @@ async function updateRequestStatus(id, status){
   if(error){ alert("تعذّر التحديث: " + error.message); return; }
   loadAppointRequests();
 }
+
+/* شريط أقسام ثابت أسفل الصفحة على الجوال: الرئيسية والمجلس والجمعية والحوكمة والرقابة ثم «المزيد» (القائمة كاملة) */
+const M_TABS = [['home','الرئيسية','ico-home'],['boardmeetings','المجلس','ico-calendar'],['generalassembly','الجمعية','ico-handshake'],['governance','الحوكمة','ico-columns'],['riskcontrol','الرقابة','ico-warning']];
+function renderMobileTabbar(){
+  const bar = document.getElementById('mTabbar'); if(!bar) return;
+  const app = document.getElementById('appWrapper');
+  const nav = document.getElementById('companyNavGroups');
+  const show = window.innerWidth <= 900 && app && app.style.display !== 'none' && nav && nav.style.display !== 'none' && document.querySelector('#navg-home');
+  bar.style.display = show ? 'flex' : 'none';
+  document.body.classList.toggle('has-tabbar', !!show);
+  if(!show) return;
+  const cur = (() => { const act = nav.querySelector('.nav-item.active'); const ch = act && act.closest('.nav-group-children'); return currentPageId === 'hub' ? window.__hubGroup : (ch ? ch.id.replace(/^grp-/,'').replace(/-children$/,'') : null); })();
+  const tabs = M_TABS.filter(t => { const g = document.getElementById('navg-'+t[0]); return g && g.style.display !== 'none'; });
+  bar.innerHTML = tabs.map(t => `<button type="button" class="mt-btn${cur===t[0]?' on':''}" data-g="${t[0]}"><span class="ico ${t[2]}"></span><span>${t[1]}</span></button>`).join('')
+    + `<button type="button" class="mt-btn" data-g="more"><span class="ico ico-menu"></span><span>المزيد</span></button>`;
+  bar.querySelectorAll('.mt-btn').forEach(b => b.onclick = () => {
+    const g = b.dataset.g;
+    if(g === 'more'){ toggleSidebar(); return; }
+    if(g === 'home'){ go('dashboard', null); return; }
+    window.__hubGroup = g; go('hub', null);
+  });
+}
+window.addEventListener('resize', () => { try{ renderMobileTabbar(); }catch(e){} });

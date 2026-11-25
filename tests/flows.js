@@ -826,6 +826,22 @@ function ok(name, cond, extra) {
   ok("ضغط اسم القسم يفتح صفحة بطاقاته ويوسّع القسم وحده، والبطاقة تفتح الصفحة", f22.hubActive && f22.cards >= 5 && f22.title === "الحوكمة" && f22.oneOpen && f22.openIsGov && f22.opened, f22);
   ok("قسم الرئيسية يعرض لوحة التحكم واشتراكي", /لوحة التحكم/.test(f22.home) && /اشتراكي/.test(f22.home), f22);
 
+  /* ───────── مسار 23) طيّ القسم المفتوح + شريط الأقسام السفلي على الجوال ───────── */
+  console.log("مسار 23) طيّ القسم وشريط الجوال");
+  const f23 = await pg.evaluate(async () => {
+    const r = {}; const w = (ms) => new Promise(x => setTimeout(x, ms));
+    document.getElementById("appWrapper").style.display = "block";
+    const open = (id) => !document.getElementById("grp-" + id + "-children").classList.contains("collapsed");
+    navGroupClick("governance"); await w(300); r.opened = open("governance");
+    navGroupClick("governance"); await w(200); r.closed = !open("governance");   // الضغط على اسم القسم المفتوح يطويه
+    toggleNavGroup("governance"); r.reopen = open("governance");                // والسهم يوسّعه ثانية
+    toggleNavGroup("governance"); r.reclosed = !open("governance");
+    r.tabbarHiddenDesktop = getComputedStyle(document.getElementById("mTabbar")).display === "none";
+    return r;
+  });
+  ok("القسم المفتوح يُطوى بضغطة على اسمه ويُوسَّع بالسهم", f23.opened && f23.closed && f23.reopen && f23.reclosed, f23);
+  ok("شريط الأقسام السفلي مخفي على الحاسوب", f23.tabbarHiddenDesktop, f23);
+
   /* ───────── مسار 20) صفحة واحدة فقط ظاهرة في كل مرة (لا تتسرب لوحة الشركة إلى الصفحات الأخرى) ───────── */
   console.log("مسار 20) ظهور صفحة واحدة فقط");
   const f20 = await pg.evaluate(async () => {
