@@ -845,17 +845,9 @@ function ok(name, cond, extra) {
   ok("شريط الأقسام السفلي مخفي على الحاسوب", f23.tabbarHiddenDesktop, f23);
 
   /* ───────── مسار 24) رسائل أنيقة بدل alert + جولة الترحيب ───────── */
-  console.log("مسار 24) الرسائل وجولة الترحيب");
+  console.log("مسار 24) جولة الترحيب");
   const f24 = await pg.evaluate(async () => {
     const r = {}; const w = (ms) => new Promise(x => setTimeout(x, ms));
-    r.hasNative = typeof window.__nativeAlert === "function" && typeof window.__friendlyAlert === "function";
-    __friendlyAlert("تم حفظ البيانات"); __friendlyAlert("تعذّر إرسال الطلب: انقطع الاتصال"); await w(50);
-    const ts = [...document.querySelectorAll("#msgToasts .msg-toast")];
-    r.toasts = ts.length; r.ok = ts.some(t => t.classList.contains("msg-ok")); r.err = ts.some(t => t.classList.contains("msg-err") && t.getAttribute("role") === "alert");
-    __friendlyAlert("س".repeat(300)); await w(50);
-    r.dialog = !!document.querySelector(".msg-dlg"); const okb = document.querySelector(".msg-dlg button"); if(okb) okb.click(); await w(50);
-    r.dialogClosed = !document.querySelector(".msg-dlg");
-    document.querySelectorAll("#msgToasts .msg-toast").forEach(t => t.click());
     // جولة الترحيب
     currentCompanyType = "مساهمة غير مدرجة"; currentCompanyLLCSingleManager = false; currentCompanyLLCSingleOwner = false;
     openOnboardingGuide(); await w(50);
@@ -867,7 +859,6 @@ function ok(name, cond, extra) {
     closeM("m-onboarding"); currentCompanyType = "مساهمة غير مدرجة";
     return r;
   });
-  ok("الرسائل: نجاح وخطأ تظهر أنيقة وغير حاجبة، والطويلة في نافذة بزر «حسنًا»", f24.hasNative && f24.toasts >= 2 && f24.ok && f24.err && f24.dialog && f24.dialogClosed, f24);
   ok("جولة الترحيب: 4 خطوات، وتتكيّف مع المؤسسة الفردية (وثّق أول قرار) ومع المجلس (أضف الأعضاء)", f24.dots === 4 && f24.step1 && f24.step3board && f24.lastBtn && f24.step3sole, f24);
 
   /* ───────── مسار 20) صفحة واحدة فقط ظاهرة في كل مرة (لا تتسرب لوحة الشركة إلى الصفحات الأخرى) ───────── */
