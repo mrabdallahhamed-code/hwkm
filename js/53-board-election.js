@@ -6,8 +6,8 @@
    candidate, weighted by shares like every other AGM vote. */
 let currentElectionCandidates = [];
 const ELECTION_METHOD_HINTS = {
-  "تراكمي": "تراكمي: كل مساهم يملك (أسهمه × عدد المقاعد) صوتًا، يوزّعها على المرشحين كيف يحب.",
-  "عادي": "عادي: يصوّت المساهم موافق/معارض/ممتنع على كل مرشح لحاله."
+  "تراكمي": "تراكمي: كل مساهم يملك (أسهمه × عدد المقاعد) صوتًا، يوزّعها على المرشحين كيف يحب. هو الأصل في الانتخاب (اللائحة التنفيذية م14).",
+  "عادي": "عادي: يصوّت المساهم موافق/معارض/ممتنع على كل مرشح لحاله. لا يجوز إلا إذا نص النظام الأساس عليه (اللائحة التنفيذية م14)."
 };
 
 async function loadElectionSection(meetingId){
@@ -43,6 +43,9 @@ function renderElectionCandidatesList(){
 
 async function saveElectionMethod(){
   const method = document.getElementById("agmView-election-method").value;
+  if(method === "عادي" && !await uiConfirm("الأصل في انتخاب المجلس هو التصويت التراكمي، ولا يجوز التصويت العادي إلا إذا نص عليه النظام الأساس للشركة. هل ينص نظامكم الأساس على ذلك؟")){
+    if(currentAGMModalMeetingId) loadElectionSection(currentAGMModalMeetingId); return;
+  }
   await sb.from("companies").update({ board_election_method: method }).eq("id", currentCompanyId);
   const hint = document.getElementById("agmView-electionMethodHint");
   if(hint) hint.textContent = ELECTION_METHOD_HINTS[method];
