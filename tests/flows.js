@@ -976,6 +976,21 @@ function ok(name, cond, extra) {
   ok("اللجان: المراجعة إلزامية للمدرجة والموازية، والمكافآت للرئيسية فقط، والمخاطر والحوكمة اختياريتان، وواجهة الأعضاء الخارجيين وبنود م87 موجودة",
      f27.kinds && f27.auditMain && f27.remMain && f27.riskOpt && f27.ui && f27.addExt && f27.art87, f27);
 
+  /* ───────── مسار 28) سجل إفصاحات الأعضاء للمساهمين وبنود م87 ───────── */
+  console.log("مسار 28) سجل الإفصاحات وبنود تقرير المجلس");
+  const f28 = await pg.evaluate(async () => {
+    const res = {};
+    currentCompanyType = "مساهمة غير مدرجة"; showDisclosureRegisterRow();
+    res.shown = document.getElementById("shDiscRegisterRow").style.display === "block";
+    currentCompanyType = "ذات مسؤولية محدودة"; showDisclosureRegisterRow();
+    res.hiddenLLC = document.getElementById("shDiscRegisterRow").style.display === "none";
+    res.fields = ["evaluation_means","financial_summary","geo_revenue","accounting_standards","plans_outlook","related_party_contracts"].every(k => REPORT_MANUAL_FIELDS.some(f => f.key === k) && !!document.getElementById("field-" + k));
+    res.title87 = /المادة 87/.test(document.getElementById("reportsPageTitle").textContent);
+    return res;
+  });
+  ok("سجل الإفصاحات يظهر لمساهمي المساهمة فقط، وبنود م87 كلها موجودة، وعنوان التقرير يذكر المادة 87",
+     f28.shown && f28.hiddenLLC && f28.fields && f28.title87, f28);
+
   ok("لا أخطاء برمجية أثناء المسارات", errs.length === 0, errs);
   await browser.close();
   console.log(`\nالنتيجة: ${passed} نجح، ${failed} فشل`);

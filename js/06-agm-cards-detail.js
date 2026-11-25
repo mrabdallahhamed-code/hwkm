@@ -12,6 +12,7 @@ function renderAGMSection(agmMeetings){
   if(adminBlock) adminBlock.style.display = isShareholder ? "none" : "block";
   if(shBlock) shBlock.style.display = isShareholder ? "block" : "none";
   if(isShareholder){
+    if(typeof showDisclosureRegisterRow === "function") showDisclosureRegisterRow();
     loadShareholderAGMView(agmMeetings);
     return;
   }

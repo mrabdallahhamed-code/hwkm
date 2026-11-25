@@ -855,6 +855,8 @@
        controls are exposed here. ══ -->
   <div id="agmShareholderBlock" style="display:none">
 
+    <div id="shDiscRegisterRow" style="margin-bottom:16px;display:none"><button class="btn btn-ghost" onclick="openDisclosureRegister()">سجل إفصاحات أعضاء مجلس الإدارة</button></div>
+
     <div class="sec-title"><span class="ico-i ico-handshake"></span>الجمعية الحالية</div>
     <div id="shCurrentAGM" class="meet-cards" style="margin-bottom:22px">
       <div class="sh-empty"><div class="sh-empty-icon">⏳</div><div class="sh-empty-text">جارِ التحميل...</div></div>
@@ -1749,6 +1751,10 @@
             <div style="font-size:12px;font-weight:700;margin:10px 0 2px">تفاصيل المساهمات الاجتماعية للشركة (م87/13)</div><div id="field-social_contributions"></div>
             <div style="font-size:12px;font-weight:700;margin:10px 0 2px">تواريخ الجمعيات العامة المنعقدة خلال السنة وأسماء أعضاء المجلس الحاضرين (م87/14)</div><div id="field-general_assemblies"></div>
             <div style="font-size:12px;font-weight:700;margin:10px 0 2px">وصف أنواع النشاط الرئيسة للشركة وشركاتها التابعة وتأثير كل نشاط (م87/15)</div><div id="field-main_activities"></div>
+            <div style="font-size:12px;font-weight:700;margin:10px 0 2px">وسائل تقييم أداء المجلس ولجانه وأعضائه والجهة الخارجية المقيِّمة (م87/7)</div><div id="field-evaluation_means"></div>
+            <div style="font-size:12px;font-weight:700;margin:10px 0 2px">خلاصة أصول الشركة وخصومها ونتائج أعمالها في السنوات الخمس الأخيرة (م87/18)</div><div id="field-financial_summary"></div>
+            <div style="font-size:12px;font-weight:700;margin:10px 0 2px">التحليل الجغرافي لإجمالي الإيرادات (م87/19)</div><div id="field-geo_revenue"></div>
+            <div style="font-size:12px;font-weight:700;margin:10px 0 2px">الاختلاف عن معايير المحاسبة المعتمدة (م87/21)</div><div id="field-accounting_standards"></div>
             <div style="font-size:12px;font-weight:700;margin:10px 0 2px">خطط الشركة وقراراتها المهمة والتوقعات المستقبلية (م87/16)</div><div id="field-plans_outlook"></div>
           </div>
 
@@ -4059,7 +4065,7 @@
 <script src="js/55-board-minutes.js?v=1"></script>
 <script src="js/56-meeting-decisions-voting.js?v=4"></script>
 <script src="js/57-meeting-cards.js?v=1"></script>
-<script src="js/06-agm-cards-detail.js?v=4"></script>
+<script src="js/06-agm-cards-detail.js?v=5"></script>
 <script src="js/75-announcement-types-registry.js?v=1"></script>
 <script src="js/76-announcements-page.js?v=1"></script>
 <script src="js/07-announcement-engine.js?v=3"></script>
@@ -4087,7 +4093,7 @@
 <script src="js/87-update-check.js?v=3"></script>
 <script src="js/14-votes-assessment.js?v=27"></script>
 <script src="js/50-assessment-evidence-independence.js?v=2"></script>
-<script src="js/51-agm-quorum-majority.js?v=3"></script>
+<script src="js/51-agm-quorum-majority.js?v=4"></script>
 <script src="js/52-circulation-resolutions.js?v=3"></script>
 <script src="js/20-gap-report.js?v=1"></script>
 <script src="js/21-cr-verification.js?v=2"></script>
@@ -4113,7 +4119,7 @@
 <script src="js/41-activity-log.js?v=1"></script>
 <script src="js/42-users-permissions.js?v=2"></script>
 <script src="js/43-company-switching.js?v=3"></script>
-<script src="js/44-annual-report.js?v=2"></script>
+<script src="js/44-annual-report.js?v=3"></script>
 <script src="js/15-audit-back-office.js?v=20"></script>
 <script src="js/58-consultation-requests.js?v=1"></script>
 <script src="js/59-provider-marketplace.js?v=1"></script>

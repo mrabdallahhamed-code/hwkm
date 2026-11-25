@@ -76,3 +76,29 @@ function agmEvaluateTopic(agmType, topicText, yesShares, represented){
   const passed = represented > 0 && (req.strict ? yesPct > req.pct : yesPct + 1e-9 >= req.pct);
   return { passed, yesPct, req };
 }
+
+
+/* ══ سجل إفصاحات أعضاء المجلس لمساهمي الشركة (لائحة حوكمة الشركات م89/2) — دالة قاعدة البيانات get_disclosure_register ══ */
+function showDisclosureRegisterRow(){
+  const row = document.getElementById("shDiscRegisterRow");
+  if(row) row.style.display = /مساهمة/.test(currentCompanyType || "") ? "block" : "none";
+}
+async function openDisclosureRegister(){
+  let m = document.getElementById("m-disc-register");
+  if(!m){
+    m = document.createElement("div"); m.className = "modal-bg"; m.id = "m-disc-register";
+    m.innerHTML = '<div class="modal" style="max-width:720px"><div class="modal-title">سجل إفصاحات أعضاء مجلس الإدارة</div><div style="font-size:11.5px;color:var(--gray3);line-height:1.8;margin-bottom:10px">يتيح للمساهمين الاطلاع على إفصاحات الأعضاء دون مقابل (م89/2 من لائحة حوكمة الشركات).</div><div id="discRegBody"></div><div class="modal-foot"><button class="btn btn-ghost" onclick="document.getElementById(\'m-disc-register\').classList.remove(\'open\')">إغلاق</button></div></div>';
+    document.body.appendChild(m);
+  }
+  const body = document.getElementById("discRegBody");
+  body.innerHTML = '<div style="text-align:center;color:var(--gray3);padding:12px">جارِ التحميل...</div>';
+  m.classList.add("open");
+  const { data, error } = await sb.rpc("get_disclosure_register", { p_company: currentCompanyId });
+  if(error){ body.innerHTML = '<div style="color:var(--red);font-size:12px">تعذّر تحميل السجل. ' + orgEsc(error.message || "") + '</div>'; return; }
+  const rows = Array.isArray(data) ? data : [];
+  body.innerHTML = rows.length ? rows.map(r => {
+    const om = Array.isArray(r.other_memberships) ? r.other_memberships : [];
+    return '<div style="border:1px solid var(--gray1);border-radius:10px;padding:10px 12px;margin-bottom:8px"><b>' + orgEsc(r.full_name || "") + '</b> <span style="font-size:11.5px;color:var(--gray3)">— ' + orgEsc(r.membership_capacity || "") + (r.term_start ? ' — بداية الدورة ' + orgEsc(r.term_start) : '') + '</span>' +
+      (om.length ? '<div style="font-size:12px;margin-top:6px">عضويات أخرى: ' + om.map(o => orgEsc((o.company_name || "") + (o.legal_form ? " (" + o.legal_form + ")" : "") + (o.capacity ? " — " + o.capacity : ""))).join("؛ ") + '</div>' : '<div style="font-size:12px;color:var(--gray3);margin-top:6px">لا عضويات أخرى مصرَّح بها.</div>') + '</div>';
+  }).join("") : '<div style="text-align:center;color:var(--gray3);padding:12px">لا توجد إفصاحات مسجَّلة بعد.</div>';
+}
