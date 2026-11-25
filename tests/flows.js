@@ -960,6 +960,22 @@ function ok(name, cond, extra) {
   ok("اللائحة: المدرجة الرئيسية مخالفة، وغير المدرجة توصية، والموازية حسب المادة، وحقل السوق موجود",
      f26.main && f26.adv && f26.par && f26.unlisted && f26.listed && f26.marketField, f26);
 
+  /* ───────── مسار 27) اللجان: إلزامية/اختيارية والأعضاء من خارج المجلس ───────── */
+  console.log("مسار 27) أنواع اللجان ومتطلباتها");
+  const f27 = await pg.evaluate(async () => {
+    const res = {};
+    res.kinds = committeeKind("لجنة المراجعة") === "audit" && committeeKind("لجنة المكافآت والترشيحات") === "remnom" && committeeKind("لجنة الترشيحات") === "nom" && committeeKind("لجنة المخاطر") === "risk" && committeeKind("لجنة الحوكمة") === "gov" && committeeKind("لجنة الاستدامة") === "other";
+    res.auditMain = committeeBinding("audit", "main").m === true && committeeBinding("audit", "parallel").m === true && committeeBinding("audit", "advisory").m === false;
+    res.remMain = committeeBinding("rem", "main").m === true && committeeBinding("rem", "parallel").m === false;
+    res.riskOpt = committeeBinding("risk", "main").m === false && committeeBinding("gov", "main").m === false;
+    res.ui = !!document.getElementById("mcm-ext-wrap") && !!document.getElementById("mcm-req-hint");
+    committeeExtDraft = []; addCommitteeExt(); res.addExt = committeeExtDraft.length === 1;
+    res.art87 = !!document.getElementById("field-plans_outlook") && REPORT_MANUAL_FIELDS.some(f => f.key === "audit_committee_recs");
+    return res;
+  });
+  ok("اللجان: المراجعة إلزامية للمدرجة والموازية، والمكافآت للرئيسية فقط، والمخاطر والحوكمة اختياريتان، وواجهة الأعضاء الخارجيين وبنود م87 موجودة",
+     f27.kinds && f27.auditMain && f27.remMain && f27.riskOpt && f27.ui && f27.addExt && f27.art87, f27);
+
   ok("لا أخطاء برمجية أثناء المسارات", errs.length === 0, errs);
   await browser.close();
   console.log(`\nالنتيجة: ${passed} نجح، ${failed} فشل`);

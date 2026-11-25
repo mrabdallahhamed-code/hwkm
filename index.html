@@ -1659,7 +1659,7 @@
 <!-- ══ REPORTS ════════════════════════════ -->
 <div id="p-reports" class="page content">
   <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
-    <span id="reportsPageTitle"><span class="ico-i ico-trending"></span>تقرير مجلس الإدارة السنوي (حسب المادة 90 من لائحة حوكمة الشركات)</span>
+    <span id="reportsPageTitle"><span class="ico-i ico-trending"></span>تقرير مجلس الإدارة السنوي (حسب المادة 87 من لائحة حوكمة الشركات)</span>
     <div style="display:flex;gap:8px;align-items:center">
       <select class="fs" id="reportYearSelect" onchange="loadReportsPage()" style="font-size:12px;padding:6px 10px;width:auto"></select>
       <button class="btn-xs gold" onclick="generateAnnualReportPDF()"><span class="ico-i ico-document"></span>تحميل PDF</button>
@@ -1741,6 +1741,16 @@
 
           <div class="rep-sec-title">رابع عشر: توزيعات الأرباح</div>
           <div id="field-dividends"></div>
+
+          <div id="sec-art87">
+            <div class="rep-sec-title">بنود إضافية يوجبها تقرير مجلس الإدارة (م87)</div>
+            <div style="font-size:12px;font-weight:700;margin:6px 0 2px">إجراءات إحاطة الأعضاء، وبخاصة غير التنفيذيين، بمقترحات المساهمين وملحوظاتهم (م87/5)</div><div id="field-shareholder_proposals"></div>
+            <div style="font-size:12px;font-weight:700;margin:10px 0 2px">توصيات لجنة المراجعة المتعارضة مع قرارات المجلس أو التي رفض الأخذ بها، وتوصيتها بتعيين مراجع داخلي (م87/11 و12)</div><div id="field-audit_committee_recs"></div>
+            <div style="font-size:12px;font-weight:700;margin:10px 0 2px">تفاصيل المساهمات الاجتماعية للشركة (م87/13)</div><div id="field-social_contributions"></div>
+            <div style="font-size:12px;font-weight:700;margin:10px 0 2px">تواريخ الجمعيات العامة المنعقدة خلال السنة وأسماء أعضاء المجلس الحاضرين (م87/14)</div><div id="field-general_assemblies"></div>
+            <div style="font-size:12px;font-weight:700;margin:10px 0 2px">وصف أنواع النشاط الرئيسة للشركة وشركاتها التابعة وتأثير كل نشاط (م87/15)</div><div id="field-main_activities"></div>
+            <div style="font-size:12px;font-weight:700;margin:10px 0 2px">خطط الشركة وقراراتها المهمة والتوقعات المستقبلية (م87/16)</div><div id="field-plans_outlook"></div>
+          </div>
 
           <div id="sec-declarations">
             <div class="rep-sec-title" id="rep-title-15">خامس عشر: إقرارات مجلس الإدارة</div>
@@ -2773,18 +2783,26 @@
   <div class="modal">
     <div class="modal-title" id="mcm-title-h"><span class="ico-i ico-clipboard"></span>إضافة لجنة</div>
     <input type="hidden" id="mcm-id" value="" />
-    <div class="fg"><label>اسم اللجنة</label><input class="fi" id="mcm-name" placeholder="مثال: لجنة الاستدامة" /></div>
+    <div class="fg"><label>اسم اللجنة</label><input class="fi" id="mcm-name" oninput="committeeReqHint()" placeholder="مثال: لجنة الاستدامة" /></div>
     <div class="fg"><label>رئيس اللجنة</label><input class="fi" id="mcm-chairman" placeholder="مثال: خالد العتيبي" /></div>
     <div class="row2">
       <div class="fg"><label>تاريخ تعيين اللجنة</label><input type="date" class="fi" id="mcm-appointment-date"/></div>
       <div class="fg"><label>فئة اللجنة</label><select class="fs" id="mcm-category"><option>لجنة رئيسية</option><option>لجنة متخصصة</option></select></div>
     </div>
+    <div id="mcm-req-hint" style="font-size:11.5px;line-height:1.8;color:var(--gray3);background:#F6F8FB;border-radius:10px;padding:8px 10px;margin-bottom:10px"></div>
     <div class="fg"><label>الاختصاص</label><textarea class="fta" id="mcm-scope" rows="2" placeholder="وصف مختصر لاختصاص اللجنة"></textarea></div>
     <div class="fg">
       <label>أعضاء اللجنة (لحساب النصاب بدقة)</label>
       <div id="mcm-members-list" style="max-height:160px;overflow-y:auto;border:1px solid var(--gray1);border-radius:8px;padding:8px">
         <div style="font-size:11px;color:var(--gray3)">جارِ التحميل...</div>
       </div>
+    </div>
+    <div class="fg" id="mcm-ext-wrap" style="display:none">
+      <label>أعضاء من خارج المجلس (اللجان تجيز ذلك)</label>
+      <div id="mcm-ext-list"></div>
+      <button type="button" class="btn-xs primary" onclick="addCommitteeExt()">+ إضافة عضو من خارج المجلس</button>
+      <label style="margin-top:10px">العضو المختص بالشؤون المالية والمحاسبية (للجنة المراجعة)</label>
+      <input class="fi" id="mcm-fin-expert" placeholder="اسم العضو المختص (من أعضاء اللجنة)"/>
     </div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-committee')">إلغاء</button><button class="btn btn-gold" onclick="saveCommittee()"><span class="ico-i ico-check"></span>حفظ اللجنة</button></div>
   </div>
@@ -4039,14 +4057,14 @@
 <script src="js/74-meetings-core.js?v=1"></script>
 <script src="js/05-annual-meeting-plan.js?v=4"></script>
 <script src="js/55-board-minutes.js?v=1"></script>
-<script src="js/56-meeting-decisions-voting.js?v=3"></script>
+<script src="js/56-meeting-decisions-voting.js?v=4"></script>
 <script src="js/57-meeting-cards.js?v=1"></script>
 <script src="js/06-agm-cards-detail.js?v=4"></script>
 <script src="js/75-announcement-types-registry.js?v=1"></script>
 <script src="js/76-announcements-page.js?v=1"></script>
 <script src="js/07-announcement-engine.js?v=3"></script>
 <script src="js/53-board-election.js?v=2"></script>
-<script src="js/54-committee-meetings.js?v=3"></script>
+<script src="js/54-committee-meetings.js?v=4"></script>
 <script src="js/08-meeting-requests.js?v=19"></script>
 <script src="js/60-policies.js?v=1"></script>
 <script src="js/61-policy-board-review.js?v=1"></script>
@@ -4069,18 +4087,18 @@
 <script src="js/87-update-check.js?v=3"></script>
 <script src="js/14-votes-assessment.js?v=27"></script>
 <script src="js/50-assessment-evidence-independence.js?v=2"></script>
-<script src="js/51-agm-quorum-majority.js?v=2"></script>
+<script src="js/51-agm-quorum-majority.js?v=3"></script>
 <script src="js/52-circulation-resolutions.js?v=3"></script>
 <script src="js/20-gap-report.js?v=1"></script>
 <script src="js/21-cr-verification.js?v=2"></script>
-<script src="js/22-dashboard-alerts.js?v=8"></script>
+<script src="js/22-dashboard-alerts.js?v=9"></script>
 <script src="js/23-support-export.js?v=1"></script>
 <script src="js/24-corrective-actions.js?v=1"></script>
 <script src="js/25-audit-services.js?v=2"></script>
 <script src="js/26-risk-services.js?v=2"></script>
 <script src="js/27-risk-back-office.js?v=2"></script>
 <script src="js/28-permissions-matrix.js?v=1"></script>
-<script src="js/29-committees.js?v=1"></script>
+<script src="js/29-committees.js?v=2"></script>
 <script src="js/30-org-structure.js?v=1"></script>
 <script src="js/31-job-descriptions.js?v=1"></script>
 <script src="js/32-indicators-report.js?v=1"></script>
@@ -4095,7 +4113,7 @@
 <script src="js/41-activity-log.js?v=1"></script>
 <script src="js/42-users-permissions.js?v=2"></script>
 <script src="js/43-company-switching.js?v=3"></script>
-<script src="js/44-annual-report.js?v=1"></script>
+<script src="js/44-annual-report.js?v=2"></script>
 <script src="js/15-audit-back-office.js?v=20"></script>
 <script src="js/58-consultation-requests.js?v=1"></script>
 <script src="js/59-provider-marketplace.js?v=1"></script>

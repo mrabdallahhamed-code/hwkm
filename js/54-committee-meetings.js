@@ -121,6 +121,11 @@ async function saveMeeting(){
   if(!title){ alert("الرجاء إدخال عنوان الاجتماع"); return; }
   /* م91/1: تُوجَّه الدعوة لحضور الجمعية قبل 21 يومًا على الأقل من موعدها.
      م91/3: يستثنى من ذلك اجتماع يعقده ملاك كل أسهم التصويت في الشركة المساهمة غير المدرجة. */
+  if(meeting_type === "الجمعية العامة" && meeting_date && currentCompanyType === "ذات مسؤولية محدودة"){
+    /* م165/3-4: الدعوة لجميع الشركاء قبل 21 يومًا على الأقل، ويجوز لأصحاب كل الحصص الانعقاد دون مراعاة مدد الدعوة */
+    const dl = Math.ceil((new Date(meeting_date + "T00:00:00") - new Date(new Date().toDateString())) / 86400000);
+    if(dl < 21 && !await uiConfirm(`موعد الجمعية بعد ${Math.max(dl,0)} يومًا فقط، والنظام (م165) يوجب دعوة الشركاء قبل 21 يومًا على الأقل. يُستثنى أن يحضر الشركاء الذين يمثلون جميع حصص رأس المال. هل سيحضر جميع الشركاء؟`)) return;
+  }
   if(meeting_type === "الجمعية العامة" && meeting_date && /مساهمة/.test(currentCompanyType || "")){
     const days = Math.ceil((new Date(meeting_date + "T00:00:00") - new Date(new Date().toDateString())) / 86400000);
     if(days < 21){

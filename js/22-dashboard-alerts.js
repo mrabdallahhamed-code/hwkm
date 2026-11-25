@@ -444,33 +444,65 @@ async function computeGovernanceAlerts(){
           const newJoin = active.filter(m => recent(m.join_date));
           if((term && recent(term.term_start)) || newJoin.length) alerts.push(govRegAlert("main", { art: "م17/د", cta: "راجع الأعضاء", page: "members", text: "بدأت دورة المجلس أو تغيّر أعضاؤه حديثًا؛ يلزم إشعار هيئة السوق المالية بأسماء الأعضاء وصفاتهم خلال خمسة أيام عمل." }));
         }
-        // اللجان
+        // اللجان: أعضاؤها من المجلس (committee_members) ومن خارجه (committees.external_members)
         const links = clR.data || [], mts = mtR.data || [];
         const byId = {}; (bmR.data || []).forEach(m => byId[m.id] = m);
-        const membersOf = c => links.filter(l => l.committee_id === c.id).map(l => byId[l.member_id]).filter(Boolean);
+        const extOf = c => Array.isArray(c.external_members) ? c.external_members : [];
+        const effOf = c => links.filter(l => l.committee_id === c.id).map(l => byId[l.member_id]).filter(Boolean).map(m => ({ name: m.name, indep: isIndep(m), exec: isExec(m), ext: false }))
+          .concat(extOf(c).filter(e => e.kind === "ext").map(e => ({ name: e.name, indep: !!e.independent, exec: false, ext: true, conflict: !!e.conflict2y })));
+        const finOf = c => ((extOf(c).find(e => e.kind === "meta")) || {}).financial_expert || "";
         const meetsOf = c => mts.filter(m => String(m.committee_id) === String(c.id) && m.meeting_date && new Date(m.meeting_date).getFullYear() === yr && new Date(m.meeting_date) <= today).length;
-        const audit = (cmR.data || []).find(c => /مراجعة/.test(c.committee_name || ""));
-        const rem = (cmR.data || []).find(c => /مكافآت|مكافات/.test(c.committee_name || ""));
-        const nom = (cmR.data || []).find(c => /ترشيح/.test(c.committee_name || ""));
-        const ncAlert = (c, art, label) => alerts.push(govRegAlert(level, { art, cta: "اللجان", page: "committees", text: `${label}` }));
+        const kindOf = c => typeof committeeKind === "function" ? committeeKind(c.committee_name) : "other";
+        const all = cmR.data || [];
+        const audit = all.find(c => kindOf(c) === "audit");
+        const remnom = all.find(c => kindOf(c) === "remnom");
+        const rem = all.find(c => kindOf(c) === "rem") || remnom, nom = all.find(c => kindOf(c) === "nom") || remnom;
         if(!audit && currentCompanyType === "مساهمة مدرجة") alerts.push(govRegAlert(level, { art: "م51", cta: "اللجان", page: "committees", text: "لا توجد لجنة مراجعة مسجَّلة؛ تشكَّل لجنة المراجعة بقرار من مجلس الإدارة.", parallelMandatory: true }));
-        if(audit){
-          const mem = membersOf(audit);
-          if(mem.some(isExec)) alerts.push(govRegAlert(level, { art: "م51/أ", cta: "اللجان", page: "committees", parallelMandatory: true, text: "لجنة المراجعة تضم عضوًا تنفيذيًا من المجلس؛ لا يجوز ذلك." }));
-          if(mem.length && !mem.some(isIndep)) alerts.push(govRegAlert(level, { art: "م51/ب", cta: "اللجان", page: "committees", text: "لا يوجد في لجنة المراجعة عضو مستقل؛ يلزم عضو مستقل على الأقل." }));
-          if(mem.length && mem.filter(isIndep).length * 2 < mem.length) alerts.push(govRegAlert(level, { art: "م51/د", cta: "اللجان", page: "committees", text: "المستقلون أقل من نصف أعضاء لجنة المراجعة المسجَّلين." }));
-          const ch = audit.chairman_name ? active.find(m => nm(m.name) === nm(audit.chairman_name)) : null;
-          if(ch && !isIndep(ch)) alerts.push(govRegAlert(level, { art: "م51/ج", cta: "اللجان", page: "committees", text: "رئيس لجنة المراجعة ليس مستقلًا؛ يجب أن يكون رئيسها مستقلًا." }));
-          if(mem.length > 5) alerts.push(govRegAlert(level, { art: "م51/أ", cta: "اللجان", page: "committees", parallelMandatory: true, text: `أعضاء لجنة المراجعة ${mem.length}؛ الحد الأقصى خمسة.` }));
-          if(now.getMonth() >= 6 && meetsOf(audit) + 0 < Math.min(4, Math.floor((now.getMonth() + 1) / 3))) alerts.push(govRegAlert(level, { art: "م54/أ", cta: "جدول اجتماعًا", page: "meetings", text: `اجتماعات لجنة المراجعة هذه السنة ${meetsOf(audit)}؛ يلزم أربعة اجتماعات على الأقل في السنة المالية.` }));
+        if(level === "main"){
+          if(!rem) alerts.push(govRegAlert(level, { art: "م57", cta: "اللجان", page: "committees", text: "لا توجد لجنة مكافآت (أو لجنة مكافآت وترشيحات مدمجة) مسجَّلة." }));
+          if(!nom) alerts.push(govRegAlert(level, { art: "م61", cta: "اللجان", page: "committees", text: "لا توجد لجنة ترشيحات (أو لجنة مكافآت وترشيحات مدمجة) مسجَّلة." }));
         }
+        // م47/4: عدد أعضاء كل لجنة من ثلاثة إلى خمسة (وللمراجعة م51/أ)
+        all.forEach(c => {
+          const mem = effOf(c);
+          if(mem.length && (mem.length < 3 || mem.length > 5)) alerts.push(govRegAlert(level, { art: kindOf(c) === "audit" ? "م51/أ" : "م47/4", cta: "اللجان", page: "committees", parallelMandatory: kindOf(c) === "audit", text: `أعضاء «${c.committee_name}» المسجَّلون ${mem.length}؛ يجب أن يكونوا من ثلاثة إلى خمسة (أضف الأعضاء من خارج المجلس إن وُجدوا).` }));
+        });
+        if(audit){
+          const mem = effOf(audit);
+          if(mem.some(m => m.exec)) alerts.push(govRegAlert(level, { art: "م51/أ", cta: "اللجان", page: "committees", parallelMandatory: true, text: "لجنة المراجعة تضم عضوًا تنفيذيًا من المجلس؛ لا يجوز ذلك." }));
+          if(mem.length && !finOf(audit)) alerts.push(govRegAlert(level, { art: "م51/أ", cta: "اللجان", page: "committees", parallelMandatory: true, text: "لم يُحدَّد في لجنة المراجعة العضو المختص بالشؤون المالية والمحاسبية." }));
+          if(mem.length && !mem.some(m => m.indep)) alerts.push(govRegAlert(level, { art: "م51/ب", cta: "اللجان", page: "committees", text: "لا يوجد في لجنة المراجعة عضو مستقل؛ يلزم عضو مستقل على الأقل." }));
+          if(mem.length && mem.filter(m => m.indep).length * 2 < mem.length) alerts.push(govRegAlert(level, { art: "م51/د", cta: "اللجان", page: "committees", text: "المستقلون أقل من نصف أعضاء لجنة المراجعة." }));
+          const chName = nm(audit.chairman_name), ch = chName ? mem.find(m => nm(m.name) === chName) : null;
+          if(ch && !ch.indep) alerts.push(govRegAlert(level, { art: "م51/ج", cta: "اللجان", page: "committees", text: "رئيس لجنة المراجعة ليس مستقلًا؛ يجب أن يكون رئيسها مستقلًا." }));
+          mem.filter(m => m.conflict).forEach(m => alerts.push(govRegAlert(level, { art: "م51/و", cta: "اللجان", page: "committees", text: `«${m.name}» عمل خلال السنتين الماضيتين في الإدارة التنفيذية أو المالية للشركة أو لدى مراجعها؛ لا يجوز أن يكون عضوًا في لجنة المراجعة.` })));
+          if(now.getMonth() >= 6 && meetsOf(audit) < Math.min(4, Math.floor((now.getMonth() + 1) / 3))) alerts.push(govRegAlert(level, { art: "م54/أ", cta: "جدول اجتماعًا", page: "meetings", text: `اجتماعات لجنة المراجعة هذه السنة ${meetsOf(audit)}؛ يلزم أربعة اجتماعات على الأقل في السنة المالية.` }));
+        }
+        const seenC = new Set();
         [[rem, "م57/أ", "لجنة المكافآت", "م60"], [nom, "م61/أ", "لجنة الترشيحات", "م64"]].forEach(([c, art, label, mArt]) => {
           if(!c) return;
-          const mem = membersOf(c);
-          if(mem.some(isExec)) alerts.push(govRegAlert(level, { art, cta: "اللجان", page: "committees", text: `${label} تضم عضوًا تنفيذيًا؛ يجب أن تكون من غير التنفيذيين.` }));
-          if(mem.length && !mem.some(isIndep)) alerts.push(govRegAlert(level, { art, cta: "اللجان", page: "committees", text: `لا يوجد في ${label} عضو مستقل؛ يلزم عضو مستقل على الأقل.` }));
-          if(now.getMonth() >= 8 && meetsOf(c) === 0) alerts.push(govRegAlert(level, { art: mArt, cta: "جدول اجتماعًا", page: "meetings", text: `لم تجتمع ${label} هذه السنة؛ يلزم اجتماع مرة في السنة على الأقل.` }));
+          const mem = effOf(c), combined = kindOf(c) === "remnom", lab = combined ? "لجنة المكافآت والترشيحات" : label;
+          if(mem.some(m => m.exec)) alerts.push(govRegAlert(level, { art, cta: "اللجان", page: "committees", text: `${lab} تضم عضوًا تنفيذيًا؛ يجب أن تكون من غير التنفيذيين.` }));
+          if(mem.length && !mem.some(m => m.indep)) alerts.push(govRegAlert(level, { art, cta: "اللجان", page: "committees", text: `لا يوجد في ${lab} عضو مستقل؛ يلزم عضو مستقل على الأقل.` }));
+          if(seenC.has(c.id)) return; seenC.add(c.id);
+          if(combined){ if(now.getMonth() >= 6 && meetsOf(c) < 2 && now.getMonth() >= 6) alerts.push(govRegAlert(level, { art: "م47/7", cta: "جدول اجتماعًا", page: "meetings", text: `لجنة المكافآت والترشيحات اجتمعت ${meetsOf(c)} هذه السنة؛ يلزم اجتماع كل ستة أشهر على الأقل.` })); }
+          else if(now.getMonth() >= 8 && meetsOf(c) === 0) alerts.push(govRegAlert(level, { art: mArt, cta: "جدول اجتماعًا", page: "meetings", text: `لم تجتمع ${lab} هذه السنة؛ يلزم اجتماع مرة في السنة على الأقل.` }));
         });
+        // م17/ج وم51/ز: عضوية أكثر من خمس شركات مساهمة مدرجة في آن واحد (من نماذج الإفصاح)
+        try {
+          const { data: dfs } = await sb.from("board_disclosure_forms").select("full_name,member_email,created_at,other_memberships,survey_answers").eq("company_id", currentCompanyId).order("created_at", { ascending: false });
+          const latest = {}; (dfs || []).forEach(d => { const k = d.member_email || d.full_name; if(k && !latest[k]) latest[k] = d; });
+          const listedRe = x => /مدرجة/.test(x.legal_form || "") && !/غير\s*مدرجة/.test(x.legal_form || "");
+          Object.values(latest).forEach(d => {
+            const rows = Array.isArray(d.other_memberships) ? d.other_memberships : [];
+            const sa = d.survey_answers || {};
+            if(["j","k","l"].some(k => sa[k] && sa[k].answer === true)) alerts.push(govRegAlert(level, { art: "م44", cta: "راجع الأعضاء", page: "members", text: `«${d.full_name || "عضو"}» أفصح عن عمل منافس للشركة؛ يلزم إبلاغ المجلس وإثباته في المحضر، وعدم مشاركته في التصويت، وترخيص الجمعية العامة العادية (أو المجلس بتفويض منها).` }));
+            const lst = rows.filter(listedRe).length + (currentCompanyType === "مساهمة مدرجة" ? 1 : 0);
+            if(lst > 5) alerts.push(govRegAlert("main", { art: "م17/ج", cta: "راجع الأعضاء", page: "members", text: `«${d.full_name || "عضو"}» يشغل عضوية ${lst} شركات مساهمة مدرجة؛ الحد الأقصى خمس شركات في آن واحد.` }));
+            const aud = rows.filter(x => listedRe(x) && /مراجعة/.test(x.committee || "")).length + (audit && currentCompanyType === "مساهمة مدرجة" ? 1 : 0);
+            if(aud > 5) alerts.push(govRegAlert("main", { art: "م51/ز", cta: "راجع الأعضاء", page: "members", text: `«${d.full_name || "عضو"}» عضو في لجان مراجعة ${aud} شركات مدرجة؛ الحد الأقصى خمس.` }));
+          });
+        } catch(e){ console.error("listed boards check failed", e); }
       }
     } catch(e){ console.error("CMA regulation alert check failed", e); }
       return alerts;

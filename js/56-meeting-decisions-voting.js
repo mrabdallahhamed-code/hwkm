@@ -61,12 +61,13 @@ async function loadMeetingDecisionsGrid(meetingId){
 
   grid.innerHTML = decisions.map(d => {
     const votes = (allVotes||[]).filter(v=>v.decision_id===d.id);
+    const conflicted = votes.filter(v=>v.vote==="تعارض مصالح").length;
     const yes = votes.filter(v=>v.vote==="موافق").length, no = votes.filter(v=>v.vote==="معارض").length, abs = votes.filter(v=>v.vote==="ممتنع").length;
     const myVote = votes.find(v=>v.voter_email===myEmail);
     let outcome = "";
     if(!committeeId && votes.length){
       /* م80/3: القرار بأغلبية أصوات الحاضرين، وعند التساوي يرجح الجانب الذي منه رئيس الاجتماع. */
-      const cast = votes.length, chair = eligibleVoters.find(v => v.position_level === "رئيس" && !/مستقيل|منتهي/.test(v.status || ""));
+      const cast = votes.length - conflicted, chair = eligibleVoters.find(v => v.position_level === "رئيس" && !/مستقيل|منتهي/.test(v.status || ""));
       const chairVote = chair ? votes.find(v => v.voter_email === chair.claimed_by_email) : null;
       if(yes * 2 > cast) outcome = '<span style="color:var(--green)">✅ حصل على أغلبية أصوات الحاضرين</span>';
       else if(yes * 2 === cast){
@@ -77,7 +78,7 @@ async function loadMeetingDecisionsGrid(meetingId){
     }
     return `<div class="decision-card">
       <div class="decision-text">${orgEsc(d.decision_text)}</div>
-      <div class="decision-tally"><span class="yes"><span class="ico-i ico-check"></span>${yes}</span><span class="no"><span class="ico-i ico-xcircle"></span>${no}</span><span class="abs">➖ ${abs}</span></div>
+      <div class="decision-tally"><span class="yes"><span class="ico-i ico-check"></span>${yes}</span><span class="no"><span class="ico-i ico-xcircle"></span>${no}</span><span class="abs">➖ ${abs}</span>${conflicted ? `<span style="color:var(--orange)" title="لا يُحتسب صوته (م42 من لائحة الحوكمة)">⚠️ ${conflicted} تعارض مصالح</span>` : ""}</div>
       ${outcome ? `<div style="font-size:11.5px;font-weight:800;margin:4px 0">${outcome}</div>` : ""}
       ${myVote
         ? `<div class="decision-myvote">صوّتك: ${myVote.vote} <button onclick="changeMeetingDecisionVote(${d.id})" style="background:none;border:none;color:var(--primary);text-decoration:underline;cursor:pointer;font-size:10px;margin-right:4px">تغيير</button></div>`
@@ -86,6 +87,7 @@ async function loadMeetingDecisionsGrid(meetingId){
               <button style="background:#E8F8EF;color:var(--green)" onclick="castMeetingDecisionVote(${d.id},'موافق')">موافق</button>
               <button style="background:#FDE8E8;color:var(--red)" onclick="castMeetingDecisionVote(${d.id},'معارض')">معارض</button>
               <button style="background:#FEF3E2;color:var(--orange)" onclick="castMeetingDecisionVote(${d.id},'ممتنع')">ممتنع</button>
+              <button style="background:#EEF2F7;color:var(--dark)" title="أفصح عن تعارض مصالحي؛ لا أشارك في المداولة ولا يُحتسب صوتي (م42/أ/2)" onclick="castMeetingDecisionVote(${d.id},'تعارض مصالح')">تعارض مصالح</button>
             </div>`
           : '<div class="decision-ineligible">التصويت مقصور على الأعضاء المؤهّلين. لو تعتقد إنك مؤهّل، تأكد إن حسابك مربوط بسجل "أعضاء مجلس الإدارة".</div>'
       }
@@ -137,6 +139,11 @@ async function castMeetingDecisionVote(decisionId, vote){
   if(vote === "ممتنع"){
     justification = await uiPrompt("أنت تختار «ممتنع» — الرجاء كتابة سبب الامتناع (يُسجَّل بسجلك، ويُحتسب «امتناع بدون مبرر» إذا تُرك فارغًا):");
     if(justification === null) return; // cancelled
+    justification = justification.trim() || null;
+  }
+  if(vote === "تعارض مصالح"){
+    justification = await uiPrompt("اكتب بإيجاز طبيعة تعارض المصالح. بإفصاحك لا تشارك في المداولة ولا يُحتسب صوتك في هذا القرار، ويُثبت ذلك في المحضر (م42 من لائحة حوكمة الشركات):");
+    if(justification === null) return;
     justification = justification.trim() || null;
   }
   const { data: userData } = await sb.auth.getUser();

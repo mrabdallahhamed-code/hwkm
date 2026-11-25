@@ -11,6 +11,12 @@ const REPORT_MANUAL_FIELDS = [
   { key:'share_registry_requests', placeholder:'عدد طلبات الشركة لسجل المساهمين وتواريخها وأسبابها...' },
   { key:'related_party_contracts', placeholder:'أي أعمال أو عقود تكون الشركة طرفًا فيها ولأحد أصحاب القرار أو كبار التنفيذيين مصلحة فيها...', default:'لا توجد أعمال أو عقود من هذا القبيل.' },
   { key:'dividends', placeholder:'نسب الأرباح الموزعة على المساهمين خلال العام، والمقترح توزيعه في نهاية السنة المالية...' },
+  { key:'shareholder_proposals', placeholder:'الإجراءات التي اتخذها المجلس لإحاطة أعضائه، وبخاصة غير التنفيذيين، علمًا بمقترحات المساهمين وملحوظاتهم حيال الشركة وأدائها...' },
+  { key:'audit_committee_recs', placeholder:'توصيات لجنة المراجعة التي تعارضت مع قرارات المجلس أو رفض الأخذ بها (تعيين المراجع وعزله وأتعابه وتقييمه، أو المراجع الداخلي) ومسوغاتها وأسباب عدم الأخذ بها، وتوصيتها بتعيين مراجع داخلي إن وُجدت...', default:'لا توجد توصيات من لجنة المراجعة تعارضت مع قرارات المجلس.' },
+  { key:'social_contributions', placeholder:'تفاصيل المساهمات الاجتماعية للشركة، إن وُجدت...', default:'لا توجد مساهمات اجتماعية.' },
+  { key:'general_assemblies', placeholder:'تواريخ الجمعيات العامة المنعقدة خلال السنة المالية الأخيرة وأسماء أعضاء المجلس الحاضرين لكل جمعية...' },
+  { key:'main_activities', placeholder:'وصف أنواع النشاط الرئيسة للشركة وشركاتها التابعة، وتأثير كل نشاط في حجم الأعمال وإسهامه في النتائج...' },
+  { key:'plans_outlook', placeholder:'خطط الشركة وقراراتها المهمة (التغيرات الهيكلية، التوسعة، إيقاف العمليات) والتوقعات المستقبلية لأعمالها...' },
   { key:'declarations', placeholder:'إقرارات مجلس الإدارة...', default:'يقر مجلس الإدارة بأن سجلات الحسابات أُعدت بالشكل الصحيح، وأن نظام الرقابة الداخلية أُعد على أسس سليمة ونُفذ بفاعلية، وأنه لا يوجد أي شك يُذكر في قدرة الشركة على مواصلة نشاطها.' }
 ];
 
@@ -75,7 +81,7 @@ function applyReportTypeAdaptation(){
   }
   else if(isLLCSingleManager){ pageTitle = "📈 تقرير المدير السنوي"; subTitle = "تقرير المدير السنوي"; boardWord = "المدير"; }
   else if(isLLC){ pageTitle = "📈 تقرير مجلس المديرين السنوي"; subTitle = "تقرير مجلس المديرين السنوي"; boardWord = "مجلس المديرين"; }
-  else { pageTitle = "📈 تقرير مجلس الإدارة السنوي (حسب المادة 90 من لائحة حوكمة الشركات)"; subTitle = "تقرير مجلس الإدارة السنوي"; boardWord = "مجلس الإدارة"; }
+  else { pageTitle = "📈 تقرير مجلس الإدارة السنوي (حسب المادة 87 من لائحة حوكمة الشركات)"; subTitle = "تقرير مجلس الإدارة السنوي"; boardWord = "مجلس الإدارة"; }
 
   setText("reportsPageTitle", pageTitle);
   setText("reportSubTitle", subTitle);
@@ -83,7 +89,7 @@ function applyReportTypeAdaptation(){
   // CMA-specific sections — never applicable outside joint-stock companies (unchanged from
   // before). Board/council-specific sections — hidden wherever there is genuinely no such body
   // (sole prop, single-manager LLC, single-owner LLC), not just for sole proprietorships alone.
-  ["sec-compliance", "sec-share-registry"].forEach(id => {
+  ["sec-compliance", "sec-share-registry", "sec-art87"].forEach(id => {
     const el = document.getElementById(id);
     if(el) el.style.display = (isSoleProp || isLLC) ? "none" : "";
   });
