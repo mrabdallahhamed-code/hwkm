@@ -762,9 +762,11 @@ function ok(name, cond, extra) {
     __updShown = false; __updHiddenUntil = 0; __updShowBanner();
     res.banner = !!document.getElementById("updateBanner");
     __updLater(); res.hiddenAfterLater = !document.getElementById("updateBanner");
+    const wait = __updHiddenUntil - Date.now(); res.remind15 = wait > 14 * 60000 && wait <= 15 * 60000;
+    __updShowBanner(); res.notShownWhileHidden = !document.getElementById("updateBanner");
     return res;
   });
-  ok("تنبيه التحديث: يكتشف تغيّر الإصدار ويتجاهل المكتبات الخارجية وترتيب الملفات، ويُخفى عند «لاحقًا»", f18.ignoresExternalAndOrder && f18.detectsBump && f18.banner && f18.hiddenAfterLater, f18);
+  ok("تنبيه التحديث: يكتشف تغيّر الإصدار ويتجاهل المكتبات الخارجية وترتيب الملفات، ويُخفى عند «لاحقًا» ويعود بعد 15 دقيقة لا قبلها", f18.ignoresExternalAndOrder && f18.detectsBump && f18.banner && f18.hiddenAfterLater && f18.remind15 && f18.notShownWhileHidden, f18);
 
   /* ───────── مسار 19) لوحة التحكم المختصرة ───────── */
   console.log("مسار 19) لوحة التحكم المختصرة");

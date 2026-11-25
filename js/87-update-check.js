@@ -9,7 +9,8 @@ function __updSig(doc){
   });
   return out.sort().join("|");
 }
-let __updLoadedSig = null, __updLastCheck = 0, __updHiddenUntil = 0, __updShown = false;
+const UPD_REMIND_MS = 15 * 60 * 1000, UPD_SHOW_MS = 15 * 1000;   // يظهر 15 ثانية فقط ثم يختفي، ويعود بعد 15 دقيقة إن بقي التحديث غير مطبَّق
+let __updLoadedSig = null, __updLastCheck = 0, __updHiddenUntil = 0, __updShown = false, __updTimer = null;
 function __updShowBanner(){
   if(__updShown || Date.now() < __updHiddenUntil) return;
   __updShown = true;
@@ -21,9 +22,13 @@ function __updShowBanner(){
     + '<button type="button" style="background:linear-gradient(135deg,#B8972A,#8A6A1E);color:#fff;border:none;border-radius:9px;padding:7px 16px;font-weight:800;font-family:inherit;cursor:pointer" onclick="location.reload()">حدّث الآن</button>'
     + '<button type="button" aria-label="لاحقًا" style="background:none;border:none;color:rgba(255,255,255,.7);font-size:13px;cursor:pointer;font-family:inherit" onclick="__updLater()">لاحقًا</button>';
   document.body.appendChild(b);
+  clearTimeout(__updTimer); __updTimer = setTimeout(__updLater, UPD_SHOW_MS);   // يختفي وحده
+  b.addEventListener('mouseenter', () => clearTimeout(__updTimer));            // لا يختفي والمؤشر عليه
+  b.addEventListener('mouseleave', () => { clearTimeout(__updTimer); __updTimer = setTimeout(__updLater, 4000); });
 }
 function __updLater(){
-  __updHiddenUntil = Date.now() + 30 * 60 * 1000;  // نعيد التذكير بعد نصف ساعة
+  clearTimeout(__updTimer);
+  __updHiddenUntil = Date.now() + UPD_REMIND_MS;  // نعيد التذكير بعد 15 دقيقة (إن كان التحديث ما زال غير مطبَّق)
   __updShown = false;
   const b = document.getElementById("updateBanner"); if(b) b.remove();
 }
