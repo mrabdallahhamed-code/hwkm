@@ -1516,3 +1516,17 @@ td.empty-cell:before{content:"🗂️";display:block;font-size:30px;opacity:.55;
 .hub-tx small{font-size:12.5px;color:var(--gray3);line-height:1.6}
 .hub-empty{padding:30px;text-align:center;color:var(--gray3)}
 #sidebar .nav-group-header.collapsed .ico-chevron{transform:rotate(90deg)}
+
+/* بطاقات صفحات الأقسام: أكبر وأرقى */
+.hub-grid{grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;max-width:1200px}
+.hub-card{position:relative;gap:18px;padding:26px 24px;min-height:128px;border:1px solid #E7E2D3;border-top:none;border-radius:18px;background:linear-gradient(180deg,#fff 0%,#FCFAF4 100%);box-shadow:0 2px 10px rgba(13,46,82,.06);overflow:hidden}
+.hub-card::before{content:"";position:absolute;top:0;right:0;left:0;height:4px;background:linear-gradient(90deg,var(--gold2),var(--gold3))}
+.hub-card:hover{transform:translateY(-4px);box-shadow:0 14px 32px rgba(13,46,82,.16);border-color:var(--gold2)}
+.hub-card::after{content:"‹";position:absolute;left:20px;top:50%;transform:translateY(-50%);font-size:26px;color:var(--gold2);opacity:.55;transition:all .15s}
+.hub-card:hover::after{opacity:1;left:16px}
+.hub-ic{width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,rgba(180,146,63,.22),rgba(180,146,63,.08))}
+.hub-ic .ico{width:30px;height:30px}
+.hub-tx{gap:6px;padding-left:28px}
+.hub-tx b{font-size:19px;font-weight:800}
+.hub-tx small{font-size:14px;line-height:1.7}
+@media(max-width:700px){.hub-grid{grid-template-columns:1fr;gap:14px}.hub-card{min-height:104px;padding:20px 18px}}
