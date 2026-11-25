@@ -15,6 +15,24 @@ async function loadQuorumSettings(){
   const src = document.getElementById("quorumSettingsSrc");
   src.innerHTML = custom ? "المصدر الحالي: <b style=\"color:#b0701c\">النظام الأساس للشركة (قيم معدّلة)</b>" : "المصدر الحالي: <b style=\"color:var(--green)\">نظام الشركات (الافتراضي)</b>";
   row.style.display = "block";
+  callRightBox(data);
+}
+/* م90: من يحق له طلب دعوة الجمعية — مراجع الحسابات أو لجنة المراجعة، أو مساهمون يملكون 10% فأكثر من أسهم التصويت */
+async function callRightBox(){
+  const box = document.getElementById("agmCallRight"); if(!box) return;
+  try {
+    const [{ data: co }, { data: sh }] = await Promise.all([
+      sb.from("companies").select("total_shares").eq("id", currentCompanyId).single(),
+      sb.from("shareholders").select("name,shares_count").eq("company_id", currentCompanyId)
+    ]);
+    const total = Number(co && co.total_shares) || 0;
+    const big = (sh || []).filter(x => total && (Number(x.shares_count) || 0) / total >= 0.10);
+    let h = '<b>حق طلب دعوة الجمعية (م90):</b> يجب على مجلس الإدارة دعوة الجمعية متى طلب ذلك مراجع الحسابات أو لجنة المراجعة، أو مساهمون يملكون 10% فأكثر من أسهم التصويت.<br>';
+    if(!total) h += '<span style="color:var(--gray3)">أدخل إجمالي أسهم الشركة ليحسب النظام المساهمين الذين يبلغون 10%.</span>';
+    else if(big.length) h += 'مساهمون منفردون يبلغون 10% فأكثر: ' + big.map(x => orgEsc(x.name || "") + " (" + (((Number(x.shares_count) || 0) / total) * 100).toFixed(1) + "%)").join("، ") + ". ويجوز أن يجتمع عدة مساهمين لبلوغ النسبة.";
+    else h += 'لا يبلغ أي مساهم منفردًا 10%؛ ويجوز أن يجتمع عدة مساهمين لبلوغ النسبة.';
+    box.innerHTML = h;
+  } catch(e){ box.style.display = "none"; }
 }
 async function saveQuorumSettings(){
   const upd = {}; const bad = [];
@@ -48,9 +66,9 @@ async function restoreQuorumDefaults(){
 const AGM_SPECIAL_RE = /زيادة\s*(رأس\s*)?المال|تخفيض\s*(رأس\s*)?المال|تخفيض\s*رأس|إطالة\s*مدة|تمديد\s*مدة|حل\s*الشركة|اندماج|الاندماج|دمج\s*الشركة|تقسيم\s*الشركة/;
 function agmRequiredMajority(agmType, topicText){
   const ext = /غير\s*عادية/.test(agmType || "");
-  if(!ext) return { pct: 50, strict: true, label: "أغلبية حقوق التصويت الممثلة في الاجتماع (أكثر من 50%)" };
-  if(AGM_SPECIAL_RE.test(topicText || "")) return { pct: 75, strict: false, label: "ثلاثة أرباع حقوق التصويت الممثلة (75%) — قرار من القرارات الخاصة" };
-  return { pct: 66.67, strict: false, label: "ثلثا حقوق التصويت الممثلة (66.67%)" };
+  if(!ext) return { pct: 50, strict: true, label: "أغلبية حقوق التصويت الممثلة في الاجتماع (أكثر من 50%) — السند: م92/3" };
+  if(AGM_SPECIAL_RE.test(topicText || "")) return { pct: 75, strict: false, label: "ثلاثة أرباع حقوق التصويت الممثلة (75%) — قرار من القرارات الخاصة — السند: م93/4" };
+  return { pct: 66.67, strict: false, label: "ثلثا حقوق التصويت الممثلة (66.67%) — السند: م93/4" };
 }
 function agmEvaluateTopic(agmType, topicText, yesShares, represented){
   const req = agmRequiredMajority(agmType, topicText);

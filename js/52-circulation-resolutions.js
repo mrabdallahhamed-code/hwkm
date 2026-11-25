@@ -209,13 +209,13 @@ function circOpenNew(){
 function circSuggest(initial){
   const isAgm = circTab === "الجمعية العامة";
   const reqEl = document.getElementById("cn-req"), note = document.getElementById("cn-req-note");
-  if(!isAgm){ if(initial || !reqEl.value) reqEl.value = 50; reqEl.min = 50; note.textContent = "نظام الشركات: موافقة أغلبية أصوات الأعضاء (أكثر من 50%)، ما لم ينص النظام الأساس على نسبة أو عدد أكبر — يمكنك رفعها ولا يمكن خفضها."; return; }
+  if(!isAgm){ if(initial || !reqEl.value) reqEl.value = 50; reqEl.min = 50; note.textContent = "السند: نظام الشركات م82 — موافقة أغلبية أصوات الأعضاء (أكثر من 50%)، ما لم ينص النظام الأساس على نسبة أو عدد أكبر — يمكنك رفعها ولا يمكن خفضها."; return; }
   const kind = document.getElementById("cn-kind").value, text = document.getElementById("cn-text").value;
   const sp = document.getElementById("cn-special");
   if(AGM_SPECIAL_RE.test(text) && kind === "غير عادية") sp.checked = true;
   const law = kind === "غير عادية" ? 75 : 50;
   reqEl.value = law; reqEl.min = law;
-  note.textContent = kind === "غير عادية" ? "نظام الشركات (م101): 75% على الأقل من حقوق التصويت لكل أسهم الشركة." : "نظام الشركات (م101): أغلبية حقوق التصويت (أكثر من 50%) لكل أسهم الشركة. يمكن رفعها إن نصّ النظام الأساس.";
+  note.textContent = kind === "غير عادية" ? "السند: نظام الشركات م101/1 — 75% على الأقل من حقوق التصويت لكل أسهم الشركة." : "السند: نظام الشركات م101/1 — أغلبية حقوق التصويت (أكثر من 50%) لكل أسهم الشركة. يمكن رفعها إن نصّ النظام الأساس.";
 }
 /* رفع ملفات قرار التمرير (يُرجع [{name,url}] أو null عند الفشل) */
 async function circUploadFiles(inputEl){
