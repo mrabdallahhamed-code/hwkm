@@ -59,11 +59,24 @@ function hwkmTourKind(){
   return "unlisted";
 }
 function hwkmTourVisible(page){
+  /* الأقسام الجانبية قد تكون مطوية (وهذا لا يعني أن الصفحة غير متاحة)، فنتجاهل الطي ونعتمد فقط على الإخفاء الفعلي بحسب نوع الكيان */
   const el = document.querySelector(`.nav-item[onclick^="go('${page}'"]`);
-  return !!el && el.offsetParent !== null;
+  if(!el) return false;
+  for(let n = el; n && n.id !== "companyNavGroups" && n !== document.body; n = n.parentElement){
+    if(n.style && n.style.display === "none") return false;
+  }
+  return true;
+}
+function hwkmTourOpenGroup(target){
+  try{
+    const ch = target.closest(".nav-group-children");
+    if(ch && ch.classList.contains("collapsed")) toggleNavGroup(ch.id.replace(/^grp-/, "").replace(/-children$/, ""));
+  }catch(e){}
 }
 function hwkmTourSteps(){
-  if(typeof currentUserProfile !== "undefined" && currentUserProfile && currentUserProfile.is_platform_admin === true) return HWKM_TOUR_OWNER_STEPS;
+  /* مالك المنصة: جولة لوحته إن كان في عرض المنصة، وجولة الشركة إن كان داخل شركة */
+  const pnav = document.querySelector(`.nav-item[onclick^="go('platformdashboard'"]`);
+  if(typeof currentUserProfile !== "undefined" && currentUserProfile && currentUserProfile.is_platform_admin === true && pnav && pnav.offsetParent !== null) return HWKM_TOUR_OWNER_STEPS;
   const kind = hwkmTourKind();
   const family = kind.indexOf("llc") === 0 ? "llc" : (kind === "sole" ? "sole" : (kind === "listed" ? "listed" : "joint"));
   const steps = [{ icon:"👋", title:"أهلًا بك في حوكم", text:`هذه خطوات إعداد منصتك بالترتيب الصحيح لـ«${HWKM_TOUR_KIND_LABEL[kind]}». نمر معك على ما تنفذه أولًا ثم ما بعده، ونشير لكل قسم في القائمة. تقدر تتخطاها وتعيدها متى شئت.`, page:null }];
@@ -123,6 +136,7 @@ function hwkmTourShow(i){
   const mobile = window.innerWidth <= 900;
   hwkmTourClearMark();
   const target = (s.page && !last && hwkmTourIdx > 0) ? document.querySelector(`.nav-item[onclick^="go('${s.page}'"]`) : null;
+  if(target) hwkmTourOpenGroup(target);
   if(target && mobile){
     const sb = document.getElementById("sidebar");
     if(sb && !sb.classList.contains("open")){ try{ toggleSidebar(); hwkmTourOpenedSidebar = true; }catch(e){} }
@@ -164,7 +178,7 @@ function hwkmTourShow(i){
       card.style.left = "50%"; card.style.top = "50%"; card.style.transform = "translate(-50%,-50%)";
     }
   };
-  if(target){ try{ target.scrollIntoView({ block: mobile ? "start" : "center" }); }catch(e){} setTimeout(place, 350); } else place();
+  if(target){ setTimeout(() => { try{ target.scrollIntoView({ block: mobile ? "start" : "center" }); }catch(e){} setTimeout(place, 250); }, 300); } else place();
   document.getElementById("hwkmTourNext").onclick = () => { if(last) hwkmTourClose(true); else hwkmTourShow(hwkmTourIdx + 1); };
   const pv = document.getElementById("hwkmTourPrev"); if(pv) pv.onclick = () => hwkmTourShow(hwkmTourIdx - 1);
   const op = document.getElementById("hwkmTourOpen"); if(op) op.onclick = () => { const pg = s.page; hwkmTourClose(false); try{ go(pg, null); }catch(e){} };
