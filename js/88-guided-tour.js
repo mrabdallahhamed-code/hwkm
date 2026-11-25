@@ -37,9 +37,9 @@ const HWKM_TOUR_PAGES = {
   dashboard:   { icon:"📊", text:"بعد الإعداد تصير هذه صفحتك اليومية: التنبيهات والمهام والمواعيد. ابدأ دائمًا بالتنبيهات الحمراء." }
 };
 const HWKM_TOUR_ORDER = {
-  listed:   ["shareholders","members","committees","governance","permissions","structure","meetings","agm","circulation","announcements","compliance","risks","audit","signing","archive","dashboard"],
-  unlisted: ["shareholders","members","committees","governance","permissions","structure","meetings","agm","circulation","compliance","risks","audit","signing","archive","dashboard"],
-  llc:      ["shareholders","members","governance","permissions","structure","meetings","agm","compliance","signing","archive","dashboard"],
+  listed:   ["shareholders","members","committees","structure","governance","permissions","meetings","agm","circulation","announcements","compliance","risks","audit","signing","archive","dashboard"],
+  unlisted: ["shareholders","members","committees","structure","governance","permissions","meetings","agm","circulation","compliance","risks","audit","signing","archive","dashboard"],
+  llc:      ["shareholders","members","structure","governance","permissions","meetings","agm","compliance","signing","archive","dashboard"],
   llc1m:    ["shareholders","governance","managerdecisions","agm","compliance","signing","archive","dashboard"],
   llc1o:    ["shareholders","governance","ownerdecisions","compliance","signing","archive","dashboard"],
   sole:     ["shareholders","governance","ownerdecisions","compliance","signing","archive","dashboard"]
