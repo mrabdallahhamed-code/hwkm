@@ -39,10 +39,10 @@ const HWKM_TOUR_PAGES = {
 const HWKM_TOUR_ORDER = {
   listed:   ["shareholders","members","committees","structure","governance","permissions","meetings","agm","circulation","announcements","compliance","risks","audit","signing","archive","dashboard"],
   unlisted: ["shareholders","members","committees","structure","governance","permissions","meetings","agm","circulation","compliance","risks","audit","signing","archive","dashboard"],
-  llc:      ["shareholders","members","structure","governance","permissions","meetings","agm","compliance","signing","archive","dashboard"],
-  llc1m:    ["shareholders","governance","managerdecisions","agm","compliance","signing","archive","dashboard"],
-  llc1o:    ["shareholders","governance","ownerdecisions","compliance","signing","archive","dashboard"],
-  sole:     ["shareholders","governance","ownerdecisions","compliance","signing","archive","dashboard"]
+  llc:      ["shareholders","members","structure","governance","permissions","meetings","agm","compliance","risks","audit","signing","archive","dashboard"],
+  llc1m:    ["shareholders","structure","governance","permissions","managerdecisions","agm","compliance","risks","audit","signing","archive","dashboard"],
+  llc1o:    ["shareholders","structure","governance","permissions","ownerdecisions","compliance","risks","audit","signing","archive","dashboard"],
+  sole:     ["shareholders","structure","governance","permissions","ownerdecisions","compliance","risks","audit","signing","archive","dashboard"]
 };
 const HWKM_TOUR_KIND_LABEL = { listed:"شركة مساهمة مدرجة", unlisted:"شركة مساهمة غير مدرجة", llc:"شركة ذات مسؤولية محدودة", llc1m:"شركة ذات مسؤولية محدودة بمدير واحد", llc1o:"شركة الشخص الواحد", sole:"مؤسسة فردية" };
 
