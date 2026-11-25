@@ -166,7 +166,7 @@ const TRANSLATIONS = {
   "إدارة المخاطر":"Risk Management","التدقيق الداخلي":"Internal Audit","الالتزام التنظيمي":"Regulatory Compliance",
   "الأرشيف والوثائق":"Archive & Documents","تقارير الحوكمة":"Governance Reports","التقرير المالي والتشغيلي":"Financial & Operational Report",
   "الاستشارات":"Consultations","طلب إدراج شركة":"Company Registration Request","الرئيسية":"Main","الحوكمة المؤسسية":"Corporate Governance",
-  "الاجتماعات والتصويت":"Meetings & Voting","الرقابة والمخاطر":"Control & Risk","الوثائق والتقارير":"Documents & Reports",
+  "الاجتماعات والتصويت":"Meetings & Voting","المجلس والاجتماعات":"Board & Meetings","الجمعية العامة والمساهمون":"General Assembly & Shareholders","الحوكمة":"Governance","الرقابة":"Oversight","التوقيع والأرشفة":"Signing & Archive","الاجتماعات":"Meetings","تعيين عضو":"Appoint a Member","التقرير المالي":"Financial Report","السياسات":"Policies","الصلاحيات":"Permissions","التقارير":"Reports","فعالية الحوكمة":"Governance Effectiveness","الأرشيف":"Archive","القرارات بالتمرير":"Circulation Decisions","الأقسام":"Sections","اختر الصفحة التي تريدها":"Choose the page you want","الرقابة والمخاطر":"Control & Risk","الوثائق والتقارير":"Documents & Reports",
   "الإدارة":"Administration","الشركة":"Company","مالك المنصة — نظرة عامة":"Platform Owner — Overview",
 
   // Common buttons/actions

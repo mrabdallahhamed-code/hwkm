@@ -144,3 +144,13 @@ function toggleDashFull(){
     if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", apply); else apply();
   }catch(e){}
 })();
+
+/* اختصار البحث السريع: Ctrl+K أو ⌘K */
+document.addEventListener("keydown", (e) => {
+  try{
+    if((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K")){
+      const i = document.getElementById("globalSearchInput");
+      if(i && i.offsetParent !== null){ e.preventDefault(); i.focus(); i.select(); }
+    }
+  }catch(err){}
+});

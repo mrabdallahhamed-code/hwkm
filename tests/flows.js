@@ -792,6 +792,40 @@ function ok(name, cond, extra) {
   ok("البطاقات الثلاث محذوفة، وكل مؤشر فيه سطر إجراء بأيقونة (الاجتماع القادم، شاهد أعلى المخاطر...)",
     f21.removed && /الاجتماع القادم: 3 ديسمبر/.test(f21.meet && f21.meet.txt) && f21.meet.ico && /شاهد أعلى المخاطر/.test(f21.risk && f21.risk.txt) && f21.dec && f21.cmp, f21);
 
+  /* ───────── مسار 22) الشريط الجانبي الجديد: أقسام وصفحات الأقسام ───────── */
+  console.log("مسار 22) الشريط الجانبي وصفحات الأقسام");
+  const f22 = await pg.evaluate(async () => {
+    const r = {}; const q = (s) => [...document.querySelectorAll(s)];
+    document.getElementById("appWrapper").style.display = "block";
+    r.groups = q("#companyNavGroups .nav-group-header").map(h => h.querySelector(".nav-group-label").textContent);
+    r.noSub = q("#companyNavGroups .nav-subgroup-header").length === 0;
+    // كل صفحة كانت في الشريط ما زالت فيه (لا شيء ضاع)
+    const pages = new Set(q("#companyNavGroups .nav-item").map(n => ((n.getAttribute("onclick") || "").match(/go\('([a-z]+)'/) || [])[1]));
+    const need = ["dashboard","mysub","governance","structure","procedures","permissions","perf","reports","govassess","meetings","members","appoint","indicators","decisiontracking","managerdecisions","agm","announcements","shareholders","ownerdecisions","committees","voting","circulation","signing","risks","audit","compliance","archive","consultants"];
+    r.missing = need.filter(p => !pages.has(p));
+    // ضغط اسم القسم يفتح صفحة بطاقاته ويوسّع القسم وحده
+    navGroupClick("governance"); await new Promise(x => setTimeout(x, 400));
+    const hub = document.getElementById("p-hub");
+    r.hubActive = hub.classList.contains("active") && !document.getElementById("p-dashboard").classList.contains("active");
+    r.cards = q("#hubGrid .hub-card").length;
+    r.title = document.getElementById("ptitle").textContent;
+    r.oneOpen = q("#companyNavGroups .nav-group-children:not(.collapsed)").filter(c => c.id !== "adminNavGroup-children").length === 1;
+    r.openIsGov = !document.getElementById("grp-governance-children").classList.contains("collapsed");
+    // الضغط على بطاقة يفتح الصفحة
+    q("#hubGrid .hub-card")[0].click(); await new Promise(x => setTimeout(x, 400));
+    r.opened = document.getElementById("p-governance").classList.contains("active");
+    // قسم الرئيسية يعرض لوحة التحكم واشتراكي
+    navGroupClick("home"); await new Promise(x => setTimeout(x, 300));
+    r.home = q("#hubGrid .hub-card b").map(b => b.textContent).join("|");
+    // الاستشارات مفردة
+    r.consult = !!document.querySelector("#companyNavGroups .nav-single .nav-item");
+    go("dashboard", null);
+    return r;
+  });
+  ok("الشريط: 6 أقسام + الاستشارات، بلا مجموعات فرعية، ولا صفحة ضائعة", f22.noSub && f22.missing.length === 0 && f22.consult && f22.groups.length >= 5, f22);
+  ok("ضغط اسم القسم يفتح صفحة بطاقاته ويوسّع القسم وحده، والبطاقة تفتح الصفحة", f22.hubActive && f22.cards >= 5 && f22.title === "الحوكمة" && f22.oneOpen && f22.openIsGov && f22.opened, f22);
+  ok("قسم الرئيسية يعرض لوحة التحكم واشتراكي", /لوحة التحكم/.test(f22.home) && /اشتراكي/.test(f22.home), f22);
+
   /* ───────── مسار 20) صفحة واحدة فقط ظاهرة في كل مرة (لا تتسرب لوحة الشركة إلى الصفحات الأخرى) ───────── */
   console.log("مسار 20) ظهور صفحة واحدة فقط");
   const f20 = await pg.evaluate(async () => {

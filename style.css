@@ -1488,3 +1488,31 @@ td.empty-cell:before{content:"🗂️";display:block;font-size:30px;opacity:.55;
 /* صف المؤشرات يتمدد على العرض كله مهما كان عدد البطاقات الظاهرة (مثل المؤسسة الفردية بلا مؤشر اجتماعات) */
 #p-dashboard.active .kpi-grid{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
 @media(max-width:900px){#p-dashboard.active .kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* ══ الشريط الجانبي الجديد: أقسام بلا مجموعات فرعية، خط أكبر، قسم واحد مفتوح ══ */
+#sidebar .nav-group{padding:6px 0 2px}
+#sidebar .nav-group-header{padding:11px 18px 9px;border-right:3px solid transparent;transition:background .15s}
+#sidebar .nav-group-header:hover{background:rgba(255,255,255,.06)}
+#sidebar .nav-group-header.has-active{border-right-color:var(--gold2)}
+#sidebar .nav-group-header .nav-group-label{font-size:14px;font-weight:800;color:var(--gold3)}
+#sidebar .nav-group-header .ico-chevron{width:14px;height:14px;padding:4px;margin:-4px;box-sizing:content-box;border-radius:6px}
+#sidebar .nav-group-header .ico-chevron:hover{background:rgba(255,255,255,.12)}
+#sidebar .nav-group-children{max-height:900px}
+#sidebar .nav-group-children .nav-item{padding:9px 18px 9px 18px;padding-right:30px}
+#sidebar .ni-text{font-size:14.5px}
+#sidebar .ni-icon.ico{width:19px;height:19px;min-width:19px}
+#sidebar .nav-single .nav-item{padding:11px 18px;margin:4px 10px 0;border-radius:10px;border-right:none;background:rgba(255,255,255,.06)}
+#sidebar .nav-single .nav-item .ni-text{font-weight:800;color:var(--gold3)}
+#sidebar .nav-single .nav-item.active{background:rgba(180,146,63,.2)}
+/* صفحة القسم: بطاقات ما تحته */
+.hub-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.hub-card{display:flex;align-items:center;gap:14px;text-align:right;font-family:inherit;background:#fff;border:1px solid var(--gray1);border-top:3px solid var(--gold);border-radius:14px;padding:18px;cursor:pointer;transition:transform .15s,box-shadow .15s}
+.hub-card:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(13,46,82,.12)}
+.hub-card.locked{opacity:.65}
+.hub-ic{flex:none;width:46px;height:46px;border-radius:12px;background:rgba(180,146,63,.14);display:flex;align-items:center;justify-content:center;color:var(--primary3)}
+.hub-ic .ico{width:24px;height:24px}
+.hub-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.hub-tx b{font-size:16px;color:var(--dark)}
+.hub-tx small{font-size:12.5px;color:var(--gray3);line-height:1.6}
+.hub-empty{padding:30px;text-align:center;color:var(--gray3)}
+#sidebar .nav-group-header.collapsed .ico-chevron{transform:rotate(90deg)}

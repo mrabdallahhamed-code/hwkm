@@ -495,7 +495,7 @@ async function applyCompanyTypeVisibility(){
   });
   const managerDecisionsNav = document.getElementById("navManagerDecisions");
   if(managerDecisionsNav) managerDecisionsNav.style.display = isLLCSingleManager ? "" : "none";
-  setText("boardMeetingsGroupLabel", isLLCSingleManager ? "قرارات الإدارة" : "اجتماعات المجلس");
+  setText("boardMeetingsGroupLabel", isLLCSingleManager ? "قرارات الإدارة" : "المجلس والاجتماعات");
   if(boardMeetingsHeader) boardMeetingsHeader.style.display = "flex"; // header itself always stays — just its one child changes
 
   // A single-owner LLC still legally holds "general assembly" powers — they just always
@@ -506,7 +506,7 @@ async function applyCompanyTypeVisibility(){
   const isOwnerOnly = isLLCSingleOwner || isSoleProp;   // one person owns it, so assembly-style decisions are simply theirs
   if(ownerDecisionsNav) ownerDecisionsNav.style.display = isOwnerOnly ? "" : "none";
   if(agmOldNav) agmOldNav.style.display = isOwnerOnly ? "none" : "";
-  setText("generalAssemblyGroupLabel", isOwnerOnly ? "قرارات المالك" : "الجمعية العامة");
+  setText("generalAssemblyGroupLabel", isOwnerOnly ? "قرارات المالك" : "الجمعية العامة والمساهمون");
   setText("agmNavLabel", isLLCSingleOwner ? "قرارات المالك" : "الجمعيات العامة");
   setText("agmPageTitle", isLLCSingleOwner ? "قرارات المالك" : "الجمعيات العامة");
 
@@ -514,6 +514,7 @@ async function applyCompanyTypeVisibility(){
   if(navAnnouncements) navAnnouncements.style.display = (currentCompanyType !== "مؤسسة فردية" && currentCompanyType !== "ذات مسؤولية محدودة") ? "flex" : "none";
   const shareholdersLabel = currentCompanyLLCSingleOwner ? "سجل الملكية" : (isLLCType ? "سجل الشركاء" : "سجل المساهمين");
   setText("shareholdersNavLabel", shareholdersLabel);
+  if(typeof refreshNavGroupsVisibility === "function") refreshNavGroupsVisibility();
   setText("shareholdersPageTitle", `📇 ${shareholdersLabel}`);
   const isPlatformAdmin = currentUserProfile && currentUserProfile.is_platform_admin === true;
   document.querySelectorAll('.nav-item').forEach(item => {

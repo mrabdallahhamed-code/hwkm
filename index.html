@@ -50,7 +50,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.1" onerror="document.write('<script src=&quot;https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2&quot;><\/script>')"></script>
-<link rel="stylesheet" href="style.css?v=69">
+<link rel="stylesheet" href="style.css?v=71">
 <script src="https://unpkg.com/pizzip@3.2.0/dist/pizzip.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
 <script src="https://unpkg.com/docxtemplater@3.69.0/build/docxtemplater.js" defer></script>
@@ -364,93 +364,78 @@
   </div>
 
   <div id="companyNavGroups">
-  <div class="nav-group">
-    <div class="nav-group-label">الرئيسية</div>
-    <div class="nav-item active" onclick="go('dashboard',this)">
-      <span class="ni-icon ico ico-dashboard"></span><span class="ni-text">لوحة التحكم</span>
+  <div class="nav-group" id="navg-home">
+    <div class="nav-group-header" id="grp-home" onclick="navGroupClick('home')">
+      <span class="nav-group-label">الرئيسية</span><span class="ico ico-chevron" onclick="event.stopPropagation();toggleNavGroup('home')"></span>
     </div>
-    <div class="nav-item" id="navMySub" onclick="go('mysub',this)"><span class="ni-icon ico ico-package"></span><span class="ni-text">اشتراكي</span></div>
+    <div class="nav-group-children" id="grp-home-children">
+      <div class="nav-item active" onclick="go('dashboard',this)"><span class="ni-icon ico ico-dashboard"></span><span class="ni-text">لوحة التحكم</span></div>
+      <div class="nav-item" id="navMySub" onclick="go('mysub',this)"><span class="ni-icon ico ico-package"></span><span class="ni-text">اشتراكي</span></div>
+    </div>
   </div>
-
-  <div class="nav-group">
-    <div class="nav-group-header" id="grp-governance" onclick="toggleNavGroup('governance')">
-      <span class="ico ico-chevron"></span><span class="nav-group-label">الحوكمة المؤسسية</span>
+  <div class="nav-group" id="navg-boardmeetings">
+    <div class="nav-group-header collapsed" id="grp-boardmeetings" onclick="navGroupClick('boardmeetings')">
+      <span class="nav-group-label" id="boardMeetingsGroupLabel">المجلس والاجتماعات</span><span class="ico ico-chevron" onclick="event.stopPropagation();toggleNavGroup('boardmeetings')"></span>
     </div>
-    <div class="nav-group-children" id="grp-governance-children">
-      <div class="nav-item" onclick="go('governance',this)"><span class="ni-icon ico ico-columns"></span><span class="ni-text">السياسات والحوكمة</span></div>
+    <div class="nav-group-children collapsed" id="grp-boardmeetings-children">
+      <div class="nav-item" id="navMeetingsOld" onclick="go('meetings',this)"><span class="ni-icon ico ico-calendar"></span><span class="ni-text">الاجتماعات</span></div>
+      <div class="nav-item" id="navMembersOld" onclick="go('members',this)"><span class="ni-icon ico ico-users"></span><span class="ni-text" id="membersNavLabel">أعضاء المجلس</span></div>
+      <div class="nav-item" onclick="go('committees',this)"><span class="ni-icon ico ico-clipboard"></span><span class="ni-text">اللجان</span></div>
+      <div class="nav-item" id="navAppointOld" onclick="go('appoint',this)"><span class="ni-icon ico ico-add"></span><span class="ni-text">تعيين عضو</span></div>
+      <div class="nav-item" id="navDecisionTrackingOld" onclick="go('decisiontracking',this)"><span class="ni-icon ico ico-check"></span><span class="ni-text">متابعة القرارات</span><span class="ni-badge red" id="decisionOverdueBadge" style="display:none"></span></div>
+      <div class="nav-item" data-page="circulation" onclick="go('circulation',this)"><span class="ni-icon ico ico-signature"></span><span class="ni-text">القرارات بالتمرير</span></div>
+      <div class="nav-item" id="navManagerDecisions" style="display:none" onclick="go('managerdecisions',this)"><span class="ni-icon ico ico-signature"></span><span class="ni-text">سجل قرارات المدير</span></div>
+      <div class="nav-item" id="navIndicatorsOld" onclick="go('indicators',this)"><span class="ni-icon ico ico-dashboard"></span><span class="ni-text">التقرير المالي</span></div>
+    </div>
+  </div>
+  <div class="nav-group" id="navg-generalassembly">
+    <div class="nav-group-header collapsed" id="grp-generalassembly" onclick="navGroupClick('generalassembly')">
+      <span class="nav-group-label" id="generalAssemblyGroupLabel">الجمعية العامة والمساهمون</span><span class="ico ico-chevron" onclick="event.stopPropagation();toggleNavGroup('generalassembly')"></span>
+    </div>
+    <div class="nav-group-children collapsed" id="grp-generalassembly-children">
+      <div class="nav-item" id="navAgmOld" onclick="go('agm',this)"><span class="ni-icon ico ico-handshake"></span><span class="ni-text" id="agmNavLabel">الجمعيات العامة</span></div>
+      <div class="nav-item" id="navOwnerDecisions" style="display:none" onclick="go('ownerdecisions',this)"><span class="ni-icon ico ico-signature"></span><span class="ni-text">قرارات المالك</span></div>
+      <div class="nav-item" id="navAnnouncements" style="display:none" onclick="go('announcements',this)"><span class="ni-icon ico ico-megaphone"></span><span class="ni-text">الإعلانات (تداول)</span></div>
+      <div class="nav-item" onclick="go('shareholders',this)"><span class="ni-icon ico ico-idcard"></span><span class="ni-text" id="shareholdersNavLabel">سجل المساهمين</span></div>
+      <div class="nav-item" onclick="go('voting',this)"><span class="ni-icon ico ico-ballot"></span><span class="ni-text">التصويت الإلكتروني</span><div class="pulse"></div></div>
+    </div>
+  </div>
+  <div class="nav-group" id="navg-governance">
+    <div class="nav-group-header collapsed" id="grp-governance" onclick="navGroupClick('governance')">
+      <span class="nav-group-label">الحوكمة</span><span class="ico ico-chevron" onclick="event.stopPropagation();toggleNavGroup('governance')"></span>
+    </div>
+    <div class="nav-group-children collapsed" id="grp-governance-children">
+      <div class="nav-item" onclick="go('governance',this)"><span class="ni-icon ico ico-columns"></span><span class="ni-text">السياسات</span></div>
       <div class="nav-item" onclick="go('structure',this)"><span class="ni-icon ico ico-tree"></span><span class="ni-text">الهيكل التنظيمي</span><span class="ni-badge red" id="structureNavBadge" style="display:none"></span></div>
       <div class="nav-item" onclick="go('procedures',this)"><span class="ni-icon ico ico-key"></span><span class="ni-text">الإجراءات</span></div>
-      <div class="nav-item" onclick="go('permissions',this)"><span class="ni-icon ico ico-key"></span><span class="ni-text">مصفوفة الصلاحيات</span><span class="ni-badge red" id="permissionsNavBadge" style="display:none"></span></div>
+      <div class="nav-item" onclick="go('permissions',this)"><span class="ni-icon ico ico-key"></span><span class="ni-text">الصلاحيات</span><span class="ni-badge red" id="permissionsNavBadge" style="display:none"></span></div>
       <div class="nav-item" onclick="go('perf',this)"><span class="ni-icon ico ico-ruler"></span><span class="ni-text">تقييم الأداء</span></div>
-      <div class="nav-item" onclick="go('reports',this)"><span class="ni-icon ico ico-trending"></span><span class="ni-text">تقارير الحوكمة</span></div>
-      <div class="nav-item" onclick="go('govassess',this)"><span class="ni-icon ico ico-compass"></span><span class="ni-text">تقييم فعالية الحوكمة</span></div>
+      <div class="nav-item" onclick="go('reports',this)"><span class="ni-icon ico ico-trending"></span><span class="ni-text">التقارير</span></div>
+      <div class="nav-item" onclick="go('govassess',this)"><span class="ni-icon ico ico-compass"></span><span class="ni-text">فعالية الحوكمة</span></div>
     </div>
   </div>
-
-  <div class="nav-group">
-    <div class="nav-group-header" id="grp-meetingsvoting" onclick="toggleNavGroup('meetingsvoting')">
-      <span class="ico ico-chevron"></span><span class="nav-group-label">الاجتماعات والتصويت</span>
+  <div class="nav-group" id="navg-riskcontrol">
+    <div class="nav-group-header collapsed" id="grp-riskcontrol" onclick="navGroupClick('riskcontrol')">
+      <span class="nav-group-label">الرقابة</span><span class="ico ico-chevron" onclick="event.stopPropagation();toggleNavGroup('riskcontrol')"></span>
     </div>
-    <div class="nav-group-children" id="grp-meetingsvoting-children">
-
-      <div class="nav-subgroup-header" id="grp-boardmeetings" onclick="event.stopPropagation();toggleNavGroup('boardmeetings')">
-        <span class="ico ico-chevron"></span><span class="ni-icon ico ico-calendar"></span><span class="ni-text" id="boardMeetingsGroupLabel">اجتماعات المجلس</span>
-      </div>
-      <div class="nav-subgroup-children" id="grp-boardmeetings-children">
-        <div class="nav-item" id="navMeetingsOld" onclick="go('meetings',this)"><span class="ni-icon ico ico-calendar"></span><span class="ni-text">جدول الاجتماعات</span></div>
-        <div class="nav-item" id="navMembersOld" onclick="go('members',this)"><span class="ni-icon ico ico-users"></span><span class="ni-text" id="membersNavLabel">أعضاء المجلس</span></div>
-        <div class="nav-item" id="navAppointOld" onclick="go('appoint',this)"><span class="ni-icon ico ico-add"></span><span class="ni-text">طلب تعيين عضو</span></div>
-        <div class="nav-item" id="navIndicatorsOld" onclick="go('indicators',this)"><span class="ni-icon ico ico-dashboard"></span><span class="ni-text">التقرير المالي والتشغيلي</span></div>
-        <div class="nav-item" id="navDecisionTrackingOld" onclick="go('decisiontracking',this)"><span class="ni-icon ico ico-check"></span><span class="ni-text">متابعة القرارات</span><span class="ni-badge red" id="decisionOverdueBadge" style="display:none"></span></div>
-        <div class="nav-item" id="navManagerDecisions" style="display:none" onclick="go('managerdecisions',this)"><span class="ni-icon ico ico-signature"></span><span class="ni-text">سجل قرارات المدير</span></div>
-      </div>
-
-      <div class="nav-subgroup-header" id="grp-generalassembly" onclick="event.stopPropagation();toggleNavGroup('generalassembly')">
-        <span class="ico ico-chevron"></span><span class="ni-icon ico ico-handshake"></span><span class="ni-text" id="generalAssemblyGroupLabel">الجمعية العامة</span>
-      </div>
-      <div class="nav-subgroup-children" id="grp-generalassembly-children">
-        <div class="nav-item" id="navAgmOld" onclick="go('agm',this)"><span class="ni-icon ico ico-handshake"></span><span class="ni-text" id="agmNavLabel">الجمعيات العامة</span></div>
-        <div class="nav-item" id="navAnnouncements" style="display:none" onclick="go('announcements',this)"><span class="ni-icon ico ico-megaphone"></span><span class="ni-text">الإعلانات (تداول)</span></div>
-        <div class="nav-item" onclick="go('shareholders',this)"><span class="ni-icon ico ico-idcard"></span><span class="ni-text" id="shareholdersNavLabel">سجل المساهمين</span></div>
-        <div class="nav-item" id="navOwnerDecisions" style="display:none" onclick="go('ownerdecisions',this)"><span class="ni-icon ico ico-signature"></span><span class="ni-text">قرارات المالك</span></div>
-      </div>
-
-      <div class="nav-item" onclick="go('committees',this)"><span class="ni-icon ico ico-clipboard"></span><span class="ni-text">اللجان</span></div>
-      <div class="nav-item" onclick="go('voting',this)"><span class="ni-icon ico ico-ballot"></span><span class="ni-text">التصويت الإلكتروني</span><div class="pulse"></div></div>
-      <div class="nav-item" data-page="circulation" onclick="go('circulation',this)"><span class="ni-icon ico ico-signature"></span><span class="ni-text">قرارات التمرير</span></div>
-      <div class="nav-item" onclick="go('signing',this)"><span class="ni-icon ico ico-signature"></span><span class="ni-text">التوقيع الإلكتروني</span></div>
-    </div>
-  </div>
-
-  <div class="nav-group">
-    <div class="nav-group-header" id="grp-riskcontrol" onclick="toggleNavGroup('riskcontrol')">
-      <span class="ico ico-chevron"></span><span class="nav-group-label">الرقابة والمخاطر</span>
-    </div>
-    <div class="nav-group-children" id="grp-riskcontrol-children">
+    <div class="nav-group-children collapsed" id="grp-riskcontrol-children">
       <div class="nav-item" onclick="go('risks',this)"><span class="ni-icon ico ico-warning"></span><span class="ni-text">إدارة المخاطر</span></div>
       <div class="nav-item" onclick="go('audit',this)"><span class="ni-icon ico ico-search"></span><span class="ni-text">التدقيق الداخلي</span></div>
       <div class="nav-item" onclick="go('compliance',this)"><span class="ni-icon ico ico-check"></span><span class="ni-text">الالتزام التنظيمي</span></div>
     </div>
   </div>
-
-  <div class="nav-group">
-    <div class="nav-group-header" id="grp-archiving" onclick="toggleNavGroup('archiving')">
-      <span class="ico ico-chevron"></span><span class="nav-group-label">الأرشفة</span>
+  <div class="nav-group" id="navg-archiving">
+    <div class="nav-group-header collapsed" id="grp-archiving" onclick="navGroupClick('archiving')">
+      <span class="nav-group-label">التوقيع والأرشفة</span><span class="ico ico-chevron" onclick="event.stopPropagation();toggleNavGroup('archiving')"></span>
     </div>
-    <div class="nav-group-children" id="grp-archiving-children">
-      <div class="nav-item" onclick="go('archive',this)"><span class="ni-icon ico ico-archive"></span><span class="ni-text">الأرشيف والوثائق</span><span class="ni-badge blue">24</span></div>
+    <div class="nav-group-children collapsed" id="grp-archiving-children">
+      <div class="nav-item" onclick="go('signing',this)"><span class="ni-icon ico ico-signature"></span><span class="ni-text">التوقيع الإلكتروني</span></div>
+      <div class="nav-item" onclick="go('archive',this)"><span class="ni-icon ico ico-archive"></span><span class="ni-text">الأرشيف</span><span class="ni-badge blue">24</span></div>
     </div>
   </div>
-
-  <div class="nav-group">
-    <div class="nav-group-header" id="grp-consulting" onclick="toggleNavGroup('consulting')">
-      <span class="ico ico-chevron"></span><span class="nav-group-label">الاستشارات</span>
-    </div>
-    <div class="nav-group-children" id="grp-consulting-children">
+  <div class="nav-group nav-single">
       <div class="nav-item" onclick="go('consultants',this)"><span class="ni-icon ico ico-briefcase"></span><span class="ni-text">الاستشارات</span></div>
-    </div>
   </div>
-
   <div class="nav-group" id="adminNavGroup" style="display:none">
     <div class="nav-group-label">الإدارة</div>
     <div class="nav-item" onclick="go('users',this)"><span class="ni-icon ico ico-shield"></span><span class="ni-text">إدارة الصلاحيات</span></div>
@@ -1987,6 +1972,8 @@
 </div>
 
 <!-- ══ RESTRICTED ACCESS PLACEHOLDER ══════ -->
+<div id="p-hub" class="page content"><div id="hubGrid" class="hub-grid"></div></div>
+
 <div id="p-restricted" class="page content">
   <div style="display:flex;align-items:center;justify-content:center;min-height:60vh">
     <div class="card" style="max-width:400px;text-align:center;padding:10px" id="restrictedCard">
@@ -4033,16 +4020,16 @@
 
 </div><!-- /appWrapper -->
 
-<script>try{if(localStorage.getItem("hawkim_lang")==="en")document.write('<script src="i18n-en.js?v=dir1"><\/script>')}catch(e){}</script>
+<script>try{if(localStorage.getItem("hawkim_lang")==="en")document.write('<script src="i18n-en.js?v=dir2"><\/script>')}catch(e){}</script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=hwkmTsReady" async defer></script>
 <script src="js/01-supabase-config-const.js?v=20"></script>
 <script src="js/77-i18n-english-layer.js?v=1"></script>
 <script src="js/78-client-hygiene-upload.js?v=1"></script>
 <script src="js/79-auth-login-profile.js?v=4"></script>
-<script src="js/80-roles-permissions.js?v=1"></script>
+<script src="js/80-roles-permissions.js?v=2"></script>
 <script src="js/81-view-only-enforcement.js?v=1"></script>
 <script src="js/02-team-invites.js?v=60"></script>
-<script src="js/03-archive-company-subscription.js?v=105"></script>
+<script src="js/03-archive-company-subscription.js?v=107"></script>
 <script src="js/04-auth-mfa-session.js?v=75"></script>
 <script src="js/73-board-members.js?v=1"></script>
 <script src="js/74-meetings-core.js?v=1"></script>
@@ -4111,11 +4098,11 @@
 <script src="js/16-performance-evaluations.js?v=35"></script>
 <script src="js/45-decisions.js?v=2"></script>
 <script src="js/46-governance-links.js?v=1"></script>
-<script src="js/17-criteria-banks-admin.js?v=51"></script>
+<script src="js/17-criteria-banks-admin.js?v=52"></script>
 <script src="js/47-procedures.js?v=1"></script>
 <script src="js/48-policy-comments.js?v=1"></script>
-<script src="js/49-ui-dialogs.js?v=4"></script>
-<script src="js/49a-ux-polish.js?v=3"></script>
+<script src="js/49-ui-dialogs.js?v=9"></script>
+<script src="js/49a-ux-polish.js?v=4"></script>
 <script src="js/18-board-member-review.js?v=4"></script>
 <script src="js/66-agm-attendance.js?v=1"></script>
 <script src="js/67-pdf-canvas-builder.js?v=1"></script>

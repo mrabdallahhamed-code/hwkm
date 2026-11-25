@@ -129,7 +129,9 @@ async function go(id, el){
   document.getElementById('ptitle').textContent=t[0];
   document.getElementById('psub').textContent=t[1];
   closeSidebar();
+  try{ refreshNavGroupsVisibility(); syncNavOpen(); }catch(e){}
   if(blocked) return;
+  if(id==='hub') renderNavHub();
   if(id==='dashboard') loadDashboard();
   if(id==='companyrequest') loadCompanyRequestPage();
   if(id==='companyrequests') loadCompanyRequestsReview();
@@ -207,8 +209,69 @@ function toggleNavGroup(id){
   const header = document.getElementById('grp-'+id);
   const children = document.getElementById('grp-'+id+'-children');
   if(!header || !children) return;
-  header.classList.toggle('collapsed');
-  children.classList.toggle('collapsed');
+  const opening = children.classList.contains('collapsed');
+  if(opening) document.querySelectorAll('#companyNavGroups .nav-group-header').forEach(h => {   // قسم واحد مفتوح في كل مرة
+    if(h === header) return;
+    h.classList.add('collapsed'); const c = document.getElementById(h.id + '-children'); if(c) c.classList.add('collapsed');
+  });
+  header.classList.toggle('collapsed', !opening);
+  children.classList.toggle('collapsed', !opening);
+}
+/* الضغط على اسم القسم: يتوسع في الشريط وتُفتح في الصفحة بطاقات ما تحته */
+function navGroupClick(id){
+  window.__hubGroup = id;
+  /* على الجوال القائمة تغطي الصفحة، فيتوسع القسم في القائمة نفسها ويختار منه العميل مباشرة */
+  if(window.innerWidth <= 900){ const c = document.getElementById('grp-'+id+'-children'); if(c) toggleNavGroup(id); return; }
+  go('hub', null);
+}
+/* قسم لم يبقَ فيه أي عنصر ظاهر (بحسب نوع الكيان أو الصلاحية) يختفي كله بدل أن يظهر فارغًا */
+function refreshNavGroupsVisibility(){
+  document.querySelectorAll('#companyNavGroups .nav-group').forEach(g => {
+    if(g.id === 'adminNavGroup' || g.id === 'companyRequestNavGroup') return;   // هاتان لهما منطقهما الخاص
+    const has = [...g.querySelectorAll('.nav-item')].some(i => i.style.display !== 'none');
+    g.style.display = has ? '' : 'none';
+  });
+}
+/* يفتح القسم الذي فيه الصفحة الحالية ويطوي الباقي (إن لم نعرف القسم نترك الحال كما هو) */
+function syncNavOpen(){
+  const root = document.getElementById('companyNavGroups'); if(!root) return;
+  let gid = null;
+  if(currentPageId === 'hub') gid = window.__hubGroup || null;
+  else { const act = root.querySelector('.nav-item.active'); const ch = act && act.closest('.nav-group-children'); if(ch) gid = ch.id.replace(/^grp-/,'').replace(/-children$/,''); }
+  if(!gid) return;
+  root.querySelectorAll('.nav-group-header').forEach(h => {
+    const id = h.id.replace(/^grp-/,''); const c = document.getElementById(h.id + '-children'); const open = id === gid;
+    h.classList.toggle('collapsed', !open); if(c) c.classList.toggle('collapsed', !open); h.classList.toggle('has-active', open);
+  });
+}
+const HUB_DESC = {
+  dashboard:'نظرة شاملة على حالة الحوكمة والمؤشرات', mysub:'باقتك الحالية وتاريخ الاشتراك',
+  governance:'سياسات الشركة واعتمادها', structure:'الهيكل التنظيمي والأوصاف الوظيفية', procedures:'إجراءات العمل المعتمدة',
+  permissions:'من يملك أي صلاحية في الشركة', perf:'تقييم أداء الأعضاء والإدارة', reports:'تقارير الحوكمة الجاهزة', govassess:'قياس مدى فعالية الحوكمة',
+  meetings:'جدولة الاجتماعات والمحاضر', members:'أعضاء المجلس وملفاتهم', committees:'لجان المجلس ومهامها', appoint:'رفع طلب تعيين عضو جديد',
+  decisiontracking:'متابعة تنفيذ القرارات', circulation:'قرارات بالتمرير دون اجتماع', managerdecisions:'قرارات المدير الموثقة', indicators:'المؤشرات المالية والتشغيلية',
+  agm:'الجمعيات العامة والتصويت عليها', ownerdecisions:'قرارات المالك الموثقة', announcements:'الإفصاحات للشركات المدرجة (إعلانات تداول)',
+  shareholders:'سجل المساهمين أو الشركاء وحصصهم', voting:'التصويت الإلكتروني على البنود',
+  risks:'سجل المخاطر وخطط المعالجة', audit:'خطة التدقيق الداخلي ومتابعتها', compliance:'الالتزام بالأنظمة واللوائح',
+  signing:'وثائق تنتظر التوقيع الإلكتروني', archive:'أرشيف الوثائق والمستندات'
+};
+function renderNavHub(){
+  const root = document.getElementById('companyNavGroups'); const grid = document.getElementById('hubGrid'); if(!root || !grid) return;
+  let gid = window.__hubGroup; const gEl = gid ? document.getElementById('navg-'+gid) : null;
+  if(!gid || !gEl || gEl.style.display === 'none'){ const f = [...root.querySelectorAll('.nav-group')].filter(x => x.style.display !== 'none').map(x => x.querySelector('.nav-group-header')).find(Boolean); gid = f ? f.id.replace(/^grp-/,'') : null; window.__hubGroup = gid; }
+  const head = gid ? document.getElementById('grp-'+gid) : null;
+  const label = head ? (head.querySelector('.nav-group-label')||{}).textContent : '';
+  document.getElementById('ptitle').textContent = label || 'الأقسام';
+  document.getElementById('psub').textContent = 'اختر الصفحة التي تريدها';
+  const kids = [...document.querySelectorAll('#grp-'+gid+'-children .nav-item')].filter(n => n.style.display !== 'none');
+  const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  grid.innerHTML = kids.length ? kids.map((n,i) => {
+    const pid = ((n.getAttribute('onclick')||'').match(/go\('([a-z]+)'/)||[])[1];
+    const ic = n.querySelector('.ni-icon'); const icls = ic ? [...ic.classList].filter(c => /^ico-/.test(c)).join(' ') : 'ico-dashboard';
+    let bd = n.querySelector('.ni-badge'); if(bd && (bd.style.display === 'none' || !bd.textContent.trim())) bd = null; const t = n.querySelector('.ni-text');
+    return `<button type="button" class="hub-card${n.classList.contains('nav-locked')?' locked':''}" data-hub="${i}"><span class="hub-ic"><span class="ico ${icls}"></span></span><span class="hub-tx"><b>${esc(t?t.textContent:'')}</b><small>${esc(HUB_DESC[pid]||'')}</small></span>${bd?`<span class="ni-badge ${[...bd.classList].filter(c=>c!=='ni-badge').join(' ')}">${esc(bd.textContent)}</span>`:''}</button>`;
+  }).join('') : '<div class="hub-empty">لا توجد صفحات متاحة لك في هذا القسم.</div>';
+  grid.querySelectorAll('.hub-card').forEach(b => b.addEventListener('click', () => { const n = kids[+b.dataset.hub]; if(n) n.click(); }));
 }
 
 function toggleSidebar(){

@@ -15,7 +15,7 @@ function loadI18n(){
   if(adoptI18n()) return Promise.resolve();
   if(i18nLoading) return i18nLoading;
   i18nLoading = new Promise((resolve, reject) => {
-    const sc = document.createElement("script"); sc.src = "i18n-en.js?v=944ecdad";
+    const sc = document.createElement("script"); sc.src = "i18n-en.js?v=944ecdae";
     sc.onload = () => { adoptI18n(); resolve(); };
     sc.onerror = () => { i18nLoading = null; reject(new Error("i18n load failed")); };
     document.head.appendChild(sc);
