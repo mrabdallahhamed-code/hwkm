@@ -9,40 +9,40 @@ const HWKM_TOUR_OWNER_STEPS = [
   { icon:"🎯", title:"انتهت الجولة", text:"تقدر تعيدها متى شئت من الزر «جولة تعريفية بالمنصة».", page:null }
 ];
 
-/* وصف كل قسم، مع صياغة خاصة بنوع الكيان عند الحاجة */
+/* خطوات الإعداد: ما المطلوب من العميل أن ينفذه في كل قسم، مع صياغة خاصة بنوع الكيان عند الحاجة */
 const HWKM_TOUR_PAGES = {
-  dashboard:   { icon:"📊", text:"صورة شركتك اليوم: التنبيهات المهمة، والمهام المعلّقة، والمواعيد القريبة. ابدأ دائمًا بالتنبيهات الحمراء." },
-  members:     { icon:"👥", text:"أضف الأعضاء مع صفاتهم ومددهم. بقية المنصة تعتمد على هذه القائمة فابدأ بها.",
-                 llc:"أضف المديرين مع صلاحياتهم ومدد تعيينهم. المنصة تنبّهك إن خلا منصب المدير." },
-  committees:  { icon:"🗂️", text:"أنشئ لجنة المراجعة والترشيحات والمكافآت وغيرها. تعرف المنصة اللجان المطلوبة لنوع شركتك وتنبّهك إن نقصت.",
-                 listed:"لجنة المراجعة إلزامية للمدرجة، ولجنة الترشيحات والمكافآت كذلك للسوق الرئيسية. تنبّهك المنصة وفق لائحة الحوكمة." },
-  meetings:    { icon:"📅", text:"جدول الاجتماعات وسجّل الحضور والنصاب، ثم القرارات والتصويت. تنبّهك المنصة لمدد الدعوة النظامية.",
-                 llc:"جدول اجتماعات المديرين وسجّل الحضور والقرارات." },
-  circulation: { icon:"✍️", text:"للقرارات العاجلة بين الاجتماعات: تُرسل للأعضاء ويوقّعونها إلكترونيًا. تمنع المنصة ما لا يجوز تمريره نظامًا." },
-  managerdecisions:{ icon:"✍️", text:"سجّل قرارات إدارة الشركة بصيغة بسيطة وموثّقة، بدل اجتماعات لا تلزمك." },
-  ownerdecisions:  { icon:"✍️", text:"قرارات المالك تُسجَّل وتُوقَّع وتُحفظ، فتكون مثبتة عند أي جهة أو شريك أو ممول." },
-  agm:         { icon:"🏛️", text:"الدعوة وجدول الأعمال والتصويت الإلكتروني والنصاب والأغلبية، مع بيان السند النظامي لكل بند.",
-                 llc:"اجتماعات الشركاء وقراراتهم، وتنبّهك المنصة للمدد النظامية (كاجتماع الشركاء السنوي)." },
-  shareholders:{ icon:"📇", text:"سجل الملاك وحصصهم ونسبهم وحركة الملكية.",
-                 llc:"سجل الشركاء وحصصهم، وإخطارات التنازل عن الحصص وحق الاسترداد خلال مدتها النظامية.",
-                 sole:"سجل الملكية الخاص بمؤسستك." },
-  announcements:{ icon:"📢", text:"الإفصاحات للشركات المدرجة (إعلانات تداول): نماذج جاهزة تساعدك على صياغتها وفق لوائح الهيئة." },
-  governance:  { icon:"📜", text:"أنشئ سياساتك واعتمدها وتابع مراجعتها الدورية، وكل نسخة تبقى محفوظة." },
-  structure:   { icon:"🌳", text:"الهيكل التنظيمي والأوصاف الوظيفية، ليعرف كل شخص موقعه ومسؤوليته." },
-  permissions: { icon:"🔑", text:"من يملك صلاحية ماذا. مصفوفة واضحة تمنع الخلط بين المسؤوليات." },
-  compliance:  { icon:"✅", text:"المتطلبات النظامية الخاصة بنوع شركتك، ونسبة التزامك بها، وما الذي ينقصك بالضبط." },
-  risks:       { icon:"⚠️", text:"سجل المخاطر وتقييمها (احتمالية وتأثير) وخطط معالجتها." },
-  audit:       { icon:"🔍", text:"أعمال المراجعة الداخلية وملاحظاتها ومتابعة تصحيحها." },
-  signing:     { icon:"🔏", text:"أرسل أي مستند للتوقيع الإلكتروني وتابع من وقّع ومن لم يوقّع، والموقّع يُحفظ في الأرشيف." },
-  archive:     { icon:"🗄️", text:"كل مستنداتك ومحاضرك في مكان واحد، منظمة وقابلة للبحث." }
+  shareholders:{ icon:"📇", text:"أدخل المساهمين وعدد أسهم كل منهم ونسبته. هذا أساس الجمعيات والتصويت والنصاب، فلا تبدأ غيره قبله.",
+                 llc:"أدخل الشركاء وحصص كل شريك ونسبته. عليها تُبنى قراراتهم ونصابهم. وإن تنازل شريك عن حصته فسجّل إخطار التنازل هنا.",
+                 llc1o:"أدخل بيانات المالك وملكيته في الشركة.", sole:"أدخل بيانات المالك وملكيته في المؤسسة." },
+  members:     { icon:"👥", text:"أدخل أعضاء مجلس الإدارة: الاسم والصفة (رئيس، عضو، مستقل...) وتاريخ بداية المدة ونهايتها. تنبّهك المنصة قبل انتهاء المدة، وتحتاجها الاجتماعات واللجان.",
+                 llc:"أدخل المديرين: الاسم والصلاحيات وتاريخ التعيين. تنبّهك المنصة إن خلا منصب المدير." },
+  committees:  { icon:"🗂️", text:"أنشئ اللجان المطلوبة لنوع شركتك، مثل لجنة المراجعة، وأضف أعضاءها. تنبّهك المنصة إن نقصت لجنة مطلوبة أو خالفت شروط العضوية.",
+                 listed:"أنشئ لجنة المراجعة (إلزامية)، ولجنة الترشيحات والمكافآت، وأضف أعضاءها. تنبّهك المنصة وفق لائحة الحوكمة." },
+  governance:  { icon:"📜", text:"أنشئ سياسات شركتك الأساسية (الصلاحيات، تعارض المصالح، المكافآت...) واعتمدها. تتابع المنصة مراجعتها الدورية وتحفظ كل نسخة." },
+  structure:   { icon:"🌳", text:"ارسم الهيكل التنظيمي وأضف الوظائف وأوصافها، ليعرف كل شخص موقعه ومسؤوليته." },
+  permissions: { icon:"🔑", text:"حدد من يملك صلاحية ماذا. مصفوفة واضحة تمنع الخلط بين المسؤوليات." },
+  meetings:    { icon:"📅", text:"جدول أول اجتماع، وسجّل الحضور والنصاب، ثم القرارات والتصويت. تنبّهك المنصة لمدد الدعوة النظامية.",
+                 llc:"جدول أول اجتماع للمديرين، وسجّل الحضور والقرارات." },
+  agm:         { icon:"🏛️", text:"جهّز الجمعية العامة: الدعوة وجدول الأعمال والتصويت الإلكتروني. تنبّهك المنصة لموعد الجمعية العادية السنوية.",
+                 llc:"جهّز اجتماع الشركاء السنوي وقراراتهم. تنبّهك المنصة للمدد النظامية." },
+  circulation: { icon:"✍️", text:"للقرارات العاجلة بين الاجتماعات: أنشئ قرارًا بالتمرير ليوقّعه الأعضاء إلكترونيًا. تمنع المنصة ما لا يجوز تمريره نظامًا." },
+  managerdecisions:{ icon:"✍️", text:"سجّل قرارات الإدارة هنا بصيغة بسيطة، فتبقى موثّقة بدل اجتماعات لا تلزمك." },
+  ownerdecisions:  { icon:"✍️", text:"سجّل قرارات المالك ووقّعها إلكترونيًا، فتكون مثبتة عند أي جهة أو شريك أو ممول." },
+  announcements:{ icon:"📢", text:"للشركات المدرجة: جهّز الإفصاحات (إعلانات تداول) من نماذج جاهزة وفق لوائح الهيئة." },
+  compliance:  { icon:"✅", text:"راجع المتطلبات النظامية الخاصة بنوع شركتك، وعلّم ما أنجزته. تعرف منها نسبة التزامك وما ينقصك." },
+  risks:       { icon:"⚠️", text:"سجّل أهم المخاطر وقيّم احتماليتها وتأثيرها، وضع لكل منها خطة معالجة." },
+  audit:       { icon:"🔍", text:"سجّل أعمال المراجعة الداخلية وملاحظاتها، وتابع تصحيحها." },
+  signing:     { icon:"🔏", text:"أرسل أي مستند للتوقيع الإلكتروني (قرار، محضر، عقد)، وتابع من وقّع ومن لم يوقّع." },
+  archive:     { icon:"🗄️", text:"احفظ مستندات الشركة الأساسية (السجل التجاري، النظام الأساسي، العقود)، فتكون في مكان واحد وقابلة للبحث." },
+  dashboard:   { icon:"📊", text:"بعد الإعداد تصير هذه صفحتك اليومية: التنبيهات والمهام والمواعيد. ابدأ دائمًا بالتنبيهات الحمراء." }
 };
 const HWKM_TOUR_ORDER = {
-  listed:   ["dashboard","members","committees","meetings","circulation","agm","shareholders","announcements","governance","structure","permissions","compliance","risks","audit","signing","archive"],
-  unlisted: ["dashboard","members","committees","meetings","circulation","agm","shareholders","governance","structure","permissions","compliance","risks","audit","signing","archive"],
-  llc:      ["dashboard","members","meetings","agm","shareholders","governance","structure","permissions","compliance","signing","archive"],
-  llc1m:    ["dashboard","managerdecisions","agm","shareholders","governance","compliance","signing","archive"],
-  llc1o:    ["dashboard","ownerdecisions","shareholders","governance","compliance","signing","archive"],
-  sole:     ["dashboard","ownerdecisions","shareholders","governance","compliance","signing","archive"]
+  listed:   ["shareholders","members","committees","governance","permissions","structure","meetings","agm","circulation","announcements","compliance","risks","audit","signing","archive","dashboard"],
+  unlisted: ["shareholders","members","committees","governance","permissions","structure","meetings","agm","circulation","compliance","risks","audit","signing","archive","dashboard"],
+  llc:      ["shareholders","members","governance","permissions","structure","meetings","agm","compliance","signing","archive","dashboard"],
+  llc1m:    ["shareholders","governance","managerdecisions","agm","compliance","signing","archive","dashboard"],
+  llc1o:    ["shareholders","governance","ownerdecisions","compliance","signing","archive","dashboard"],
+  sole:     ["shareholders","governance","ownerdecisions","compliance","signing","archive","dashboard"]
 };
 const HWKM_TOUR_KIND_LABEL = { listed:"شركة مساهمة مدرجة", unlisted:"شركة مساهمة غير مدرجة", llc:"شركة ذات مسؤولية محدودة", llc1m:"شركة ذات مسؤولية محدودة بمدير واحد", llc1o:"شركة الشخص الواحد", sole:"مؤسسة فردية" };
 
@@ -66,13 +66,13 @@ function hwkmTourSteps(){
   if(typeof currentUserProfile !== "undefined" && currentUserProfile && currentUserProfile.is_platform_admin === true) return HWKM_TOUR_OWNER_STEPS;
   const kind = hwkmTourKind();
   const family = kind.indexOf("llc") === 0 ? "llc" : (kind === "sole" ? "sole" : (kind === "listed" ? "listed" : "joint"));
-  const steps = [{ icon:"👋", title:"أهلًا بك في حوكم", text:`هذه جولة مخصصة لـ«${HWKM_TOUR_KIND_LABEL[kind]}». تمر على الأقسام التي تخصك فقط، وتقدر تتخطاها وتعيدها متى شئت.`, page:null }];
+  const steps = [{ icon:"👋", title:"أهلًا بك في حوكم", text:`هذه خطوات إعداد منصتك بالترتيب الصحيح لـ«${HWKM_TOUR_KIND_LABEL[kind]}». نمر معك على ما تنفذه أولًا ثم ما بعده، ونشير لكل قسم في القائمة. تقدر تتخطاها وتعيدها متى شئت.`, page:null }];
   (HWKM_TOUR_ORDER[kind] || HWKM_TOUR_ORDER.unlisted).forEach(pg => {
     const d = HWKM_TOUR_PAGES[pg]; if(!d || !hwkmTourVisible(pg)) return;
     const nav = document.querySelector(`.nav-item[onclick^="go('${pg}'"] .ni-text`);
-    steps.push({ icon:d.icon, title:(nav && nav.textContent.trim()) || pg, text:d[family] || d[kind] || d.text, page:pg });
+    steps.push({ icon:d.icon, title:(steps.length) + ". " + ((nav && nav.textContent.trim()) || pg), text:d[family] || d[kind] || d.text, page:pg });
   });
-  steps.push({ icon:"🎯", title:"جاهز للبدء", text:"ابدأ بالخطوات الأربع في بطاقة «ابدأ من هنا» بلوحة التحكم. وتقدر تعيد هذه الجولة من الزر «جولة تعريفية بالمنصة» في أسفل الشاشة.", page:null });
+  steps.push({ icon:"🎯", title:"أنت جاهز", text:"أنهيت خطوات الإعداد. ابدأ الآن بالتنفيذ بالترتيب نفسه، وتابع تقدمك من بطاقة «ابدأ من هنا» بلوحة التحكم. تقدر تعيد هذه الجولة من الزر «جولة تعريفية بالمنصة».", page:null });
   return steps;
 }
 
@@ -140,6 +140,7 @@ function hwkmTourShow(i){
     <div class="tc-head"><div class="tc-ico">${s.icon}</div><div><div class="tc-title">${orgEsc(s.title)}</div><div class="tc-count">الخطوة ${hwkmTourIdx + 1} من ${total}</div></div></div>
     <div class="tc-body">${orgEsc(s.text)}</div>
     <div class="tc-bar"><i style="width:${pct}%"></i></div>
+    ${mobile && target ? `<div style="padding:0 18px"><button type="button" class="tc-sec" id="hwkmTourOpen" style="width:100%">افتح هذا القسم الآن</button></div>` : ""}
     <div class="tc-foot">
       <button type="button" class="tc-next" id="hwkmTourNext">${last ? "إنهاء الجولة ✓" : (hwkmTourIdx === 0 ? "ابدأ الجولة ←" : "التالي ←")}</button>
       ${hwkmTourIdx > 0 ? `<button type="button" class="tc-sec" id="hwkmTourPrev">السابق</button>` : ""}
@@ -166,6 +167,7 @@ function hwkmTourShow(i){
   if(target){ try{ target.scrollIntoView({ block: mobile ? "start" : "center" }); }catch(e){} setTimeout(place, 350); } else place();
   document.getElementById("hwkmTourNext").onclick = () => { if(last) hwkmTourClose(true); else hwkmTourShow(hwkmTourIdx + 1); };
   const pv = document.getElementById("hwkmTourPrev"); if(pv) pv.onclick = () => hwkmTourShow(hwkmTourIdx - 1);
+  const op = document.getElementById("hwkmTourOpen"); if(op) op.onclick = () => { const pg = s.page; hwkmTourClose(false); try{ go(pg, null); }catch(e){} };
   const sk = document.getElementById("hwkmTourSkip"); if(sk) sk.onclick = () => hwkmTourClose(true);
 }
 
