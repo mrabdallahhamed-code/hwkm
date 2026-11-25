@@ -139,6 +139,9 @@ function toggleShareNominalField(){
   if(box) box.style.display = (type==="مساهمة مدرجة" || type==="مساهمة غير مدرجة") ? "block" : "none";
   const llcBox = document.getElementById("mco-llc-fields");
   if(llcBox) llcBox.style.display = (type === "ذات مسؤولية محدودة") ? "block" : "none";
+  /* حقل السوق يظهر للمدرجة فقط، وفقط إذا كان عمود listing_market موجودًا في قاعدة البيانات */
+  const mk = document.getElementById("mco-market-field");
+  if(mk) mk.style.display = (type === "مساهمة مدرجة" && window.__companyHasMarketCol) ? "block" : "none";
 }
 
 function resetCompanyForm(){
@@ -175,6 +178,8 @@ async function openEditCompanyModal(){
   const { data: c, error } = await sb.from("companies").select("*").eq("id", currentCompanyId).single();
   if(error || !c){ alert("تعذّر تحميل بيانات الشركة"); return; }
   document.getElementById("mco-id").value = c.id;
+  window.__companyHasMarketCol = Object.prototype.hasOwnProperty.call(c, "listing_market");
+  { const mkSel = document.getElementById("mco-market"); if(mkSel) mkSel.value = c.listing_market || "رئيسية"; }
   document.getElementById("mco-title-h").textContent = "✏️ تعديل بيانات الشركة";
   document.getElementById("mco-name").value = c.name || "";
   document.getElementById("mco-type").value = c.company_type || "مساهمة غير مدرجة";
@@ -235,6 +240,7 @@ async function saveCompanyImpl(){
   const tdwSym = normTadawul(document.getElementById("mco-tadawul").value);
   if(tdwSym && !/^\d{4}$/.test(tdwSym)){ alert("رمز تداول يجب أن يكون 4 أرقام."); return; }
   const payload = { tadawul_symbol: tdwSym || null, name, company_type, cr_number, cr_date, business_activity, company_size, responsible_person, responsible_phone, responsible_email, total_capital, total_shares, share_nominal_value, seal_position, llc_single_manager, llc_single_owner };
+  if(window.__companyHasMarketCol && id){ payload.listing_market = company_type === "مساهمة مدرجة" ? document.getElementById("mco-market").value : null; }
   if(letterhead_url !== undefined) payload.letterhead_url = letterhead_url;
   if(seal_url !== undefined) payload.seal_url = seal_url;
 

@@ -129,6 +129,12 @@ async function saveMeeting(){
     }
   }
 
+  /* لائحة حوكمة الشركات م30/ج: دعوة اجتماع المجلس قبل 5 أيام على الأقل ومعها جدول الأعمال والوثائق، إلا الاجتماع الطارئ */
+  if(meeting_type === "اجتماع مجلس الإدارة الدوري" && meeting_date && /مساهمة/.test(currentCompanyType || "")){
+    const d5 = Math.ceil((new Date(meeting_date + "T00:00:00") - new Date(new Date().toDateString())) / 86400000);
+    if(d5 >= 0 && d5 < 5 && !await uiConfirm(`موعد الاجتماع بعد ${d5} يومًا فقط. اللائحة (م30/ج) توجب إرسال الدعوة مع جدول الأعمال والوثائق قبل 5 أيام على الأقل، إلا إذا استدعى الأمر اجتماعًا طارئًا. هل تريد المتابعة؟`)) return;
+  }
+
   const votingStartRaw = document.getElementById("mt-voting-start").value;
   const votingEndRaw = document.getElementById("mt-voting-end").value;
   const voting_start = votingStartRaw ? new Date(votingStartRaw).toISOString() : null;

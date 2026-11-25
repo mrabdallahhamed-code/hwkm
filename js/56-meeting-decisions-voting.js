@@ -248,7 +248,8 @@ async function renderBoardQuorumWidget(members, attendanceRecords){
   const presentCount = (attendanceRecords||[]).filter(a => a.status === "حاضر" || /^إنابة:\d+$/.test(a.status || "")).length;
   const totalCount = members.length;
   const pctPresent = totalCount ? (presentCount/totalCount)*100 : 0;
-  const met = pctPresent >= threshold;
+  /* لائحة حوكمة الشركات م30/د: ألا يقل الحاضرون عن ثلاثة أعضاء، إضافة إلى نسبة النصاب */
+  const met = pctPresent >= threshold && (presentCount >= 3 || totalCount < 3);
   const anyRecorded = attendanceRecords && attendanceRecords.length > 0;
 
   box.innerHTML = `<div style="padding:10px;border-radius:8px;background:${anyRecorded ? (met?'#E8F8EF':'#FDE8E8') : 'var(--offwhite)'};font-size:12px;font-weight:700;color:${anyRecorded ? (met?'var(--green)':'var(--red)') : 'var(--gray3)'}">

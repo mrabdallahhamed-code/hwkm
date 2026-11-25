@@ -1,3 +1,14 @@
+/* ══ لائحة حوكمة الشركات (هيئة السوق المالية): إلزامية للمدرجة في السوق الرئيسية (م2/ب)، وفي الموازية مواد محددة فقط، واسترشادية لغير المدرجة ══ */
+async function govRegLevel(){
+  if(currentCompanyType !== "مساهمة مدرجة") return "advisory";
+  try { const { data } = await sb.from("companies").select("*").eq("id", currentCompanyId).single(); if(data && data.listing_market === "موازية") return "parallel"; } catch(e){}
+  return "main";
+}
+function govRegAlert(level, o){
+  /* o: { art, text, cta, page, parallelMandatory } */
+  const binding = level === "main" || (level === "parallel" && o.parallelMandatory);
+  return { severity: binding ? "high" : "medium", cta: o.cta, page: o.page, text: (binding ? "مخالفة محتملة — " : "توصية — ") + o.text + ` (لائحة حوكمة الشركات ${o.art})` };
+}
 /* ══════════ لوحة التحكم والإشعارات والتنبيهات (منقول من ملف 04 دون تغيير سلوك) ══════════ */
 function toggleNotifPanel(){
   const panel = document.getElementById("notifPanel");
@@ -393,6 +404,75 @@ async function computeGovernanceAlerts(){
         ext.forEach(x => alerts.push({ severity: x.d >= 10 ? "high" : "medium", cta: "الجمعية العامة", page: "agm", text: `انعقدت الجمعية غير العادية «${x.m.title || ""}» قبل ${x.d} يومًا؛ يلزم قيد القرارات التي يوجب النظام قيدها في السجل التجاري خلال 15 يومًا (م93) — متبقٍ ${15 - x.d} يومًا.` }));
       }
     } catch(e){ console.error("companies-law alert check failed", e); }
+      return alerts;
+    },
+    async () => { const alerts = [];
+    // 4f) CMA Corporate Governance Regulations: board makeup (م16), quarterly meetings (م30), notifying the CMA (م17/د), and the committees (م51، م57، م61)
+    try {
+      if(/مساهمة/.test(currentCompanyType || "")){
+        const level = await govRegLevel();
+        const [bmR, cmR, clR, mtR, trR] = await Promise.all([
+          sb.from("board_members").select("*").eq("company_id", currentCompanyId),
+          sb.from("committees").select("*").eq("company_id", currentCompanyId),
+          sb.from("committee_members").select("committee_id,member_id").eq("company_id", currentCompanyId),
+          sb.from("meetings").select("meeting_type,meeting_date,committee_id").eq("company_id", currentCompanyId),
+          sb.from("board_terms").select("term_start,status").eq("company_id", currentCompanyId).order("term_start", { ascending: false })
+        ]);
+        const now = new Date(), today = new Date(now.toDateString()), yr = now.getFullYear();
+        const active = (bmR.data || []).filter(m => !/مستقيل|منتهي/.test(m.status || ""));
+        const isIndep = m => m.status === "مستقل" || /مستقل/.test(m.position || "");
+        const isExec = m => /^\s*تنفيذي/.test(m.is_executive || "");
+        const nm = x => String(x || "").replace(/\s+/g, " ").trim();
+        // م16: أغلبية غير تنفيذيين، والمستقلون لا يقلون عن عضوين أو ثلث المجلس أيهما أكثر
+        if(active.length >= 3){
+          const nonExec = active.filter(m => !isExec(m)).length, ind = active.filter(isIndep).length, need = Math.max(2, Math.ceil(active.length / 3));
+          if(nonExec * 2 <= active.length) alerts.push(govRegAlert(level, { art: "م16/2", cta: "راجع الأعضاء", page: "members", text: `أعضاء المجلس غير التنفيذيين ${nonExec} من ${active.length}؛ يجب أن تكون أغلبية المجلس من غير التنفيذيين.` }));
+          if(ind < need) alerts.push(govRegAlert(level, { art: "م16/3", cta: "راجع الأعضاء", page: "members", text: `المستقلون ${ind} من ${active.length}؛ يجب ألا يقلوا عن عضوين أو ثلث المجلس (${need}).` }));
+        }
+        // م30/ب: اجتماع واحد على الأقل كل ثلاثة أشهر
+        const board = (mtR.data || []).filter(m => (m.meeting_type === "اجتماع مجلس الإدارة الدوري" || m.meeting_type === "اجتماع طارئ") && !m.committee_id && m.meeting_date);
+        const emptyQ = [];
+        for(let q = 0; q < 4; q++){
+          const qEnd = new Date(yr, q * 3 + 3, 0);
+          if(qEnd < today && !board.some(m => { const d = new Date(m.meeting_date); return d.getFullYear() === yr && Math.floor(d.getMonth() / 3) === q; })) emptyQ.push(q + 1);
+        }
+        if(emptyQ.length && active.length) alerts.push(govRegAlert(level, { art: "م30/ب", cta: "جدول اجتماعًا", page: "meetings", text: `لم ينعقد اجتماع للمجلس في الربع ${emptyQ.join(" والربع ")} من هذه السنة؛ يلزم اجتماع واحد على الأقل كل ثلاثة أشهر.` }));
+        // م17/د: إشعار الهيئة بأسماء الأعضاء وصفاتهم خلال 5 أيام عمل من بدء الدورة أو التعيين أو أي تغيير (للمدرجة)
+        if(currentCompanyType === "مساهمة مدرجة"){
+          const recent = d => d && (today - new Date(d)) / 86400000 >= 0 && (today - new Date(d)) / 86400000 <= 10;
+          const term = (trR.data || [])[0];
+          const newJoin = active.filter(m => recent(m.join_date));
+          if((term && recent(term.term_start)) || newJoin.length) alerts.push(govRegAlert("main", { art: "م17/د", cta: "راجع الأعضاء", page: "members", text: "بدأت دورة المجلس أو تغيّر أعضاؤه حديثًا؛ يلزم إشعار هيئة السوق المالية بأسماء الأعضاء وصفاتهم خلال خمسة أيام عمل." }));
+        }
+        // اللجان
+        const links = clR.data || [], mts = mtR.data || [];
+        const byId = {}; (bmR.data || []).forEach(m => byId[m.id] = m);
+        const membersOf = c => links.filter(l => l.committee_id === c.id).map(l => byId[l.member_id]).filter(Boolean);
+        const meetsOf = c => mts.filter(m => String(m.committee_id) === String(c.id) && m.meeting_date && new Date(m.meeting_date).getFullYear() === yr && new Date(m.meeting_date) <= today).length;
+        const audit = (cmR.data || []).find(c => /مراجعة/.test(c.committee_name || ""));
+        const rem = (cmR.data || []).find(c => /مكافآت|مكافات/.test(c.committee_name || ""));
+        const nom = (cmR.data || []).find(c => /ترشيح/.test(c.committee_name || ""));
+        const ncAlert = (c, art, label) => alerts.push(govRegAlert(level, { art, cta: "اللجان", page: "committees", text: `${label}` }));
+        if(!audit && currentCompanyType === "مساهمة مدرجة") alerts.push(govRegAlert(level, { art: "م51", cta: "اللجان", page: "committees", text: "لا توجد لجنة مراجعة مسجَّلة؛ تشكَّل لجنة المراجعة بقرار من مجلس الإدارة.", parallelMandatory: true }));
+        if(audit){
+          const mem = membersOf(audit);
+          if(mem.some(isExec)) alerts.push(govRegAlert(level, { art: "م51/أ", cta: "اللجان", page: "committees", parallelMandatory: true, text: "لجنة المراجعة تضم عضوًا تنفيذيًا من المجلس؛ لا يجوز ذلك." }));
+          if(mem.length && !mem.some(isIndep)) alerts.push(govRegAlert(level, { art: "م51/ب", cta: "اللجان", page: "committees", text: "لا يوجد في لجنة المراجعة عضو مستقل؛ يلزم عضو مستقل على الأقل." }));
+          if(mem.length && mem.filter(isIndep).length * 2 < mem.length) alerts.push(govRegAlert(level, { art: "م51/د", cta: "اللجان", page: "committees", text: "المستقلون أقل من نصف أعضاء لجنة المراجعة المسجَّلين." }));
+          const ch = audit.chairman_name ? active.find(m => nm(m.name) === nm(audit.chairman_name)) : null;
+          if(ch && !isIndep(ch)) alerts.push(govRegAlert(level, { art: "م51/ج", cta: "اللجان", page: "committees", text: "رئيس لجنة المراجعة ليس مستقلًا؛ يجب أن يكون رئيسها مستقلًا." }));
+          if(mem.length > 5) alerts.push(govRegAlert(level, { art: "م51/أ", cta: "اللجان", page: "committees", parallelMandatory: true, text: `أعضاء لجنة المراجعة ${mem.length}؛ الحد الأقصى خمسة.` }));
+          if(now.getMonth() >= 6 && meetsOf(audit) + 0 < Math.min(4, Math.floor((now.getMonth() + 1) / 3))) alerts.push(govRegAlert(level, { art: "م54/أ", cta: "جدول اجتماعًا", page: "meetings", text: `اجتماعات لجنة المراجعة هذه السنة ${meetsOf(audit)}؛ يلزم أربعة اجتماعات على الأقل في السنة المالية.` }));
+        }
+        [[rem, "م57/أ", "لجنة المكافآت", "م60"], [nom, "م61/أ", "لجنة الترشيحات", "م64"]].forEach(([c, art, label, mArt]) => {
+          if(!c) return;
+          const mem = membersOf(c);
+          if(mem.some(isExec)) alerts.push(govRegAlert(level, { art, cta: "اللجان", page: "committees", text: `${label} تضم عضوًا تنفيذيًا؛ يجب أن تكون من غير التنفيذيين.` }));
+          if(mem.length && !mem.some(isIndep)) alerts.push(govRegAlert(level, { art, cta: "اللجان", page: "committees", text: `لا يوجد في ${label} عضو مستقل؛ يلزم عضو مستقل على الأقل.` }));
+          if(now.getMonth() >= 8 && meetsOf(c) === 0) alerts.push(govRegAlert(level, { art: mArt, cta: "جدول اجتماعًا", page: "meetings", text: `لم تجتمع ${label} هذه السنة؛ يلزم اجتماع مرة في السنة على الأقل.` }));
+        });
+      }
+    } catch(e){ console.error("CMA regulation alert check failed", e); }
       return alerts;
     },
     async () => { const alerts = [];

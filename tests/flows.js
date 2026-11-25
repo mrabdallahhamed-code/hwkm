@@ -941,6 +941,25 @@ function ok(name, cond, extra) {
   ok("التمرير: المواضيع الممنوعة (م100) مرفوضة والمسموحة تمر، والدعوة أقل من 21 يومًا تُمنع للمدرجة، ودالة الإنابة موجودة",
      f25.forbid && f25.allowed && f25.topics && f25.noticeBlocked && f25.proxyFn, f25);
 
+  /* ───────── مسار 26) لائحة حوكمة الشركات: مستوى الإلزام والتنبيهات ───────── */
+  console.log("مسار 26) لائحة حوكمة الشركات (إلزامي للمدرجة، توصية لغيرها)");
+  const f26 = await pg.evaluate(async () => {
+    const res = {};
+    const a1 = govRegAlert("main", { art: "م16/3", cta: "x", page: "members", text: "اختبار" });
+    const a2 = govRegAlert("advisory", { art: "م16/3", cta: "x", page: "members", text: "اختبار" });
+    const a3 = govRegAlert("parallel", { art: "م51/أ", cta: "x", page: "committees", text: "اختبار", parallelMandatory: true });
+    const a4 = govRegAlert("parallel", { art: "م16/3", cta: "x", page: "members", text: "اختبار" });
+    res.main = a1.severity === "high" && /^مخالفة محتملة/.test(a1.text) && /م16\/3/.test(a1.text);
+    res.adv = a2.severity === "medium" && /^توصية/.test(a2.text);
+    res.par = a3.severity === "high" && a4.severity === "medium";
+    currentCompanyType = "مساهمة غير مدرجة"; res.unlisted = (await govRegLevel()) === "advisory";
+    currentCompanyType = "مساهمة مدرجة"; res.listed = (await govRegLevel()) === "main";
+    res.marketField = !!document.getElementById("mco-market");
+    return res;
+  });
+  ok("اللائحة: المدرجة الرئيسية مخالفة، وغير المدرجة توصية، والموازية حسب المادة، وحقل السوق موجود",
+     f26.main && f26.adv && f26.par && f26.unlisted && f26.listed && f26.marketField, f26);
+
   ok("لا أخطاء برمجية أثناء المسارات", errs.length === 0, errs);
   await browser.close();
   console.log(`\nالنتيجة: ${passed} نجح، ${failed} فشل`);

@@ -28,8 +28,13 @@ async function govIndependenceCheck(){
       Object.keys(INDEP_OBSTACLE).forEach(k => { if(sa[k] && sa[k].answer === true) row.obstacles.push(INDEP_OBSTACLE[k]); });
       row.stale = (now - new Date(d.created_at)) > 365 * 86400000;
     }
+    /* م19/ج/9: أكثر من تسع سنوات متصلة أو منفصلة — نجمع مدد سجلاته كلها (الحالي والمنتهية) لنفس الشخص */
     const start = m.join_date || (d && d.term_start);
-    if(start && (now - new Date(start)) / (365.25 * 86400000) > 9) row.obstacles.push("قضى أكثر من 9 سنوات في عضوية المجلس");
+    const same = (bmR.data || []).filter(o => o.id === m.id || (m.national_id && o.national_id && String(o.national_id) === String(m.national_id)) || (norm(o.name) && norm(o.name) === norm(m.name)));
+    let years = 0;
+    same.forEach(o => { const st = o.join_date || (o.id === m.id ? start : null); if(!st) return; const en = o.term_end_date ? new Date(o.term_end_date) : now; if(en > new Date(st)) years += (en - new Date(st)) / (365.25 * 86400000); });
+    if(!same.length && start) years = (now - new Date(start)) / (365.25 * 86400000);
+    if(years > 9) row.obstacles.push("قضى أكثر من 9 سنوات في عضوية المجلس (متصلة أو منفصلة)");
     res.push(row);
   });
   return res;
