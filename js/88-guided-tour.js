@@ -1,18 +1,4 @@
-/* ══════════ الجولة الإرشادية: تظهر عند أول دخول، ويبقى زر جانبي لإعادتها في أي وقت ══════════ */
-const HWKM_TOUR_STEPS = [
-  { icon:"👋", title:"أهلًا بك في حوكم", text:"هذه جولة قصيرة (دقيقتان) تعرّفك على أهم أجزاء المنصة. تقدر تتخطاها الآن، وتعيدها متى شئت من الزر الجانبي «جولة».", page:"dashboard" },
-  { icon:"📊", title:"لوحة التحكم", text:"أول ما تدخل تشوف وضع شركتك: التنبيهات المهمة، والمهام المعلّقة، والمواعيد القريبة. ابدأ دائمًا بالتنبيهات الحمراء.", page:"dashboard" },
-  { icon:"👥", title:"أعضاء المجلس", text:"أضف أعضاء مجلس الإدارة هنا مع صفاتهم ومددهم. باقي المنصة (الاجتماعات واللجان والتصويت) تعتمد على هذه القائمة، فابدأ بها.", page:"members" },
-  { icon:"🗂️", title:"اللجان", text:"أنشئ لجنة المراجعة ولجنة الترشيحات والمكافآت وغيرها. المنصة تنبّهك إن كانت لجنة مطلوبة لنوع شركتك ولم تُنشأ.", page:"committees" },
-  { icon:"📅", title:"الاجتماعات", text:"جدول اجتماعات المجلس واللجان، وسجّل الحضور والنصاب، ثم القرارات والتصويت. المنصة تنبّهك إلى المدد النظامية للدعوة.", page:"meetings" },
-  { icon:"✍️", title:"القرارات بالتمرير", text:"للقرارات العاجلة بين الاجتماعات: تُرسل للأعضاء ويوقّعونها إلكترونيًا. المنصة تمنع المواضيع التي لا يجوز تمريرها وفق النظام.", page:"circulation" },
-  { icon:"🏛️", title:"الجمعيات العامة", text:"أدر دعوة الجمعية وجدول أعمالها والتصويت الإلكتروني والنصاب والأغلبية، مع بيان السند النظامي لكل بند.", page:"agm" },
-  { icon:"📜", title:"السياسات", text:"أنشئ سياسات شركتك واعتمدها وتابع مراجعتها الدورية، وكل نسخة تبقى محفوظة.", page:"governance" },
-  { icon:"✅", title:"الالتزام النظامي", text:"قائمة المتطلبات النظامية لشركتك ونسبة التزامك بها، وما الذي ينقصك بالضبط.", page:"compliance" },
-  { icon:"🔏", title:"التوقيع الإلكتروني", text:"أرسل أي مستند للتوقيع، وتابع من وقّع ومن لم يوقّع، والمستند الموقّع يُحفظ في الأرشيف.", page:"signing" },
-  { icon:"🎯", title:"جاهز للبدء", text:"ابدأ بالخطوات الأربع في بطاقة «ابدأ من هنا» بلوحة التحكم. وإن احتجت هذه الجولة مرة أخرى فالزر «جولة» على جانب الشاشة دائمًا.", page:"dashboard" }
-];
-
+/* ══════════ الجولة الإرشادية: مخصصة لنوع الكيان، تظهر أول دخول، وزر دائم لإعادتها ══════════ */
 const HWKM_TOUR_OWNER_STEPS = [
   { icon:"👋", title:"أهلًا بك في إدارة حوكم", text:"جولة قصيرة تعرّفك على أقسام لوحة مالك المنصة.", page:null },
   { icon:"📊", title:"لوحة التحكم", text:"نظرة عامة على المنصة: الشركات والمستخدمون والنشاط.", page:"platformdashboard" },
@@ -22,12 +8,103 @@ const HWKM_TOUR_OWNER_STEPS = [
   { icon:"📥", title:"إدارة الطلبات", text:"طلبات إدراج الشركات وطلبات العملاء التي تنتظر قرارك.", page:"adminrequests" },
   { icon:"🎯", title:"انتهت الجولة", text:"تقدر تعيدها متى شئت من الزر «جولة تعريفية بالمنصة».", page:null }
 ];
-function hwkmTourSteps(){ return (typeof currentUserProfile !== "undefined" && currentUserProfile && currentUserProfile.is_platform_admin === true) ? HWKM_TOUR_OWNER_STEPS : HWKM_TOUR_STEPS; }
+
+/* وصف كل قسم، مع صياغة خاصة بنوع الكيان عند الحاجة */
+const HWKM_TOUR_PAGES = {
+  dashboard:   { icon:"📊", text:"صورة شركتك اليوم: التنبيهات المهمة، والمهام المعلّقة، والمواعيد القريبة. ابدأ دائمًا بالتنبيهات الحمراء." },
+  members:     { icon:"👥", text:"أضف الأعضاء مع صفاتهم ومددهم. بقية المنصة تعتمد على هذه القائمة فابدأ بها.",
+                 llc:"أضف المديرين مع صلاحياتهم ومدد تعيينهم. المنصة تنبّهك إن خلا منصب المدير." },
+  committees:  { icon:"🗂️", text:"أنشئ لجنة المراجعة والترشيحات والمكافآت وغيرها. تعرف المنصة اللجان المطلوبة لنوع شركتك وتنبّهك إن نقصت.",
+                 listed:"لجنة المراجعة إلزامية للمدرجة، ولجنة الترشيحات والمكافآت كذلك للسوق الرئيسية. تنبّهك المنصة وفق لائحة الحوكمة." },
+  meetings:    { icon:"📅", text:"جدول الاجتماعات وسجّل الحضور والنصاب، ثم القرارات والتصويت. تنبّهك المنصة لمدد الدعوة النظامية.",
+                 llc:"جدول اجتماعات المديرين وسجّل الحضور والقرارات." },
+  circulation: { icon:"✍️", text:"للقرارات العاجلة بين الاجتماعات: تُرسل للأعضاء ويوقّعونها إلكترونيًا. تمنع المنصة ما لا يجوز تمريره نظامًا." },
+  managerdecisions:{ icon:"✍️", text:"سجّل قرارات إدارة الشركة بصيغة بسيطة وموثّقة، بدل اجتماعات لا تلزمك." },
+  ownerdecisions:  { icon:"✍️", text:"قرارات المالك تُسجَّل وتُوقَّع وتُحفظ، فتكون مثبتة عند أي جهة أو شريك أو ممول." },
+  agm:         { icon:"🏛️", text:"الدعوة وجدول الأعمال والتصويت الإلكتروني والنصاب والأغلبية، مع بيان السند النظامي لكل بند.",
+                 llc:"اجتماعات الشركاء وقراراتهم، وتنبّهك المنصة للمدد النظامية (كاجتماع الشركاء السنوي)." },
+  shareholders:{ icon:"📇", text:"سجل الملاك وحصصهم ونسبهم وحركة الملكية.",
+                 llc:"سجل الشركاء وحصصهم، وإخطارات التنازل عن الحصص وحق الاسترداد خلال مدتها النظامية.",
+                 sole:"سجل الملكية الخاص بمؤسستك." },
+  announcements:{ icon:"📢", text:"الإفصاحات للشركات المدرجة (إعلانات تداول): نماذج جاهزة تساعدك على صياغتها وفق لوائح الهيئة." },
+  governance:  { icon:"📜", text:"أنشئ سياساتك واعتمدها وتابع مراجعتها الدورية، وكل نسخة تبقى محفوظة." },
+  structure:   { icon:"🌳", text:"الهيكل التنظيمي والأوصاف الوظيفية، ليعرف كل شخص موقعه ومسؤوليته." },
+  permissions: { icon:"🔑", text:"من يملك صلاحية ماذا. مصفوفة واضحة تمنع الخلط بين المسؤوليات." },
+  compliance:  { icon:"✅", text:"المتطلبات النظامية الخاصة بنوع شركتك، ونسبة التزامك بها، وما الذي ينقصك بالضبط." },
+  risks:       { icon:"⚠️", text:"سجل المخاطر وتقييمها (احتمالية وتأثير) وخطط معالجتها." },
+  audit:       { icon:"🔍", text:"أعمال المراجعة الداخلية وملاحظاتها ومتابعة تصحيحها." },
+  signing:     { icon:"🔏", text:"أرسل أي مستند للتوقيع الإلكتروني وتابع من وقّع ومن لم يوقّع، والموقّع يُحفظ في الأرشيف." },
+  archive:     { icon:"🗄️", text:"كل مستنداتك ومحاضرك في مكان واحد، منظمة وقابلة للبحث." }
+};
+const HWKM_TOUR_ORDER = {
+  listed:   ["dashboard","members","committees","meetings","circulation","agm","shareholders","announcements","governance","structure","permissions","compliance","risks","audit","signing","archive"],
+  unlisted: ["dashboard","members","committees","meetings","circulation","agm","shareholders","governance","structure","permissions","compliance","risks","audit","signing","archive"],
+  llc:      ["dashboard","members","meetings","agm","shareholders","governance","structure","permissions","compliance","signing","archive"],
+  llc1m:    ["dashboard","managerdecisions","agm","shareholders","governance","compliance","signing","archive"],
+  llc1o:    ["dashboard","ownerdecisions","shareholders","governance","compliance","signing","archive"],
+  sole:     ["dashboard","ownerdecisions","shareholders","governance","compliance","signing","archive"]
+};
+const HWKM_TOUR_KIND_LABEL = { listed:"شركة مساهمة مدرجة", unlisted:"شركة مساهمة غير مدرجة", llc:"شركة ذات مسؤولية محدودة", llc1m:"شركة ذات مسؤولية محدودة بمدير واحد", llc1o:"شركة الشخص الواحد", sole:"مؤسسة فردية" };
+
+function hwkmTourKind(){
+  try{
+    if(currentCompanyType === "مؤسسة فردية") return "sole";
+    if(currentCompanyType === "ذات مسؤولية محدودة"){
+      if(currentCompanyLLCSingleOwner) return "llc1o";
+      if(currentCompanyLLCSingleManager) return "llc1m";
+      return "llc";
+    }
+    if(currentCompanyType === "مساهمة مدرجة") return "listed";
+  }catch(e){}
+  return "unlisted";
+}
+function hwkmTourVisible(page){
+  const el = document.querySelector(`.nav-item[onclick^="go('${page}'"]`);
+  return !!el && el.offsetParent !== null;
+}
+function hwkmTourSteps(){
+  if(typeof currentUserProfile !== "undefined" && currentUserProfile && currentUserProfile.is_platform_admin === true) return HWKM_TOUR_OWNER_STEPS;
+  const kind = hwkmTourKind();
+  const family = kind.indexOf("llc") === 0 ? "llc" : (kind === "sole" ? "sole" : (kind === "listed" ? "listed" : "joint"));
+  const steps = [{ icon:"👋", title:"أهلًا بك في حوكم", text:`هذه جولة مخصصة لـ«${HWKM_TOUR_KIND_LABEL[kind]}». تمر على الأقسام التي تخصك فقط، وتقدر تتخطاها وتعيدها متى شئت.`, page:null }];
+  (HWKM_TOUR_ORDER[kind] || HWKM_TOUR_ORDER.unlisted).forEach(pg => {
+    const d = HWKM_TOUR_PAGES[pg]; if(!d || !hwkmTourVisible(pg)) return;
+    const nav = document.querySelector(`.nav-item[onclick^="go('${pg}'"] .ni-text`);
+    steps.push({ icon:d.icon, title:(nav && nav.textContent.trim()) || pg, text:d[family] || d[kind] || d.text, page:pg });
+  });
+  steps.push({ icon:"🎯", title:"جاهز للبدء", text:"ابدأ بالخطوات الأربع في بطاقة «ابدأ من هنا» بلوحة التحكم. وتقدر تعيد هذه الجولة من الزر «جولة تعريفية بالمنصة» في أسفل الشاشة.", page:null });
+  return steps;
+}
+
 function hwkmTourKey(){ try{ return "hwkm_tour_done_" + ((currentUserProfile && currentUserProfile.email) || ""); }catch(e){ return "hwkm_tour_done_"; } }
 let hwkmTourIdx = 0;
-
+let hwkmTourList = [];
 let hwkmTourOpenedSidebar = false;
-function hwkmTourClearMark(){ document.querySelectorAll(".hwkm-tour-mark").forEach(e => { e.classList.remove("hwkm-tour-mark"); e.style.outline = ""; e.style.boxShadow = ""; }); }
+
+function hwkmTourCss(){
+  if(document.getElementById("hwkmTourCss")) return;
+  const st = document.createElement("style"); st.id = "hwkmTourCss";
+  st.textContent = `
+  @keyframes hwkmTourIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+  @keyframes hwkmTourPulse{0%{box-shadow:0 0 0 0 rgba(184,151,42,.65)}70%{box-shadow:0 0 0 12px rgba(184,151,42,0)}100%{box-shadow:0 0 0 0 rgba(184,151,42,0)}}
+  .hwkm-tour-mark{outline:2px solid #D9B945 !important;outline-offset:2px;border-radius:10px;animation:hwkmTourPulse 1.6s infinite;background:rgba(217,185,69,.16) !important}
+  #hwkmTourCard{animation:hwkmTourIn .25s ease;overflow:visible}
+  #hwkmTourCard .tc-head{background:linear-gradient(135deg,#0D2447,#1B4478);color:#fff;border-radius:14px 14px 0 0;padding:14px 18px;display:flex;align-items:center;gap:12px}
+  #hwkmTourCard .tc-ico{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.14);border:1.5px solid #D9B945;display:flex;align-items:center;justify-content:center;font-size:21px;flex-shrink:0}
+  #hwkmTourCard .tc-title{font-size:16px;font-weight:800;line-height:1.4}
+  #hwkmTourCard .tc-count{font-size:11px;color:#D9B945;font-weight:700;margin-top:1px}
+  #hwkmTourCard .tc-body{padding:14px 18px 6px;font-size:13.5px;color:#3b4a63;line-height:1.95}
+  #hwkmTourCard .tc-bar{height:4px;background:#EEF1F5;margin:10px 18px 0;border-radius:4px;overflow:hidden}
+  #hwkmTourCard .tc-bar i{display:block;height:100%;background:linear-gradient(90deg,#B8972A,#E3C75A);border-radius:4px;transition:width .3s}
+  #hwkmTourCard .tc-foot{display:flex;gap:8px;align-items:center;padding:12px 18px 16px}
+  #hwkmTourCard .tc-next{flex:1;background:linear-gradient(135deg,#B8972A,#D9B945);color:#0D2447;border:none;border-radius:10px;padding:10px 14px;font-weight:800;font-size:13.5px;cursor:pointer;font-family:inherit}
+  #hwkmTourCard .tc-sec{background:#F2F4F8;color:#4a5a73;border:none;border-radius:10px;padding:10px 14px;font-weight:700;font-size:12.5px;cursor:pointer;font-family:inherit}
+  #hwkmTourCard .tc-arrow{position:absolute;top:50%;width:14px;height:14px;background:#fff;transform:translateY(-50%) rotate(45deg);border:2px solid #D9B945}
+  #hwkmTourBtn{transition:transform .15s}#hwkmTourBtn:hover{transform:translateY(-2px)}`;
+  document.head.appendChild(st);
+}
+
+function hwkmTourClearMark(){ document.querySelectorAll(".hwkm-tour-mark").forEach(e => e.classList.remove("hwkm-tour-mark")); }
 function hwkmTourClose(markDone){
   const bg = document.getElementById("hwkmTourBg"); if(bg) bg.remove();
   hwkmTourClearMark();
@@ -36,9 +113,12 @@ function hwkmTourClose(markDone){
 }
 
 function hwkmTourShow(i){
-  hwkmTourIdx = Math.max(0, Math.min(i, HWKM_TOUR_STEPS.length - 1));
-  const s = HWKM_TOUR_STEPS[hwkmTourIdx];
-  const last = hwkmTourIdx === HWKM_TOUR_STEPS.length - 1;
+  hwkmTourCss();
+  if(i === 0 || !hwkmTourList.length) hwkmTourList = hwkmTourSteps();
+  hwkmTourIdx = Math.max(0, Math.min(i, hwkmTourList.length - 1));
+  const s = hwkmTourList[hwkmTourIdx];
+  const total = hwkmTourList.length;
+  const last = hwkmTourIdx === total - 1;
   const mobile = window.innerWidth <= 900;
   hwkmTourClearMark();
   const target = (s.page && !last && hwkmTourIdx > 0) ? document.querySelector(`.nav-item[onclick^="go('${s.page}'"]`) : null;
@@ -53,29 +133,30 @@ function hwkmTourShow(i){
     bg.setAttribute("style", "position:fixed;inset:0;z-index:100000;pointer-events:none");
     document.body.appendChild(bg);
   }
-  const dots = hwkmTourSteps().map((_, k) => `<span style="width:${k===hwkmTourIdx?18:6}px;height:6px;border-radius:6px;background:${k===hwkmTourIdx?"#B8972A":"#d5dbe6"};display:inline-block;margin:0 2px"></span>`).join("");
-  bg.innerHTML = `<div id="hwkmTourCard" role="dialog" style="pointer-events:auto;position:fixed;background:#fff;border-radius:14px;width:min(330px,calc(100vw - 24px));padding:16px 18px;box-shadow:0 10px 36px rgba(13,36,71,.35);border:2px solid #B8972A;direction:rtl;font-family:inherit">
-    <div style="display:flex;align-items:center;gap:8px"><span style="font-size:26px;line-height:1">${s.icon}</span><span style="font-size:15.5px;font-weight:800;color:#0D2447">${orgEsc(s.title)}</span></div>
-    <div style="font-size:13px;color:#4a5a73;line-height:1.85;margin-top:8px">${orgEsc(s.text)}</div>
-    <div style="text-align:center;margin:10px 0">${dots}</div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <button type="button" class="btn btn-gold" id="hwkmTourNext" style="flex:1">${last ? "إنهاء الجولة" : "التالي"}</button>
-      ${hwkmTourIdx > 0 ? `<button type="button" class="btn btn-ghost" id="hwkmTourPrev">السابق</button>` : ""}
-      ${last ? "" : `<button type="button" class="btn btn-ghost" id="hwkmTourSkip">تخطي</button>`}
+  const pct = Math.round((hwkmTourIdx + 1) / total * 100);
+  bg.innerHTML = `<div id="hwkmTourCard" role="dialog" style="pointer-events:auto;position:fixed;background:#fff;border-radius:16px;width:min(350px,calc(100vw - 24px));box-shadow:0 14px 44px rgba(13,36,71,.4);border:2px solid #D9B945;direction:rtl;font-family:inherit">
+    ${target && !mobile ? `<span class="tc-arrow" style="left:-9px;border-right:none;border-top:none"></span>` : ""}
+    <div class="tc-head"><div class="tc-ico">${s.icon}</div><div><div class="tc-title">${orgEsc(s.title)}</div><div class="tc-count">الخطوة ${hwkmTourIdx + 1} من ${total}</div></div></div>
+    <div class="tc-body">${orgEsc(s.text)}</div>
+    <div class="tc-bar"><i style="width:${pct}%"></i></div>
+    <div class="tc-foot">
+      <button type="button" class="tc-next" id="hwkmTourNext">${last ? "إنهاء الجولة ✓" : (hwkmTourIdx === 0 ? "ابدأ الجولة ←" : "التالي ←")}</button>
+      ${hwkmTourIdx > 0 ? `<button type="button" class="tc-sec" id="hwkmTourPrev">السابق</button>` : ""}
+      ${last ? "" : `<button type="button" class="tc-sec" id="hwkmTourSkip">تخطي</button>`}
     </div>
-    <div style="font-size:10.5px;color:#7A90B0;text-align:center;margin-top:6px">${hwkmTourIdx + 1} من ${hwkmTourSteps().length}</div>
   </div>`;
   const card = document.getElementById("hwkmTourCard");
   const place = () => {
     if(target){
       target.classList.add("hwkm-tour-mark");
-      target.style.outline = "3px solid #B8972A"; target.style.boxShadow = "0 0 0 6px rgba(184,151,42,.25)";
       const r = target.getBoundingClientRect();
       if(mobile){ card.style.bottom = "12px"; card.style.left = "12px"; }
       else{
-        card.style.right = Math.max(12, window.innerWidth - r.left + 14) + "px";
+        card.style.right = Math.max(12, window.innerWidth - r.left + 18) + "px";
         const h = card.offsetHeight;
-        card.style.top = Math.max(12, Math.min(r.top + r.height/2 - h/2, window.innerHeight - h - 12)) + "px";
+        const top = Math.max(12, Math.min(r.top + r.height/2 - h/2, window.innerHeight - h - 12));
+        card.style.top = top + "px";
+        const ar = card.querySelector(".tc-arrow"); if(ar) ar.style.top = (r.top + r.height/2 - top) + "px";
       }
     }else{
       card.style.left = "50%"; card.style.top = "50%"; card.style.transform = "translate(-50%,-50%)";
