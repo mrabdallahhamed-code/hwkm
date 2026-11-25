@@ -92,7 +92,47 @@ function resetIdleTimer(){
 });
 
 /* ══════════ ONBOARDING GUIDE ══════════ */
-function openOnboardingGuide(){ openM("m-onboarding"); }
+/* جولة الترحيب: خطوات قصيرة تقود العميل الجديد، وتتكيّف مع نوع الكيان. تظهر مرة واحدة وتُعاد من زر «❓». */
+let __obIdx = 0;
+function obSteps(){
+  const noBoard = currentCompanyType === "مؤسسة فردية" || currentCompanyLLCSingleManager || currentCompanyLLCSingleOwner;
+  const go1 = (page, label) => `<button type="button" class="btn btn-gold ob-go" onclick="closeOnboardingGuide();go('${page}',null)">${label}</button>`;
+  const first = noBoard
+    ? { t: "وثّق أول قرار", d: "سجّل قرارًا واحدًا بتاريخه ونصّه، ليبدأ سجلّك النظامي.", b: go1(currentCompanyLLCSingleManager ? "managerdecisions" : "ownerdecisions", "اذهب إلى القرارات") }
+    : { t: "أضف أعضاء المجلس", d: "ابدأ بأعضاء المجلس ومناصبهم، فعليهم تُبنى الاجتماعات والتصويت.", b: go1("members", "اذهب إلى الأعضاء") };
+  return [
+    { ic: "👋", h: "مرحبًا بك في حوكم", p: "منصة تساعدك على إدارة حوكمة شركتك في مكان واحد: الاجتماعات والقرارات والسياسات والمخاطر والتوقيع. هذه جولة قصيرة (دقيقة واحدة) لتعرف من أين تبدأ." },
+    { ic: "🧭", h: "القائمة الجانبية: ستة أقسام", html: `<div class="ob-list">
+      <div><span class="ico-i ico-calendar"></span><b>المجلس والاجتماعات</b><small>الاجتماعات والأعضاء واللجان والقرارات</small></div>
+      <div><span class="ico-i ico-handshake"></span><b>الجمعية العامة والمساهمون</b><small>الجمعيات والسجل والتصويت الإلكتروني</small></div>
+      <div><span class="ico-i ico-columns"></span><b>الحوكمة</b><small>السياسات والهيكل والصلاحيات والتقييمات</small></div>
+      <div><span class="ico-i ico-warning"></span><b>الرقابة</b><small>المخاطر والتدقيق الداخلي والالتزام</small></div>
+      <div><span class="ico-i ico-signature"></span><b>التوقيع والأرشفة</b><small>وثائق التوقيع الإلكتروني والأرشيف</small></div>
+      <div><span class="ico-i ico-briefcase"></span><b>الاستشارات</b><small>اطلب استشارة من فريقنا</small></div></div>
+      <p class="ob-tip">اضغط على اسم أي قسم فتظهر لك صفحاته على شكل بطاقات.</p>` },
+    { ic: "🚀", h: "ابدأ بثلاث خطوات", html: `<div class="ob-steps">
+      <div><span class="ob-n">1</span><div><b>${first.t}</b><small>${first.d}</small></div></div>
+      <div><span class="ob-n">2</span><div><b>أضف أول سياسة</b><small>سياسة واحدة تكفي للبداية، ثم تُرسل للاعتماد.</small></div></div>
+      <div><span class="ob-n">3</span><div><b>أرسل أول وثيقة للتوقيع</b><small>وقّع إلكترونيًا واحفظها في الأرشيف.</small></div></div></div>
+      <div class="ob-gos">${first.b}</div>` },
+    { ic: "💡", h: "نصائح سريعة", html: `<div class="ob-list">
+      <div><span class="ico-i ico-search"></span><b>البحث السريع</b><small>اضغط Ctrl+K (أو ⌘K) وابحث في كل المنصة.</small></div>
+      <div><span class="ico-i ico-dashboard"></span><b>لوحة التحكم</b><small>تعرض أهم المؤشرات والتنبيهات، وزر «عرض كل المؤشرات» يفتح الباقي.</small></div>
+      <div><span class="ico-i ico-message"></span><b>تحتاج مساعدة؟</b><small>زر «الدعم» في الأعلى يوصلك بفريقنا، وزر ❓ يعيد هذه الجولة.</small></div></div>` }
+  ];
+}
+function renderOnboarding(){
+  const st = obSteps(); __obIdx = Math.max(0, Math.min(st.length - 1, __obIdx)); const s = st[__obIdx];
+  const body = document.getElementById("obBody"); if(!body) return;
+  body.innerHTML = `<div class="ob-ic">${s.ic}</div><h2 class="ob-h">${s.h}</h2>${s.p ? `<p class="ob-p">${s.p}</p>` : ""}${s.html || ""}`;
+  document.getElementById("obDots").innerHTML = st.map((_, i) => `<i class="${i === __obIdx ? "on" : i < __obIdx ? "done" : ""}"></i>`).join("");
+  document.getElementById("obPrev").style.visibility = __obIdx === 0 ? "hidden" : "visible";
+  const last = __obIdx === st.length - 1;
+  const nx = document.getElementById("obNext"); nx.textContent = last ? "فهمت، ابدأ" : "التالي"; nx.onclick = last ? closeOnboardingGuide : () => obStep(1);
+  document.getElementById("obSkip").style.visibility = last ? "hidden" : "visible";
+}
+function obStep(d){ __obIdx += d; renderOnboarding(); }
+function openOnboardingGuide(){ __obIdx = 0; renderOnboarding(); openM("m-onboarding"); }
 async function closeOnboardingGuide(){
   closeM("m-onboarding");
   if(currentUserProfile && !currentUserProfile.onboarding_seen){

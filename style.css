@@ -1538,3 +1538,39 @@ td.empty-cell:before{content:"🗂️";display:block;font-size:30px;opacity:.55;
 .mt-btn.on{color:var(--gold3);background:rgba(180,146,63,.18)}
 @media(min-width:901px){.m-tabbar{display:none!important}}
 @media(max-width:900px){body.has-tabbar .main{padding-bottom:84px}body.has-tabbar .gov-toast{bottom:84px}body.has-tabbar #updateBanner{bottom:84px!important}}
+
+/* رسائل المنصة (بديل نافذة alert) */
+#msgToasts{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:100005;display:flex;flex-direction:column;gap:8px;width:min(460px,calc(100vw - 24px));pointer-events:none}
+.msg-toast{pointer-events:auto;display:flex;align-items:flex-start;gap:11px;background:#fff;color:var(--dark);border:1px solid #E7E2D3;border-right:5px solid #0D2E52;border-radius:12px;padding:12px 14px;box-shadow:0 10px 30px rgba(13,46,82,.22);font-size:14px;line-height:1.7;cursor:pointer;animation:msgIn .22s ease;white-space:pre-line}
+.msg-toast.out{opacity:0;transform:translateY(-8px);transition:all .2s}
+.msg-ic{flex:none;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;background:#0D2E52;margin-top:2px}
+.msg-ok{border-right-color:#1E8E5A}.msg-ok .msg-ic{background:#1E8E5A}
+.msg-err{border-right-color:#C0392B}.msg-err .msg-ic{background:#C0392B}
+.msg-warn{border-right-color:#B8972A}.msg-warn .msg-ic{background:#B8972A}
+@keyframes msgIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+.msg-dlg-bg{position:fixed;inset:0;z-index:100006;background:rgba(10,22,40,.5);display:flex;align-items:center;justify-content:center;padding:16px}
+.msg-dlg{background:#fff;border-radius:16px;border-top:5px solid #0D2E52;max-width:560px;width:100%;max-height:80vh;overflow:auto;padding:22px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+.msg-dlg.msg-err{border-top-color:#C0392B}.msg-dlg.msg-ok{border-top-color:#1E8E5A}.msg-dlg.msg-warn{border-top-color:#B8972A}
+.msg-dlg-tx{white-space:pre-line;font-size:14.5px;line-height:1.9;margin-bottom:16px}
+.msg-dlg .btn{width:100%}
+
+/* جولة الترحيب */
+.ob-dots{display:flex;gap:7px;justify-content:center;margin-bottom:14px}
+.ob-dots i{width:9px;height:9px;border-radius:50%;background:#E3DFD2;transition:all .2s}
+.ob-dots i.on{width:26px;border-radius:6px;background:var(--gold2)}
+.ob-dots i.done{background:var(--gold3)}
+.ob-ic{font-size:44px;text-align:center;margin-bottom:6px}
+.ob-h{font-size:22px;text-align:center;margin:0 0 10px;color:var(--dark)}
+.ob-p{font-size:15px;line-height:2;text-align:center;color:var(--gray3);margin:0 12px 6px}
+.ob-list{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.ob-list>div{display:grid;grid-template-columns:28px 1fr;grid-template-rows:auto auto;column-gap:12px;align-items:center;background:var(--offwhite);border-radius:12px;padding:10px 14px}
+.ob-list .ico-i{grid-row:1/3;width:22px;height:22px;color:var(--primary3)}
+.ob-list b{font-size:14.5px;color:var(--dark)}
+.ob-list small{font-size:12.5px;color:var(--gray3);line-height:1.6}
+.ob-tip{text-align:center;font-size:13px;color:var(--gray3);margin:6px 0 0}
+.ob-steps{display:flex;flex-direction:column;gap:10px;margin:14px 0}
+.ob-steps>div{display:flex;gap:14px;align-items:flex-start;background:var(--offwhite);border-radius:12px;padding:12px 14px}
+.ob-n{flex:none;width:30px;height:30px;border-radius:50%;background:var(--gold2);color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center}
+.ob-steps b{display:block;font-size:14.5px}.ob-steps small{font-size:12.5px;color:var(--gray3);line-height:1.6}
+.ob-gos{text-align:center;margin-top:4px}.ob-go{min-width:220px}
+.ob-foot{display:flex;align-items:center;gap:8px}
