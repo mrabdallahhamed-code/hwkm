@@ -901,6 +901,7 @@
     <span id="shareholdersPageTitle"><span class="ico-i ico-idcard"></span>سجل المساهمين</span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="openTransferModal()"><span class="ico-i ico-refresh"></span>نقل ملكية</button>
+      <button class="btn btn-ghost" id="shAssignNoticeBtn" style="font-size:11px;padding:6px 14px;display:none" onclick="openAssignNotice()">إخطار تنازل عن حصة (م178)</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px;color:var(--red)" onclick="deleteAllShareholders()"><span class="ico-i ico-trash"></span>حذف الكل</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:6px 14px" onclick="downloadShareholdersTemplate()"><span class="ico-i ico-inbox"></span>مسودة الإدخال</button>
       <div class="dd-wrap">
@@ -3701,6 +3702,18 @@
   </div>
 </div>
 
+<div class="modal-bg" id="m-assign-notice">
+  <div class="modal">
+    <div class="modal-title">إخطار تنازل عن حصة لغير الشركاء (م178)</div>
+    <div style="font-size:11.5px;color:var(--gray3);line-height:1.8;margin-bottom:10px">يبلّغ الشريكُ باقيَ الشركاء عن طريق مدير الشركة باسم المشتري وشروط البيع. ولكل شريك أن يطلب استرداد الحصة وسداد قيمتها، أو أن تشتريها الشركة، خلال <b>30 يومًا</b> من تاريخ إبلاغ المدير بالثمن. فإن انقضت المدة دون ذلك جاز التنازل للغير. لا يسري ذلك على الإرث والوصية وحكم الجهة القضائية.</div>
+    <div class="fg"><label>الشريك المتنازل</label><select class="fs" id="san-from"></select></div>
+    <div class="fg"><label>اسم المشتري / المتنازل له</label><input class="fi" id="san-buyer"/></div>
+    <div class="row2"><div class="fg"><label>عدد الحصص</label><input type="number" class="fi" id="san-shares"/></div><div class="fg"><label>الثمن (ريال)</label><input type="number" class="fi" id="san-price"/></div></div>
+    <div class="fg"><label>تاريخ إبلاغ المدير بالثمن</label><input type="date" class="fi" id="san-date"/></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-assign-notice')">إلغاء</button><button class="btn btn-gold" onclick="saveAssignNotice()">تسجيل الإخطار</button></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="m-security">
   <div class="modal">
     <div class="modal-title"><span class="ico-i ico-lock"></span>الأمان — التحقق بخطوتين</div>
@@ -4097,7 +4110,7 @@
 <script src="js/52-circulation-resolutions.js?v=3"></script>
 <script src="js/20-gap-report.js?v=1"></script>
 <script src="js/21-cr-verification.js?v=2"></script>
-<script src="js/22-dashboard-alerts.js?v=10"></script>
+<script src="js/22-dashboard-alerts.js?v=11"></script>
 <script src="js/23-support-export.js?v=1"></script>
 <script src="js/24-corrective-actions.js?v=1"></script>
 <script src="js/25-audit-services.js?v=2"></script>
@@ -4110,7 +4123,7 @@
 <script src="js/32-indicators-report.js?v=1"></script>
 <script src="js/33-calendar-whatsapp.js?v=1"></script>
 <script src="js/34-governance-approvals.js?v=1"></script>
-<script src="js/35-global-search-shareholders.js?v=3"></script>
+<script src="js/35-global-search-shareholders.js?v=4"></script>
 <script src="js/36-company-onboarding.js?v=1"></script>
 <script src="js/37-platform-owner.js?v=2"></script>
 <script src="js/38-platform-owner-companies.js?v=1"></script>

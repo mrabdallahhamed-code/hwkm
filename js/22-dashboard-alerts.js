@@ -527,6 +527,33 @@ async function computeGovernanceAlerts(){
       return alerts;
     },
     async () => { const alerts = [];
+    // 4h) الشركة ذات المسؤولية المحدودة: خلو منصب المدير الوحيد (م163: تعيين خلال 15 يومًا) وإخطارات التنازل عن الحصص (م178: استرداد خلال 30 يومًا)
+    try {
+      if(currentCompanyType === "ذات مسؤولية محدودة" && !currentCompanyLLCSingleOwner){
+        const today = new Date(new Date().toDateString());
+        if(currentCompanyLLCSingleManager){
+          const { data: mg } = await sb.from("board_members").select("status,term_end_date").eq("company_id", currentCompanyId);
+          const rows = mg || [], active = rows.filter(m => !/مستقيل|منتهي/.test(m.status || ""));
+          if(!active.length){
+            const ends = rows.map(m => m.term_end_date).filter(Boolean).sort();
+            if(ends.length){
+              const left = 15 - Math.floor((today - new Date(ends[ends.length - 1])) / 86400000);
+              alerts.push({ severity: "high", cta: "المديرون", page: "members", text: left >= 0 ? `منصب المدير شاغر؛ يجب على الشركاء تعيين مدير جديد خلال 15 يومًا من العلم بخلوه (م163) — متبقٍ ${left} يومًا، ولأي شريك أو لمراجع الحسابات دعوة الجمعية لتعيينه.` : `منصب المدير شاغر منذ أكثر من 15 يومًا؛ تجاوزت الشركة مهلة تعيين مدير جديد (م163). ادعُ الجمعية العامة لتعيينه.` });
+            } else if(rows.length){ alerts.push({ severity: "high", cta: "المديرون", page: "members", text: "لا يوجد مدير نشط مسجَّل؛ يجب تعيين مدير جديد خلال 15 يومًا من خلو المنصب (م163)." }); }
+          }
+        }
+        const { data: nts } = await sb.from("share_transfers").select("transfer_date,transfer_type,shares_count").eq("company_id", currentCompanyId).eq("transfer_type", "إخطار تنازل (حق الاسترداد)");
+        (nts || []).forEach(n => {
+          const end = new Date(String(n.transfer_date).slice(0,10) + "T00:00:00"); end.setDate(end.getDate() + 30);
+          const left = Math.ceil((end - today) / 86400000);
+          if(left > 0) alerts.push({ severity: "medium", cta: "سجل التحويلات", page: "shareholders", text: `إخطار تنازل عن ${Number(n.shares_count) || 0} حصة لغير الشركاء قائم، وحق الاسترداد للشركاء ينتهي بعد ${left} يومًا (م178).` });
+          else alerts.push({ severity: "medium", cta: "سجل التحويلات", page: "shareholders", text: "انقضت مدة الـ30 يومًا على إخطار تنازل عن حصة؛ أغلق الإخطار أو أتمم التنازل (م178)." });
+        });
+      }
+    } catch(e){ console.error("LLC alert check failed", e); }
+      return alerts;
+    },
+    async () => { const alerts = [];
     // 5) Board decisions past their target date with no completion yet
     try {
       const { data: decisions } = await sb.from("board_decisions").select("*").eq("company_id", currentCompanyId).not("target_date","is",null).not("status","eq","منجز");

@@ -991,6 +991,21 @@ function ok(name, cond, extra) {
   ok("سجل الإفصاحات يظهر لمساهمي المساهمة فقط، وبنود م87 كلها موجودة، وعنوان التقرير يذكر المادة 87",
      f28.shown && f28.hiddenLLC && f28.fields && f28.title87, f28);
 
+  /* ───────── مسار 29) المسؤولية المحدودة: إخطار التنازل (م178) ───────── */
+  console.log("مسار 29) إخطار التنازل عن حصة وحق الاسترداد");
+  const f29 = await pg.evaluate(async () => {
+    const res = {};
+    const d = n => { const x = new Date(); x.setDate(x.getDate() - n); return x.toISOString().slice(0, 10); };
+    res.open = assignNoticeState({ transfer_type: ASSIGN_NOTICE_OPEN, transfer_date: d(5) }).open === true;
+    res.expired = assignNoticeState({ transfer_type: ASSIGN_NOTICE_OPEN, transfer_date: d(31) }).open === false;
+    res.closed = /أُغلق/.test(assignNoticeState({ transfer_type: ASSIGN_NOTICE_CLOSED, transfer_date: d(1) }).text);
+    res.left = assignNoticeState({ transfer_type: ASSIGN_NOTICE_OPEN, transfer_date: d(5) }).left === 25;
+    res.ui = !!document.getElementById("m-assign-notice") && !!document.getElementById("shAssignNoticeBtn");
+    return res;
+  });
+  ok("إخطار التنازل: يبدأ بـ30 يومًا ويتناقص وينتهي ويُغلق، والواجهة موجودة",
+     f29.open && f29.expired && f29.closed && f29.left && f29.ui, f29);
+
   ok("لا أخطاء برمجية أثناء المسارات", errs.length === 0, errs);
   await browser.close();
   console.log(`\nالنتيجة: ${passed} نجح، ${failed} فشل`);

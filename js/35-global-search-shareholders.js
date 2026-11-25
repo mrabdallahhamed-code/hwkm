@@ -100,17 +100,62 @@ async function loadShareholders(){
   loadShareTransfers();
 }
 
+/* ══ م178: إخطار التنازل عن حصة لغير الشركاء في الشركة ذات المسؤولية المحدودة — حق استرداد خلال 30 يومًا ══
+   يُحفظ الإخطار في share_transfers بنوع «إخطار تنازل» (دون تغيير الأرصدة)، ويُغلق يدويًا أو ينتهي بمرور 30 يومًا. */
+const ASSIGN_NOTICE_OPEN = "إخطار تنازل (حق الاسترداد)";
+const ASSIGN_NOTICE_CLOSED = "إخطار تنازل (مغلق)";
+const ASSIGN_NOTICE_RE = /^إخطار تنازل/;
+function assignNoticeState(t){
+  if(t.transfer_type === ASSIGN_NOTICE_CLOSED) return { open: false, text: "أُغلق الإخطار" };
+  const end = new Date(String(t.transfer_date).slice(0,10) + "T00:00:00"); end.setDate(end.getDate() + 30);
+  const left = Math.ceil((end - new Date(new Date().toDateString())) / 86400000);
+  return left > 0 ? { open: true, left, text: `حق الاسترداد قائم — متبقٍ ${left} يومًا (ينتهي ${end.toISOString().slice(0,10)})` } : { open: false, left, text: "انقضت مدة الـ30 يومًا؛ يجوز التنازل للغير إن لم يُمارس الاسترداد" };
+}
+function openAssignNotice(){
+  const sel = document.getElementById("san-from");
+  sel.innerHTML = shareholdersCache.map(s => `<option value="${s.id}">${orgEsc(s.name)}</option>`).join("");
+  ["san-buyer","san-shares","san-price"].forEach(i => document.getElementById(i).value = "");
+  document.getElementById("san-date").value = new Date().toISOString().slice(0,10);
+  openM("m-assign-notice");
+}
+async function saveAssignNotice(){
+  const fromId = Number(document.getElementById("san-from").value), buyer = document.getElementById("san-buyer").value.trim();
+  const shares = Number(document.getElementById("san-shares").value), price = document.getElementById("san-price").value, date = document.getElementById("san-date").value;
+  if(!fromId || !buyer || !shares || shares <= 0 || !date){ alert("أكمل اسم الشريك والمشتري وعدد الحصص وتاريخ الإبلاغ."); return; }
+  const from = shareholdersCache.find(x => x.id === fromId);
+  if(from && (Number(from.shares_count) || 0) < shares){ alert(`"${from.name}" يملك ${from.shares_count} حصة فقط.`); return; }
+  const { error } = await sb.from("share_transfers").insert([{ company_id: currentCompanyId, from_shareholder_id: fromId, to_shareholder_id: null, shares_count: shares, transfer_type: ASSIGN_NOTICE_OPEN, transfer_date: date, notes: `المشتري: ${buyer}${price ? " | الثمن: " + Number(price).toLocaleString("ar-SA-u-ca-gregory") + " ريال" : ""}` }]);
+  if(error){ alert("تعذّر تسجيل الإخطار: " + error.message); return; }
+  logActivity("إنشاء", "إخطار تنازل عن حصة", from ? from.name : "", `إلى ${buyer} — ${shares} حصة`);
+  closeM("m-assign-notice"); loadShareTransfers();
+}
+async function closeAssignNotice(id){
+  if(!await uiConfirm("إغلاق الإخطار؟ (استُرد الحصة، أو انقضت المدة وتمت الإحالة)")) return;
+  await sb.from("share_transfers").update({ transfer_type: ASSIGN_NOTICE_CLOSED }).eq("id", id);
+  loadShareTransfers();
+}
+
 async function loadShareTransfers(){
+  const noticeBtn = document.getElementById("shAssignNoticeBtn");
+  if(noticeBtn) noticeBtn.style.display = currentCompanyType === "ذات مسؤولية محدودة" ? "" : "none";
   const tbody = document.getElementById("shareTransfersTbody");
   if(!tbody) return;
   const { data, error } = await sb.from("share_transfers").select("*").eq("company_id", currentCompanyId).order("transfer_date",{ascending:false});
   if(error){ tbody.innerHTML = errorRowHTML(6, error.message); return; }
   if(!data || data.length===0){ tbody.innerHTML = emptyRowHTML(6, "لا توجد تحويلات مسجّلة بعد."); return; }
   const nameOf = id => { const s = shareholdersCache.find(x=>x.id===id); return s ? s.name : (id ? "—" : "إصدار جديد"); };
-  tbody.innerHTML = data.map(t => `<tr>
-    <td>${t.transfer_date||"—"}</td><td>${nameOf(t.from_shareholder_id)}</td><td>${nameOf(t.to_shareholder_id)}</td>
-    <td>${(Number(t.shares_count)||0).toLocaleString('ar-SA-u-ca-gregory')}</td><td>${t.transfer_type||"—"}</td><td style="font-size:11px;color:var(--gray3)">${orgEsc(t.notes||"")}</td>
-  </tr>`).join("");
+  tbody.innerHTML = data.map(t => {
+    const isNotice = ASSIGN_NOTICE_RE.test(t.transfer_type || "");
+    let extra = "";
+    if(isNotice){
+      const st = assignNoticeState(t);
+      extra = `<div style="margin-top:4px;font-weight:700;color:${st.open ? "var(--orange)" : "var(--green)"}">${st.text}</div>` +
+        (t.transfer_type === ASSIGN_NOTICE_OPEN ? ` <button class="btn-xs primary" onclick="closeAssignNotice(${t.id})">إغلاق الإخطار</button>` : "");
+    }
+    return `<tr>
+    <td>${t.transfer_date||"—"}</td><td>${nameOf(t.from_shareholder_id)}</td><td>${isNotice ? "—" : nameOf(t.to_shareholder_id)}</td>
+    <td>${(Number(t.shares_count)||0).toLocaleString('ar-SA-u-ca-gregory')}</td><td>${t.transfer_type||"—"}</td><td style="font-size:11px;color:var(--gray3)">${orgEsc(t.notes||"")}${extra}</td>
+  </tr>`; }).join("");
 }
 
 function openNewShareholderModal(){
@@ -246,6 +291,17 @@ async function executeShareTransfer(){
   if(fromShareholder && (Number(fromShareholder.shares_count)||0) < shares){
     alert(`"${fromShareholder.name}" يملك ${fromShareholder.shares_count} سهم فقط — لا يمكن نقل ${shares} سهم.`);
     return;
+  }
+
+  /* م178/2: التنازل عن حصة لغير الشركاء في المسؤولية المحدودة يتطلب إخطارًا ومرور 30 يومًا دون استرداد (عدا الإرث) */
+  if(currentCompanyType === "ذات مسؤولية محدودة" && fromShareholder && toVal === "__new__" && !/إرث|تأسيس/.test(transfer_type)){
+    const { data: nts } = await sb.from("share_transfers").select("*").eq("company_id", currentCompanyId).eq("from_shareholder_id", fromShareholder.id).eq("transfer_type", ASSIGN_NOTICE_OPEN);
+    const ready = (nts || []).filter(n => !assignNoticeState(n).open);
+    if(!ready.length){
+      alert((nts && nts.length) ? "لا يجوز إتمام التنازل لغير الشركاء قبل انقضاء 30 يومًا على إبلاغ المدير (حق الاسترداد، م178). راجع الإخطار القائم في سجل التحويلات." : "التنازل عن حصة لغير الشركاء يتطلب أولًا تسجيل «إخطار تنازل» (زر «إخطار تنازل عن حصة») وانقضاء 30 يومًا على إبلاغ المدير دون أن يستردّها أحد الشركاء (م178).");
+      return;
+    }
+    await sb.from("share_transfers").update({ transfer_type: ASSIGN_NOTICE_CLOSED }).eq("id", ready[0].id);
   }
 
   let toId;
