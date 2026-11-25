@@ -508,6 +508,25 @@ async function computeGovernanceAlerts(){
       return alerts;
     },
     async () => { const alerts = [];
+    // 4g) الجمعية العادية السنوية خلال ستة أشهر من نهاية السنة المالية: م88 (المساهمة) وم165/2 (المسؤولية المحدودة بأكثر من مالك). نفترض السنة المالية = السنة الميلادية، كما في تقرير المنصة.
+    try {
+      const jsc = /مساهمة/.test(currentCompanyType || ""), llcMulti = currentCompanyType === "ذات مسؤولية محدودة" && !currentCompanyLLCSingleOwner;
+      if(jsc || llcMulti){
+        const { data: ms } = await sb.from("meetings").select("meeting_type,meeting_date,agm_type").eq("company_id", currentCompanyId).eq("meeting_type", "الجمعية العامة");
+        const now = new Date(), yr = now.getFullYear(), deadline = new Date(yr, 5, 30);
+        const isOrd = m => !/غير\s*عادية/.test(m.agm_type || "");
+        const inWin = (ms || []).filter(m => isOrd(m) && m.meeting_date && new Date(m.meeting_date) >= new Date(yr, 0, 1) && new Date(m.meeting_date) <= deadline);
+        const art = jsc ? "م88" : "م165/2";
+        if(!inWin.length){
+          const left = Math.ceil((deadline - now) / 86400000);
+          if(left < 0) alerts.push({ severity: "high", cta: "الجمعية العامة", page: "agm", text: `لم تنعقد الجمعية العادية السنوية خلال ستة أشهر من نهاية السنة المالية (انتهت المهلة في 30 يونيو)؛ ${art} من نظام الشركات يوجب انعقادها مرة على الأقل في السنة خلال هذه المدة.` });
+          else if(left <= 90) alerts.push({ severity: left <= 30 ? "high" : "medium", cta: "جدول جمعية", page: "agm", text: `لم تُجدول الجمعية العادية السنوية بعد، ومهلتها النظامية (${art}) تنتهي في 30 يونيو، أي بعد ${left} يومًا. تذكّر أن الدعوة قبل 21 يومًا.` });
+        }
+      }
+    } catch(e){ console.error("annual AGM alert check failed", e); }
+      return alerts;
+    },
+    async () => { const alerts = [];
     // 5) Board decisions past their target date with no completion yet
     try {
       const { data: decisions } = await sb.from("board_decisions").select("*").eq("company_id", currentCompanyId).not("target_date","is",null).not("status","eq","منجز");
