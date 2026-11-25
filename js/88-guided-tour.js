@@ -58,7 +58,7 @@ function hwkmTourInit(){
     const loggedIn = !!(typeof currentUserProfile !== "undefined" && currentUserProfile) && login && getComputedStyle(login).display === "none";
     const isOwner = loggedIn && currentUserProfile.is_platform_admin === true;
     let btn = document.getElementById("hwkmTourBtn");
-    if(!loggedIn || isOwner){ if(btn) btn.remove(); return; }
+    if(!loggedIn){ if(btn) btn.remove(); return; }
     if(!btn){
       btn = document.createElement("button"); btn.id = "hwkmTourBtn"; btn.type = "button";
       btn.title = "جولة إرشادية في المنصة"; btn.textContent = "؟ جولة";
@@ -67,7 +67,7 @@ function hwkmTourInit(){
       document.body.appendChild(btn);
     }
     let done = false; try{ done = localStorage.getItem(hwkmTourKey()) === "1"; }catch(e){ done = true; }
-    if(!done && !document.getElementById("hwkmTourBg") && !window.__hwkmTourAuto){
+    if(!done && !isOwner && !document.getElementById("hwkmTourBg") && !window.__hwkmTourAuto){
       window.__hwkmTourAuto = true;
       setTimeout(() => { if(!document.getElementById("hwkmTourBg")) startGuidedTour(); }, 2500);
     }
