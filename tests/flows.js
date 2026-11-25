@@ -47,14 +47,15 @@ function ok(name, cond, extra) {
 
     // 1) المدير ينشئ القرار بمرفق
     circOpenNew();
-    q("cn-title").value = "الموافقة على القوائم المالية"; q("cn-text").value = "الموافقة على القوائم المالية للسنة المنتهية";
+    q("cn-title").value = "الموافقة على سياسة المكافآت"; q("cn-text").value = "الموافقة على سياسة مكافآت أعضاء المجلس";
+    q("cn-chk-articles").checked = true; q("cn-chk-chair").checked = true;
     q("cn-kind").value = "عادية"; circSuggest();
     const dt = new DataTransfer(); dt.items.add(new File(["x"], "financials.pdf", { type: "application/pdf" })); q("cn-files").files = dt.files;
     await circCreate(); await settle();
     res.created = (__db.circulation_resolutions || []).length;
     const r0 = (__db.circulation_resolutions || [])[0] || {};
     res.status0 = r0.status; res.req = r0.required_pct; res.hasAttachment = Array.isArray(r0.attachments) && r0.attachments.length === 1;
-    res.listHasTitle = /الموافقة على القوائم المالية/.test(q("circBody").innerHTML);
+    res.listHasTitle = /الموافقة على سياسة المكافآت/.test(q("circBody").innerHTML);
     const id = r0.id;
     const as = (email, name, role) => { __fakeUser = { email }; currentUserProfile = { email, full_name: name, is_platform_admin: false }; userMemberships = [{ company_id: 1, role: role || "مساهم" }]; };
     const votes = () => (__db.circulation_votes || []).length;
@@ -101,7 +102,7 @@ function ok(name, cond, extra) {
     __fakeUser = { email: "admin@test.sa" }; currentUserProfile = { email: "admin@test.sa", is_platform_admin: false }; userMemberships = [{ company_id: 1, role: "مدير النظام" }];
     circTab = "الجمعية العامة"; circOpenNew();
     q("cn-title").value = "تعديل النظام الأساس"; q("cn-text").value = "تعديل النظام الأساس للشركة";
-    q("cn-kind").value = "غير عادية"; circSuggest();
+    q("cn-kind").value = "غير عادية"; circSuggest(); q("cn-chk-articles").checked = true; q("cn-chk-chair").checked = true;
     const dt = new DataTransfer(); dt.items.add(new File(["x"], "a.pdf")); q("cn-files").files = dt.files;
     const reqShown = Number(q("cn-req").value);
     await circCreate(); await settle();
@@ -917,6 +918,28 @@ function ok(name, cond, extra) {
     return res;
   });
   ok("الذكاء الصناعي معطّل افتراضيًا: غير المدير يُمنع برسالة، والمفعّل يمر، ونافذة التفعيل موجودة", f14.disabledBlocked && f14.alerted && f14.enabledPasses && f14.modalExists, f14);
+
+  /* ───────── مسار 25) فجوات نظام الشركات: التمرير والدعوة والإنابة والترجيح ───────── */
+  console.log("مسار 25) مواد نظام الشركات في المنصة");
+  const f25 = await pg.evaluate(async () => {
+    const res = {};
+    res.forbid = ["انتخاب أعضاء مجلس الإدارة","عزل عضو مجلس الإدارة","تعيين مراجع الحسابات","عزل مراجع الحسابات","مناقشة القوائم المالية","اعتماد القوائم المالية"].every(t => CIRC_FORBIDDEN_RE.test(t));
+    res.allowed = ["الموافقة على سياسة المكافآت","توزيع أرباح","تعديل مادة من النظام الأساس"].every(t => !CIRC_FORBIDDEN_RE.test(t));
+    res.topics = CIRC_TOPICS.length >= 5;
+    // مدرجة: موعد أقل من 21 يومًا يُمنع
+    currentCompanyId = 1; currentCompanyType = "مساهمة مدرجة";
+    let msg = ""; const oa = window.alert; window.alert = m => { msg = String(m); };
+    const mk = (id, val) => { let e = document.getElementById(id); if(e) e.value = val; };
+    mk("mt-title","جمعية"); mk("mt-type","الجمعية العامة");
+    const d = new Date(); d.setDate(d.getDate() + 10); mk("mt-date", d.toISOString().slice(0,10));
+    try { await saveMeeting(); } catch(e){}
+    window.alert = oa;
+    res.noticeBlocked = /21/.test(msg);
+    res.proxyFn = typeof attProxyToggle === "function";
+    return res;
+  });
+  ok("التمرير: المواضيع الممنوعة (م100) مرفوضة والمسموحة تمر، والدعوة أقل من 21 يومًا تُمنع للمدرجة، ودالة الإنابة موجودة",
+     f25.forbid && f25.allowed && f25.topics && f25.noticeBlocked && f25.proxyFn, f25);
 
   ok("لا أخطاء برمجية أثناء المسارات", errs.length === 0, errs);
   await browser.close();

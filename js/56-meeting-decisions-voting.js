@@ -63,9 +63,22 @@ async function loadMeetingDecisionsGrid(meetingId){
     const votes = (allVotes||[]).filter(v=>v.decision_id===d.id);
     const yes = votes.filter(v=>v.vote==="موافق").length, no = votes.filter(v=>v.vote==="معارض").length, abs = votes.filter(v=>v.vote==="ممتنع").length;
     const myVote = votes.find(v=>v.voter_email===myEmail);
+    let outcome = "";
+    if(!committeeId && votes.length){
+      /* م80/3: القرار بأغلبية أصوات الحاضرين، وعند التساوي يرجح الجانب الذي منه رئيس الاجتماع. */
+      const cast = votes.length, chair = eligibleVoters.find(v => v.position_level === "رئيس" && !/مستقيل|منتهي/.test(v.status || ""));
+      const chairVote = chair ? votes.find(v => v.voter_email === chair.claimed_by_email) : null;
+      if(yes * 2 > cast) outcome = '<span style="color:var(--green)">✅ حصل على أغلبية أصوات الحاضرين</span>';
+      else if(yes * 2 === cast){
+        if(chairVote && chairVote.vote === "موافق") outcome = '<span style="color:var(--green)">✅ تساوت الأصوات — رُجّح بصوت الرئيس (موافق)</span>';
+        else if(chairVote && chairVote.vote === "معارض") outcome = '<span style="color:var(--red)">❌ تساوت الأصوات — رُجّح بصوت الرئيس (معارض)</span>';
+        else outcome = '<span style="color:var(--orange)">⚖️ تساوت الأصوات — يُرجَّح بصوت الرئيس (م80)</span>';
+      } else outcome = '<span style="color:var(--red)">❌ لم يحصل على أغلبية أصوات الحاضرين</span>';
+    }
     return `<div class="decision-card">
       <div class="decision-text">${orgEsc(d.decision_text)}</div>
       <div class="decision-tally"><span class="yes"><span class="ico-i ico-check"></span>${yes}</span><span class="no"><span class="ico-i ico-xcircle"></span>${no}</span><span class="abs">➖ ${abs}</span></div>
+      ${outcome ? `<div style="font-size:11.5px;font-weight:800;margin:4px 0">${outcome}</div>` : ""}
       ${myVote
         ? `<div class="decision-myvote">صوّتك: ${myVote.vote} <button onclick="changeMeetingDecisionVote(${d.id})" style="background:none;border:none;color:var(--primary);text-decoration:underline;cursor:pointer;font-size:10px;margin-right:4px">تغيير</button></div>`
         : iAmEligible
@@ -171,6 +184,7 @@ async function submitInlineDecision(){
 }
 
 const ATTEND_STATUSES = ["حاضر","غائب","اعتذر"];
+function attProxyToggle(id){ const a=document.getElementById('att-'+id), p=document.getElementById('attp-'+id); if(a&&p) p.style.display = a.value==='إنابة' ? 'inline-block' : 'none'; }
 async function loadMeetingAttendanceSection(meetingId){
   const box = document.getElementById("mdView-attendance");
   if(!box) return;
@@ -202,17 +216,23 @@ async function loadMeetingAttendanceSection(meetingId){
   }
   const byMember = {};
   (existing||[]).forEach(a => { byMember[a.member_id] = a.status; });
-
+  /* الإنابة (م81/1): لا تجوز إلا بنص النظام الأساس، ولا ينوب العضو إلا عن عضو واحد. تُحفظ الحالة «إنابة:رقم_النائب». */
+  const proxyOf = st => { const x = /^إنابة:(\d+)$/.exec(st || ""); return x ? Number(x[1]) : null; };
   box.innerHTML = members.map(m => {
-    const current = byMember[m.id] || "";
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gray1)">
+    const cur = byMember[m.id] || "", px = proxyOf(cur);
+    const opts = members.filter(o => o.id !== m.id).map(o => `<option value="${o.id}" ${px===o.id?"selected":""}>${orgEsc(o.name||"")}</option>`).join("");
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid var(--gray1)">
       <span style="font-size:12px;font-weight:600">${orgEsc(m.name||"")}</span>
-      <select id="att-${m.id}" style="font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid var(--gray1)">
-        <option value="" ${!current?"selected":""}>—</option>
-        ${ATTEND_STATUSES.map(s => `<option value="${s}" ${current===s?"selected":""}>${s}</option>`).join("")}
+      <span style="display:flex;gap:6px;align-items:center">
+      <select id="att-${m.id}" onchange="attProxyToggle(${m.id})" style="font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid var(--gray1)">
+        <option value="" ${!cur?"selected":""}>—</option>
+        ${ATTEND_STATUSES.map(s => `<option value="${s}" ${cur===s?"selected":""}>${s}</option>`).join("")}
+        <option value="إنابة" ${px?"selected":""}>أناب عنه عضوًا</option>
       </select>
+      <select id="attp-${m.id}" title="العضو الذي ينوب عنه" style="font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid var(--gray1);display:${px?"inline-block":"none"}"><option value="">— النائب —</option>${opts}</select>
+      </span>
     </div>`;
-  }).join("");
+  }).join("") + '<div style="font-size:11px;color:var(--gray3);margin-top:8px;line-height:1.7">الإنابة لا تجوز إلا إذا نصّ عليها النظام الأساس للشركة، ولا ينوب العضو الواحد إلا عن عضو واحد (م81 من نظام الشركات).</div>';
 
   renderBoardQuorumWidget(members, existing||[]);
 }
@@ -225,7 +245,7 @@ async function renderBoardQuorumWidget(members, attendanceRecords){
 
   const { data: company } = await sb.from("companies").select("*").eq("id", currentCompanyId).single();
   const threshold = Number(company?.board_quorum_percentage ?? 50);
-  const presentCount = (attendanceRecords||[]).filter(a => a.status === "حاضر").length;
+  const presentCount = (attendanceRecords||[]).filter(a => a.status === "حاضر" || /^إنابة:\d+$/.test(a.status || "")).length;
   const totalCount = members.length;
   const pctPresent = totalCount ? (presentCount/totalCount)*100 : 0;
   const met = pctPresent >= threshold;
@@ -242,11 +262,31 @@ async function saveMeetingAttendance(){
   const { data: members } = await sb.from("board_members").select("id").eq("company_id", currentCompanyId);
   if(!members) return;
 
+  const rows = [], delegates = {};
   for(const m of members){
     const sel = document.getElementById("att-"+m.id);
     if(!sel || !sel.value) continue;
-    await sb.from("meeting_attendance").delete().eq("meeting_id", meetingId).eq("member_id", m.id);
-    await sb.from("meeting_attendance").insert([{ meeting_id: meetingId, member_id: m.id, status: sel.value, company_id: currentCompanyId }]);
+    let status = sel.value;
+    if(status === "إنابة"){
+      const pSel = document.getElementById("attp-"+m.id), pid = pSel ? Number(pSel.value) : 0;
+      if(!pid){ alert("اختر العضو الذي ينوب عن العضو الغائب."); return; }
+      if(delegates[pid]){ alert("لا يجوز أن ينوب العضو الواحد عن أكثر من عضو (م81 من نظام الشركات)."); return; }
+      delegates[pid] = m.id;
+      status = "إنابة:" + pid;
+    }
+    rows.push({ m, status });
+  }
+  for(const r of rows){
+    const ps = /^إنابة:(\d+)$/.exec(r.status);
+    if(ps){
+      const pel = document.getElementById("att-"+ps[1]);
+      if(!pel || pel.value !== "حاضر"){ alert("النائب يجب أن يكون حاضرًا في الاجتماع، ولا يجوز أن يكون هو نفسه منيبًا غيره."); return; }
+    }
+  }
+  if(rows.some(r => /^إنابة:/.test(r.status)) && !await uiConfirm("هل ينص النظام الأساسي للشركة على جواز إنابة عضو لعضو آخر؟ (الإنابة لا تجوز إلا بنص النظام الأساس)")) return;
+  for(const r of rows){
+    await sb.from("meeting_attendance").delete().eq("meeting_id", meetingId).eq("member_id", r.m.id);
+    await sb.from("meeting_attendance").insert([{ meeting_id: meetingId, member_id: r.m.id, status: r.status, company_id: currentCompanyId }]);
   }
   alert("تم حفظ الحضور ✅");
   loadMeetingAttendanceSection(meetingId);

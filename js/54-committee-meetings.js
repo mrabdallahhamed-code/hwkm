@@ -119,6 +119,15 @@ async function saveMeeting(){
   const meeting_link = document.getElementById("mt-link").value.trim();
   const notes = document.getElementById("mt-notes").value.trim();
   if(!title){ alert("الرجاء إدخال عنوان الاجتماع"); return; }
+  /* م91/1: تُوجَّه الدعوة لحضور الجمعية قبل 21 يومًا على الأقل من موعدها.
+     م91/3: يستثنى من ذلك اجتماع يعقده ملاك كل أسهم التصويت في الشركة المساهمة غير المدرجة. */
+  if(meeting_type === "الجمعية العامة" && meeting_date && /مساهمة/.test(currentCompanyType || "")){
+    const days = Math.ceil((new Date(meeting_date + "T00:00:00") - new Date(new Date().toDateString())) / 86400000);
+    if(days < 21){
+      if(currentCompanyType === "مساهمة مدرجة"){ alert(`موعد الجمعية بعد ${Math.max(days,0)} يومًا فقط. نظام الشركات (م91) يوجب دعوة المساهمين قبل 21 يومًا على الأقل من الموعد؛ اختر موعدًا لا يقل عن 21 يومًا من اليوم.`); return; }
+      if(!await uiConfirm(`موعد الجمعية بعد ${Math.max(days,0)} يومًا فقط، والنظام (م91) يوجب 21 يومًا على الأقل. يُستثنى فقط أن يوافق جميع المساهمين على الانعقاد قبل المدة. هل وافق جميع المساهمين؟`)) return;
+    }
+  }
 
   const votingStartRaw = document.getElementById("mt-voting-start").value;
   const votingEndRaw = document.getElementById("mt-voting-end").value;

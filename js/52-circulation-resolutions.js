@@ -5,6 +5,9 @@
    writing for a meeting to discuss it, it is not decided by circulation and goes to the next board meeting.
    Votes are written once and cannot be edited or deleted (enforced by the database). */
 let circTab = "الجمعية العامة";
+/* م100/1 من نظام الشركات: لا يصح بالتمرير انتخاب أعضاء المجلس أو عزلهم، ولا تعيين مراجع الحسابات أو عزله، ولا مناقشة القوائم المالية. */
+const CIRC_FORBIDDEN_RE = /(انتخاب|عزل|إعفاء|ترشيح|تعيين|إعادة\s*تعيين)[^.\n]{0,30}(أعضاء|عضو)[^.\n]{0,12}(المجلس|مجلس)|(تعيين|عزل|إعفاء|تغيير|إعادة\s*تعيين)[^.\n]{0,20}(مراجع|مراجعي)[^.\n]{0,10}(الحسابات|حسابات)|(مناقشة|اعتماد|المصادقة|الموافقة)[^.\n]{0,12}(على\s*)?(ال)?قوائم\s*(ال)?مالية/;
+const CIRC_TOPICS = ["الموافقة على أعمال وعقود تُبرم مع أطراف ذوي علاقة","توزيع أرباح أو تحديد موعد توزيعها","تعديل مادة من النظام الأساس","زيادة رأس المال أو تخفيضه","تمديد مدة الشركة أو حلها قبل أجلها","الاندماج أو التقسيم","تحويل الشركة أو تغيير شكلها","الموافقة على سياسة أو لائحة","موضوع آخر (يحدده رئيس المجلس)"];
 function circIsJSC(){ return /مساهمة/.test(currentCompanyType || ""); }
 function circIsListed(){ return currentCompanyType === "مساهمة مدرجة"; }
 function circCanPrint(){ const r = getCurrentRole(); return (currentUserProfile && currentUserProfile.is_platform_admin === true) || r === "مدير النظام" || ["سكرتير المجلس","سكرتير مجلس"].includes(r); }
@@ -178,6 +181,10 @@ function circOpenNew(){
       <div class="fg"><label>نص القرار</label><textarea class="fta" id="cn-text" rows="4" oninput="circSuggest()"></textarea></div>
       <div id="cn-board-fields" class="fg" style="display:none"><label>سبب الاستعجال (يجوز التمرير في الأمور العاجلة فقط)</label><textarea class="fta" id="cn-urgent" rows="2"></textarea></div>
       <div id="cn-agm-fields">
+        <div class="fg"><label>موضوع القرار</label><select class="fs" id="cn-topic" onchange="circSuggest()">${CIRC_TOPICS.map(t => `<option>${t}</option>`).join("")}</select>
+          <div style="font-size:11px;color:var(--gray3);margin-top:4px;line-height:1.7">لا يصح التمرير في: انتخاب أعضاء المجلس أو عزلهم، وتعيين مراجع الحسابات أو عزله، ومناقشة القوائم المالية (م100).</div></div>
+        <div class="fg"><label style="font-size:12px;display:block"><input type="checkbox" id="cn-chk-articles"> النظام الأساس للشركة يجيز قرارات المساهمين بالتمرير</label>
+          <label style="font-size:12px;display:block;margin-top:4px"><input type="checkbox" id="cn-chk-chair"> هذا الاقتراح مقدَّم من رئيس مجلس الإدارة</label></div>
         <div class="row2"><div class="fg"><label>نوع الجمعية</label><select class="fs" id="cn-kind" onchange="circSuggest()"><option>عادية</option><option>غير عادية</option></select></div>
         <div class="fg"><label style="display:block">قرار خاص (٧٥%)</label><label style="font-size:12px"><input type="checkbox" id="cn-special" onchange="circSuggest()"> زيادة/تخفيض رأس المال، تمديد المدة، حل، اندماج، تقسيم</label></div></div>
       </div>
@@ -195,6 +202,7 @@ function circOpenNew(){
   ["cn-title","cn-text","cn-deadline"].forEach(i => document.getElementById(i).value = "");
   { const f = document.getElementById("cn-files"); if(f) f.value = ""; }
   document.getElementById("cn-special").checked = false;
+  { const c1 = document.getElementById("cn-chk-articles"), c2 = document.getElementById("cn-chk-chair"); if(c1) c1.checked = false; if(c2) c2.checked = false; const t = document.getElementById("cn-topic"); if(t) t.selectedIndex = 0; }
   circSuggest(true);
   m.classList.add("open");
 }
@@ -242,13 +250,16 @@ async function circCreate(){
   if(!isAgm && !urgent){ alert("اكتب سبب الاستعجال: قرارات المجلس بالتمرير تجوز في الأمور العاجلة فقط."); return; }
   if(!isAgm && req < 50){ alert("لا يجوز أن تقل النسبة عن أغلبية أصوات الأعضاء (50%)."); return; }
   if(isAgm && req < (kind === "غير عادية" ? 75 : 50)){ alert("النسبة أقل من الحد النظامي لقرار التمرير."); return; }
+  if(isAgm && CIRC_FORBIDDEN_RE.test(title + " " + text)){ alert("لا يصح هذا الموضوع بالتمرير: نظام الشركات (م100) يمنع التمرير في انتخاب أعضاء المجلس وعزلهم، وتعيين مراجع الحسابات وعزله، ومناقشة القوائم المالية. تُعرض هذه المواضيع على اجتماع الجمعية."); return; }
+  if(isAgm && !(document.getElementById("cn-chk-articles") || {}).checked){ alert("قرار المساهمين بالتمرير لا يصح إلا إذا أجازه النظام الأساس للشركة. أكّد ذلك أولًا."); return; }
+  if(isAgm && !(document.getElementById("cn-chk-chair") || {}).checked){ alert("يقترح قرارَ التمرير رئيسُ مجلس الإدارة (م100). أكّد أن الاقتراح مقدَّم منه."); return; }
   if(isAgm && circIsListed()){ alert("قرارات التمرير للجمعية العامة لا تُتاح للشركات المدرجة."); return; }
   const filesInput = document.getElementById("cn-files");
   if(!filesInput || !filesInput.files || !filesInput.files.length){ alert("المستند المرفق إلزامي: أرفق الملف الذي يشرح موضوع القرار ليطّلع عليه المصوّتون."); return; }
   const attachments = await circUploadFiles(filesInput);
   if(!attachments) return;
   const { data: u } = await sb.auth.getUser();
-  const { error } = await sb.from("circulation_resolutions").insert([{ company_id: currentCompanyId, body: circTab, kind, title, attachments, resolution_text: (urgent ? "سبب الاستعجال: " + urgent + "\n\n" : "") + text,
+  const { error } = await sb.from("circulation_resolutions").insert([{ company_id: currentCompanyId, body: circTab, kind, title, attachments, resolution_text: (urgent ? "سبب الاستعجال: " + urgent + "\n\n" : "") + (isAgm ? "موضوع القرار: " + document.getElementById("cn-topic").value + "\n\n" : "") + text,
     special_matter: isAgm && document.getElementById("cn-special").checked, required_pct: req, deadline: dl ? new Date(dl).toISOString() : null, created_by: u && u.user ? u.user.email : null }]);
   if(error){ alert("تعذّر الإنشاء: " + error.message); return; }
   logActivity("إنشاء", "قرار تمرير", title, circTab);

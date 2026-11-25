@@ -367,6 +367,35 @@ async function computeGovernanceAlerts(){
       return alerts;
     },
     async () => { const alerts = [];
+    // 4e) Companies Law checks for a joint-stock company: board size (م67), board term (م68), 4 meetings a year (م80), registering extraordinary-AGM resolutions within 15 days (م93)
+    try {
+      if(/مساهمة/.test(currentCompanyType || "")){
+        const [bmR, trR, mtR] = await Promise.all([
+          sb.from("board_members").select("id,status").eq("company_id", currentCompanyId),
+          sb.from("board_terms").select("term_start,status").eq("company_id", currentCompanyId).order("term_start", { ascending: false }),
+          sb.from("meetings").select("meeting_type,meeting_date,agm_type,title").eq("company_id", currentCompanyId)
+        ]);
+        const now = new Date(), today = new Date(now.toDateString());
+        const active = (bmR.data || []).filter(m => !/مستقيل|منتهي/.test(m.status || ""));
+        if(active.length && active.length < 3) alerts.push({ severity: "high", cta: "راجع الأعضاء", page: "members", text: `عدد أعضاء المجلس ${active.length} فقط، والنظام (م67) يوجب ثلاثة أعضاء على الأقل.` });
+        const term = (trR.data || []).find(t => t.status === "نشطة") || (trR.data || [])[0];
+        if(term && term.term_start){
+          const end = new Date(term.term_start); end.setFullYear(end.getFullYear() + 4);
+          const left = Math.ceil((end - today) / 86400000);
+          if(left < 0) alerts.push({ severity: "high", cta: "دورة المجلس", page: "members", text: `مضت على دورة المجلس الحالية أكثر من 4 سنوات؛ والنظام (م68) لا يجيز مدة عضوية أطول من أربع سنوات.` });
+          else if(left <= 180) alerts.push({ severity: "medium", cta: "دورة المجلس", page: "members", text: `تنتهي أقصى مدة لدورة المجلس (4 سنوات، م68) خلال ${left} يومًا تقريبًا؛ رتّب انتخاب المجلس في الجمعية العامة.` });
+        }
+        const mts = mtR.data || [], yr = now.getFullYear();
+        const boardThisYear = mts.filter(m => (m.meeting_type === "اجتماع مجلس الإدارة الدوري" || m.meeting_type === "اجتماع طارئ") && m.meeting_date && new Date(m.meeting_date).getFullYear() === yr);
+        const held = boardThisYear.filter(m => new Date(m.meeting_date) <= today).length;
+        if(boardThisYear.length < 4 && now.getMonth() >= 6) alerts.push({ severity: now.getMonth() >= 9 ? "high" : "medium", cta: "جدول اجتماعًا", page: "meetings", text: `اجتماعات المجلس هذه السنة: ${held} منعقدة من ${boardThisYear.length} مسجَّلة، والنظام (م80) يوجب أربعة اجتماعات على الأقل في السنة.` });
+        const ext = mts.filter(m => m.meeting_type === "الجمعية العامة" && /غير\s*عادية/.test(m.agm_type || "") && m.meeting_date).map(m => ({ m, d: Math.floor((today - new Date(m.meeting_date)) / 86400000) })).filter(x => x.d >= 0 && x.d <= 15);
+        ext.forEach(x => alerts.push({ severity: x.d >= 10 ? "high" : "medium", cta: "الجمعية العامة", page: "agm", text: `انعقدت الجمعية غير العادية «${x.m.title || ""}» قبل ${x.d} يومًا؛ يلزم قيد القرارات التي يوجب النظام قيدها في السجل التجاري خلال 15 يومًا (م93) — متبقٍ ${15 - x.d} يومًا.` }));
+      }
+    } catch(e){ console.error("companies-law alert check failed", e); }
+      return alerts;
+    },
+    async () => { const alerts = [];
     // 5) Board decisions past their target date with no completion yet
     try {
       const { data: decisions } = await sb.from("board_decisions").select("*").eq("company_id", currentCompanyId).not("target_date","is",null).not("status","eq","منجز");
