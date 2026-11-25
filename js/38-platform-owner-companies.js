@@ -404,7 +404,7 @@ async function approveCompanyRequest(requestId){
         <h2 style="color:#1A3A6B">🎉 تهانينا! تمت الموافقة على طلبك</h2>
         <p>تم إنشاء شركة <b>${orgEsc(newCompany.name)}</b> على منصة حوكم، وربطك بها كمدير نظام.</p>
         ${isTrial ? `<p>لديك فترة تجريبية لمدة <b>${trialDays} يوم</b> — كل الوحدات مفتوحة خلالها.</p>` : ""}
-        <p>يمكنك الآن تسجيل الدخول من <a href="https://my.hwkm.net">my.hwkm.net</a> بنفس بريدك الإلكتروني وكلمة المرور اللي سجّلت فيهم.</p>
+        <p>يمكنك الآن تسجيل الدخول من <a href="https://app.hwkm.net">app.hwkm.net</a> بنفس بريدك الإلكتروني وكلمة المرور اللي سجّلت فيهم.</p>
         <p style="color:#8B95A5;font-size:12px;margin-top:20px">هذه رسالة تلقائية من منصّة حوكم.</p>
       </div>`;
     await sendNotificationEmail(r.requested_by_email, subject, html);
