@@ -13,7 +13,7 @@ async function loadAudit(){
     sb.from("audit_requests").select("*").eq("company_id", currentCompanyId).order("created_at",{ascending:false})
   ]);
 
-  if(svcErr){ grid.innerHTML = `<div style="color:var(--red);font-size:12px;grid-column:1/-1">${svcErr.message}</div>`; }
+  if(svcErr){ grid.innerHTML = `<div style="color:var(--red);font-size:12px;grid-column:1/-1">${orgEsc(svcErr.message)}</div>`; }
   else if(!services || services.length===0){ grid.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">لا توجد خدمات متاحة حاليًا.</div>'; }
   else {
     grid.innerHTML = services.map(s => `<div class="card" style="margin:0;display:flex;flex-direction:column">
@@ -26,7 +26,7 @@ async function loadAudit(){
     </div>`).join("");
   }
 
-  if(reqErr){ tbody.innerHTML = `<tr><td colspan="5" style="color:var(--red);font-size:12px">${reqErr.message}</td></tr>`; return; }
+  if(reqErr){ tbody.innerHTML = `<tr><td colspan="5" style="color:var(--red);font-size:12px">${orgEsc(reqErr.message)}</td></tr>`; return; }
   if(!requests || requests.length===0){ tbody.innerHTML = '<tr><td colspan="5" class="empty-cell">لا توجد طلبات بعد.</td></tr>'; return; }
   const svcNameById = {}; (services||[]).forEach(s=>{ svcNameById[s.id]=s.name; });
   tbody.innerHTML = requests.map(r => {

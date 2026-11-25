@@ -14,7 +14,7 @@ async function loadArchive(){
   const { data, error } = await sb.from("archive_documents").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
   if(error){
     const grid = document.getElementById("archiveDocsGrid");
-    if(grid) grid.innerHTML = `<div style="color:var(--red);font-size:12px;padding:14px">تعذّر التحميل: ${error.message}</div>`;
+    if(grid) grid.innerHTML = `<div style="color:var(--red);font-size:12px;padding:14px">تعذّر التحميل: ${orgEsc(error.message)}</div>`;
     return;
   }
   archiveDocsCache = data || [];

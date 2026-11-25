@@ -287,7 +287,7 @@ async function loadMeetingTopics(meetingId){
 
   const { data, error } = await sb.from("vote_topics").select("*").eq("meeting_id", meetingId)
     .order("sort_order",{ascending:true}).order("id",{ascending:true});
-  if(error){ box.innerHTML = `<div style="color:var(--red);font-size:11px">تعذّر التحميل: ${error.message}</div>`; return; }
+  if(error){ box.innerHTML = `<div style="color:var(--red);font-size:11px">تعذّر التحميل: ${orgEsc(error.message)}</div>`; return; }
   if(!data || data.length === 0){
     box.innerHTML = '<div style="font-size:11px;color:var(--gray3);padding:6px 0">لا توجد بنود مضافة بعد.</div>';
     return;

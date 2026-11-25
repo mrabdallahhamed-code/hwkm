@@ -99,7 +99,7 @@ async function loadManageCompanies(){
   const box = document.getElementById("manageCompaniesList");
   if(!box) return;
   const { data, error } = await sb.from("companies").select("*").order("id",{ascending:false});
-  if(error){ box.innerHTML = `<div style="color:var(--red);font-size:12px">${error.message}</div>`; return; }
+  if(error){ box.innerHTML = `<div style="color:var(--red);font-size:12px">${orgEsc(error.message)}</div>`; return; }
   if(!data || data.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">لا توجد شركات بعد.</div>'; return; }
 
   manageCompaniesCache = data;
@@ -275,7 +275,7 @@ async function loadCompanyRequestsReview(){
   const historyBox = document.getElementById("companyRequestsHistoryTbody");
   if(!pendingBox) return;
   const { data, error } = await sb.from("company_requests").select("*").order("id",{ascending:false});
-  if(error){ pendingBox.innerHTML = `<div style="color:var(--red);font-size:12px">${error.message}</div>`; return; }
+  if(error){ pendingBox.innerHTML = `<div style="color:var(--red);font-size:12px">${orgEsc(error.message)}</div>`; return; }
 
   const isFullOwner = currentUserProfile && currentUserProfile.is_platform_admin === true;
   const pending = (data||[]).filter(r => r.status === "قيد المراجعة");

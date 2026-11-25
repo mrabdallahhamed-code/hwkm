@@ -39,7 +39,7 @@ async function loadAnnouncementsPageList(){
   }
   const { data, error } = await sb.from("tadawul_announcements").select("*, meetings(title,meeting_date)")
     .eq("company_id", currentCompanyId).order("created_at",{ascending:false});
-  if(error){ box.innerHTML = `<div style="color:var(--red);font-size:12px">${error.message}</div>`; return; }
+  if(error){ box.innerHTML = `<div style="color:var(--red);font-size:12px">${orgEsc(error.message)}</div>`; return; }
   if(!data || data.length===0){ box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px">لا توجد إعلانات مولَّدة بعد.</div>'; return; }
   box.innerHTML = data.map(a => {
     const isListedCo = currentCompanyType === "مساهمة مدرجة";

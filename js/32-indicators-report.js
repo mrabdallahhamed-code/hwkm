@@ -360,7 +360,7 @@ async function loadIndicatorsReport(){
   const pdfBtn = document.getElementById("indicatorsPdfBtn");
   if(pdfBtn) pdfBtn.style.display = isFullAccessRole(getCurrentRole()) ? "inline-block" : "none";
   const { data, error } = await sb.from("ceo_monthly_reports").select("*").eq("company_id", currentCompanyId).order("created_at",{ascending:false}).limit(1);
-  if(error){ box.innerHTML = `<div style="color:var(--red);font-size:12px">تعذّر التحميل: ${error.message}</div>`; return; }
+  if(error){ box.innerHTML = `<div style="color:var(--red);font-size:12px">تعذّر التحميل: ${orgEsc(error.message)}</div>`; return; }
   if(!data || data.length===0){
     box.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:30px">لا توجد بيانات مستوردة بعد. نزّل النموذج وابدأ.</div>';
     return;

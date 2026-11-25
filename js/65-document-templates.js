@@ -17,7 +17,7 @@ async function loadDocumentTemplates(){
 
   const box = document.getElementById("docTemplatesList");
   const { data, error } = await sb.from("document_templates").select("*").eq("company_id", currentCompanyId);
-  if(error){ if(box) box.innerHTML = `<div style="color:var(--red);font-size:12px">تعذّر التحميل: ${error.message}</div>`; return; }
+  if(error){ if(box) box.innerHTML = `<div style="color:var(--red);font-size:12px">تعذّر التحميل: ${orgEsc(error.message)}</div>`; return; }
   docTemplatesCache = {};
   (data||[]).forEach(t => { docTemplatesCache[t.template_key] = t; });
   if(!box) return;

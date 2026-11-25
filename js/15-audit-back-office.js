@@ -42,7 +42,7 @@ async function loadAuditAdmin(){
     sb.from("companies").select("id,name"),
     sb.from("audit_service_types").select("id,name")
   ]);
-  if(error){ tbody.innerHTML = `<tr><td colspan="7" style="color:var(--red);font-size:12px">${error.message}</td></tr>`; return; }
+  if(error){ tbody.innerHTML = `<tr><td colspan="7" style="color:var(--red);font-size:12px">${orgEsc(error.message)}</td></tr>`; return; }
   if(!requests || requests.length===0){ tbody.innerHTML = '<tr><td colspan="7" class="empty-cell">لا توجد طلبات بعد.</td></tr>'; return; }
 
   const companyNameById = {}; (companies||[]).forEach(c=>{ companyNameById[c.id]=c.name; });
@@ -439,7 +439,7 @@ async function loadAuditServiceTypesAdmin(){
   const box = document.getElementById("auditServicesAdminList");
   if(!box) return;
   const { data, error } = await sb.from("audit_service_types").select("*").order("id",{ascending:true});
-  if(error){ box.innerHTML = `<div style="color:var(--red);font-size:12px">${error.message}</div>`; return; }
+  if(error){ box.innerHTML = `<div style="color:var(--red);font-size:12px">${orgEsc(error.message)}</div>`; return; }
   if(!data || data.length===0){ box.innerHTML = '<div style="font-size:11px;color:var(--gray3)">لا توجد خدمات بعد.</div>'; return; }
   box.innerHTML = data.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--gray1)">
     <span style="font-size:12px">${orgEsc(s.name)}</span>

@@ -148,7 +148,7 @@ async function loadUsers(){
     return;
   }
   const { data: memberships, error } = await sb.from("user_company_memberships").select("*").eq("company_id", currentCompanyId).order("id",{ascending:true});
-  if(error){ grid.innerHTML = `<div style="color:var(--red);font-size:12px;padding:20px;grid-column:1/-1">تعذّر التحميل: ${error.message}</div>`; return; }
+  if(error){ grid.innerHTML = `<div style="color:var(--red);font-size:12px;padding:20px;grid-column:1/-1">تعذّر التحميل: ${orgEsc(error.message)}</div>`; return; }
   if(!memberships || memberships.length===0){ grid.innerHTML = '<div style="text-align:center;color:var(--gray3);font-size:12px;padding:20px;grid-column:1/-1">لا يوجد أعضاء بالفريق بعد — استخدم "🔗 دعوة عضو جديد" لإضافة أول عضو.</div>'; return; }
 
   const emails = memberships.map(m => m.email);

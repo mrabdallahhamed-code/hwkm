@@ -558,7 +558,7 @@ async function loadGovAssessments(){
   if(!tbody) return;
   loadGaTracker();
   const { data, error } = await sb.from("governance_assessments").select("*").eq("company_id", currentCompanyId).order("created_at",{ascending:false});
-  if(error){ tbody.innerHTML = `<tr><td colspan="6" style="color:var(--red);font-size:12px;padding:14px">تعذّر التحميل: ${error.message}</td></tr>`; return; }
+  if(error){ tbody.innerHTML = `<tr><td colspan="6" style="color:var(--red);font-size:12px;padding:14px">تعذّر التحميل: ${orgEsc(error.message)}</td></tr>`; return; }
   if(!data || data.length===0){ tbody.innerHTML = '<tr><td colspan="6" class="empty-cell">لا توجد تقييمات بعد.</td></tr>'; return; }
 
   tbody.innerHTML = data.map(a => {

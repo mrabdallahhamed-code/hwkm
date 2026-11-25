@@ -11,7 +11,7 @@ async function loadSigning(){
 
   const { data: docs, error } = await sb.from("signing_documents").select("*").eq("company_id", currentCompanyId).order("id",{ascending:false});
   if(error){
-    if(actionBox) actionBox.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--red);font-size:12px;padding:20px">${error.message}</div>`;
+    if(actionBox) actionBox.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--red);font-size:12px;padding:20px">${orgEsc(error.message)}</div>`;
     if(archiveTbody) archiveTbody.innerHTML = errorRowHTML(6, error.message);
     return;
   }

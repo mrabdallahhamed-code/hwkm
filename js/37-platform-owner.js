@@ -6,7 +6,7 @@ async function loadPlatformDashboard(){
   if(!grid) return;
 
   const { data: companies, error } = await sb.from("companies").select("*");
-  if(error){ grid.innerHTML = `<div style="color:var(--red);font-size:12px">${error.message}</div>`; return; }
+  if(error){ grid.innerHTML = `<div style="color:var(--red);font-size:12px">${orgEsc(error.message)}</div>`; return; }
   const all = companies || [];
   const upd = document.getElementById("pdUpdated"); if(upd) upd.textContent = "آخر تحديث: " + new Date().toLocaleTimeString("ar-SA-u-ca-gregory",{hour:"2-digit",minute:"2-digit"});
 
@@ -172,7 +172,7 @@ async function loadPlatformTeam(){
   const tbody = document.getElementById("platformTeamTbody");
   if(!tbody) return;
   const { data, error } = await sb.from("user_profiles").select("*").not("platform_team_module","is",null);
-  if(error){ tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red);font-size:12px">${error.message}</td></tr>`; return; }
+  if(error){ tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red);font-size:12px">${orgEsc(error.message)}</td></tr>`; return; }
   if(!data || data.length===0){ tbody.innerHTML = '<tr><td colspan="4" class="empty-cell">لا يوجد فريق منصة معيّن بعد.</td></tr>'; return; }
   tbody.innerHTML = data.map(u => `<tr>
     <td>${orgEsc(u.full_name||"—")}</td><td style="font-size:11px">${orgEsc(u.email)}</td>
@@ -230,7 +230,7 @@ async function loadPlatformUsers(){
     sb.from("companies").select("id,name"),
     sb.from("user_profiles").select("email,full_name")
   ]);
-  if(error){ tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red);font-size:12px">${error.message}</td></tr>`; return; }
+  if(error){ tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red);font-size:12px">${orgEsc(error.message)}</td></tr>`; return; }
   if(!memberships || memberships.length===0){ tbody.innerHTML = '<tr><td colspan="4" class="empty-cell">لا يوجد أعضاء بعد.</td></tr>'; return; }
 
   const companyNameById = {}; (companies||[]).forEach(c=>{ companyNameById[c.id]=c.name; });
@@ -293,7 +293,7 @@ async function loadPlatformActivity(){
     sb.from("activity_log").select("*").order("created_at",{ascending:false}).limit(300),
     sb.from("companies").select("id,name")
   ]);
-  if(error){ tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red);font-size:12px">${error.message}</td></tr>`; return; }
+  if(error){ tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red);font-size:12px">${orgEsc(error.message)}</td></tr>`; return; }
   if(!logs || logs.length===0){ tbody.innerHTML = '<tr><td colspan="4" class="empty-cell">لا يوجد نشاط مسجَّل بعد.</td></tr>'; return; }
 
   const companyNameById = {}; (companies||[]).forEach(c=>{ companyNameById[c.id]=c.name; });

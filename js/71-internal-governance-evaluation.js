@@ -26,7 +26,7 @@ async function loadGovEval(){
     sb.from("policies").select("*").eq("company_id", currentCompanyId),
     sb.from("permission_cells").select("*")
   ]);
-  if(error){ listBox.innerHTML = `<div style="color:var(--red);font-size:12px">تعذّر التحميل: ${error.message}</div>`; return; }
+  if(error){ listBox.innerHTML = `<div style="color:var(--red);font-size:12px">تعذّر التحميل: ${orgEsc(error.message)}</div>`; return; }
   govEvalCache = items || [];
 
   const policiesById = {};

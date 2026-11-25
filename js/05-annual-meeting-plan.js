@@ -26,7 +26,7 @@ async function loadMeetingPlans(){
 
   const { data: plan, error } = await sb.from("meeting_plans").select("*")
     .eq("company_id", currentCompanyId).order("id",{ascending:false}).limit(1).maybeSingle();
-  if(error){ box.innerHTML = `<div class="plan-empty">تعذّر تحميل الخطة (${error.message})</div>`; return; }
+  if(error){ box.innerHTML = `<div class="plan-empty">تعذّر تحميل الخطة (${orgEsc(error.message)})</div>`; return; }
   currentMeetingPlan = plan || null;
 
   if(!currentMeetingPlan){
