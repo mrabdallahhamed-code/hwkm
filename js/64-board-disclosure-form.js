@@ -440,11 +440,34 @@ async function buildMeetingMinutesHTML(meetingId){
   const { data: attendance } = await sb.from("meeting_attendance").select("*").eq("meeting_id", meetingId);
   const byMember = {};
   (attendance||[]).forEach(a => { byMember[a.member_id] = a.status; });
-  const presentCount = (attendance||[]).filter(a => a.status === "حاضر").length;
+  /* الإنابة تُحفظ «إنابة:رقم_النائب» وتُحتسب حضورًا كما في شاشة النصاب (م81/1) */
+  const isProxySt = st => /^إنابة:\d+$/.test(st || "");
+  const presentCount = (attendance||[]).filter(a => a.status === "حاضر" || isProxySt(a.status)).length;
   const totalCount = members.length;
   const pctPresent = totalCount ? (presentCount/totalCount)*100 : 0;
   const threshold = Number(company?.board_quorum_percentage ?? 50);
-  const quorumMet = pctPresent >= threshold;
+  /* لائحة حوكمة الشركات م30/د: ألا يقل الحاضرون عن ثلاثة أعضاء (لمجلس الإدارة) إضافة إلى نسبة النصاب */
+  const quorumMet = pctPresent >= threshold && (m.committee_id || presentCount >= 3 || totalCount < 3);
+
+  /* رقم المحضر: تسلسل اجتماعات الجهة نفسها (المجلس أو اللجنة) في السنة الميلادية نفسها بحسب التاريخ */
+  let minuteNo = "—";
+  try{
+    const yr = String(m.meeting_date || "").slice(0,4);
+    if(yr){
+      let q = sb.from("meetings").select("id,meeting_date").eq("company_id", currentCompanyId).gte("meeting_date", yr+"-01-01").lte("meeting_date", yr+"-12-31");
+      q = m.committee_id ? q.eq("committee_id", m.committee_id) : q.is("committee_id", null);
+      const { data: sameYear } = await q;
+      const sorted = (sameYear||[]).slice().sort((a,b) => String(a.meeting_date).localeCompare(String(b.meeting_date)) || (a.id - b.id));
+      const idx = sorted.findIndex(x => x.id === m.id);
+      if(idx >= 0) minuteNo = (idx+1) + "/" + yr;
+    }
+  }catch(e){}
+
+  /* أسماء الأعضاء بحسب البريد (للمسؤول عن التنفيذ) وبحسب الرقم (لمن أناب عنه) */
+  const { data: allMembers } = await sb.from("board_members").select("id,name,email").eq("company_id", currentCompanyId);
+  const nameById = {}, nameByEmail = {};
+  (allMembers||[]).forEach(x => { nameById[x.id] = x.name; if(x.email) nameByEmail[String(x.email).toLowerCase()] = x.name; });
+  const remoteMode = /عن بُعد/.test(m.method || ""), inPersonMode = /حضوري/.test(m.method || "");
 
   const companyName = document.getElementById("reportCompanyName1")?.textContent || (document.getElementById("companySwitcher")?.selectedOptions[0]?.textContent) || "الشركة";
   const dateNow = new Date().toLocaleDateString("ar-SA-u-ca-gregory");
@@ -452,7 +475,13 @@ async function buildMeetingMinutesHTML(meetingId){
 
   // The attendee list is built directly from the real attendance record (meeting_attendance),
   // never typed by hand — this is the "يكتب فيه أعضاء المجلس الحاضرين" part done automatically.
-  const attendanceRows = members.map((mem,i) => `<tr><td>${i+1}</td><td>${orgEsc(mem.name||"")}</td><td>${orgEsc(mem.position||"—")}</td><td>${byMember[mem.id]||"لم يُسجَّل"}</td></tr>`).join("")
+  const attLabel = (st) => {
+    if(!st) return "لم يُسجَّل";
+    if(isProxySt(st)){ const pid = Number(st.split(":")[1]); return "أناب عنه: " + orgEsc(nameById[pid] || "عضوًا آخر"); }
+    if(st === "حاضر") return remoteMode ? "حاضر عبر الاتصال المرئي" : (inPersonMode ? "حاضر حضوريًا" : "حاضر");
+    return orgEsc(st);
+  };
+  const attendanceRows = members.map((mem,i) => `<tr><td>${i+1}</td><td>${orgEsc(mem.name||"")}</td><td>${orgEsc(mem.position||"—")}</td><td>${attLabel(byMember[mem.id])}</td></tr>`).join("")
     || '<tr><td colspan="4">لا يوجد أعضاء مسجّلون.</td></tr>';
 
   const html = `
@@ -471,6 +500,7 @@ async function buildMeetingMinutesHTML(meetingId){
     <body>
       <h1>محضر اجتماع ${scopeLabel}</h1>
       <p><b>الشركة:</b> ${companyName}</p>
+      <p><b>رقم المحضر:</b> (${minuteNo})</p>
       <p><b>عنوان الاجتماع:</b> ${orgEsc(m.title||"—")}</p>
       <p><b>النوع:</b> ${m.meeting_type||"—"}</p>
       <p><b>التاريخ:</b> ${m.meeting_date||"—"}${timeRange}</p>
@@ -489,14 +519,24 @@ async function buildMeetingMinutesHTML(meetingId){
 
       <h2>ثالثاً: القرارات الصادرة ونتائج التصويت</h2>
       ${(decisions && decisions.length) ? `<table>
-        <thead><tr><th>#</th><th>القرار</th><th>موافق</th><th>معارض</th><th>ممتنع</th><th>النتيجة</th></tr></thead>
+        <thead><tr><th>#</th><th>القرار</th><th>موافق</th><th>معارض</th><th>ممتنع</th><th>النتيجة</th><th>المسؤول عن التنفيذ</th><th>موعد التنفيذ</th></tr></thead>
         <tbody>${decisions.map((d,i) => {
           const votes = (decisionVotes||[]).filter(v => v.decision_id === d.id);
           const yes = votes.filter(v=>v.vote==="موافق").length, no = votes.filter(v=>v.vote==="معارض").length, abs = votes.filter(v=>v.vote==="ممتنع").length;
           const outcome = yes > no ? "معتمد ✅" : "غير معتمد ❌";
-          return `<tr><td>${i+1}</td><td>${orgEsc(d.decision_text)}</td><td>${yes}</td><td>${no}</td><td>${abs}</td><td>${outcome}</td></tr>`;
+          const resp = d.responsible_email ? orgEsc(nameByEmail[String(d.responsible_email).toLowerCase()] || d.responsible_email) : "—";
+          return `<tr><td>${i+1}</td><td>${orgEsc(d.decision_text)}</td><td>${yes}</td><td>${no}</td><td>${abs}</td><td>${outcome}</td><td>${resp}</td><td>${d.target_date ? orgEsc(d.target_date) : "—"}</td></tr>`;
         }).join("")}</tbody>
-      </table>` : `<p>لم تُطرح قرارات للتصويت بهذا الاجتماع.</p>`}
+      </table>
+      ${(() => {
+        /* تثبيت الاعتراض والامتناع وأسبابهما بالاسم (يُثبَّت في المحضر عند الاقتضاء) */
+        const blocks = decisions.map((d,i) => {
+          const dv = (decisionVotes||[]).filter(v => v.decision_id === d.id && (v.vote === "معارض" || v.vote === "ممتنع"));
+          if(!dv.length) return "";
+          return `<li>القرار (${i+1}): ${dv.map(v => `${orgEsc(v.voter_name || v.voter_email || "عضو")} — ${v.vote}${v.justification ? " — السبب: " + orgEsc(v.justification) : ""}`).join("؛ ")}</li>`;
+        }).filter(Boolean).join("");
+        return blocks ? `<h3 style="font-size:13px;color:#1A3A6B;margin-top:14px">اعتراض الأعضاء وامتناعهم وتحفظاتهم</h3><ul>${blocks}</ul>` : `<p style="font-size:12px">لم يُسجَّل اعتراض أو امتناع أو تحفظ على القرارات الصادرة.</p>`;
+      })()}` : `<p>لم تُطرح قرارات للتصويت بهذا الاجتماع.</p>`}
 
       <h2>رابعاً: خاتمة</h2>
       <p>وبعد استكمال بنود جدول الأعمال، اختُتم الاجتماع بتاريخ ${dateNow}.</p>

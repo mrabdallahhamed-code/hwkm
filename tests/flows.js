@@ -1006,6 +1006,53 @@ function ok(name, cond, extra) {
   ok("إخطار التنازل: يبدأ بـ30 يومًا ويتناقص وينتهي ويُغلق، والواجهة موجودة",
      f29.open && f29.expired && f29.closed && f29.left && f29.ui, f29);
 
+  /* ───────── مسار 30) محضر مجلس الإدارة: رقم المحضر والمسؤول والاعتراض وصيغة الحضور ───────── */
+  console.log("مسار 30) محضر مجلس الإدارة");
+  const f30 = await pg.evaluate(async () => {
+    const res = {};
+    __db.companies = [{ id: 1, name: "شركة تجريبية", total_shares: 1000, company_type: "مساهمة غير مدرجة", board_quorum_percentage: 50 }];
+    __db.board_members = [
+      { id: 11, company_id: 1, name: "الرئيس", position: "رئيس المجلس", email: "chair@test.sa" },
+      { id: 12, company_id: 1, name: "عضو ب", position: "عضو", email: "b@test.sa" },
+      { id: 13, company_id: 1, name: "عضو ج", position: "عضو", email: "c@test.sa" },
+      { id: 14, company_id: 1, name: "عضو د", position: "عضو", email: "d@test.sa" },
+    ];
+    __db.meetings = [
+      { id: 100, company_id: 1, title: "الأول", meeting_date: "2026-02-01", method: "حضوري", committee_id: null },
+      { id: 101, company_id: 1, title: "الثاني", meeting_date: "2026-05-01", method: "عن بُعد (حوكم)", committee_id: null },
+      { id: 102, company_id: 1, title: "لجنة", meeting_date: "2026-03-01", method: "حضوري", committee_id: 5 },
+    ];
+    __db.meeting_attendance = [
+      { meeting_id: 101, member_id: 11, status: "حاضر", company_id: 1 },
+      { meeting_id: 101, member_id: 12, status: "إنابة:11", company_id: 1 },
+      { meeting_id: 101, member_id: 13, status: "حاضر", company_id: 1 },
+      { meeting_id: 101, member_id: 14, status: "غائب", company_id: 1 },
+    ];
+    __db.board_decisions = [{ id: 7, company_id: 1, meeting_id: 101, decision_text: "اعتماد الميزانية <b>x</b>", responsible_email: "c@test.sa", target_date: "2026-07-15" }];
+    __db.board_decision_votes = [
+      { decision_id: 7, voter_email: "chair@test.sa", voter_name: "الرئيس", vote: "موافق" },
+      { decision_id: 7, voter_email: "b@test.sa", voter_name: "عضو ب", vote: "معارض", justification: "تحفظ على البند <i>س</i>" },
+      { decision_id: 7, voter_email: "c@test.sa", voter_name: "عضو ج", vote: "ممتنع", justification: "تعارض مصالح" },
+    ];
+    __db.vote_topics = [];
+    currentCompanyId = 1;
+    currentUserProfile = { email: "admin@test.sa", full_name: "المدير" };
+    const r = await buildMeetingMinutesHTML(101);
+    const h = r && r.html || "";
+    res.no = /رقم المحضر:<\/b> \(2\/2026\)/.test(h);                 // الاجتماع الثاني في 2026 للمجلس فقط (اللجنة لا تُحتسب)
+    res.proxy = /أناب عنه: الرئيس/.test(h) && !/إنابة:11/.test(h);
+    res.remote = /حاضر عبر الاتصال المرئي/.test(h);
+    res.quorum = /تحقق النصاب/.test(h);
+    res.resp = /عضو ج<\/td><td>2026-07-15/.test(h);
+    res.dissent = /القرار \(1\):/.test(h) && /عضو ب — معارض — السبب: تحفظ على البند/.test(h) && /عضو ج — ممتنع — السبب: تعارض مصالح/.test(h);
+    res.escaped = !/<b>x<\/b>/.test(h) && !/<i>س<\/i>/.test(h);
+    const r1 = await buildMeetingMinutesHTML(100);
+    res.no1 = /رقم المحضر:<\/b> \(1\/2026\)/.test(r1.html) && /لم يُسجَّل اعتراض/.test(r1.html) === false ? true : /\(1\/2026\)/.test(r1.html);
+    return res;
+  });
+  ok("محضر المجلس: رقم المحضر بالتسلسل، الإنابة تظهر بالاسم، الحضور المرئي، المسؤول والموعد، الاعتراض والامتناع بأسبابهما، وهروب الرموز",
+     f30.no && f30.proxy && f30.remote && f30.quorum && f30.resp && f30.dissent && f30.escaped && f30.no1, f30);
+
   ok("لا أخطاء برمجية أثناء المسارات", errs.length === 0, errs);
   await browser.close();
   console.log(`\nالنتيجة: ${passed} نجح، ${failed} فشل`);
